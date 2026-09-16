@@ -174,6 +174,32 @@ EMITE_HACIA_LA_APP = {
         "que el operario ve de quien es, y no ORIGINA nada: cuenta un hecho ya "
         "ocurrido, no pide ni ordena. Existe porque un puente que revive en silencio "
         "esconde el fallo que hay que contar",
+
+    # 1.51 (16/09) - EL SELLO DE FIRMWARE DEL PUENTE. Revisado a mano, y las tres cosas
+    # que hay que comprobar de una emision se comprobaron sobre el fuente:
+    #
+    #   1. VA A LA APP Y SOLO A LA APP. Sale por puente_emitirPropio() -medido: es la
+    #      unica aparicion de este literal en vigilante.cpp-, y esa funcion escribe por
+    #      transporte_escribir(). Lo que este fichero manda hacia el STM32 sigue siendo
+    #      UNA sola linea, el latido, y eso lo vigila esp32_10 comparando el literal.
+    #   2. LLEVA NODE:PUENTE, asi que no se puede confundir con el sello del CONTROLADOR
+    #      -que lo contesta el STM32 a CMD:VERSION-. Los dos pueden diferir, porque se
+    #      cargan por caminos distintos (SWD contra USB), y eso es un dato, no un error.
+    #   3. NO ORIGINA NADA: cuenta un hecho ya ocurrido -de que commit salio este
+    #      binario-, no pide ni ordena, y su contenido lo fija el PREPROCESADOR
+    #      (version_fw.h), asi que no hay nada que este firmware pueda decidir en marcha.
+    #
+    # POR QUE ES UNA LINEA PROPIA Y NO UN CAMPO DEL PARTE DE ARRIBA, medido: un ",FW:%s"
+    # dentro de ese formato sube a TRES los %s, y esp32_10 reserva -a proposito- el texto
+    # mas largo para cada uno (21 car., PERRO_DE_INTERRUPCION). Su desigualdad pasaria de
+    # 127 a 152 contra un VIGILANTE_PARTE_MAX de 144, cuando el peor caso REAL son 132: el
+    # campo obligaria a AGRANDAR el buffer para cubrir un sello de 21 caracteres que no
+    # puede existir -mide 7, o 13 con la marca de sucio-, y CLAUDE.md 10 dice lo contrario.
+    "$EVENT,NODE:PUENTE,EVT:VERSION,FW:":
+        "el sello de firmware de ESTE modulo, en su propia linea y delante del parte de "
+        "arranque -sin saber que firmware se reinicio, el parte no tiene sujeto-. Cierra "
+        "CLAUDE.md 0.2 por el lado del accesorio: hasta el 16/09 el hash de lo que habia "
+        "dentro solo vivia en la memoria de quien cargo el modulo",
 }
 
 # Literales con '$' que NO son emisiones: reconocimiento y censo. Se listan aparte

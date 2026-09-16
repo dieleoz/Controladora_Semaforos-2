@@ -618,6 +618,16 @@ const DiarioOrdenes = {
       linea: (linea === undefined || linea === null)
              ? null : RegistroCrudo.taparPin(linea),
       salio: e.salio !== false,
+      // ESCRITA SIN ENLACE (roadmap 1.50). El veredicto lo trae QUIEN ENVIA, con su
+      // propio umbral -el mismo que pinta "Sin enlace" en la cabecera-, y aqui no se
+      // recalcula: una segunda cuenta de la misma cosa acaba contestando distinto.
+      //
+      // NO ES LO MISMO QUE sinAntes, y por eso son dos campos. Aquel dice "no puedo
+      // comparar antes y despues"; este dice "no habia nadie al otro lado cuando esto
+      // salio". Se parecen porque los dos miran la edad del ultimo $STATUS, y se separan
+      // porque uno habla del INSTRUMENTO y el otro del EQUIPO.
+      sinEnlace: e.sinEnlace === true,
+      mudoMs: typeof e.mudoMs === 'number' ? e.mudoMs : null,
       motivoNoSalio: e.salio === false
                      ? String(e.motivo || 'la app no dijo por que') : null,
       respuesta: null,
@@ -795,9 +805,18 @@ const DiarioOrdenes = {
              this._seg(this.VENTANA_RESPUESTA_MS) + ' s)';
     }
     if (est === 'SIN_RESPUESTA') {
-      return 'SIN RESPUESTA: el equipo no contesto en ' +
-             this._seg(this.VENTANA_RESPUESTA_MS) + ' s. Eso NO quiere decir que ' +
-             'rechazara la orden: quiere decir que esta app no oyo nada';
+      let s = 'SIN RESPUESTA: el equipo no contesto en ' +
+              this._seg(this.VENTANA_RESPUESTA_MS) + ' s. Eso NO quiere decir que ' +
+              'rechazara la orden: quiere decir que esta app no oyo nada';
+      // Y CUANDO SE SABE POR QUE, SE DICE. Sin esta linea las 24 ordenes mudas del
+      // 16/09 se leen igual que un rechazo, y son otra averia.
+      if (reg.sinEnlace) {
+        s += '. ESCRITA SIN ENLACE: ' + (reg.mudoMs === null
+             ? 'el equipo no habia hablado ni una vez en esta sesion'
+             : 'el equipo llevaba ' + this._seg(reg.mudoMs) + ' s sin hablar') +
+             ' cuando esta orden salio';
+      }
+      return s;
     }
     const r = reg.respuesta;
     let s = RegistroCrudo.escapar(r.linea) + '   (+' + this._seg(r.ms - reg.ms) + ' s)';
@@ -917,7 +936,7 @@ const DiarioOrdenes = {
   contadores(ahora) {
     const t = typeof ahora === 'number' ? ahora : Date.now();
     const c = {
-      ordenes: 0, noSalieron: 0, sinRespuesta: 0, rechazadas: 0,
+      ordenes: 0, noSalieron: 0, sinRespuesta: 0, rechazadas: 0, sinEnlaceAlSalir: 0,
       sinCambio: 0, noSePudoVer: 0, sueltas: 0, enCurso: 0,
       descartados: this.descartados
     };
@@ -925,6 +944,10 @@ const DiarioOrdenes = {
       if (r.clase === 'RESPUESTA_SUELTA') { c.sueltas++; return; }
       c.ordenes++;
       if (!r.salio) { c.noSalieron++; return; }
+      // Se cuenta aparte de sinRespuesta y NO en su lugar: una orden escrita sin enlace
+      // sigue siendo una orden sin respuesta. Lo que anade es el PORQUE, y es el numero
+      // que separa "el equipo no obedecio" de "el equipo no estaba".
+      if (r.sinEnlace) c.sinEnlaceAlSalir++;
       const er = this.estadoRespuesta(r, t);
       if (er === 'SIN_RESPUESTA') c.sinRespuesta++;
       if (er === 'ESPERANDO') c.enCurso++;
@@ -959,11 +982,16 @@ const DiarioOrdenes = {
     l.push('    tramas que llegaron. No significa que el firmware desobedeciera.');
     l.push('  - No ve las luces del poste: ve lo que el equipo dice por $STATUS.');
     l.push('  - No sabe de ordenes dadas desde otro telefono, el mando o los botones.');
+    l.push('  - Pero cuando pone ESCRITA SIN ENLACE si sabe una cosa: que el equipo');
+    l.push('    llevaba segundos sin hablar cuando esa orden salio. Esas NO se pueden');
+    l.push('    leer como un rechazo del equipo, ni como un fallo del firmware.');
     l.push('');
     l.push('RESUMEN');
     l.push('  ordenes anotadas       : ' + c.ordenes);
     l.push('  no llegaron a salir    : ' + c.noSalieron);
     l.push('  sin respuesta          : ' + c.sinRespuesta);
+    l.push('  de esas, ESCRITAS SIN ENLACE: ' + c.sinEnlaceAlSalir +
+           '  (el equipo no hablaba cuando salieron)');
     l.push('  rechazadas por el equipo: ' + c.rechazadas);
     l.push('  no movieron MODO ni ESTADO: ' + c.sinCambio);
     l.push('  efecto que no se pudo ver : ' + c.noSePudoVer);

@@ -146,6 +146,33 @@ COMANDOS_PERMITIDOS = {
     "HORA_ESP32:":      "ajusta el reloj, no las luces: siembra la base de software y "
                         "escribe el diario, y en esta punta ni eso si manda la radio "
                         "(D-26 (3))",
+    # 1.51 (16/09): LA ENTRADA MAS FACIL DE ESTA LISTA, Y SE MIDE IGUAL QUE LAS DIFICILES
+    # -el error de N-83 fue dar por revisado un comando cuyo motivo describia otra cosa, y
+    # eso se comete igual de bien con uno inofensivo-.
+    #
+    # LO QUE HACE, CENSADO EN EL FUENTE Y NO SUPUESTO: las dos ramas de VERSION de
+    # Esclavo/src/bluetooth.cpp contienen UNA sola sentencia cada una, un
+    # enviarTramaConCrc() con un literal entero dentro. No llaman a ninguna funcion del
+    # firmware -ni de ABREN_PASO ni de ninguna otra lista-, no leen ni escriben un estado,
+    # y no anotan en el diario. El contenido del literal lo fija el PREPROCESADOR
+    # (version_fw.h): el sello no se puede alterar en marcha porque no existe en marcha.
+    #
+    # POR QUE ENTRA SIN PIN, con el criterio que ya esta escrito en las dos puntas: "el PIN
+    # guarda lo que ABRE paso o mueve luces". Esto no abre, no para y no cambia; y ademas
+    # se acepta CON PIN, asi que no depende de en que lista la ponga la app.
+    #
+    # 🔴 Y LA PARTE INCOMODA, ESCRITA PORQUE LA HAY: es la unica orden de esta punta que se
+    # atiende sin PIN y CONTESTA. Lo que devuelve es el hash corto de HEAD, o sea que un
+    # tercero con Bluetooth y sin clave puede averiguar que firmware lleva el poste. Se
+    # acepta: ese dato no mueve una luz, y el commit ya viaja en el nombre de cada binario
+    # que sale del repositorio (CLAUDE.md 13). Ocultarlo costaria justo lo que 1.51 compra
+    # -que una foto de campo se pueda atribuir- a cambio de una oscuridad que no protege
+    # nada, porque el firmware esta en un repositorio y no en el poste.
+    "VERSION":          "CONTESTA y no hace nada mas: una sentencia por rama, un literal "
+                        "compuesto por el preprocesador, cero llamadas al firmware y cero "
+                        "estado. No abre, no para y no cambia; entra sin PIN por el mismo "
+                        "criterio que MENU y ALCANCE en el Maestro. Lo que revela -el hash "
+                        "de HEAD- ya viaja en el nombre de cada binario (CLAUDE.md 13)",
 }
 
 

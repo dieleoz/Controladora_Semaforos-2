@@ -13,6 +13,7 @@
 #include "identidad.h"
 #include "botones.h"       // D-13: camara_estado(), la fuente del campo CAM:
 #include "protocolo.h"     // D-23 gemelo: los tres contadores de linea de SFTY-15
+#include "version_fw.h"    // el sello del binario, inyectado por platformio.ini
 #include <string.h>
 #include <stdio.h>
 
@@ -685,12 +686,16 @@ static void procesarComando(const char* cmd) {
 
   // Validación estricta de PIN de 4 dígitos (1234)
   //
-  // OTRAS DOS ORDENES ENTRAN SIN PIN, POR EL MISMO CRITERIO DE ARRIBA: ni MENU ni
+  // OTRAS TRES ORDENES ENTRAN SIN PIN, POR EL MISMO CRITERIO DE ARRIBA: ni MENU ni
   // ALCANCE abren paso -el primero deja el equipo en la pantalla, sin ciclo; el segundo
-  // en rojo fijo-, y el PIN guarda lo que ABRE, no lo que para. Se aceptan tambien con
-  // PIN, igual que FORZAR_ROJO: la app antepone la clave a todo lo que no este en su
-  // lista SIN_PIN, y una orden que solo se aceptara sin PIN seria inalcanzable desde el
-  // celular.
+  // en rojo fijo-, y VERSION no toca nada en absoluto -solo CUENTA lo que este binario
+  // es-, que es el mismo motivo por el que CMD:LEER_RTC entra sin clave en el puente. El
+  // PIN guarda lo que ABRE, no lo que para ni lo que mira. Se aceptan tambien con PIN,
+  // igual que FORZAR_ROJO: la app antepone la clave a todo lo que no este en su lista
+  // SIN_PIN, y una orden que solo se aceptara sin PIN seria inalcanzable desde el
+  // celular. Aceptar LAS DOS formas es ademas lo unico que no depende de en que lista la
+  // ponga la app: en la version es lo primero que se pregunta cuando algo va mal, y un
+  // AUTH_FAILED ahi manda a buscar una clave en vez de a mirar el firmware.
   //
   // Lo que se mueve es DONDE EMPIEZA LA ACCION, no la cadena de comparaciones: las dos
   // formas caen en el mismo strcmp de mas abajo. Una segunda cadena para las ordenes sin
@@ -701,7 +706,8 @@ static void procesarComando(const char* cmd) {
     accion = cmd + 13;
   } else if (strncmp(cmd, "CMD:", 4) == 0 &&
              (strcmp(cmd + 4, "SET_MODO:MENU") == 0 ||
-              strcmp(cmd + 4, "SET_MODO:ALCANCE") == 0)) {
+              strcmp(cmd + 4, "SET_MODO:ALCANCE") == 0 ||
+              strcmp(cmd + 4, "VERSION") == 0)) {
     accion = cmd + 4;
   } else {
     enviarTramaConCrc("$ERR,CMD:AUTH_FAILED,DESC:PIN_INVALIDO");
@@ -940,6 +946,52 @@ static void procesarComando(const char* cmd) {
       // hacen caso.
       enviarTramaConCrc("$ERR,CMD:DEMANDA,DESC:REPITA_EN_UNOS_SEGUNDOS");
     }
+  } else if (strcmp(accion, "VERSION") == 0) {
+    // 1.51 - EL EQUIPO DICE QUE FIRMWARE LLEVA. Ver version_fw.h para el sello.
+    //
+    // POR QUE NO VA EN EL $STATUS, AUNQUE FUERA LO COMODO. MEDIDO: el payload de ese
+    // $STATUS es de 155 B y es EL BORDE DEL CABLE de este proyecto -su propio comentario
+    // lo dice unas lineas mas abajo, y el Esclavo esta en el mismo techo-. Meter el sello
+    // ahi le come el margen a los campos que cambian cada dos segundos para publicar uno
+    // que no cambia NUNCA mientras el equipo esta encendido, y lo publica 43.200 veces al
+    // dia. Va en su propia trama, que sale cuando alguien pregunta.
+    //
+    // NO TOCA NADA Y POR ESO NO PIDE PIN. La guarda de arriba lo acepta por las dos
+    // puertas; el motivo entero esta escrito alli y no se repite.
+    //
+    // LLEVA NODE:, Y ES EL PRIMER $ACK DE ESTA PUNTA QUE LO LLEVA. No es simetria: es que
+    // esta trama esta hecha para VIAJAR SOLA -pegada en un acta, en un diario de campo o
+    // en un mensaje-, y sin el nodo dentro no se puede decir de que poste sale. En los
+    // demas acuses el nodo lo dice el $STATUS que va al lado (app.js lo deja escrito); un
+    // sello sin nodo es exactamente la atribucion que CLAUDE.md 0.2 viene a cerrar, movida
+    // un metro. El parser de la app parte por ',' y luego por el primer ':', asi que un
+    // campo mas entra sin tocar una linea de JavaScript.
+    //
+    // LAS DOS RESPUESTAS LLEVAN SU LITERAL DENTRO DE SU RAMA (N-89). Sacarlas a un
+    // compositor dejaria a los dos bloques sin literal y el pack seguiria verde midiendo
+    // nada. Y la del #else NO es relleno: es lo que contesta un binario compilado sin
+    // sello -sin git, o el arnes de banco que compila este mismo .cpp con g++ de host-, y
+    // es un $ERR y no un $ACK porque CLAUDE.md 2 no admite un OK que no depende de lo que
+    // se pudo componer: el equipo no sabe que firmware lleva, y decirlo con RESULT:OK
+    // seria la mentira con formato de exito.
+    //
+    // NO HAY snprintf NI BUFFER: el sello es un hecho del tiempo de compilacion, asi que
+    // la trama entera es UN literal concatenado por el preprocesador. Por eso aqui no
+    // puede existir el truncado que vigila vigilante_parteDeArranque(): no hay nada que
+    // truncar. La cota -que el literal quepa en el tramaCompleta[160] de
+    // enviarTramaConCrc() con su *XX y su CRLF- la RECALCULA version_01_sello_de_firmware
+    // en cada corrida, leyendo los dos numeros del C++. No se pone un static_assert aqui
+    // porque haria falta un nombre para ese 160, y esp32_07 y esp32_09 leen esa
+    // declaracion por TEXTO -"char tramaCompleta[(\d+)]"-: nombrarla los ABORTA a los dos
+    // (CLAUDE.md 5).
+#if FW_SELLADO
+    enviarTramaConCrc("$ACK,CMD:VERSION,RESULT:OK,NODE:MAESTRO,FW:" FW_TEXTO);
+#else
+    enviarTramaConCrc("$ERR,CMD:VERSION,DESC:SIN_SELLAR,NODE:MAESTRO,FW:" FW_SIN_SELLO);
+#endif
+    // NO se anota en el Diario. Preguntar la version no cambia el equipo, y una linea por
+    // consulta inunda la bitacora donde hay que encontrar el fallo -es el umbral de J17 y
+    // N-73 otra vez-. Lo que queda es la respuesta, que la app ya guarda.
   } else {
     enviarTramaConCrc("$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO");
   }

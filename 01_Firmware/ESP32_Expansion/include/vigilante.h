@@ -133,7 +133,12 @@ void vigilante_censarArranque();
 // mitad y con el checksum calculado sobre otra cosa, que es peor que no mandarla-.
 size_t vigilante_parteDeArranque(char* destino, size_t capacidad);
 
-// Emite el parte hacia la APP -nunca hacia el STM32- una vez por conexion.
+// Emite hacia la APP -nunca hacia el STM32- una vez por conexion DOS lineas: el SELLO de
+// firmware de este modulo (1.51, $EVENT con EVT:VERSION) y detras el parte de arranque. En
+// ese orden, porque sin saber que firmware se reinicio el parte no tiene sujeto; y el sello
+// sale AUNQUE EL PARTE NO QUEPA, porque son dos hechos independientes. El sello del puente
+// no es el del controlador -ese lo contesta el STM32 a CMD:VERSION- y que difieran es un
+// dato, no una incoherencia: se cargan por caminos distintos.
 //
 // ESPERA A QUE HAYA ALGUIEN ESCUCHANDO, y no es cortesia: transporte_escribir()
 // devuelve 0 sin telefono conectado (transporte_app.cpp:59), asi que un parte emitido

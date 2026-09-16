@@ -5,6 +5,7 @@
 #include "puente.h"
 #include "transporte_app.h"
 #include "enlace_stm32.h"
+#include "version_fw.h"
 #include <esp_task_wdt.h>
 #include <esp_system.h>
 #include <stdio.h>
@@ -182,6 +183,50 @@ void vigilante_declarar() {
   // arregla: lo esconde detras de trabajo. Que no quepa es lo que el pack esp32_10
   // impide recalculando la desigualdad en cada corrida.
   parteEmitido = true;
+
+  // =========================================================================
+  // 1.51 - EL SELLO DE ESTE FIRMWARE, Y VA DELANTE DE TODO LO DEMAS.
+  // =========================================================================
+  //
+  // POR QUE AQUI Y NO EN UNA RAMA DEL DESPACHADOR. Lo deja escrito la cabecera de este
+  // mismo modulo y sigue siendo cierto: "esa es la unica forma de preguntarlo que no
+  // anade trafico hacia el STM32 -una linea de comando se reenviaria VERBATIM al equipo
+  // (B-1) y el STM32 contestaria $ERR,CMD:DESCONOCIDO a una pregunta que no era para
+  // el-". Y hay una segunda mitad que decide: si el puente RECLAMARA CMD:VERSION, esa
+  // linea ya no cruzaria -despachador_esParaElPuente() se la queda entera- y entonces el
+  // que no podria contestar seria EL EQUIPO, que es de quien se pregunta la version en
+  // CLAUDE.md 0.2. El accesorio no puede taparle la boca al controlador para hablar el.
+  //
+  // POR QUE EN SU PROPIA LINEA Y NO COMO UN CAMPO DEL PARTE, MEDIDO Y NO SUPUESTO. Un
+  // ",FW:%s" dentro de FORMATO_PARTE sube a TRES los %s, y esp32_10 reserva -a
+  // proposito, y lo dice- el texto MAS LARGO para cada uno sin mirar cual va en cual:
+  // 21 caracteres, que es lo que mide PERRO_DE_INTERRUPCION. Su desigualdad pasaria de
+  // 127 a 152 contra un VIGILANTE_PARTE_MAX de 144, cuando el peor caso REAL con el
+  // sello dentro son 132. O sea que el campo obligaria a AGRANDAR el buffer para cubrir
+  // un sello de 21 caracteres que no puede existir -el sello mide 7, o 13 con la marca
+  // de sucio-, y CLAUDE.md 10 dice justo lo contrario: "no se agrandan buffers". En su
+  // propia linea no hay desigualdad que tocar y esp32_10 sigue midiendo lo que media.
+  //
+  // Y ES UN LITERAL, ASI QUE NO HAY NADA QUE TRUNCAR. El sello es un hecho del tiempo de
+  // compilacion (version_fw.h): el preprocesador concatena la trama entera, no pasa por
+  // snprintf y no hay buffer donde se pueda cortar. Es la unica linea de este fichero
+  // que no necesita la guarda que vigilante_parteDeArranque() si necesita.
+  //
+  // VA PRIMERO PORQUE TODO LO QUE SALGA DETRAS SE ATRIBUYE A EL. El parte dice por que
+  // se reinicio este modulo; sin saber que firmware lo hizo, ese dato no tiene sujeto,
+  // que es exactamente el hueco que 1.51 cierra.
+  //
+  // Y SALE AUNQUE EL PARTE NO QUEPA -por eso esta ANTES del return de abajo-: son dos
+  // hechos independientes, y el caso en que el parte se cae es precisamente el que mas
+  // falta hace poder atribuir a un commit.
+  //
+  // NODE:PUENTE, como el parte: un $EVENT del accesorio que pareciera del STM32 manda a
+  // diagnosticar el poste equivocado. Y ojo al leerlo en campo: este sello es el del
+  // ESP32, NO el del controlador. El del controlador lo contesta el STM32 a CMD:VERSION,
+  // y los dos pueden ser distintos porque se cargan por caminos distintos -SWD contra
+  // USB-: eso no es una incoherencia que arreglar, es un dato.
+  puente_emitirPropio("$EVENT,NODE:PUENTE,EVT:VERSION,FW:" FW_TEXTO);
+
   if (n == 0) return;
 
   // HACIA LA APP Y SOLO HACIA LA APP (B-3). El parte habla del puente, no del equipo, y

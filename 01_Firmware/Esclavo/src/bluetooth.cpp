@@ -8,6 +8,7 @@
 #include "identidad.h"
 #include "botones.h"       // D-13: camara_estado(), la fuente del campo CAM:
 #include "modo_degradado.h"  // N-106: la salida ordenada y sus dos finales
+#include "version_fw.h"    // el sello del binario, inyectado por platformio.ini
 #include <string.h>
 #include <stdio.h>
 
@@ -855,6 +856,27 @@ static void procesarComando(const char* cmd) {
     return;
   }
 
+  // 1.51 - LA VERSION DEL FIRMWARE, SIN PIN. Ver version_fw.h para el sello, y la rama
+  // gemela de mas abajo -con el PIN puesto- para el porque de cada decision de la trama,
+  // que esta escrito UNA sola vez.
+  //
+  // POR QUE ENTRA SIN PIN: no toca nada, solo CUENTA lo que este binario es, y el PIN
+  // guarda lo que ABRE paso o mueve luces. Y las DOS formas se aceptan porque la version
+  // es lo primero que se pregunta cuando algo va mal: un AUTH_FAILED ahi manda a buscar
+  // una clave en vez de a mirar el firmware.
+  //
+  // VA ANTES DE LA GUARDA DE PIN Y DESPUES DEL AMBAR DE EMERGENCIA: el orden de este
+  // fichero es "lo que para la via primero"; una consulta no para nada y no adelanta a
+  // nada.
+  if (strcmp(cmd, "CMD:VERSION") == 0) {
+#if FW_SELLADO
+    enviarTramaConCrc("$ACK,CMD:VERSION,RESULT:OK,NODE:ESCLAVO,FW:" FW_TEXTO);
+#else
+    enviarTramaConCrc("$ERR,CMD:VERSION,DESC:SIN_SELLAR,NODE:ESCLAVO,FW:" FW_SIN_SELLO);
+#endif
+    return;
+  }
+
   // Validación estricta de PIN de 4 dígitos (1234)
   if (strncmp(cmd, "CMD:PIN:1234:", 13) != 0) {
     enviarTramaConCrc("$ERR,CMD:AUTH_FAILED,DESC:PIN_INVALIDO");
@@ -1147,6 +1169,39 @@ static void procesarComando(const char* cmd) {
     // no una promesa del manual.
     enviarTramaConCrc("$ERR,CMD:TEST_LEDS,DESC:NO_EN_SERVICIO_USE_EL_MAESTRO");
     bluetooth_reportarEvento("APP_BLUETOOTH", "TEST_LEDS_RECHAZADO");
+  } else if (strcmp(accion, "VERSION") == 0) {
+    // 1.51 - EL EQUIPO DICE QUE FIRMWARE LLEVA. Ver version_fw.h para el sello.
+    //
+    // POR QUE NO VA EN EL $STATUS. MEDIDO: el payload de ese $STATUS es de 155 B y esta en
+    // el mismo techo que el del Maestro -son los dos el borde del cable-. Meter el sello
+    // ahi le come el margen a los campos que cambian cada dos segundos para publicar uno
+    // que NO CAMBIA NUNCA mientras el equipo esta encendido, 43.200 veces al dia. Va en su
+    // propia trama, que sale cuando alguien pregunta.
+    //
+    // LLEVA NODE:, Y ES EL PRIMER $ACK DE ESTA PUNTA QUE LO LLEVA, porque esta trama esta
+    // hecha para VIAJAR SOLA -pegada en un acta o en un mensaje- y sin el nodo dentro no
+    // se puede decir de que poste sale. Y en ESTE cruce vale el doble: las dos puntas
+    // tienen que llevar la MISMA version (protocolo.h, CMD_HORA_D: un Maestro que no
+    // emita el dia deja al Esclavo sin poder aplicar ninguna hora), y sin el nodo los dos
+    // sellos del mismo poste no se distinguen de dos lecturas del mismo equipo.
+    //
+    // LAS DOS RESPUESTAS LLEVAN SU LITERAL DENTRO DE SU RAMA (N-89), y la del #else es un
+    // $ERR y no un $ACK porque CLAUDE.md 2 no admite un OK que no depende de lo que se
+    // pudo componer: un binario sin sellar NO SABE que firmware lleva, y decirlo con
+    // RESULT:OK seria la mentira con formato de exito.
+    //
+    // NO HAY snprintf NI BUFFER -la trama es un literal concatenado por el preprocesador-,
+    // asi que el truncado que vigila vigilante_parteDeArranque() aqui no puede existir. La
+    // cota contra el tramaCompleta[160] de enviarTramaConCrc() la recalcula
+    // version_01_sello_de_firmware en cada corrida; no se pone un static_assert porque
+    // nombrar ese 160 ABORTA esp32_07 y esp32_09, que leen la declaracion por TEXTO.
+#if FW_SELLADO
+    enviarTramaConCrc("$ACK,CMD:VERSION,RESULT:OK,NODE:ESCLAVO,FW:" FW_TEXTO);
+#else
+    enviarTramaConCrc("$ERR,CMD:VERSION,DESC:SIN_SELLAR,NODE:ESCLAVO,FW:" FW_SIN_SELLO);
+#endif
+    // NO se anota en el Diario: preguntar la version no cambia el equipo, y una linea por
+    // consulta inunda la bitacora donde hay que encontrar el fallo (N-73).
   } else {
     enviarTramaConCrc("$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO_EN_ESCLAVO");
   }

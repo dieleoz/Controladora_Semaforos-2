@@ -46,7 +46,7 @@
 > inyecciones se hicieron sobre el `.cpp` real con restauración verificada por hash.
 >
 > **Compuerta: 18 PASS · 1 FALLA · 0 ABORTADO**, dos pasadas iguales con el árbol quieto. Banco
-> **1411/1412** en 79 packs. **El único rojo es correcto y no se decora** (`CLAUDE.md` §1): es
+> **1459/1460** en 80 packs. **El único rojo es correcto y no se decora** (`CLAUDE.md` §1): es
 > `decisiones_01_anclas` acusando a **`D-22`**, la única decisión vigente sin construir, y **no
 > se cierra con teclado: necesita una tarjeta delante**. Las que este rojo contaba antes ya
 > salieron: `D-23` y `D-33` están construidas, `D-14` no se instala y `D-30` quedó recortada.
@@ -54,7 +54,7 @@
 > 🚚 **15/09 — ENVIADO AL FUNCIONAL: `ca2de3d`.** Es el primer paquete que sale con la ventana ambar-contra-verde
 > cerrada en las dos puntas (`D-34`) y con los tres defectos de `1.49` arreglados: la camara pidiendo paso ya no
 > sostiene el silencio del Maestro, el cristal parado ya no deja reanudar el Degradado y `REINICIAR_RELOJ` no dice
-> OK sin comprobarlo. Compuerta **18 PASS / 1 FALLA (`D-22`) / 0 ABORTADO**, banco 1416/1417, flash 64.0 % y 55.3 %.
+> OK sin comprobarlo. Compuerta **18 PASS / 1 FALLA (`D-22`) / 0 ABORTADO**, banco 1459/1460, flash 64.1 % y 55.4 %.
 > **Se retiran sin mandarse `226ae26` y `622a20b`** (`roadmap` E5). **Nada de esto ha visto una tarjeta todavia.**
 >
 > **LO QUE ESPERA AL RESPONSABLE, hoy:**
@@ -475,16 +475,16 @@ acta es el ESTADO: `decisiones_01_anclas` vuelve a acusar a `D-14`, `D-22` y `D-
 ancla en el fuente, y esa acusación es CORRECTA — están decididas y sin construir.**
 
 Cifras **copiadas del acta
-[`evidencia/2026-09-15_compuerta.txt`](evidencia/2026-09-15_compuerta.txt)**, no escritas a mano —
+[`evidencia/2026-09-16_compuerta.txt`](evidencia/2026-09-16_compuerta.txt)**, no escritas a mano —
 lo comprueban `documentos_01`, `documentos_04` y `documentos_05` en cada corrida.
 
 | | |
 |---|---|
-| Flash | Maestro **64.0 %** (**41912** de 65536 B → **23.624 B libres**) · Esclavo **55.3 %** (36216 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
-| Banco por packs | 🔴 **1416/1417 comprobaciones** en **79 packs** — 78 PASS, **1 FALLA**. 🔴 **Y el rojo es CORRECTO, no es una regresión:** es `decisiones_01_anclas` acusando a **`D-22`**, la única decisión vigente sin ancla en el firmware — y no se construye con teclado: **necesita una tarjeta delante**. Las que este rojo contaba antes ya salieron de la lista: `D-23` y `D-33` están **construidas**, `D-14` **no se instala** (la cámara graba el evento sola en su microSD, 12/09) y `D-30` quedó **recortada** al retirarse el LCD (`D-32` (1)). 🔴 **Que esta cuenta suba no dice que el banco se degrade: dice que se está decidiendo más rápido de lo que se construye, y se arregla con teclado, no tocando el instrumento** |
+| Flash | Maestro **64.1 %** (**42008** de 65536 B → **23.528 B libres**) · Esclavo **55.4 %** (36332 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
+| Banco por packs | 🔴 **1459/1460 comprobaciones** en **80 packs** — 79 PASS, **1 FALLA**. 🔴 **Y el rojo es CORRECTO, no es una regresión:** es `decisiones_01_anclas` acusando a **`D-22`**, la única decisión vigente sin ancla en el firmware — y no se construye con teclado: **necesita una tarjeta delante**. Las que este rojo contaba antes ya salieron de la lista: `D-23` y `D-33` están **construidas**, `D-14` **no se instala** (la cámara graba el evento sola en su microSD, 12/09) y `D-30` quedó **recortada** al retirarse el LCD (`D-32` (1)). 🔴 **Que esta cuenta suba no dice que el banco se degrade: dice que se está decidiendo más rápido de lo que se construye, y se arregla con teclado, no tocando el instrumento** |
 | Arneses que compilan C++ real | ~~287/287 pantalla~~ *(retirado con el LCD, `D-32` (1))* · **75/75** automático · 22/22 ciclo · **122/122 dos puntas** · **71/71 Degradado a dos puntas** |
 | Puente ESP32 | **101/101** |
-| App | **302/302** jsdom · **70/70** funcional · **63/63** unitarios · **75/75** TDD |
+| App | **310/310** jsdom · **70/70** funcional · **63/63** unitarios · **75/75** TDD |
 
 > 🔴 **Qué HEAD y con qué árbol se midió lo dice el acta en su cabecera, y no se copia aquí**: aquí
 > ponía `f27f1a0` cuando el acta citada decía otro. Si dice `CON CAMBIOS SIN COMMITEAR`, sus cifras

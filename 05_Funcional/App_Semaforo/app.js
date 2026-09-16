@@ -315,6 +315,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnSyncRtc = document.getElementById('btn-sync-rtc');
   // A-9: la consulta de SOLO LECTURA. Ver su manejador, mas abajo.
   const btnLeerRtc = document.getElementById('btn-leer-rtc');
+  const btnLeerVersion = document.getElementById('btn-leer-version');
   const rtcSyncDigits = document.getElementById('rtc-sync-digits');
   // N-150: el primer LECTOR que ha tenido nunca state.hora. Ver pintarHoraEquipo().
   const equipoHoraEl = document.getElementById('equipo-hora');
@@ -383,8 +384,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // al micro del semaforo-. Y hay una razon de campo encima: si el reloj esta mal, hay
   // que poder MIRARLO antes de decidir si se toca, no despues de teclear la llave que
   // lo cambia.
+  // VERSION entra por el MISMO criterio que LEER_RTC y por una razon de campo que pesa
+  // mas: es la primera pregunta que se hace cuando algo va raro, y el firmware la acepta
+  // con PIN y sin PIN a proposito. Si aqui fuera con PIN, el equipo contestaria
+  // AUTH_FAILED justo cuando el tecnico intenta averiguar QUE lleva dentro.
   const SIN_PIN = ['FORZAR_ROJO', 'AMBAR_EMERGENCIA', 'SET_MODO:MENU', 'SET_MODO:ALCANCE',
-                   'LEER_RTC'];
+                   'LEER_RTC', 'VERSION'];
 
   // DEVUELVE SI LA ORDEN LLEGO A SALIR, y el que llama TIENE QUE MIRARLO.
   //
@@ -494,6 +499,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const salidaMs = Date.now();
     state.ultimaOrdenMs = salidaMs;
 
+    // SIN ENLACE NO SE CALLA - Y TAMPOCO SE BLOQUEA EL ENVIO (roadmap 1.50).
+    //
+    // El 16/09 en el Sisga se escribieron SEIS CMD:FORZAR_ROJO seguidos a un cable
+    // muerto -11:44:12 a 11:44:25, sin una sola trama de vuelta entre ellos- y la app
+    // solo dijo "sin respuesta", y solo al exportar el diario. El tecnico se fue del
+    // poste creyendo que habia mandado el rojo.
+    //
+    // NO SE BLOQUEA, y es deliberado: el enlace puede volver en el byte siguiente, y
+    // tragarse un FORZAR_ROJO es peor que mandarlo a ciegas. Lo que se arregla es que
+    // el operario lo SEPA en el momento, no al exportar.
+    //
+    // EL BORDE ES TIMEOUT_ENLACE_MS, EL MISMO QUE PINTA "Sin enlace" EN LA CABECERA, y
+    // se reusa a proposito: un umbral propio aqui seria una SEGUNDA respuesta a la misma
+    // pregunta -"habia alguien al otro lado"- y el dia que difieran, la cabecera y el
+    // diario contarian cosas distintas de la misma sesion.
+    const mudoMs = state.ultimoStatusMs ? (salidaMs - state.ultimoStatusMs) : null;
+    const sinEnlace = (mudoMs === null) || (mudoMs > TIMEOUT_ENLACE_MS);
+    if (sinEnlace) {
+      addEvent('red', 'SIN ENLACE al mandar ' + comando + ': se escribio al cable, pero ' +
+        (mudoMs === null
+          ? 'el equipo no ha hablado ni una vez en esta sesion'
+          : 'el equipo lleva ' + Math.round(mudoMs / 1000) + ' s sin hablar') +
+        '. NO se sabe si la orden llego. Repitala cuando el enlace vuelva.');
+    }
+
     // ---- EL REGISTRO DE LO QUE SALE (04/09) -------------------------------
     //
     // LA CINTA SOLO GRABABA LO QUE ENTRA, y eso costo veinte minutos de banco: la
@@ -516,7 +546,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // respuesta del equipo y lo que se vea cambiar despues. Son dos registros porque la
     // cinta se corta a 300 tramas y en una sola sesion de banco se tiraron 379: metiendo
     // los envios dentro, se llena antes y expulsa justo lo que se busca.
-    DiarioOrdenes.anotarOrden(orden, rawCmd, salidaMs);
+    DiarioOrdenes.anotarOrden(orden, rawCmd, salidaMs,
+                              { sinEnlace: sinEnlace, mudoMs: mudoMs });
     renderDepuracion();
     renderDiario();
 
@@ -3576,6 +3607,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // cada consulta y una tabla estatica no puede llevarlo. Lo que dice aqui es lo
     // unico que la RESPUESTA garantiza: que el modulo hablo y que la hora la acaba de
     // releer de su chip.
+    // 1.51. EL TEXTO NO REPITE EL SELLO: ese viaja en el campo FW: de la propia trama y
+    // cambia en cada equipo, asi que una tabla estatica no puede llevarlo -es lo mismo que
+    // A-9 con los tres relojes-. Lo que dice aqui es lo unico que la RESPUESTA garantiza.
+    'VERSION|OK': {
+      tono: 'green',
+      texto: 'Equipo: version contestada. El campo FW de la linea de arriba es el commit ' +
+             'del que salio el firmware que este equipo tiene CARGADO. Si termina en ' +
+             '+SUCIO, ese binario se compilo sobre trabajo sin comitear: el commit NO lo ' +
+             'describe entero y no sirve para acreditar una prueba de banco.',
+      toast: 'Version contestada - vea el campo FW'
+    },
     'LEER_RTC|OK': {
       tono: 'green',
       texto: 'Puente: consulta de reloj contestada. La hora de abajo es la RELEIDA del ' +
@@ -3628,6 +3670,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // salida honesta de todos ellos es la misma -no hay hora que ensenar-, y lo que
     // cambia detras es el arreglo. Es N-144: un cero con forma de hora es peor que un
     // hueco, porque el hueco no engana a nadie.
+    // 1.51. NO ES UNA AVERIA DEL EQUIPO: es un binario que se compilo sin que git pudiera
+    // decir de donde salia -o sin git-. Se dice asi para que nadie mande a revisar cobre.
+    'VERSION|SIN_SELLAR': {
+      texto: 'Equipo: este firmware NO SABE de que commit salio, y lo dice en vez de ' +
+             'inventarlo. Pasa cuando se compilo fuera del repositorio -por ejemplo desde ' +
+             'un .zip descomprimido, que no lleva git dentro-. El equipo funciona igual; lo ' +
+             'que no se puede es atribuir una prueba de banco a un commit. Quien lo compilo ' +
+             'tiene que decir el hash a mano.',
+      toast: 'Firmware sin sellar: no se sabe de que commit salio'
+    },
     'LEER_RTC|NUNCA_SE_PUSO_PONGA_LA_HORA': {
       texto: 'Puente: NO HAY HORA que ensenar en este poste, y no es una averia: es que ' +
              'nadie se la ha puesto todavia desde que el modulo arranco. Se arregla ' +
@@ -5636,6 +5688,27 @@ document.addEventListener('DOMContentLoaded', () => {
                        'nada: ni el reloj, ni una luz, ni un modo. Espere el acuse; si ' +
                        'no llega, este poste no tiene puente ESP32 detras del conector ' +
                        'y su hora no se puede consultar desde aqui.');
+    });
+  }
+
+  // 1.51 - QUE FIRMWARE LLEVA ESTE EQUIPO.
+  //
+  // POR QUE ESTE BOTON EXISTE, medido en campo el 16/09: se exporto una cinta entera del
+  // Maestro del Sisga -80 ordenes y 132 tramas- y NO habia forma de saber que firmware
+  // estaba dentro. El hash solo existia en la memoria de quien cargo la tarjeta, y
+  // CLAUDE.md 0.2 dice que una foto de campo sin ese hash no se lee.
+  //
+  // NO SE PINTA NADA AQUI: lo unico que esta funcion sabe es que la orden salio. El sello
+  // lo escribe el ACUSE, que es el unico que ha visto el binario. Es el mismo criterio
+  // que LEER_RTC de arriba.
+  if (btnLeerVersion) {
+    btnLeerVersion.addEventListener('click', () => {
+      if (!enviarComandoFirmware('VERSION')) return;
+      showToast('Consulta de version enviada');
+      addEvent('cyan', 'CONSULTA DE VERSION enviada a este poste. No cambia nada: ni una ' +
+                       'luz, ni un modo, ni el reloj. Espere el acuse: trae el commit del ' +
+                       'que salio el firmware que hay CARGADO, que no tiene por que ser el ' +
+                       'ultimo que se compilo.');
     });
   }
 

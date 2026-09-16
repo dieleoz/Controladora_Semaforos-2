@@ -769,7 +769,10 @@ function montarAppLimpia() {
   w.document.querySelector('.bt-device-item').click();
   const carga = 'STATUS,NODE:MAESTRO,SERIE:SEM-M-01,MODO:AUTO,ESTADO:V1_R2,T:31,RF:97,RTT:70,BAT:12.9,HORA:14:31:00';
   w._btSubscribeCb(`$${carga}*${xorNmea(carga)}\n`);
-  return { d: w.document, tramas };
+  // La ventana se devuelve tambien: el escenario de 1.50 necesita adelantar su
+  // reloj y leer su DiarioOrdenes. Los llamadores de antes desestructuran lo que
+  // usaban y no se enteran.
+  return { d: w.document, tramas, w };
 }
 
 const limpia = montarAppLimpia();
@@ -2149,6 +2152,58 @@ assert(/ya ha bajado/.test(ultimoEvento()),
 document.getElementById('btn-bt-disconnect').click();
 assert(cartelDom.hidden === true,
   'CAMARA_PLUMA: al caer el enlace el cartel se retira - colgado sobre el poste siguiente mandaria a mirar el brazo que no es');
+
+// ============================================================================
+// (1.50) LA APP DICE QUE ESCRIBIO A UN ENLACE MUERTO - Y SE EXIGEN LAS DOS RESPUESTAS
+// ============================================================================
+//
+// EL CASO REAL, MEDIDO EN CAMPO EL 16/09 EN EL SISGA CON ca2de3d DENTRO. Entre las
+// 11:44:12 y las 11:44:25 se escribieron SEIS "CMD:FORZAR_ROJO" seguidos sin UNA SOLA
+// trama de vuelta entre ellos -56 s sin un $STATUS-, y la app solo dijo "sin respuesta",
+// y solo al exportar el diario. El tecnico se fue del poste creyendo que habia mandado
+// el rojo de emergencia. La app YA tenia el dato: el diario calculaba la edad del ultimo
+// $STATUS para cada orden y la usaba solo para decidir si podia comparar antes y despues.
+// Es CLAUDE.md 6: el dato estaba medido y no lo ejercia nadie.
+//
+// LAS DOS RESPUESTAS SE EXIGEN A PROPOSITO (CLAUDE.md 6.2). Una guarda que avisara
+// SIEMPRE pasaria la mitad (b) igual de bien que la correcta, y dejaria la bitacora
+// gritando "sin enlace" con el equipo hablando -que es como se ensena a no leer los
+// avisos-. Asi que primero se manda con el enlace VIVO y se exige SILENCIO.
+//
+// Y EL RELOJ SE ADELANTA EN VEZ DE TOCAR state.ultimoStatusMs: aquella vive dentro de la
+// IIFE, y lo que hay que medir es que el CAMINO REAL la mire, no que exista.
+const sinE = montarAppLimpia();
+const relojReal = sinE.w.Date.now;
+const eventosSinE = () => Array.from(sinE.d.querySelectorAll('.event-item'))
+                               .map(n => n.textContent.replace(/\s+/g, ' ')).join(' || ');
+
+// --- (a) ENLACE VIVO: montarAppLimpia() acaba de meter un $STATUS, no toca aviso ---
+sinE.tramas.length = 0;
+sinE.d.getElementById('btn-op-emergency').click();
+assert(sinE.tramas.length === 1,
+  `1.50 (a): con enlace vivo el FORZAR_ROJO sale al cable: ${sinE.tramas.join(' | ')}`);
+assert(!/SIN ENLACE al mandar/.test(eventosSinE()),
+  '1.50 (a): y NO se avisa de nada, porque el equipo acaba de hablar');
+assert(/ESCRITAS SIN ENLACE: 0/.test(sinE.w.DiarioOrdenes.aTexto(relojReal())),
+  '1.50 (a): el RESUMEN del diario lo cuenta, y cuenta CERO');
+
+// --- (b) EL EQUIPO CALLADO UN MINUTO: el mismo boton y el mismo camino ---
+const mudoDesde = relojReal() + 60000;
+sinE.w.Date.now = () => mudoDesde;
+sinE.tramas.length = 0;
+sinE.d.getElementById('btn-op-emergency').click();
+assert(sinE.tramas.length === 1,
+  '1.50 (b): LA ORDEN SIGUE SALIENDO - el enlace puede volver en el byte siguiente, y tragarse un FORZAR_ROJO es peor que mandarlo a ciegas');
+assert(/SIN ENLACE al mandar FORZAR_ROJO/.test(eventosSinE()),
+  `1.50 (b): y AHORA si avisa, EN EL MOMENTO y no al exportar: "${eventosSinE().slice(0, 120)}"`);
+assert(/60 s sin hablar/.test(eventosSinE()),
+  '1.50 (b): el aviso trae la MEDIDA -cuanto lleva callado el equipo- y no un adjetivo');
+const diarioMudo = sinE.w.DiarioOrdenes.aTexto(mudoDesde);
+assert(/ESCRITAS SIN ENLACE: 1/.test(diarioMudo),
+  '1.50 (b): el RESUMEN del diario ya cuenta una');
+assert(/ESCRITA SIN ENLACE/.test(diarioMudo),
+  '1.50 (b): y la entrada de ESA orden lo dice, para que no se lea como un rechazo del equipo');
+sinE.w.Date.now = relojReal;
 
 console.log('='.repeat(80));
 console.log(` RESULTADO JSDOM: ${testsPassed} PASS | ${testsFailed} FALLAS`);
