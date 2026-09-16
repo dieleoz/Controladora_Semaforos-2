@@ -102,7 +102,7 @@ publicaba 32 rutas y 86,4 % de flash cuando el acta que ella misma citaba medía
 |---|---|---|
 | guarda de rutas de los instrumentos | ✅ | 63 rutas parseadas, todas existen |
 | banco por packs *(80 packs)* | 🔴 **FALLA** | **1459/1460 comprobaciones en 80 packs** — 79 PASS, **1 FALLA**. 🔴 **Y el rojo es CORRECTO, no es una regresión:** es `decisiones_01_anclas` acusando a **`D-22`**, la única decisión vigente sin ancla en el firmware — y no se construye con teclado: **necesita una tarjeta delante**. Las que este rojo contaba antes ya salieron de la lista: `D-23` y `D-33` están **construidas**, `D-14` **no se instala** (la cámara graba el evento sola en su microSD, 12/09) y `D-30` quedó **recortada** al retirarse el LCD (`D-32` (1)). 🔴 **Que esta cuenta suba no dice que el banco se degrade: dice que se está decidiendo más rápido de lo que se construye, y se arregla con teclado, no tocando el instrumento** |
-| compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **64.1 %** · 55.4 % · 20.6 % · 35.7 % — *el Maestro ocupa **42008 de 65536 B**, o sea **23.528 B libres**; el Esclavo, **36332 B**. El salto de sitio lo dio el 13/09 la retirada del LCD (`D-32` (1)), no una optimización* |
+| compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **64.1 %** · 55.4 % · 20.6 % · 35.7 % — *el Maestro ocupa **42000 de 65536 B**, o sea **23.536 B libres**; el Esclavo, **36324 B**. El salto de sitio lo dio el 13/09 la retirada del LCD (`D-32` (1)), no una optimización* |
 | simulador funcional | ✅ | 9/9 — eran 20, y 11 de aquellas no medían nada: se retiraron una a una con su evidencia |
 | simulador de repetidor | ✅ | 10/10 |
 | compila ESP32 | ✅ | 35.7 % — 1123521 de 3.145.728 B |

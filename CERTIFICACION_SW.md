@@ -46,8 +46,8 @@ Que sigan siendo las del acta más reciente lo comprueba en cada corrida el pack
 
 | Verificación | Resultado medido | Método |
 |---|---|---|
-| Compilación Maestro (STM32F103) | **42008 B de Flash — 64.1 %** de 65536 B (quedan **23528 B**) | `pio run` |
-| Compilación Esclavo (STM32F103) | **36332 B de Flash — 55.4 %** de 65536 B | `pio run` |
+| Compilación Maestro (STM32F103) | **42000 B de Flash — 64.1 %** de 65536 B (quedan **23536 B**) | `pio run` |
+| Compilación Esclavo (STM32F103) | **36324 B de Flash — 55.4 %** de 65536 B | `pio run` |
 | Compilación Repetidor (ESP32) | **270497 B de Flash — 20,6 %** de 1310720 B | `pio run` |
 | Guarda de rutas de los instrumentos | **63 rutas** parseadas, todas existen | `compuerta.py` |
 | Banco de simulación funcional | **9/9 PASS** | `simulador_sistema_v7_6.py` |
@@ -81,8 +81,8 @@ Que sigan siendo las del acta más reciente lo comprueba en cada corrida el pack
 >
 > | publicaba | medido hoy | por qué importa |
 > |---|---|---|
-> | ~~Maestro: 42.620 B (65,0 %)~~ · ~~41800 B (63.8 %)~~ | ~~41228 B (62.9 %)~~ · ~~41328 B (63.1 %)~~ · ~~41880 B (63.9 %)~~ · ~~41912 B (64.0 %)~~ · **42008 B (64.1 %)** | 🔴 **El error grave, y su final.** Quien planificase con el 65 % creería tener **~23 KB libres** cuando quedaban **7136 B**. Los ~23 KB existen desde el 13/09, pero por otro motivo: **se retiró el LCD** (`D-32` (1)). Hoy quedan **23528 B** |
-> | ~~Esclavo: 15.480 B (23,6 %)~~ · ~~36648 B (55.9 %)~~ | ~~35976 B (54.9 %)~~ · ~~36092 B (55.1 %)~~ · ~~36200 B (55.2 %)~~ · ~~36216 B (55.3 %)~~ · **36332 B (55.4 %)** | Casi el triple de ocupación real |
+> | ~~Maestro: 42.620 B (65,0 %)~~ · ~~41800 B (63.8 %)~~ | ~~41228 B (62.9 %)~~ · ~~41328 B (63.1 %)~~ · ~~41880 B (63.9 %)~~ · ~~41912 B (64.0 %)~~ · **42000 B (64.1 %)** | 🔴 **El error grave, y su final.** Quien planificase con el 65 % creería tener **~23 KB libres** cuando quedaban **7136 B**. Los ~23 KB existen desde el 13/09, pero por otro motivo: **se retiró el LCD** (`D-32` (1)). Hoy quedan **23536 B** |
+> | ~~Esclavo: 15.480 B (23,6 %)~~ · ~~36648 B (55.9 %)~~ | ~~35976 B (54.9 %)~~ · ~~36092 B (55.1 %)~~ · ~~36200 B (55.2 %)~~ · ~~36216 B (55.3 %)~~ · **36324 B (55.4 %)** | Casi el triple de ocupación real |
 > | ~~Repetidor: 269.197 B (20,5 %)~~ | **270497 B (20,6 %)** | El acta mide **una** compilación de repetidor, no dos |
 > | ~~Compilación Repetidor diagnóstico: 270.257 B (20,6 %)~~ | — | ⛔ **Retirada.** La compuerta no la mide: publicar una fila sin medida detrás la hace leerse como medida |
 > | ~~Banco funcional 9/9~~ | **9/9** — las 20 de entonces incluian 11 pruebas que no median nada; se retiraron con su evidencia una a una | |
