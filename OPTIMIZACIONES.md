@@ -966,3 +966,22 @@ contrario—. Y en banco: **cortar la energía con la barrera arriba y comprobar
 > `len(luces) >= 6` sobre una lista que devuelve 8, y su control negativo nunca ejerció un pin
 > peatonal—. **Una regla de seguridad que ENUMERA sujetos tiene que comprobar que cada sujeto
 > existe.**
+
+---
+
+## 📱 APP-1 — Usabilidad de la APK en telefono (MEJORA, **NO IMPLEMENTADO**)
+
+Medido el 28/09 con la APK del paquete `1e56d83` (sha256 `a45e6eeb` del .zip) en un ABR_LX3, sin equipo delante;
+capturas por `adb exec-out screencap`. Ninguno toca seguridad; van sobre la ultima de `main` y sin que `app.js` crezca.
+
+1. La lista de conexion mezcla auriculares, coche y decenas de MAC anonimas: el `SEM-*` queda fuera de pantalla.
+   Los `SEM-*` arriba y el resto plegado.
+2. La barra inferior tapa el ultimo boton (AMBAR EMERGENCIA), su texto de ayuda y los botones de Eventos.
+3. Sin enlace, la botonera se ve activa; falta medir que hace al pulsarla sin equipo.
+4. `BATERIA 12V` pinta `-- V` en verde sin dato: va en gris, como el resto de «sin datos».
+5. «AMBAR» y «AMBAR EMERGENCIA» con el mismo icono, uno debajo del otro: la diferencia solo esta en letra pequena.
+6. La hoja de conexion abre a mitad de scroll (cabecera cortada) y el permiso de ubicacion salta sin explicar antes
+   que Android lo exige para buscar Bluetooth.
+7. Menores: `POSTE 1 ·` con punto colgando; `SIN EQUIPO (sin enlace)` mezcla dos fuentes; «NO SE SABE» sin sujeto.
+8. Sin reproducir: una vez la actividad se cerro sola (cierre ordenado, no excepcion) al tocar conexion; la segunda
+   salio el permiso de ubicacion y siguio. Hipotesis: el permiso. Sin medir.
