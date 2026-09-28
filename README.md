@@ -10,12 +10,8 @@
 
 ## 🔴 Lo que este README no puede decirte, y es lo primero
 
-> ▶️ **16/09/2026 — SE ESPERAN LAS TRAMAS DEL FUNCIONAL.** Se le mando
-> `Paquete_Banco_2026-09-16_1889631_SIN_BANCO.zip`. **Por donde se retoma, y que hay que
-> preguntarle a esas tramas ANTES de leerlas, esta en el punto de continuacion de
-> [`ESTADO.md`](ESTADO.md)** — empieza pidiendo la version del firmware, que desde hoy el
-> equipo sabe contestar.
-
+> ▶️ **Donde esta parado el trabajo y por donde se retoma lo dice [`ESTADO.md`](ESTADO.md)**, que se
+> reescribe en cada cierre; aqui no se repite. Lo que paso, en [`HISTORIA.md`](HISTORIA.md) y en `git log`.
 
 **La instalación certificada es `e303485` (V8.4, 31/07/2026).** Lo de debajo llegó a una mesa
 el 3-4/09 y la noche del 04/09 —banco con dos tarjetas; la última cinta, 05/09 22:19, sobre
@@ -27,16 +23,11 @@ ahí, validada por el diff, están en `roadmap.md` §3.16 (`N-162`). 🔴 **Con 
 Maestro 179DB0 se declara en hora con el reloj parado: no se usa el Modo Degradado allí.**
 **Nada de lo arreglado después de la cinta del 05/09 ha pasado un banco.**
 
-| | firmware | instrumento | ratio |
-|---|---|---|---|
-| 28/08 | 8.895 | 8.898 | 1,00 : 1 |
-| 02/09 | **14.976** | **34.532** | **2,31 : 1** |
-| 05-06/09 | — | — | **2,74 : 1** *(acumulado)* |
-
-> **La última medida que hay es el `2,74 : 1` del 05-06/09** (`roadmap_hist.md`, sesión del
-> arquitecto —el roadmap se partió el 07/09 y esa sesión está en el histórico—). Las dos primeras filas son las únicas con sus cifras absolutas escritas; el
-> `2,74` se publicó como ratio y su recuento no quedó anotado, así que **no se le inventa aquí
-> un par de números para rellenar la fila**.
+**La razon lineas de instrumento / lineas de producto la mide el pre-commit en cada commit**
+(`.githooks/trinquete.sh`, contra el techo `RAZON_TECHO` de `.topes`): si sube por encima del techo, el
+commit se para. El techo solo baja, cuando un acta de campo archiva un tema (`CLAUDE.md` §4). Cuenta
+el indice, sin `historico/`, e incluye la app y el ESP32, asi que no se compara con las razones de la
+serie anterior (esa serie, en [`HISTORIA.md`](HISTORIA.md)).
 
 **Tres auditorías externas independientes dijeron lo mismo**, y la tercera lo dijo de la
 respuesta a la segunda. La regla que salió de ahí vive en `CLAUDE.md` §0 y §8:
@@ -410,8 +401,17 @@ cerrar.)*
   `_Automatico/`: los arneses que compilan C++ real. Qué compila cada uno y su punto ciego:
   [`ARQUITECTURA.map`](ARQUITECTURA.map).
 - [`01_Firmware/compuerta.py`](01_Firmware/compuerta.py): **la única forma correcta de
-  verificar** — `19 PASS · 1 FALLA · 0 ABORTADO`, exit code 1. Las cifras están en la tabla de
-  arriba, que se copia del acta; ésta es sólo la puerta.
+  verificar** — `18 PASS · 1 FALLA · 0 ABORTADO`, exit code 1. Las cifras están en la tabla de
+  arriba, que se copia del acta; ésta es sólo la puerta. Qué se corre según lo que se toca (la
+  cadencia) y por qué el simulador está congelado: `CLAUDE.md` §4.
+- [`.githooks/`](.githooks) y [`.topes`](.topes): el pre-commit del método (topes de documentos,
+  ancho, relatos, 500 líneas por fichero de código salvo el firmware grabado) y el trinquete
+  instrumentos/producto. Se activa con `git config core.hooksPath .githooks`.
+- [`.claude/particularidades/`](.claude/particularidades): lo propio de este repo para las skills
+  del plugin `orquestador@diego` (`entregar`, `verificar`) y la mecánica larga de `CLAUDE.md`.
+- `ESTADO.md` es el punto de retomar; `HISTORIA.md`, la crónica; `DECISIONES.md`, lo ya contestado.
+- **Los paquetes no viven en el repo:** salen a `D:\@Proyect\Entregas_Semaforos\`, y los retirados a
+  su `RETIRADOS\`.
 
 > 🛑 **Y para cerrar donde se abrió: nada de este README es un permiso.** En campo corre la
 > **V8.4**; la V9.1 compila y **pasa 18 de las 19 filas de la compuerta — la que falla es el censo de decisiones sin construir, y falla con razón** (`D-22` necesita una tarjeta delante). **Lo que hay hoy en el árbol no ha visto una
