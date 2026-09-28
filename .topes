@@ -1,0 +1,8 @@
+# Topes propios de este proyecto. Los lee .githooks/pre-commit; por defecto, los del método.
+# Cambiar un tope es una decisión de Diego: el motivo va en el mensaje del commit.
+# TOPE_LINEAS[CLAUDE.md]=200
+# TOPE_DOCS_BYTES=400000   # fijado, el presupuesto de documentos rechaza; sin fijar, sólo avisa
+# FECHA_EXCEPTO='(^|/)(pruebas|tests?)/'   # código donde una fecha es un dato
+# FECHA_CODIGO_EXCEPTO='^src/.*version\.h$'   # rutas con constantes de fecha de versión
+CODIGO_EXCEPTO='^01_Firmware/(Maestro|Esclavo|ESP32_Expansion)/src/'   # firmware grabado (rules/modularidad.md)
+# ANCHO_TABLA=600   # caracteres máximos en una fila de tabla ("| ...") añadida a un .md/.map

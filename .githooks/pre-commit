@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Delega en el hook del metodo, en la version del commit que declara la primera linea del CLAUDE.md
+# del proyecto ("<Familia>: <commit> · Metodo: <commit>"): el commit se juzga con la regla que el
+# proyecto dice usar, no con la que haya hoy en el disco del clon. .topes y .claude/familia.conf se
+# siguen leyendo del proyecto. No se edita aqui.
+raiz=$(git rev-parse --show-toplevel 2>/dev/null) || raiz=.
+met="${METODO:-/d/@Proyect/@plugins/pluginMetodo}"
+rel=skills/iniciar-proyecto/hooks/pre-commit
+commit=$(head -1 "$raiz/CLAUDE.md" 2>/dev/null | tr -d '\r' | sed -n 's/.*Metodo: *\([^ ]*\).*/\1/p')
+if [ -n "$commit" ] && git -C "$met" cat-file -e "$commit:$rel" 2>/dev/null; then
+  tmp=$(mktemp -d) && git -C "$met" archive "$commit" | tar -x -C "$tmp" && exec bash "$tmp/$rel"
+fi
+[ -n "$commit" ] && echo "pre-commit: '$commit' no esta en el clon del metodo ($met): uso el HEAD del disco." >&2
+[ -f "$met/$rel" ] && exec bash "$met/$rel"
+echo "pre-commit: no encuentro el hook del metodo en $met (variable METODO). Commit parado." >&2
+exit 1
