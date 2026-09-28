@@ -5,9 +5,8 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 
 ## Por donde se retoma, en este orden
 
-1. **Que documentos van a `05_Funcional/historico/`**: se decide con el responsable sobre el grafo de
-   `D:\@Proyect\Entregas_Semaforos\grafo\` (`REPO.map`, `grafo.html`, `grafo.py`; fuera del repo). Despues: `CRUDAS`
-   en `.topes` para `historico/`, y corregir las 10 citas a lo ya archivado (mas los 201 enlaces rotos de abajo).
+1. **Paquete nuevo a Marco** (`D:\@Proyect\Entregas_Semaforos\`, con `FW_HASH.txt`): sello del firmware, version
+   en los logs, export como adjunto y usabilidad de la APK. Hecho el 28/09; falta que el responsable lo envie.
 2. **Tramas de Marco** (funcional, Maestro `4D2007`): los 17 s del Esclavo (`grep 17000` cero hoy: 21,5 s para
    verde, 25 s para ambar; pista: un arbol V8.4 del 31/07 borrado subia ese silencio a 17.000 ms — puede ser
    firmware viejo), focos solos, y camara con alguien delante (1.54). Pedir version antes de leer nada.
@@ -15,12 +14,11 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 
 ## Frentes abiertos (tres como maximo)
 
-- **Que zip se envio.** El del disco da hoy sha256 `a45e6eeb`; lo anotado al enviarlo era `5edc8055`, y el fichero
-  es de despues. La APK de dentro si casa (`a249e42a`). Preguntar al responsable cual le llego a Marco.
 - **Camaras: `CAM:?` en toda la cinta, pero Marco midio 3,3 V con deteccion y 0 V sin ella** (roadmap 1.54). Falta la
   cinta con alguien delante en modo Inteligente para separar camara de equipo.
-- **201 enlaces rotos en 52 documentos** (grafo en `D:\@Proyect\Entregas_Semaforos\grafo\rotos.txt`); se arreglan en
-  el commit que mueva los documentos a historico. El doble ACK, sin vigilante ni correlacion: roadmap 1.56.
+- **APK `SIN_BANCO` probada en telefono sin equipo** (28/09): export como adjunto, cinta sin ENVIADA falso, atras.
+  Sin medir con enlace: la linea `Firmware:` real y el `CMD:VERSION` automatico. Pendiente menor en `APP-1`
+  (titulo «BOTONERA DE C...» cortado). El doble ACK, sin vigilante ni correlacion: roadmap 1.56.
 
 ## Organizacion del repo por fases (acordada con el arquitecto de plataforma)
 
@@ -44,7 +42,7 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 | Maestro `179DB0` (El Sisga) | `7ff7d12` `SIN_BANCO`, probado despues `b354fe9` | cinta y diario en `evidencia/` |
 | Esclavo del Sisga | sin medir | su cinta no se ha traido |
 | Maestro `4D2007` (Marco) | `1889631` por declaracion: el puente contesto `FW:--` | su cinta |
-| paquete enviado | `1e56d83` `SIN_BANCO` | nadie ha informado de que este cargado |
+| paquete enviado a Marco | `1e56d83` `SIN_BANCO`, zip sha256 `a45e6eeb` | nadie ha informado de que este cargado |
 
 ## Verificacion en escritorio
 
@@ -56,13 +54,19 @@ cabecera con que HEAD y que arbol se midio; las comprueba `documentos_01` en cad
 | Flash | Maestro **64.7 %** · Esclavo **55.4 %** · Repetidor **20.6 %** · ESP32 **35.7 %** |
 | Banco por packs | **1318/1319 comprobaciones** en **70 packs**; el unico FALLA, `D-22`, es correcto: pide una tarjeta delante (`CLAUDE.md` §1) |
 | Arneses de C++ real | 75/75 automatico · 22/22 ciclo · 122/122 dos puntas · 71/71 Degradado a dos puntas |
-| App y puente | **310/310** jsdom · **70/70** funcional · **63/63** unitarios · 75/75 TDD · puente 123/123 |
+| App y puente | **340/340** jsdom · **70/70** funcional · **63/63** unitarios · 85/85 TDD · puente 123/123 |
 
-## Bloqueos que no se cierran con teclado (detalle en roadmap §1 y §4)
+## BLOQUEANTES: lo que no se cierra con teclado (roadmap §1 y §4)
 
-`BAT:--` sin divisor ni entrada analogica (`N-108`) · `J16` p1 con 12 V crudos, se tapa (`N-120`) · entradas de campo
-sin proteger · `Y2` del Maestro `179DB0` no oscila (`C-6`) · la Maestro de sesion 1 muere a los ~30 s (`N-116`) ·
-reinicios del ESP32 del Sisga · nada posterior a `7ff7d12` ha visto cobre con cinta.
+| bloqueo | referencia |
+|---|---|
+| `BAT:--` sin divisor ni entrada analogica | `N-108` |
+| `J16` p1 con 12 V crudos: se tapa en cada equipo | `N-120` |
+| entradas de campo sin proteger; `Y2` del Maestro `179DB0` no oscila | `C-6` |
+| la Maestro de sesion 1 muere a los ~30 s; reinicios del ESP32 del Sisga | `N-116` |
+| nada posterior a `7ff7d12` ha visto cobre con cinta | `CLAUDE.md` §0.2 |
+
+---
 
 ## Dependencias de esta maquina
 
