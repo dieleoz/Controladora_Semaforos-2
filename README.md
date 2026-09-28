@@ -193,10 +193,11 @@ banco sin pasar, eso obliga a separar lo que pide una medida de lo que entrega u
 | | |
 |---|---|
 | **Encargo de banco** | Pide que alguien ponga la tarjeta delante. Lleva los binarios con sus MD5 y los firmware marcados `SIN_VALIDAR` en el propio nombre |
-| **Entrega de versión** | Fuente para PlatformIO + manuales + acta. **Sin `.bin`**: se compila del fuente, así lo que se carga se corresponde con lo que se revisa |
+| **Entrega de versión** | Fuente para PlatformIO + APK + el `.html` de pruebas vigente + `LEEME_PRIMERO.txt`. **Sin `.bin`, sin manuales, sin `.md` y sin acta**; se deja en `D:\@Proyect\Entregas_Semaforos\`, nunca en la raíz |
 
 El `LEEME_PRIMERO` **no abre con la cifra en verde** — abre diciendo qué corre en campo, que esto
-no es eso, y qué sigue roto. El método está en la skill `entregar`.
+no es eso, y qué sigue roto. El método está en `orquestador:entregar` y en
+`.claude/particularidades/entregar.md`.
 
 **Certificado en campo:** 31 de Julio de 2026 *(V8.4, dos radios en enlace directo)*
 **Última actualización del repositorio:** 11 de Septiembre de 2026 *(la cifra vigente y su hash de
