@@ -165,7 +165,7 @@ instrumento y que hay en cada conector · `roadmap.md`/`roadmap_hist.md`, el por
 - Un pack que ejerce una regla lleva `# EJERCE SFTY-x: <que>` en la cabecera, solo si la comprueba de verdad.
 - Un binario se nombra `<producto>_<fecha>_<hash>_SIN_BANCO`; el sufijo lo quita solo quien lo probo en un equipo. Un
   binario nuevo se acredita con `sha256sum`, nunca con su tamano.
-- **Los paquetes salen FUERA del repo, a `D:\@Proyect\Entregas_Semaforos\`; los viejos, a su `RETIRADOS\`.**
+- **Los paquetes salen a `entregas/` (ignorada); los viejos, a `entregas/RETIRADOS/`. Nada fuera del repo.**
 
 ## 14. Lo que nadie recalcula, envejece — y eso incluye las LISTAS
 

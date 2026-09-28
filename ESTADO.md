@@ -5,8 +5,8 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 
 ## Por donde se retoma, en este orden
 
-1. **Paquete nuevo a Marco** (`D:\@Proyect\Entregas_Semaforos\`, con `FW_HASH.txt`): sello del firmware, version
-   en los logs, export como adjunto y usabilidad de la APK. Hecho el 28/09; falta que el responsable lo envie.
+1. **Paquete a Marco** `Paquete_Funcional_2026-09-28_bd2780e_SIN_BANCO.zip` (sha256 `29023007...`): sello, version
+   en logs, export adjunto, usabilidad APK. Al dia con HEAD; el responsable lo pasa a `entregas/` y lo envia.
 2. **Tramas de Marco** (funcional, Maestro `4D2007`): los 17 s del Esclavo (`grep 17000` cero hoy: 21,5 s para
    verde, 25 s para ambar; pista: un arbol V8.4 del 31/07 borrado subia ese silencio a 17.000 ms — puede ser
    firmware viejo), focos solos, y camara con alguien delante (1.54). Pedir version antes de leer nada.
@@ -24,15 +24,12 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 
 | fase | que | estado |
 |---|---|---|
-| 0 | paquetes fuera del repo, en `D:\@Proyect\Entregas_Semaforos\` (viejos en `RETIRADOS\`) | hecha |
+| 0 | paquetes a `entregas/` del repo, ignorada por git (viejos en `entregas/RETIRADOS/`); nada fuera | hecha; lo externo, el responsable |
 | 1 | inventario de instrumentos por requisito de SPEC | hecha; opcion B |
 | 2 | `CLAUDE.md` a 200 lineas sin renumerar; cronica a `HISTORIA.md` | hecha |
 | 3 | plugin `orquestador@diego`, pre-commit del metodo, skills a `.claude/particularidades/` | hecha |
 | 4 | poda B (70 packs), trinquete 1,665 en el pre-commit, `CLAUDE.md` §16.3 retirada | hecha |
 | 5 | lo duplicado Maestro/Esclavo a `lib/` | despues de banco |
-
-> Hallazgo del lint: el LCD/mando (`D-32` (1), `17d3a1f`) se llevo `Validacion_LCD` y 4 packs sin pasar por
-> `banco/historico/`, a diferencia de los otros 10 ese dia. Decide el responsable.
 
 ## Que firmware hay en cada equipo (`CLAUDE.md` §0.2)
 

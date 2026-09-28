@@ -83,7 +83,7 @@ deja el paquete con documentos a medias y el nombre de un commit que no describe
 
 - **Con `zipfile` de Python, nunca `Compress-Archive`**: muere por el `PSModulePath` que la sesion
   del IDE hereda mezclando modulos de PS7 con los de la extension.
-- **Destino: `D:\@Proyect\Entregas_Semaforos\`, nunca la raiz del repo.** El `.zip` no se versiona
+- **Destino: `entregas/` del repo (ignorada), nunca la raiz ni fuera del repo.** El `.zip` no se versiona
   (`.gitignore`) y no se deja suelto donde otro commit lo recoja por accidente.
 - Nombre: `Paquete_Semaforos_<fecha>_<hash>_SIN_BANCO.zip` (o sin el sufijo si el banco ya paso).
 - Antes de comprimir: recuento de artefactos de compilacion (`.pio/`, `build/`, `__pycache__`,

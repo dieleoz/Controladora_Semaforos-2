@@ -58,10 +58,11 @@ def comprobar(z, sellados, sello, Aborta):
 
 
 def destino_de_la_linea():
-    """La carpeta de salida. Los paquetes salen FUERA del repo (CLAUDE.md 13); --destino
-    es para probar."""
+    """La carpeta de salida: entregas/ en la raiz del repo, ignorada por git (CLAUDE.md 13);
+    --destino es para probar."""
+    raiz = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     ap = argparse.ArgumentParser()
-    ap.add_argument("--destino", default=r"D:\@Proyect\Entregas_Semaforos")
+    ap.add_argument("--destino", default=os.path.join(raiz, "entregas"))
     return ap.parse_args().destino
 
 

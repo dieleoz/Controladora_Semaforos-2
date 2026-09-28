@@ -85,11 +85,12 @@ python 01_Firmware/Simulaciones/banco/correr.py   # solo los packs. Sirve para i
 
 | # | tarea | quien | sale | depende de |
 |---|---|---|---|---|
-| 1 | Documentos a `05_Funcional/historico/` con el grafo de `D:\@Proyect\Entregas_Semaforos\grafo\`; despues `CRUDAS` en `.topes` y las 10 citas a lo archivado | responsable + orquestador | lista cerrada y citas sin romper | decision del responsable |
+| 1 | Documentos a `05_Funcional/historico/` con el grafo de `entregas/grafo/` (hoy aun en la carpeta externa; la mueve el responsable); despues `CRUDAS` en `.topes` y las 10 citas a lo archivado | responsable + orquestador | lista cerrada y citas sin romper | decision del responsable |
 | 2 | Tramas de Marco: los 17 s del Esclavo, focos con el Maestro solo, camara con alguien delante (1.54) | funcional | acta de campo | respuesta de Marco |
 | 3 | Fase 5: lo duplicado Maestro/Esclavo a `lib/` | orquestador | un solo fuente por concepto | candidata pasada por banco |
+| 4 | `Validacion_LCD` se llevo 4 packs sin `banco/historico/` (`D-32`); renombrar toca 42 ficheros | responsable | decision | -- |
 
-Fases de organizacion del repo: 0 paquetes fuera del repo · 1 inventarios · 2 `CLAUDE.md` a 200 y `HISTORIA.md` ·
+Fases de organizacion del repo: 0 paquetes a `entregas/` · 1 inventarios · 2 `CLAUDE.md` a 200 y `HISTORIA.md` ·
 3 `orquestador@diego`, pre-commit y skills a `.claude/particularidades/` · 4 poda B y trinquete en el pre-commit ·
 5 `lib/`, despues de banco. De 0 a 4, hechas.
 

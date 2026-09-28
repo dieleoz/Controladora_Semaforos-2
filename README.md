@@ -184,7 +184,7 @@ banco sin pasar, eso obliga a separar lo que pide una medida de lo que entrega u
 | | |
 |---|---|
 | **Encargo de banco** | Pide que alguien ponga la tarjeta delante. Lleva los binarios con sus MD5 y los firmware marcados `SIN_VALIDAR` en el propio nombre |
-| **Entrega de versión** | Fuente para PlatformIO + APK + el `.html` de pruebas vigente + `LEEME_PRIMERO.txt`. **Sin `.bin`, sin manuales, sin `.md` y sin acta**; se deja en `D:\@Proyect\Entregas_Semaforos\`, nunca en la raíz |
+| **Entrega de versión** | Fuente para PlatformIO + APK + el `.html` de pruebas vigente + `LEEME_PRIMERO.txt`. **Sin `.bin`, sin manuales, sin `.md` y sin acta**; se deja en `entregas/` (ignorada por git), nunca en la raíz |
 
 El `LEEME_PRIMERO` **no abre con la cifra en verde** — abre diciendo qué corre en campo, que esto
 no es eso, y qué sigue roto. El método está en `orquestador:entregar` y en
@@ -414,8 +414,8 @@ cerrar.)*
 - [`.claude/particularidades/`](.claude/particularidades): lo propio de este repo para las skills
   del plugin `orquestador@diego` (`entregar`, `verificar`) y la mecánica larga de `CLAUDE.md`.
 - `ESTADO.md` es el punto de retomar; `HISTORIA.md`, la crónica; `DECISIONES.md`, lo ya contestado.
-- **Los paquetes no viven en el repo:** salen a `D:\@Proyect\Entregas_Semaforos\`, y los retirados a
-  su `RETIRADOS\`.
+- **Los paquetes no se versionan:** salen a `entregas/` (ignorada por git), y los retirados a
+  `entregas/RETIRADOS/`.
 
 > 🛑 **Y para cerrar donde se abrió: nada de este README es un permiso.** En campo corre la
 > **V8.4**; la V9.1 compila y **pasa 18 de las 19 filas de la compuerta — la que falla es el censo de decisiones sin construir, y falla con razón** (`D-22` necesita una tarjeta delante). **Lo que hay hoy en el árbol no ha visto una

@@ -93,3 +93,6 @@ deep_sort/
 
 # Herramientas de fabricante descargadas: no se versionan (69 MB de instalador)
 04_Manuales/SADP*/
+
+# --- Paquetes de entrega: salen aqui y no se versionan (CLAUDE.md 13)
+entregas/
