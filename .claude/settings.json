@@ -1,0 +1,6 @@
+{
+  "enabledPlugins": {
+    "orquestador@diego": true,
+    "metodo@diego": true
+  }
+}
