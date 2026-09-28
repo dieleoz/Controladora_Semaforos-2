@@ -969,7 +969,11 @@ contrario—. Y en banco: **cortar la energía con la barrera arriba y comprobar
 
 ---
 
-## 📱 APP-1 — Usabilidad de la APK en telefono (MEJORA, **NO IMPLEMENTADO**)
+## 📱 APP-1 — Usabilidad de la APK en telefono (MEJORA, **IMPLEMENTADO salvo 3, 8 y 9**)
+
+Hecho en `7e6989b` y `94a3e2d`, validado en el mismo telefono el 28/09 (APK `8c921692`): 1, 2, 4, 5, 6, 7, mas
+pestanas sin partir, atras de Android y la cinta sin ENVIADA falso. Quedan 3 (botonera activa sin enlace: pide
+decision), 8 (sin reproducir) y 9: con el chip «Poste sin identificar» el titulo se corta en «BOTONERA DE C...».
 
 Medido el 28/09 con la APK del paquete `1e56d83` (sha256 `a45e6eeb` del .zip) en un ABR_LX3, sin equipo delante;
 capturas por `adb exec-out screencap`. Ninguno toca seguridad; van sobre la ultima de `main` y sin que `app.js` crezca.
