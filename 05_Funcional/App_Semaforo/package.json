@@ -7,7 +7,6 @@
     "start": "npx serve .",
     "test": "node tests/test_unitarios.js",
     "test:unit": "node tests/test_unitarios.js",
-    "test:e2e": "node tests/test_e2e_visual.js",
     "sync": "npx cap sync android",
     "build:apk": "android\\compilar_apk.bat"
   },

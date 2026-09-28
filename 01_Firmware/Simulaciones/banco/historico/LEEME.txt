@@ -1,0 +1,19 @@
+PACKS ARCHIVADOS DEL BANCO (28/09/2026, poda "opcion B")
+
+correr.py solo descubre banco/packs/: nada de esta carpeta corre ni cuenta. La guarda de
+rutas de compuerta.py tampoco la censa. No se borro nada: git mv, historia intacta.
+Se archiva lo que no media firmware o lo que un arnes C++ real ya ejerce; cada modelo se
+comprobo con un mutante inyectado en el .cpp real antes de sacarlo.
+costura_06_reanudacion salio y VOLVIO a packs/: quitar respaldo_hayCiclo() de la puerta
+de reanudacion del Esclavo solo lo caza ese pack; ningun arnes reanuda sin ciclo en la pila.
+
+costura_02_fase_ciclo.py        - barrido Python de la fase del Degradado y "el Esclavo guarda el byte tal cual". Sale: mutante "Esclavo duplica el despeje" lo cazan compilar_dos_puntas (D1,G10) y compilar_degradado (B4,B5,C2). costura_12 aun lee este fichero por ruta.
+costura_04_config.py            - un ACK por par de configuracion. Sale: mutante "Esclavo no acusa" lo cazan costura_03 y los dos arneses de dos puntas; el mutante "acusa tambien VERDE" no lo cazaba ni este pack (mira config_rxVerde, no la rama de main.cpp).
+costura_07_motivos_rechazo.py   - tabla de motivos de rechazo para el manual y LIMITE_*_H derivado de _MS. Sale: sirve a documentacion; un limite cambiado lo cazan costura_05 y compilar_degradado (D2).
+costura_11_lcd_sin_bus.py       - que la LCD no mueva el bus J17. Sale: sujeto retirado por D-32(1).
+documentos_02_trazabilidad_sfty.py - tabla SFTY->pack de OPTIMIZACIONES.md contra las etiquetas # EJERCE. Sale: solo documento; la tabla queda sin vigilante.
+documentos_04_cifras_sin_vigilante.py - cifras de manuales y CERTIFICACION_SW.md contra el acta. Sale: solo documento; las cifras de manuales quedan sin vigilante.
+documentos_05_copias_coherentes.py - README/ESTADO/CERTIFICACION coherentes entre si. Sale: solo documento.
+documentos_06_no_reabre_lo_cerrado.py - sujetos muertos que reaparecen en documentos vivos (CLAUDE.md 16.3). Sale: solo documento; CLAUDE.md 16.3 lo sigue nombrando.
+enlace_02_silencio_j17.py       - registro de silencio de J17. Sale: el propio pack dice que sus numeros no significan nada hasta decidir AB-1.
+maestro_05_ciclo_sin_radio.py   - barrido Python del ciclo del Maestro y desigualdad deriva/limite. Sale: su fase es una copia Python que no mira el C++; mutante "limite duro a 60 h" lo cazan costura_05 y compilar_degradado (D2).

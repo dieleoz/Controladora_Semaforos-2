@@ -131,9 +131,15 @@ def censo_de_rutas():
     # banco/modelos, y un censo que mirase solo Simulaciones/*.py caeria a 4 rutas.
     # El suelo de abajo lo detecto y aborto, que es su trabajo; pero la guarda tiene
     # que mirar donde estan los instrumentos de hoy, no donde estaban ayer.
-    fuentes = sorted(glob.glob(os.path.join(RAIZ, "Simulaciones", "*.py"))
+    # EL BORDE: banco/historico/ se EXCLUYE. Un pack archivado no corre, asi que no mide
+    # nada; si sus rutas siguieran censadas, retirar un fuente que solo el citaba (lcd.cpp
+    # en costura_11) abortaria la compuerta por un instrumento que ya no existe.
+    historico = os.path.join(RAIZ, "Simulaciones", "banco", "historico") + os.sep
+    fuentes = sorted(f for f in
+                     glob.glob(os.path.join(RAIZ, "Simulaciones", "*.py"))
                      + glob.glob(os.path.join(RAIZ, "Simulaciones", "banco", "**", "*.py"),
-                                 recursive=True))
+                                 recursive=True)
+                     if not f.startswith(historico))
     if not fuentes:
         anotar("guarda de rutas", ABORTADO, "no se encontro ningun validador que censar")
         return
