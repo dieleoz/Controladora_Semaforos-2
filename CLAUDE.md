@@ -190,8 +190,8 @@ tarjeta cargada), salvo los `.html` de campo. Como se escribe una spec: `metodo.
 
 La medida de §8 se recalcula antes de cada tanda. Un fichero base (`DECISIONES.md`, `OPTIMIZACIONES.md`,
 `05_Funcional/17_...`, `roadmap.md`, `ESTADO.md`, `ARQUITECTURA.map`, `README.md`) no pasa de 1.000 lineas: se PARTE y
-la cronica va literal a su `_hist` con las dos cuentas. Un sujeto muerto se mata en `documentos_06_no_reabre_lo_cerrado`
-el mismo dia. Archivar en `99_Legacy/` registra una BAJA (`D`, nunca `R`): `metodo.md` §16.
+la cronica va literal a su `_hist` con las dos cuentas. ~~Un sujeto muerto va a `documentos_06`~~: retirado el 28/09
+con su pack; cubre ese caso leer `DECISIONES.md` antes de lanzar (§11.1). Archivar: `metodo.md` §16.
 ## 17. Un ABORTADO del worktree no es una medida, y una fila del roadmap no es una causa
 
 1. Un worktree de agente no tiene `node_modules` y aborta «app ejecutada en DOM» y «simulador del puente ESP32». La

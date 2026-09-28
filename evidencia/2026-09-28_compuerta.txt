@@ -1,7 +1,7 @@
 ACTA DE VERIFICACION - Controladora de Semaforos
 ==============================================================================
 Fecha        : 2026-09-28
-HEAD         : ff921e0   rama: main
+HEAD         : 935050c   rama: main
 Arbol        : CON CAMBIOS SIN COMMITEAR
 Modo         : completo
 PlatformIO   : PlatformIO Core, version 6.1.19
@@ -10,10 +10,10 @@ GCC de host  : gcc.exe (MinGW-W64 x86_64-ucrt-posix-seh, built by Brecht Sanders
 RESULTADOS
 ------------------------------------------------------------------------------
   PASS      guarda de rutas                   63 rutas parseadas, todas existen
-  PASS      compila maestro                   Flash: [======    ]  64.7% (used 42380 bytes from 65536 bytes)
-  PASS      compila esclavo                   Flash: [======    ]  55.4% (used 36336 bytes from 65536 bytes)
+  PASS      compila maestro                   Flash: [======    ]  64.7% (used 42372 bytes from 65536 bytes)
+  PASS      compila esclavo                   Flash: [======    ]  55.4% (used 36328 bytes from 65536 bytes)
   PASS      compila repetidor                 Flash: [==        ]  20.6% (used 270497 bytes from 1310720 bytes)
-  PASS      compila esp32                     Flash: [====      ]  35.7% (used 1123581 bytes from 3145728 bytes)
+  PASS      compila esp32                     Flash: [====      ]  35.7% (used 1123565 bytes from 3145728 bytes)
   PASS      simulador funcional               VEREDICTO FINAL: 9/9 PASS (SISTEMA V8.0 DEFINITIVA CERTIFICADO)
   PASS      simulador de repetidor            RESULTADO: 10/10 PASS
   PASS      simulador de app y bluetooth      RESULTADO GLOBAL: 12/12 comprobaciones PASS (app movil vs firmware Bluetooth)
@@ -21,7 +21,7 @@ RESULTADOS
   PASS      test unitarios de la app          RESUMEN DE PRUEBAS: 63 PASS | 0 FALLAS  (Total: 63)
   PASS      test unitarios TDD de la app      RESUMEN TDD: 75 PASS | 0 FALLAS  (Total: 75)
   PASS      app ejecutada en DOM              RESULTADO JSDOM: 310 PASS | 0 FALLAS
-  FALLA     banco por packs                   RESUMEN: 1469/1470 comprobaciones  |  packs: 79 PASS, 1 FALLA, 0 ABORTADO
+  FALLA     banco por packs                   RESUMEN: 1318/1319 comprobaciones  |  packs: 69 PASS, 1 FALLA, 0 ABORTADO
   PASS      arnes del ciclo                   RESULTADO: 22/22 comprobaciones OK
   PASS      arnes del respaldo                respaldo.cpp y respaldo.h identicos entre puntas | arnes vivo (PING/PONG)
   PASS      arnes del automatico              RESULTADO: 75/75 comprobaciones OK
@@ -32,8 +32,8 @@ RESULTADOS
   RESUMEN: 18 PASS | 1 FALLA | 0 ABORTADO
 
 ABORTADO no es PASS: una comprobacion que no pudo correr no dice nada del
-firmware. Esta acta se verifica volviendo a ff921e0 y re-corriendo
+firmware. Esta acta se verifica volviendo a 935050c y re-corriendo
 python 01_Firmware/compuerta.py.
 
 AVISO: el arbol tenia cambios sin commitear al medir. Estas
-cifras NO corresponden exactamente a ff921e0.
+cifras NO corresponden exactamente a 935050c.

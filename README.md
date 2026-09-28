@@ -108,7 +108,7 @@ publicaba 32 rutas y 86,4 % de flash cuando el acta que ella misma citaba medía
 | Comprobación | Estado | |
 |---|---|---|
 | guarda de rutas de los instrumentos | ✅ | 63 rutas parseadas, todas existen |
-| banco por packs *(80 packs)* | 🔴 **FALLA** | **1469/1470 comprobaciones en 80 packs** — 79 PASS, **1 FALLA**. 🔴 **Y el rojo es CORRECTO, no es una regresión:** es `decisiones_01_anclas` acusando a **`D-22`**, la única decisión vigente sin ancla en el firmware — y no se construye con teclado: **necesita una tarjeta delante**. Las que este rojo contaba antes ya salieron de la lista: `D-23` y `D-33` están **construidas**, `D-14` **no se instala** (la cámara graba el evento sola en su microSD, 12/09) y `D-30` quedó **recortada** al retirarse el LCD (`D-32` (1)). 🔴 **Que esta cuenta suba no dice que el banco se degrade: dice que se está decidiendo más rápido de lo que se construye, y se arregla con teclado, no tocando el instrumento** |
+| banco por packs *(70 packs)* | 🔴 **FALLA** | **1318/1319 comprobaciones en 70 packs** — 69 PASS, **1 FALLA**. El rojo es CORRECTO: `decisiones_01_anclas` acusa a **`D-22`**, la única decisión vigente sin construir, y **necesita una tarjeta delante** (`CLAUDE.md` §1: no se decora) |
 | compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **64.7 %** · 55.4 % · 20.6 % · 35.7 % — *el Maestro ocupa **42380 de 65536 B**, o sea **23.156 B libres**; el Esclavo, **36336 B**. El salto de sitio lo dio el 13/09 la retirada del LCD (`D-32` (1)), no una optimización* |
 | simulador funcional | ✅ | 9/9 — eran 20, y 11 de aquellas no medían nada: se retiraron una a una con su evidencia |
 | simulador de repetidor | ✅ | 10/10 |
@@ -170,7 +170,7 @@ publicaba 32 rutas y 86,4 % de flash cuando el acta que ella misma citaba medía
 > algo que el auditor re-corre sobre ese mismo commit. Estado de hoy en
 > [`ESTADO.md`](ESTADO.md); reglas permanentes en [`CLAUDE.md`](CLAUDE.md).
 
-### 📦 El banco son 80 packs — y eso NO es una medalla
+### 📦 El banco son 70 packs — y eso NO es una medalla
 
 ```
 python 01_Firmware/Simulaciones/banco/correr.py --listar
