@@ -87,7 +87,7 @@
         <div class="dual-semaforos">
           <!-- Semáforo 1 (Maestro) -->
           <div class="semaforo-col">
-            <div class="semaforo-label">POSTE 1 · MAESTRO</div>
+            <div class="semaforo-label"><span>POSTE 1</span> <span class="semaforo-rol">MAESTRO</span></div>
             <div class="semaforo-housing">
               <div class="lamp red" id="s1-red"></div>
               <div class="lamp amber" id="s1-amber"></div>
@@ -127,7 +127,7 @@
 
           <!-- Semáforo 2 (Esclavo) -->
           <div class="semaforo-col">
-            <div class="semaforo-label">POSTE 2 · ESCLAVO</div>
+            <div class="semaforo-label"><span>POSTE 2</span> <span class="semaforo-rol">ESCLAVO</span></div>
             <div class="semaforo-housing">
               <div class="lamp red" id="s2-red"></div>
               <div class="lamp amber" id="s2-amber"></div>
@@ -266,7 +266,7 @@
                SABE y lo escribe actualizarMandosDePunta() con lo que declara NODE: en
                el $STATUS. Sin $STATUS se queda en NO SE SABE: no se deduce el poste
                por descarte. -->
-          <span class="pad-poste pad-poste-sindato" id="pad-poste">NO SE SABE</span>
+          <span class="pad-poste pad-poste-sindato" id="pad-poste" title="No se sabe a que poste esta conectado">POSTE: ?</span>
         </div>
 
         <div class="operario-grid">
@@ -315,8 +315,10 @@
             </div>
           </button>
 
+          <!-- APP-1.5: el icono NO es el del AMBAR de arriba. Los dos iban uno debajo del
+               otro con el mismo circulo y la diferencia solo estaba en la letra pequena. -->
           <button class="pad-btn btn-amber-emergency" id="btn-op-ambar-emergencia">
-            <span class="pad-icon">🟡</span>
+            <span class="pad-icon">⚠️</span>
             <div class="pad-text">
               <strong>ÁMBAR EMERGENCIA</strong>
               <small id="emergencia-esclavo-sub">POSTE 2 · intermitente, talanquera ABIERTA</small>
@@ -405,7 +407,7 @@
             <span class="metric-icon">🔋</span>
             <span class="metric-label">BATERÍA 12V</span>
           </div>
-          <div class="metric-value green" id="bat-voltage">-- V</div>
+          <div class="metric-value" id="bat-voltage">-- V</div>
           <div class="metric-sub" id="bat-status">Sin datos del equipo</div>
           <div class="progress-bar-wrap">
             <div class="progress-bar green" id="bat-prog" style="width: 0%;"></div>
@@ -958,6 +960,12 @@
         <button class="modal-close" id="modal-bt-close">✕</button>
       </div>
       <p class="modal-desc">Módulo Bluetooth del poste:</p>
+      <!-- APP-1.6: el permiso de ubicacion saltaba sin explicar. Lo pide el plugin al buscar
+           los NO emparejados (discoverUnpaired); la app no lee la posicion. -->
+      <p class="modal-desc bt-aviso-permiso" id="bt-aviso-permiso">
+        Si Android pide permiso de <strong>Ubicación</strong> o <strong>Dispositivos
+        cercanos</strong>: lo exige para buscar equipos Bluetooth. La app no lee su posición.
+      </p>
 
       <div class="bt-pin-select">
         <span class="bt-pin-label">PIN de autorizacion del equipo:</span>
@@ -1110,6 +1118,7 @@
   <script src="js/diario_vista.js"></script>
   <script src="js/lista_equipos.js"></script>
   <script src="js/exportar.js"></script>
+  <script src="js/telefono.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

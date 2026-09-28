@@ -2158,3 +2158,49 @@ body {
    este recuadro que la app se permite senalar por su cuenta. */
 .diag-rf-delta.diag-rf-mudo { color: var(--red-text); font-weight: 700; }
 .diag-rf-pie { font-size: 10px; color: var(--text-muted); line-height: 1.45; margin: 6px 0 0; }
+
+/* ==========================================================================
+   APP-1 (OPTIMIZACIONES.md): lo medido en un telefono real, viewport CSS 320x647.
+   Solo aspecto: ningun boton cambia lo que hace.
+   ========================================================================== */
+
+/* 1.2 LA BARRA DE ABAJO NO TAPA EL ULTIMO BOTON. El hueco inferior lo mide
+   js/telefono.js sobre la barra pintada (distancia de su borde de arriba al fondo de
+   la pantalla, zona segura incluida, mas 12 px) y lo deja en --hueco-barra. Sin JS
+   queda el hueco de siempre mas la zona segura del sistema. La barra se separa del
+   borde tambien por encima de esa zona. */
+body { padding-bottom: var(--hueco-barra, calc(90px + env(safe-area-inset-bottom, 0px))); }
+.bottom-nav { bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
+
+/* G. Cinco pestanas en 320 px partian "Evento/s" y "Tiempo/s" por el overflow-wrap de
+   arriba. Un rotulo no se parte: se le quita relleno lateral y se estrecha la letra. */
+@media (max-width: 400px) {
+  .nav-item { padding: 6px 1px; }
+  .nav-label { overflow-wrap: normal; white-space: nowrap; letter-spacing: -0.3px; }
+}
+
+/* 1.4 BATERIA SIN DATO EN GRIS, como el resto de "sin datos"; app.js le pone .green
+   solo cuando la trama trae una medida. */
+#bat-voltage:not(.green) { color: var(--enlace-sindato); }
+
+/* 1.6 LA HOJA DE CONEXION ABRE ARRIBA. Con align-items:center una hoja mas alta que la
+   pantalla se desbordaba por ARRIBA, donde no se puede desplazar: la cabecera quedaba
+   cortada. Ahora el fondo desplaza y el margen automatico centra solo si cabe. */
+.modal-overlay { align-items: flex-start; overflow-y: auto; }
+.modal-card { margin: auto 0; }
+.bt-aviso-permiso { font-size: 10px; color: var(--text-muted); margin-bottom: 10px; }
+
+/* 1.1 Los SEM-* a la vista; el resto plegado bajo "Otros dispositivos (N)". */
+.bt-otros > summary {
+  cursor: pointer; font-size: 11px; font-weight: 700; color: var(--text-secondary);
+  padding: 8px 2px; list-style-position: inside;
+}
+.bt-otros > .bt-device-item + .bt-device-item, .bt-otros > summary + .bt-device-item { margin-top: 8px; }
+
+/* 1.7 "POSTE 1 <punto> MAESTRO" partia en "POSTE 1 <punto>" / "MAESTRO" a 320 px. Sin punto y en
+   dos piezas que no se parten: si no caben en una linea, bajan enteras. Una linea fija
+   de mas empujaria la botonera bajo la barra (herramientas_medir_pulsables.js a 320x568).
+   Y "SIN EQUIPO (sin enlace)" en una sola fuente. */
+.semaforo-label span { display: inline-block; white-space: nowrap; }
+.semaforo-label .semaforo-rol { font-weight: 600; opacity: 0.8; }
+.rssi-text { font-family: var(--font-sans); }

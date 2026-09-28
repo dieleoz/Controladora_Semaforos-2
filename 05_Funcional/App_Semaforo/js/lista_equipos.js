@@ -31,18 +31,47 @@ const ListaEquipos = (() => {
     return { letra: m ? m[1] : '', virgen: false };
   }
 
+  // APP-1.1: EL MODULO DEL POSTE SE PERDIA ENTRE AURICULARES, EL COCHE Y DECENAS DE MAC
+  // SIN NOMBRE. Los que se anuncian con ROTULO_PREFIJO "SEM-" (contrato.h) van arriba y
+  // a la vista; el resto se pliega bajo "Otros dispositivos (N)" y sigue pulsable, porque
+  // un modulo con otro nombre (un HC-05 de banco) tambien es conectable. Sin ningun SEM-
+  // a la vista el plegado sale ABIERTO: esconderlo todo seria esconder el unico candidato.
+  // Si el tecnico lo abre o lo cierra, se respeta en los repintados siguientes.
+  const esSem = (eq) => /^SEM-/.test(eq.nombre);
+  const esAnonimo = (eq) => eq.nombre === eq.mac;   // sin nombre: pintarEquipos() pone el MAC
+  let plegadoElegido = null;
+
   function repintarEquipos(btDeviceListContainer, equiposVistos, notaLista) {
     if (!btDeviceListContainer) return 0;
     btDeviceListContainer.innerHTML = '';
     let pintados = 0;
     // Los emparejados arriba: son los que conectan de un toque. Dentro de cada grupo, por
     // nombre, para que dos modulos hermanos caigan juntos y la letra final quede una
-    // debajo de otra, que es donde se ve la diferencia.
+    // debajo de otra, que es donde se ve la diferencia. Los anonimos, al final de todo.
     const orden = Array.from(equiposVistos.values()).sort((a, b) => {
+      if (esAnonimo(a) !== esAnonimo(b)) return esAnonimo(a) ? 1 : -1;
       if (a.emparejado !== b.emparejado) return a.emparejado ? -1 : 1;
       return a.nombre.localeCompare(b.nombre);
     });
-    orden.forEach(eq => {
+    const sem = orden.filter(esSem);
+    const otros = orden.filter(eq => !esSem(eq));
+    let destinoOtros = btDeviceListContainer;
+    if (otros.length) {
+      const plegado = document.createElement('details');
+      plegado.className = 'bt-otros';
+      const inicial = plegadoElegido !== null ? plegadoElegido : sem.length === 0;
+      plegado.open = inicial;
+      // El navegador tambien avisa 'toggle' del `open` de la linea de arriba: ese no es
+      // una eleccion del tecnico y no se guarda.
+      plegado.addEventListener('toggle', () => {
+        if (plegadoElegido !== null || plegado.open !== inicial) plegadoElegido = plegado.open;
+      });
+      const titulo = document.createElement('summary');
+      titulo.textContent = 'Otros dispositivos (' + otros.length + ')';
+      plegado.appendChild(titulo);
+      destinoOtros = plegado;
+    }
+    sem.concat(otros).forEach(eq => {
       const item = document.createElement('div');
       item.className = 'bt-device-item' + (eq.emparejado ? '' : ' sin-emparejar');
       item.setAttribute('data-name', eq.nombre);
@@ -100,9 +129,10 @@ const ListaEquipos = (() => {
       item.appendChild(icono);
       item.appendChild(info);
       item.appendChild(etiqueta);
-      btDeviceListContainer.appendChild(item);
+      (esSem(eq) ? btDeviceListContainer : destinoOtros).appendChild(item);
       pintados += 1;
     });
+    if (destinoOtros !== btDeviceListContainer) btDeviceListContainer.appendChild(destinoOtros);
     if (notaLista) {
       const p = document.createElement('p');
       p.className = 'modal-desc';

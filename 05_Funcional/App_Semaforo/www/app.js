@@ -464,9 +464,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // regla es la misma: el unico sitio donde la clave va entera es el cable.
     console.log('[TX BLUETOOTH STM32]:', RegistroCrudo.taparPin(rawCmd.trim()));
 
-    // 1. Si está en App Nativa Android (APK con Bluetooth físico)
-    if (typeof window !== 'undefined' && window.bluetoothSerial && state.connected) {
-      window.bluetoothSerial.write(rawCmd, 
+    // 1. APK con Bluetooth fisico. Sin enlace abierto no hay write(): NO salio (SPEC_4, apartado 4).
+    const escrita = typeof window !== 'undefined' && !!window.bluetoothSerial && state.connected;
+    if (escrita) {
+      window.bluetoothSerial.write(rawCmd,
         () => console.log(`[BT TX SUCCESS] -> ${rawCmd.trim()}`),
         (err) => console.error(`[BT TX ERROR] -> ${err}`)
       );
@@ -489,6 +490,16 @@ document.addEventListener('DOMContentLoaded', () => {
       .catch(() => {
         // Modo offline sin servidor puente
       });
+    }
+    // Lo no escrito va al Diario como "no salio" y NO a la cinta, como la frenada por PIN,
+    // y devuelve false. El puente Python de arriba no cuenta: tira la orden.
+    if (!escrita) {
+      addEvent('red', 'Comando ' + comando + ' no enviado: no hay enlace Bluetooth abierto ' +
+                      'con el equipo. Conectese al poste y repitalo.');
+      DiarioOrdenes.anotarOrden(orden, null, Date.now(),
+                                { salio: false, motivo: 'sin enlace Bluetooth abierto' });
+      renderDiario();
+      return false;
     }
 
     // El sello de actividad se pone AQUI y no en el manejador del boton: lo que
@@ -523,23 +534,11 @@ document.addEventListener('DOMContentLoaded', () => {
         '. NO se sabe si la orden llego. Repitala cuando el enlace vuelva.');
     }
 
-    // ---- EL REGISTRO DE LO QUE SALE (04/09) -------------------------------
-    //
-    // LA CINTA SOLO GRABABA LO QUE ENTRA, y eso costo veinte minutos de banco: la
-    // inyeccion de hora del Courier devolvia "formato invalido", se exportaron las 300
-    // tramas y LA ORDEN QUE SE MANDO NO ESTABA EN NINGUNA. Se dedujo el formato leyendo
-    // las dos puntas en vez de leerlo.
-    //
-    // SE ANOTA LA TRAMA TAL Y COMO SALIO, no un resumen del estilo "se envio
-    // SET_MODO:AUTO". La diferencia no es de estilo: cuando se inyecto el defecto en la
-    // guarda de via, la comprobacion de "no sale ningun byte" NO cayo -otra barrera mas
-    // abajo frenaba igual- y lo unico que delato el fallo fue el CONTENIDO de la trama
-    // que si salio. Un resumen reconstruido no habria ensenado el
-    // CMD:PIN:****:MANUAL:CAMBIAR_TURNO que se escribio sin que nadie mirara la calzada.
-    //
-    // Y VA DESPUES DE ESCRIBIR, no antes: lo que se registra es lo que la app hizo. El
-    // veredicto ENVIADA significa exactamente lo que dice el parrafo de aqui abajo -"se
-    // escribio a la salida"-, ni un milimetro mas.
+    // ---- EL REGISTRO DE LO QUE SALE --------------------------------------
+    // Se anota la trama TAL Y COMO SALIO, no un resumen: con el defecto inyectado en la
+    // guarda de via solo el CONTENIDO de la trama delato el fallo. Va DESPUES de escribir
+    // y solo si se escribio (`escrita`, arriba): ENVIADA significa "se escribio a la
+    // salida", ni un milimetro mas. La historia de por que existe, en git log.
     RegistroCrudo.anotar(rawCmd, { enviada: true, tipo: 'CMD' }, salidaMs);
     // Y la MISMA orden abre su entrada en el diario, que es donde se le juntaran la
     // respuesta del equipo y lo que se vea cambiar despues. Son dos registros porque la
@@ -2494,7 +2493,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (state.node === 'ESCLAVO') { avisarOtraPunta('FORZAR_ROJO', 'MAESTRO'); return; }
       // Forma SIN PIN: es la que el firmware espera para la parada de emergencia, y
       // la rama que la construye llevaba desde el rewrite sin un solo llamador.
-      enviarComandoFirmware('FORZAR_ROJO');
+      if (!enviarComandoFirmware('FORZAR_ROJO')) return;
       addEvent('red', 'ALERTA: orden ROJO TOTAL DE EMERGENCIA enviada al MAESTRO. ' +
                       'Si el equipo la acepta deja las dos vias en rojo fijo.');
     });
@@ -2503,7 +2502,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnOpAmbarEmergencia) {
     btnOpAmbarEmergencia.addEventListener('click', () => {
       if (state.node === 'MAESTRO') { avisarOtraPunta('AMBAR_EMERGENCIA', 'ESCLAVO'); return; }
-      enviarComandoFirmware('AMBAR_EMERGENCIA');
+      if (!enviarComandoFirmware('AMBAR_EMERGENCIA')) return;
       addEvent('red', 'ALERTA: orden AMBAR DE EMERGENCIA enviada al ESCLAVO. Si el ' +
                       'equipo la acepta queda en ambar intermitente y la talanquera ' +
                       'ABIERTA: no es un rojo, los dos sentidos pasan con precaucion.');
@@ -2527,7 +2526,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const punta = puntaCorrecta('CANCELAR_AMBAR');
       if (punta) { avisarOtraPunta('CANCELAR_AMBAR', punta); return; }
       if (!state.pinVerificado) { pedirPin(() => btnOpCancelarAmbar.click()); return; }
-      enviarComandoFirmware('CANCELAR_AMBAR');
+      if (!enviarComandoFirmware('CANCELAR_AMBAR')) return;
       addEvent('cyan', 'Tecnico: orden RETIRAR AMBAR enviada al ESCLAVO. Espere el ' +
                        'acuse: el equipo dira si quedaba algun ambar y si queda otro ' +
                        'puesto desde el mando.');
@@ -2645,7 +2644,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // por eso tiene rotulo y color propios en vez de quedarse en blanco.
       padPosteEl.textContent = punta === 'MAESTRO' ? 'POSTE 1'
                              : punta === 'ESCLAVO' ? 'POSTE 2'
-                             : 'NO SE SABE';
+                             : 'POSTE: ?';
       padPosteEl.classList.toggle('pad-poste-sindato', !punta);
     }
     for (const par of MANDOS_DE_CICLO) {
@@ -2869,7 +2868,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnOpMenu.addEventListener('click', () => {
       const punta = puntaCorrecta('SET_MODO:MENU');
       if (punta) { avisarOtraPunta('SET_MODO:MENU', punta); return; }
-      enviarComandoFirmware('SET_MODO:MENU');
+      if (!enviarComandoFirmware('SET_MODO:MENU')) return;
       addEvent('cyan', 'Operario: orden VOLVER AL MENU enviada al equipo.');
     });
   }
@@ -2879,7 +2878,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnModoAlcance.addEventListener('click', () => {
       const punta = puntaCorrecta('SET_MODO:ALCANCE');
       if (punta) { avisarOtraPunta('SET_MODO:ALCANCE', punta); return; }
-      enviarComandoFirmware('SET_MODO:ALCANCE');
+      if (!enviarComandoFirmware('SET_MODO:ALCANCE')) return;
       addEvent('cyan', 'Tecnico: orden PRUEBA DE ALCANCE enviada al equipo.');
     });
   }
@@ -4098,8 +4097,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const volt = noMedida ? NaN : parseFloat(crudoBat);
         state.battery = Number.isFinite(volt) ? volt : null;
         if (batVoltageEl) {
-          batVoltageEl.textContent = state.battery === null
-            ? '-- V' : state.battery.toFixed(1) + 'V';
+          batVoltageEl.textContent = state.battery === null ? '-- V' : state.battery.toFixed(1) + 'V';
+          batVoltageEl.classList.toggle('green', state.battery !== null);   // verde solo con dato
         }
         if (batStatusEl) {
           batStatusEl.textContent = state.battery === null
@@ -4528,7 +4527,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       if (!state.pinVerificado) { pedirPin(() => btn.click()); return; }
-      enviarComandoFirmware(comando, args);
+      if (!enviarComandoFirmware(comando, args)) return;
       addEvent('cyan', 'Tecnico: orden ' + orden + ' enviada al equipo.');
     });
   });
@@ -5526,7 +5525,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       if (!state.pinVerificado) { pedirPin(() => btnStartTestLeds.click()); return; }
-      enviarComandoFirmware('TEST_LEDS');
+      if (!enviarComandoFirmware('TEST_LEDS')) return;
       // Ni la secuencia ni el "completado con exito" se pintan: la app no puede saber
       // si el equipo la ejecuto ni como acabo. Lo dira $ACK, y las luces $STATUS.
       addEvent('cyan', 'Tecnico: orden TEST DE FOCOS enviada al equipo.');
@@ -5868,7 +5867,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Escribir aqui '--' a mano abriria un segundo escritor de esos widgets, y con dos
     // escritores vuelve a poder aparecer uno que pinte algo que no vino en una trama.
     pintarEnlace(ENLACE_SIN_DATO);
-    if (batVoltageEl) batVoltageEl.textContent = '-- V';
+    if (batVoltageEl) { batVoltageEl.textContent = '-- V'; batVoltageEl.classList.remove('green'); }
     if (batStatusEl) batStatusEl.textContent = 'Sin datos del equipo';
     // N-150: LA HORA TAMBIEN ENVEJECE, Y PEOR QUE LAS DEMAS. El contador, el RF y la
     // bateria se quedan quietos y quietos ya parecen viejos; un reloj que se quedo en
@@ -6005,4 +6004,5 @@ document.addEventListener('DOMContentLoaded', () => {
   // menos por segundo si se nota en la bateria de un telefono que pasa el turno con la
   // pantalla encendida al sol.
   setInterval(vigilarAutorizacion, 10000);
+  Telefono.instalar(window);   // atras de Android, hojas arriba, hueco de la barra
 });
