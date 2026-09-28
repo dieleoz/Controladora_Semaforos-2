@@ -5,8 +5,8 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 
 ## Por donde se retoma, en este orden
 
-1. **Paquete a Marco** `Paquete_Funcional_2026-09-28_bd2780e_SIN_BANCO.zip` (sha256 `29023007...`): sello, version
-   en logs, export adjunto, usabilidad APK. Al dia con HEAD; el responsable lo pasa a `entregas/` y lo envia.
+1. **Marco carga el paquete `bd2780e`** (enviado el 28/09) y responde con el `FW_HASH` que ve; despues, `Firmware:`
+   en la app y `CMD:VERSION` con enlace. Sin ese hash no se lee ninguna foto ni cinta suya.
 2. **Tramas de Marco** (funcional, Maestro `4D2007`): los 17 s del Esclavo (`grep 17000` cero hoy: 21,5 s para
    verde, 25 s para ambar; pista: un arbol V8.4 del 31/07 borrado subia ese silencio a 17.000 ms — puede ser
    firmware viejo), focos solos, y camara con alguien delante (1.54). Pedir version antes de leer nada.
@@ -39,7 +39,7 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 | Maestro `179DB0` (El Sisga) | `7ff7d12` `SIN_BANCO`, probado despues `b354fe9` | cinta y diario en `evidencia/` |
 | Esclavo del Sisga | sin medir | su cinta no se ha traido |
 | Maestro `4D2007` (Marco) | `1889631` por declaracion: el puente contesto `FW:--` | su cinta |
-| paquete enviado a Marco | `1e56d83` `SIN_BANCO`, zip sha256 `a45e6eeb` | nadie ha informado de que este cargado |
+| paquete enviado a Marco | `bd2780e` `SIN_BANCO`, zip sha256 `29023007`, el 28/09 | nadie ha informado de que este cargado |
 
 ## Verificacion en escritorio
 
