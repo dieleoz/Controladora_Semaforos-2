@@ -32,10 +32,10 @@ def correr(b, fw):
     # config_ciclo.cpp decide si el par se cerro y DEVUELVE ese si/no; main.cpp acusa al
     # recibirlo, que es donde vive la maquinaria de cortesia de SFTY-17.
     #
-    # El comportamiento es identico -el ACK sale exactamente cuando el par se cierra- y
-    # la propiedad comprobada tampoco cambia: la rama de VERDE no acusa, y el par
-    # cerrado acusa UNA sola vez. Lo unico que se mueve es donde hay que mirarlo.
-    acusa_en_verde = bool(rama_verde and "programarRespuesta" in rama_verde.group(1))
+    # Por eso la rama de VERDE se lee en main.cpp, que es quien acusa: mirando
+    # config_rxVerde un ACK anadido en main.cpp pasaba 4/4 (medido con mutante).
+    m = re.search(r"==\s*CMD_CONFIG_VERDE\s*\)\s*\{(.*?)\}\s*else if", T_E_MAIN_C, re.S)
+    acusa_en_verde = not m or "programarRespuesta" in re.sub(r"//[^\n]*", "", m.group(1))
     acks_en_despeje = len(re.findall(
         r"if\s*\(\s*config_rxDespeje\([^)]*\)\s*\)\s*\{\s*\n\s*programarRespuesta\(\s*CMD_ACK_CONFIG",
         T_E_MAIN_C))
