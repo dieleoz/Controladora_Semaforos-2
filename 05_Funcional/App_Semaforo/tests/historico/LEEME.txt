@@ -1,0 +1,6 @@
+TESTS ARCHIVADOS DE LA APP (28/09/2026, poda "opcion B")
+
+No corren: compuerta.py no los llama y el script npm "test:e2e" se retiro de package.json.
+No se borro nada: git mv, historia intacta.
+
+test_e2e_visual.js - abre Chrome con Puppeteer, pulsa botones y guarda capturas. Sale: no tiene un solo assert, no estaba en la compuerta y no puede fallar por un valor incorrecto. Sus rutas (__dirname/../../../evidencia) quedaron un nivel desplazadas al moverlo.

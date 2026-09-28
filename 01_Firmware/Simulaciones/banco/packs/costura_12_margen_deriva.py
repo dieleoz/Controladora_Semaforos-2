@@ -175,7 +175,9 @@ def correr(b, fw):
     # sea SOLO con el Esclavo adelantado, y publica ese numero como "el margen real
     # contra la deriva entre relojes... el colchon que justifica el limite de 48 h".
     # Es el sentido BUENO, el que el amarillo protege.
-    t_costura = _lee(fw, "Simulaciones", "banco", "packs", "costura_02_fase_ciclo.py")
+    # costura_02 se archivo el 28/09 (su barrido lo ejecutan los arneses reales de
+    # Validacion_Automatico sobre el C++); este hallazgo sigue leyendo el fichero donde vive.
+    t_costura = _lee(fw, "Simulaciones", "banco", "historico", "costura_02_fase_ciclo.py")
     barrido_una_direccion = bool(
         re.search(r"for\s+skew\s+in\s+range\(0,\s*2\s*\*\s*\(DEG_VERDE_SEG", t_costura))
     b.hallazgo(
