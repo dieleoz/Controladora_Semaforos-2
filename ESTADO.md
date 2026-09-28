@@ -15,6 +15,18 @@
 > - **Hora, degradado:** sin evidencia en la cinta. Van en `05_Funcional/Pruebas_Funcional_2026-09-28.html`,
 >   que el funcional rellena y devuelve en PDF.
 >
+> 🧭 **ORGANIZAR EL REPO POR FASES (acordado con el responsable y el arquitecto de plataforma, 28/09).
+> Es ordenar, no romper: cada fase con su commit y la compuerta en verde.**
+>
+> | fase | que | estado |
+> |---|---|---|
+> | 0 | simulador congelado (ningun pack nuevo); QA solo sobre la candidata; paquetes FUERA del repo, en `D:\@Proyect\Entregas_Semaforos\` (lo viejo en `RETIRADOS\`) | ✅ paquetes movidos · la cadencia entra en `CLAUDE.md` §4 con la fase 2 |
+> | 1 | inventario de instrumentos por requisito de SPEC, y borrador de `particularidades` de las skills | 🔄 en curso, solo lectura |
+> | 2 | `CLAUDE.md` a 200 lineas sin renumerar; `ESTADO.md` sin cronica (a `HISTORIA.md`, citado en `ARQUITECTURA.map`) | pendiente |
+> | 3 | plugin `orquestador@diego` en el proyecto; skills `entregar`/`verificar` a `.claude/particularidades/` | pendiente · el `/plugin install` lo hace el responsable |
+> | 4 | poda de instrumentos segun el inventario; lo archivado a historico y citado en `ARQUITECTURA.map` | pendiente · decide el responsable con el inventario |
+> | 5 | lo duplicado Maestro/Esclavo a `lib/` | **despues** de que la candidata pase banco |
+>
 > 📦 **Enviado: `Paquete_Banco_2026-09-28_1e56d83_SIN_BANCO.zip`** (sha256 `5edc8055`) con la APK
 > `IOT_VIAL_Semaforos_2026-09-28_1e56d83_SIN_BANCO.apk` (`a249e42a`) y el `.html` de pruebas.
 >
