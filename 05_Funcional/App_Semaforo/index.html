@@ -605,7 +605,28 @@
           <button class="ctrl-btn btn-mode-range" id="btn-modo-alcance">
             <strong>Prueba de Alcance</strong>
             <small>Rojo fijo · mide el enlace</small>
+            <!-- 28/09: el funcional en campo no sabia donde mirar el resultado. Esta
+                 linea contesta esa pregunta en el propio boton. -->
+            <small>El resultado se ve aquí abajo mientras dure la prueba</small>
           </button>
+        </div>
+
+        <!-- EL RESULTADO, JUSTO DEBAJO DEL BOTON QUE LO ARRANCA (28/09, funcional en
+             campo: "la prueba de enlace no comprendo como funciona o donde se ve este
+             valor"). El % y el RTT ya se pintaban en la tarjeta ENLACE RADIO de la
+             pestana de Operacion -mismo dato, mismo escritor, pintarEnlace() en
+             app.js-, pero el boton que arranca la prueba vive aqui, en Tecnico, y nada
+             decia que hubiera que cambiar de pestana para verlo.
+
+             NACE OCULTA a proposito: solo se abre cuando el equipo CONFIRMA
+             MODO:ALCANCE en su $STATUS -pintarCajaAlcance() en app.js-, nunca por que
+             se haya pulsado el boton. Pulsar no es que el equipo haya entrado: eso lo
+             dice la trama, igual que el resto de esta pantalla (CLAUDE.md 3.quinquies). -->
+        <div class="alcance-caja" id="alcance-caja" hidden>
+          <div class="alcance-caja-titulo">📡 PRUEBA DE ALCANCE EN CURSO</div>
+          <div class="alcance-caja-valor" id="alcance-caja-pct">--</div>
+          <div class="alcance-caja-rtt" id="alcance-caja-rtt">RTT --</div>
+          <p class="alcance-caja-frase" id="alcance-caja-frase">esperando la primera medida del equipo en esta prueba.</p>
         </div>
       </div>
 

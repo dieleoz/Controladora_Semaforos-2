@@ -372,8 +372,14 @@ void semaforo_actualizar() {
       // escribirPines()-, asi que el tecnico ve la lampara sin que se abra la via.
       aplicarSalidas(false, false, true);
     } else {
+      // N-82.bis: aqui el test no lo arma nadie -bluetooth.cpp rechaza TEST_LEDS y
+      // esclavo_06 vigila que nadie llame a semaforo_iniciarTestLeds()-. Acaba en rojo
+      // POR EL SETTER, no con un rojo fijo a pelo: asi la luz y 'estado' no pueden
+      // discrepar, que es el defecto que la cinta del 28/09 midio en el Maestro. No se
+      // restaura otro estado a proposito: el Esclavo no fuerza verde por su cuenta
+      // (costura_10), y un final que llamara a semaforo_forzarVerde() se lo daria.
       testLedsActivo = false;
-      aplicarSalidas(true, false, false);
+      semaforo_forzarRojo();
     }
     return;
   }

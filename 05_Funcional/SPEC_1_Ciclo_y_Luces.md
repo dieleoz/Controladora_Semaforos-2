@@ -207,7 +207,19 @@ Poste 2 pone **las luces primero, siempre**; el Poste 1 no — ver Huecos.
 ~~**Señales del mando** (`SFTY-21`): destellos rojos y ámbar rápido que INTERCEPTABAN las escrituras a los pines~~
 → **salieron con el mando el 14/09** (`D-30`): ya no queda nada que ocupe las lámparas por encima de la lógica, y la
 puerta única escribe siempre lo que decide. **Test de lámparas** (`CMD:TEST_LEDS`): tres fases —rojo, ámbar, verde— que
-**entran por la puerta única** y por tanto por el enclavamiento, y **la pluma no sigue a ese verde**.
+**entran por la puerta única** y por tanto por el enclavamiento, y **la pluma no sigue a ese verde**. **Solo corre
+fuera de servicio** (`N-82.bis`): modo `MENU`, `HORA` o `ALCANCE`, luz en `S_ROJO` **y el rojo del Esclavo
+confirmado** —su `ACK_RED` a la orden de rojo de esa entrada al menú (`coordinador_rojoEsclavoConfirmado()`)—; en
+cualquier otro caso `TEST_LEDS` se rechaza con `$ERR` (`ESPERANDO_ROJO_DEL_ESCLAVO` mientras no llega el acuse),
+porque el enclavamiento no conoce el otro poste y ese verde saldría contra el paso del otro sentido. La condición se
+pregunta en cada vuelta: si el equipo sale de fuera de servicio, el coordinador deja `C_MENU_IDLE` o se pierde el
+enlace (`S_FALLO`), el test se corta en la vuelta siguiente; al acabar o cortarse, la lámpara vuelve a la luz de su
+`estado` por su propio setter —no a un rojo fijo—, así que luz, `ESTADO:` y `PLUMA:` dicen lo mismo. Mientras el test
+corre, `C_MENU_IDLE` no vuelve a forzar el rojo; en la vuelta siguiente a su final, sí. Medido el 28/09 en el arnés
+del automático: en `MENU` con el acuse, las tres fases a 2 s cada una y el final en rojo; en `AUTO`, cero muestras
+de verde del Maestro con el Esclavo en verde. ⚠️ **Residual, no construido:** si alguien pulsa el ámbar de
+emergencia del Esclavo durante el test, el Maestro solo lo corta cuando lo sabe por radio y pasa a `MODO_AMBAR`;
+en esa ventana la fase verde del Maestro puede coincidir con el ámbar intermitente del Esclavo.
 ~~Con una señal del mando en curso el test espera y se rearma~~ → **corre siempre entero**: la espera se fue con la señal.
 **El Poste 2 lo rechaza.**
 

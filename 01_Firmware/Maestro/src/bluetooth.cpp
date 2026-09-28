@@ -855,9 +855,21 @@ static void procesarComando(const char* cmd) {
       enviarTramaConCrc("$ERR,CMD:CAMBIAR_TURNO,DESC:EN_TRANSICION_REINTENTE");
     }
   } else if (strcmp(accion, "TEST_LEDS") == 0) {
+    // N-82.bis: el test solo corre fuera de servicio -el porque, en testLedsAdmitido()
+    // de semaforo.cpp, que es quien decide-. Aqui se PREGUNTA si quedo armado, dentro
+    // del if, y cada motivo de rechazo lleva su $ERR (molde SET_TIEMPOS).
     semaforo_iniciarTestLeds();
-    enviarTramaConCrc("$ACK,CMD:TEST_LEDS,RESULT:STARTING_6S");
-    bluetooth_reportarEvento("APP_BLUETOOTH", "TEST_LEDS_INICIADO");
+    if (semaforo_testLedsEnCurso()) {
+      enviarTramaConCrc("$ACK,CMD:TEST_LEDS,RESULT:STARTING_6S");
+      bluetooth_reportarEvento("APP_BLUETOOTH", "TEST_LEDS_INICIADO");
+    } else if (semaforo_estado() == S_FALLO) {
+      enviarTramaConCrc("$ERR,CMD:TEST_LEDS,DESC:SIN_ENLACE_AMBAR_NO_SE_PRUEBA");
+    } else if ((modoActual_get() == MENU || modoActual_get() == MODO_HORA ||
+                modoActual_get() == MODO_ALCANCE) && !coordinador_rojoEsclavoConfirmado()) {
+      enviarTramaConCrc("$ERR,CMD:TEST_LEDS,DESC:ESPERANDO_ROJO_DEL_ESCLAVO");
+    } else {
+      enviarTramaConCrc("$ERR,CMD:TEST_LEDS,DESC:EN_SERVICIO_PASE_A_MENU");
+    }
   } else if (strncmp(accion, "SET_TIEMPOS:", 12) == 0) {
     // N-69: los tiempos del ciclo, desde el celular en vez de subiendo a la pantalla.
     //

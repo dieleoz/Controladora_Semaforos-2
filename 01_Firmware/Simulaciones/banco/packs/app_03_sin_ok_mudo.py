@@ -208,12 +208,48 @@ def _consumido(bloque, pos):
     return bloque[i] not in ";{}"
 
 
+def _preguntado_despues(bloque, fin_llamada, nombre, vigiladas):
+    """True si la sentencia que sigue a la llamada es un `if (...)` que pregunta al
+    MISMO modulo -una vigilada con el mismo prefijo `modulo_`- si la orden quedo hecha.
+
+    N-82.bis (28/09): TEST_LEDS del Maestro llama a semaforo_iniciarTestLeds(), que es
+    `void` con guarda, y pregunta ACTO SEGUIDO `if (semaforo_testLedsEnCurso())` antes
+    de mandar el $ACK, con un $ERR por motivo en los else. Es la otra forma honesta de
+    que el llamador se entere -la POSTCONDICION en vez de la precondicion- y este pack
+    la acusaba de OK mudo. El borde, escrito: la pregunta tiene que ser la sentencia
+    INMEDIATA y al MISMO modulo. Una pregunta a otro modulo no dice nada de si esta
+    llamada hizo lo que se le pidio, y eso lo comprueba el control negativo."""
+    j = bloque.find(";", fin_llamada)
+    if j < 0:
+        return False
+    resto = bloque[j + 1:].lstrip()
+    if not resto.startswith("if"):
+        return False
+    k = resto.find("(")
+    if k < 0 or resto[2:k].strip():
+        return False
+    prof = 0
+    for e in range(k, len(resto)):
+        if resto[e] == "(":
+            prof += 1
+        elif resto[e] == ")":
+            prof -= 1
+            if prof == 0:
+                break
+    cond = resto[k:e + 1]
+    prefijo = nombre.split("_")[0] + "_"
+    return any(v != nombre and v.startswith(prefijo) and
+               re.search(r"\b%s\s*\(" % re.escape(v), cond)
+               for v in vigiladas)
+
+
 def _ignorados(bloque, vigiladas):
     """Las llamadas vigiladas cuyo resultado esta rama tira a la basura."""
     fuera = []
     for n in sorted(vigiladas):
         for m in re.finditer(r"\b%s\s*\(" % re.escape(n), bloque):
-            if not _consumido(bloque, m.start()):
+            if (not _consumido(bloque, m.start()) and
+                    not _preguntado_despues(bloque, m.end(), n, vigiladas)):
                 fuera.append(n)
                 break
     return fuera
@@ -402,3 +438,17 @@ def correr(b, fw):
         _veredicto(bueno, vig) == (True, None),
         "una rama que pregunta `if (demanda_solicitar())` y tiene su $ERR en el else "
         "NO se marca: el detector distingue, no acusa a todo el que llama")
+
+    # N-82.bis: la postcondicion preguntada al MISMO modulo cuenta como mirar; la
+    # pregunta a OTRO modulo, o el $ACK a pelo -el TEST_LEDS de antes del 28/09-, no.
+    vigC = {"mod_hacer", "mod_hecho", "otro_cosa"}
+    sinMirar = '{ mod_hacer(); enviarTramaConCrc("$ACK,CMD:X,RESULT:OK"); }'
+    mismo = ('{ mod_hacer(); if (mod_hecho()) { enviarTramaConCrc("$ACK,CMD:X,RESULT:OK"); '
+             '} else { enviarTramaConCrc("$ERR,CMD:X,DESC:NO_PUDO"); } }')
+    otro = mismo.replace("mod_hecho()", "otro_cosa()")
+    b.control_negativo(
+        _veredicto(sinMirar, vigC)[1] is not None
+        and _veredicto(otro, vigC)[1] is not None
+        and _veredicto(mismo, vigC) == (True, None),
+        "una `void` con guarda seguida de `if (<mismo modulo>_...())` pasa; la misma "
+        "llamada con el $ACK a pelo, o preguntando a OTRO modulo, se marca como OK mudo")

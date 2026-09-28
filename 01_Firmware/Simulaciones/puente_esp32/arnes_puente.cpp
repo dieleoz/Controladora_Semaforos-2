@@ -365,7 +365,11 @@ bool protocolo_hayPaqueteDisponible(RF_Packet* destino) {
 
 #if defined(PUNTA_MAESTRO)
 // menu.cpp arrastra la pantalla entera; bluetooth.cpp solo llama a su setup.
-void menu_setup() {}
+// N-82.bis: pero SI hace lo que el menu_setup() real hace con la maquina -modo y
+// coordinador_forzarMenu()-. Vacio, SET_MODO:MENU dejaba el coordinador en el estado del
+// modo anterior y el test de lamparas, que exige C_MENU_IDLE con el rojo del Esclavo
+// confirmado, no podia ejercerse por este arnes.
+void menu_setup() { modoActual_set(MENU); coordinador_forzarMenu(); }
 
 // modo_degradado.cpp son 597 lineas con la pantalla dentro. De toda esa maquina,
 // bluetooth.cpp solo consulta la PUERTA -evaluarEntrada- y los dos textos del motivo.

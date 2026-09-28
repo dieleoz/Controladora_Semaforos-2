@@ -19,6 +19,9 @@ void coordinador_actualizar();
 void coordinador_actualizar_background();
 bool coordinador_listoParaContar();
 bool coordinador_comunicacionPerdida();
+// N-82.bis: true solo en C_MENU_IDLE y con el ACK_RED del Esclavo a la orden de rojo de
+// esta entrada al menu. Es lo que hace seguro el test de lamparas del Maestro.
+bool coordinador_rojoEsclavoConfirmado();
 void coordinador_reiniciarConexion();
 const char* coordinador_nombreEstadoMaster();
 

@@ -5,6 +5,10 @@
 #include "botones.h"
 // D-33: y de aqui sale el suelo vial del todo-rojo contra el que se acota el retardo.
 #include "limites_ciclo.h"
+// N-82.bis: el test de lamparas solo corre FUERA DE SERVICIO, y eso es una pregunta
+// sobre el modo. El porque, en testLedsAdmitido().
+#include "modos.h"
+#include "coordinador.h"
 
 static EstadoSemaforo estado = S_ROJO;
 static unsigned long tCambio = 0;
@@ -341,12 +345,54 @@ void semaforo_iniciarFallo() {
   aplicarSalidas(LOW, LOW, LOW); // Empieza apagado, luego parpadea en actualizar()
 }
 
+// N-82.bis (cinta del 28/09, serie 4D2007): EL TEST SOLO CORRE FUERA DE SERVICIO.
+//
+// La fase verde del test enciende VERDE1/VERDE2 sin mirar el ciclo, y el enclavamiento
+// SFTY-2 de aplicarSalidas() no lo impide: solo prohibe rojo y verde en ESTE poste, no
+// sabe nada del otro. Medido con el arnes del automatico (coordinador.cpp + semaforo.cpp
+// reales): en AUTO, con el Maestro en rojo y el Esclavo en verde, el test dejo el verde
+// del Maestro encendido 2 s con ESC:VERDE a la vez. Es el mismo motivo por el que el
+// Esclavo rechaza TEST_LEDS desde siempre (SPEC_4), que aqui faltaba.
+//
+// Admitido solo en los modos que dejan los DOS postes en rojo fijo por
+// coordinador_forzarMenu() -MENU, HORA y ALCANCE- y con la luz de este poste en S_ROJO:
+// en esos modos, sin enlace, el coordinador pasa a S_FALLO (ambar intermitente en las
+// dos puntas) y un verde ahi seria un verde contra un ambar que invita a pasar.
+//
+// Y EL ROJO DEL ESCLAVO TIENE QUE CONSTAR (coordinador_rojoEsclavoConfirmado()): al entrar
+// en MENU desde AUTO la luz de aqui pasa a S_ROJO en el acto, pero el Esclavo sigue en
+// verde hasta que le llega el GO_RED. Se pregunta en CADA vuelta, asi que el test tambien
+// se corta si el coordinador deja C_MENU_IDLE, y con el enlace caido la luz pasa a S_FALLO.
+static bool testLedsAdmitido() {
+  const ModoSistema m = modoActual_get();
+  return (m == MENU || m == MODO_HORA || m == MODO_ALCANCE) && estado == S_ROJO &&
+         coordinador_rojoEsclavoConfirmado();
+}
+
+// Al acabar el test -o al cortarlo- la lampara vuelve a decir lo que dice 'estado', por
+// el setter de ese estado y no con una luz fija: el final de antes era un rojo fijo, y
+// con el Maestro en S_VERDE dejaba luz roja, pluma abajo y $STATUS en VERDE a la vez
+// hasta la siguiente transicion (cinta del 28/09). S_FALLO recupera su parpadeo porque
+// semaforo_iniciarFallo() rearma su reloj.
+static void terminarTestLeds() {
+  testLedsActivo = false;
+  switch (estado) {
+    case S_ROJO:     semaforo_forzarRojo(); break;
+    case S_VERDE:    semaforo_forzarVerde(); break;
+    case S_AMARILLO: semaforo_iniciarTransicionAVerde(); break;
+    case S_FALLO:    semaforo_iniciarFallo(); break;
+  }
+}
+
 void semaforo_iniciarTestLeds() {
-  // SIN GUARDA, Y ES DELIBERADO. La tentacion era rechazar aqui el test cuando una
-  // senal del mando ocupa las luces. Seria un rechazo MUDO: esta funcion no devuelve
-  // nada y el $ACK de bluetooth.cpp se manda igual, asi que el tecnico se iria del
-  // poste con una confirmacion de algo que no ocurrio. La espera se resuelve en
-  // semaforo_actualizar(), donde no hay que prometer nada.
+  // EL RECHAZO NO ES MUDO: esta funcion no devuelve nada, pero bluetooth.cpp pregunta
+  // semaforo_testLedsEnCurso() DESPUES de llamarla y contesta $ERR si el test no quedo
+  // armado (molde SET_TIEMPOS, CLAUDE.md 2). Un test en curso que ya no esta admitido
+  // se corta aqui mismo, para que esa pregunta no lea la bandera de antes.
+  if (!testLedsAdmitido()) {
+    if (testLedsActivo) terminarTestLeds();
+    return;
+  }
   testLedsActivo = true;
   tInicioTest = millis();
 }
@@ -383,6 +429,11 @@ void semaforo_actualizar() {
   // D-30 (14/09): AQUI ESPERABA EL TEST A QUE LA SENAL DEL MANDO SOLTARA LAS LUCES.
   // Con el mando fuera ya no hay quien ocupe las lamparas por encima de la logica, y
   // la rama de espera solo sabia dar una respuesta: el test corre siempre entero.
+  // N-82.bis: si el equipo SALE de fuera de servicio con el test en curso -un SET_MODO,
+  // el menu, el ambar del Esclavo- o la luz deja de estar en rojo, el test se corta en
+  // esta vuelta y la lampara vuelve a su estado. Sin esto, un test pedido en MENU
+  // seguiria ensenando su verde dentro del AUTO que se acaba de arrancar.
+  if (testLedsActivo && !testLedsAdmitido()) terminarTestLeds();
   if (testLedsActivo) {
     unsigned long elapsed = ahora - tInicioTest;
     if (elapsed < TEST_FASE_MS) {
@@ -396,8 +447,7 @@ void semaforo_actualizar() {
       // escribirPines()-, asi que el tecnico ve la lampara sin que se abra la via.
       aplicarSalidas(false, false, true);
     } else {
-      testLedsActivo = false;
-      aplicarSalidas(true, false, false);
+      terminarTestLeds();
     }
     return;
   }

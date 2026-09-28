@@ -908,6 +908,50 @@ body {
 }
 
 /* ==========================================================================
+   La caja de la Prueba de Alcance (28/09, funcional en campo)
+   ==========================================================================
+   NACE OCULTA -ver el `hidden` del HTML- y solo la abre pintarCajaAlcance() en app.js
+   cuando el equipo confirma MODO:ALCANCE. Se quiere "grande y visible" porque es la
+   respuesta a "donde se ve este valor": si se confunde con una tarjeta mas, no
+   contesta la pregunta. */
+.alcance-caja {
+  margin-top: 12px;
+  padding: 14px;
+  border-radius: var(--radius-md);
+  border-left: 4px solid var(--red-lamp);
+  background: linear-gradient(135deg, rgba(255, 30, 68, 0.12) 0%, rgba(16, 24, 40, 0.8) 60%);
+}
+
+.alcance-caja-titulo {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--red-lamp);
+  margin-bottom: 4px;
+}
+
+.alcance-caja-valor {
+  font-family: var(--font-mono);
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.1;
+}
+
+.alcance-caja-rtt {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.alcance-caja-frase {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin: 6px 0 0;
+}
+
+/* ==========================================================================
    Modo Degradado: la única orden que da verde sin la otra punta
    ==========================================================================
    Tiene color propio y no comparte reja con nada. No es decoración: si se pareciera a

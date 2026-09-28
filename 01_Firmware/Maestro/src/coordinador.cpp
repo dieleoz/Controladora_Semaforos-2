@@ -1162,7 +1162,13 @@ void coordinador_actualizar() {
 
   if (estadoC == C_MENU_IDLE) {
     if (tieneComunicacion) {
-      semaforo_forzarRojo(); // TEST 5: Con comunicación en Menú -> Maestro y Esclavo en ROJO FIJO
+      // N-82.bis: con el test de lamparas en curso no se pisa la luz; si no, el test solo
+      // se veia un instante por vuelta. El test solo corre con el rojo del Esclavo
+      // confirmado (testLedsAdmitido(), semaforo.cpp), y al acabar o cortarse deja la luz
+      // en rojo por su setter; en la vuelta siguiente esta linea vuelve a forzarlo.
+      if (!semaforo_testLedsEnCurso()) {
+        semaforo_forzarRojo(); // TEST 5: Con comunicación en Menú -> Maestro y Esclavo en ROJO FIJO
+      }
     } else {
       // TEST 3 y 4: Sin comunicación en Menú -> Maestro y Esclavo en AMARILLO PARPADEO.
       // FIX: la llamada DEBE estar guardada. semaforo_iniciarFallo() hace tCambio = millis()
@@ -1497,6 +1503,13 @@ bool coordinador_listoParaContar() {
 
 bool coordinador_comunicacionPerdida() {
   return estadoC == C_FALLO;
+}
+
+// N-82.bis: el rojo del Esclavo CONSTA, no se supone. coordinador_forzarMenu() pone la
+// bandera en false y manda GO_RED; solo el ACK_RED de esa orden la pone en true. Fuera de
+// C_MENU_IDLE no se contesta true: en cualquier otro estado puede haber un verde en curso.
+bool coordinador_rojoEsclavoConfirmado() {
+  return estadoC == C_MENU_IDLE && rojoEsclavoConfirmado;
 }
 
 // --- N-149: LO QUE EL MAESTRO SABE DEL ESCLAVO, Y SOLO ESO ----------------------

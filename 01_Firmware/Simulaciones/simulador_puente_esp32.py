@@ -1337,6 +1337,35 @@ def escenario_n3(t, c, maestro, esclavo, app, util_max):
 def escenario_n4(t, c, maestro, esclavo, util_max):
     t.titulo("N4 - la asimetria entre puntas: el puente transporta bytes, no normaliza")
 
+    # N-82.bis (cinta del 28/09): el Maestro solo acepta TEST_LEDS FUERA DE SERVICIO -su
+    # fase verde encenderia un verde contra el otro sentido-. Viene de N1 en AUTO: ahi
+    # tiene que rechazarlo nombrando el motivo, y la asimetria de abajo se mide en MENU,
+    # que es donde el Maestro lo acepta y el Esclavo sigue sin aceptarlo nunca.
+    maestro.rx("\n")
+    maestro.rx(c.prefijo_pin["Maestro"] + "SET_MODO:AUTO\n")
+    rech = [s.strip() for s in maestro.rx(c.prefijo_pin["Maestro"] + "TEST_LEDS\n")
+            if s.startswith(("$ACK", "$ERR"))]
+    t.verificar(
+        bool(rech) and rech[0].startswith("$ERR,CMD:TEST_LEDS,DESC:EN_SERVICIO"),
+        "Maestro en AUTO: TEST_LEDS se rechaza con su motivo -%r-: el test no enciende "
+        "un verde con el ciclo en marcha" % (rech[0][:60] if rech else None),
+        "Maestro en AUTO contesto %r a TEST_LEDS. En servicio la fase verde del test "
+        "enciende el verde de este poste mientras el otro puede tenerlo" % (rech,))
+    maestro.rx(c.prefijo_pin["Maestro"] + "SET_MODO:MENU\n")
+    # Recien entrado en MENU el rojo del Esclavo aun no consta -su ACK_RED llega en la
+    # siguiente vuelta del coordinador-: el test se rechaza con ese motivo.
+    espera = [s.strip() for s in maestro.rx(c.prefijo_pin["Maestro"] + "TEST_LEDS\n")
+              if s.startswith(("$ACK", "$ERR"))]
+    t.verificar(
+        bool(espera) and "ESPERANDO_ROJO_DEL_ESCLAVO" in espera[0],
+        "Maestro recien entrado en MENU, sin ACK_RED: TEST_LEDS se rechaza -%r-"
+        % (espera[0][:60] if espera else None),
+        "Maestro en MENU sin el rojo del Esclavo confirmado contesto %r: el test podria "
+        "encender su verde con el Esclavo todavia en verde" % (espera,))
+    # Unos segundos de bucle: latido, respuesta del Esclavo y ACK_RED de la orden de rojo.
+    # Medido con este arnes: con 200 ms el enlace aun no consta y la luz esta en S_FALLO.
+    maestro.avanzar(5000)
+
     for accion in ("TEST_LEDS", "FORZAR_ROJO"):
         linea = c.prefijo_pin["Maestro"] + accion
         respuestas = {}
@@ -1478,9 +1507,13 @@ def escenario_f1(t, c, maestro, util_max):
 
     # Control negativo: el barrido tiene que saber ver un $ACK legitimo. Se le da un
     # caso que SI acierta -un comando entero detras de un buffer vacio- y se exige que
-    # lo distinga del concatenado.
+    # lo distinga del concatenado. N-82.bis: en MENU, que es donde el Maestro acepta
+    # TEST_LEDS; el barrido de arriba puede haberle cambiado el modo.
     maestro.rx("\n")
-    limpio = maestro.rx(c.prefijo_pin["Maestro"] + "TEST_LEDS\n")
+    maestro.rx(c.prefijo_pin["Maestro"] + "SET_MODO:MENU\n")
+    maestro.avanzar(5000)   # enlace y ACK_RED del Esclavo, que el test exige
+    maestro.rx("\n")
+    limpio =maestro.rx(c.prefijo_pin["Maestro"] + "TEST_LEDS\n")
     t.control_negativo(
         any(s.startswith("$ACK") for s in limpio),
         "el mismo comando, SIN huerfano delante, si produce $ACK: el barrido mide la "

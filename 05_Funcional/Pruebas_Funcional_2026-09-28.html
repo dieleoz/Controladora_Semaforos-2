@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pruebas en campo</title>
+<style>
+:root{
+  --papel:#f6f5f2; --tarjeta:#ffffff; --tinta:#17191c; --tinta-2:#55555a;
+  --linea:#dedcd5; --acento:#c4520c; --ok:#1d7a48; --alto:#b52b26;
+  --info-bg:#e3ecf3; --campo:#fffdf8;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0; padding:12px 12px 40px; background:var(--papel); color:var(--tinta);
+  font-family:"Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+  font-size:17px; line-height:1.45;
+}
+h1{font-size:22px; margin:4px 0 12px;}
+h2{font-size:19px; margin:0 0 8px;}
+section.prueba{
+  background:var(--tarjeta); border:1px solid var(--linea); border-radius:10px;
+  padding:14px; margin-bottom:14px;
+}
+header.datos{
+  background:var(--tarjeta); border:1px solid var(--linea); border-radius:10px;
+  padding:14px; margin-bottom:16px;
+}
+label.campo{display:block; margin-bottom:10px; font-weight:600; font-size:15px;}
+input[type=text], input[type=date], textarea{
+  width:100%; font-size:16px; padding:8px; margin-top:4px;
+  border:1px solid var(--linea); border-radius:6px; background:var(--campo); color:var(--tinta);
+  font-family:inherit;
+}
+textarea{min-height:60px; resize:vertical;}
+ol{padding-left:22px; margin:8px 0;}
+li{margin-bottom:6px;}
+.espera{
+  background:var(--info-bg); border-left:4px solid var(--acento);
+  padding:8px 10px; margin:10px 0; border-radius:6px; font-size:16px;
+}
+.nota{
+  background:#fdf3e3; border-left:4px solid var(--acento);
+  padding:8px 10px; margin:10px 0; border-radius:6px; font-size:15px;
+}
+.resultado{margin:10px 0;}
+.resultado label{
+  display:block; padding:8px 6px; border:1px solid var(--linea); border-radius:6px;
+  margin-bottom:6px; font-size:16px;
+}
+.resultado input{margin-right:8px; transform:scale(1.3);}
+.print-only{display:none;}
+.recordatorio{
+  background:#fdf3e3; border:1px solid var(--acento); border-radius:10px;
+  padding:14px; margin-bottom:16px; font-size:16px;
+}
+footer{position:sticky; bottom:0; background:var(--papel); padding-top:10px;}
+button#btnPdf{
+  width:100%; font-size:18px; padding:14px; border:none; border-radius:8px;
+  background:var(--acento); color:#fff; font-weight:600;
+}
+.nota-impresion{font-size:14px; color:var(--tinta-2); text-align:center; margin:8px 0;}
+#estado{font-size:13px; color:var(--tinta-2); text-align:center;}
+@media print{
+  button#btnPdf, .nota-impresion, #estado{display:none;}
+  .resultado, textarea{display:none;}
+  .print-only{display:block; border:1px solid var(--linea); border-radius:6px; padding:8px; margin-top:8px; font-size:15px; background:#fafafa;}
+  section.prueba{break-inside:avoid; page-break-inside:avoid; border:1px solid #999;}
+}
+</style>
+</head>
+<body>
+
+<header class="datos">
+  <h1>Pruebas en campo</h1>
+  <label class="campo">Fecha
+    <input type="date" id="fecha">
+  </label>
+  <label class="campo">Nombre de quien prueba
+    <input type="text" id="nombre">
+  </label>
+  <label class="campo">Serie del Maestro
+    <input type="text" id="serieM">
+  </label>
+  <label class="campo">Serie del Esclavo
+    <input type="text" id="serieE">
+  </label>
+  <label class="campo">Versión de firmware del Maestro (menú "Consultar versión del firmware")
+    <input type="text" id="hashM">
+  </label>
+  <label class="campo">Versión de firmware del Esclavo (menú "Consultar versión del firmware")
+    <input type="text" id="hashE">
+  </label>
+</header>
+
+<main>
+
+<section class="prueba" id="p0">
+  <h2>0. Versión del firmware</h2>
+  <ol>
+    <li>En el Maestro, pida "Consultar versión del firmware" y anote lo que contesta arriba, en el
+      recuadro de esta tarjeta.</li>
+    <li>Haga lo mismo en el Esclavo.</li>
+  </ol>
+  <div class="espera">Se espera: cada tarjeta contesta un texto o código de versión. Anótelo tal cual
+    sale, sin resumir.</div>
+  <div class="resultado">
+    <label><input type="radio" name="r0" value="Funcionó" data-txt="Funcionó"> Funcionó</label>
+    <label><input type="radio" name="r0" value="No funcionó" data-txt="No funcionó"> No funcionó</label>
+    <label><input type="radio" name="r0" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v0" placeholder="Qué vio"></textarea>
+  <div class="print-only" id="pr0"></div>
+</section>
+
+<section class="prueba" id="p1">
+  <h2>1. Cámara sin cámara</h2>
+  <ol>
+    <li>Desconecte la cámara real de este equipo (pruebe sin ella).</li>
+    <li>En el Maestro, ponga el modo Inteligente.</li>
+    <li>Compruebe que la tapa del pin 1 del conector J16 está puesta. Ese pin lleva 12 voltios: nunca
+      lo toque.</li>
+    <li>Con un cable corto, una el pin 10 con el pin 9 del conector J16 durante 1 o 2 segundos. Nunca
+      lo una contra el pin 2 (es masa).</li>
+    <li>Repita la unión anterior con el pin 12 y el pin 11.</li>
+    <li>Repita los pasos 2 a 5 en el Esclavo.</li>
+  </ol>
+  <div class="espera">Se espera: el campo de cámaras pasa de "?" a "OK" en la pantalla, y el equipo da
+    paso a ese lado.</div>
+  <div class="resultado">
+    <label><input type="radio" name="r1" value="Funcionó" data-txt="Funcionó"> Funcionó</label>
+    <label><input type="radio" name="r1" value="No funcionó" data-txt="No funcionó"> No funcionó</label>
+    <label><input type="radio" name="r1" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v1" placeholder="Qué vio"></textarea>
+  <div class="print-only" id="pr1"></div>
+</section>
+
+<section class="prueba" id="p2">
+  <h2>2. Cámara real</h2>
+  <ol>
+    <li>Cablee las cámaras: cámara 1 del pin 9 al pin 10 de J16; cámara 2 del pin 11 al pin 12. Use la
+      salida de alarma (1A/1B) de la cámara Hikvision.</li>
+    <li>Ponga el modo Inteligente.</li>
+    <li>Pase caminando delante de cada cámara.</li>
+  </ol>
+  <div class="espera">Se espera: el equipo detecta el paso igual que en la prueba 1.</div>
+  <div class="nota">Si la prueba 1 funcionó y ésta no: la cámara no está cerrando su salida de alarma.
+    Revise en la configuración de la cámara que el evento de detección tenga enlazada la salida de
+    alarma, y que esa salida sea normalmente abierta.</div>
+  <p>Anote la IP de cada cámara: .61 Maestro cámara 1 · .63 Maestro cámara 2 · .62 Esclavo cámara 1 ·
+    .64 Esclavo cámara 2.</p>
+  <div class="resultado">
+    <label><input type="radio" name="r2" value="Funcionó" data-txt="Funcionó"> Funcionó</label>
+    <label><input type="radio" name="r2" value="No funcionó" data-txt="No funcionó"> No funcionó</label>
+    <label><input type="radio" name="r2" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v2" placeholder="Qué vio (incluya las IP anotadas)"></textarea>
+  <div class="print-only" id="pr2"></div>
+</section>
+
+<section class="prueba" id="p3">
+  <h2>3. Talanquera con cámara</h2>
+  <ol>
+    <li>Con el semáforo en verde, espere a que pase a rojo.</li>
+    <li>Mientras está en rojo, ponga algo delante de una cámara y déjelo ahí.</li>
+    <li>Observe la pluma.</li>
+    <li>Retire lo que puso delante de la cámara y observe de nuevo.</li>
+  </ol>
+  <div class="espera">Se espera: la pluma espera unos segundos tras el rojo y no baja mientras la
+    cámara siga viendo algo; baja poco después de que deja de ver.</div>
+  <div class="resultado">
+    <label><input type="radio" name="r3" value="Funcionó" data-txt="Funcionó"> Funcionó</label>
+    <label><input type="radio" name="r3" value="No funcionó" data-txt="No funcionó"> No funcionó</label>
+    <label><input type="radio" name="r3" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v3" placeholder="Qué vio"></textarea>
+  <div class="print-only" id="pr3"></div>
+</section>
+
+<section class="prueba" id="p4">
+  <h2>4. Prueba de focos</h2>
+  <ol>
+    <li>Ponga el Maestro fuera de servicio (modo Menú).</li>
+    <li>Lance la prueba de focos desde el menú.</li>
+    <li>Observe el orden de luces: rojo, ámbar, verde.</li>
+    <li>Al terminar, compruebe que la luz vuelve a lo que corresponde.</li>
+    <li>Aparte, intente lanzar la misma prueba con el equipo en modo Automático (en servicio) y anote
+      exactamente lo que contesta el equipo, tal cual aparece. Puede rechazarla.</li>
+  </ol>
+  <div class="espera">Se espera: rojo, ámbar y verde se encienden en orden, y la luz vuelve a lo que
+    corresponde al terminar.</div>
+  <div class="resultado">
+    <label><input type="radio" name="r4" value="Funcionó" data-txt="Funcionó"> Funcionó</label>
+    <label><input type="radio" name="r4" value="No funcionó" data-txt="No funcionó"> No funcionó</label>
+    <label><input type="radio" name="r4" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v4" placeholder="Qué vio (incluya el mensaje literal en modo Automático)"></textarea>
+  <div class="print-only" id="pr4"></div>
+</section>
+
+<section class="prueba" id="p5">
+  <h2>5. Ámbar pedido</h2>
+  <ol>
+    <li>Ponga el equipo en modo Ámbar.</li>
+    <li>Mire la aplicación.</li>
+  </ol>
+  <div class="espera">Se espera: la aplicación ya no lo marca como un fallo de comunicación.</div>
+  <div class="resultado">
+    <label><input type="radio" name="r5" value="Funcionó" data-txt="Funcionó"> Funcionó</label>
+    <label><input type="radio" name="r5" value="No funcionó" data-txt="No funcionó"> No funcionó</label>
+    <label><input type="radio" name="r5" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v5" placeholder="Qué vio"></textarea>
+  <div class="print-only" id="pr5"></div>
+</section>
+
+<section class="prueba" id="p6">
+  <h2>6. Prueba de enlace</h2>
+  <ol>
+    <li>Pulse "Prueba de Alcance".</li>
+    <li>Si puede, aléjese con el teléfono, o separe los postes.</li>
+  </ol>
+  <div class="espera">Se espera: la pantalla muestra en grande el porcentaje de enlace.</div>
+  <div class="resultado">
+    <label><input type="radio" name="r6" value="Funcionó" data-txt="Funcionó"> Funcionó</label>
+    <label><input type="radio" name="r6" value="No funcionó" data-txt="No funcionó"> No funcionó</label>
+    <label><input type="radio" name="r6" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v6" placeholder="Anote el porcentaje visto y a qué distancia"></textarea>
+  <div class="print-only" id="pr6"></div>
+</section>
+
+<section class="prueba" id="p7">
+  <h2>7. Degradado</h2>
+  <ol>
+    <li>Active el degradado exactamente como se lo indicaron (con el botón, con o sin enlace entre
+      postes).</li>
+    <li>Describa abajo, con exactitud, qué hizo y qué vio.</li>
+    <li>Justo después, exporte la cinta de tramas y el diario de órdenes de la aplicación, de las DOS
+      tarjetas (Maestro y Esclavo).</li>
+  </ol>
+  <div class="espera">Se espera: lo que le hayan indicado para este equipo. Describa el hecho, no lo
+    que cree que debería pasar.</div>
+  <div class="resultado">
+    <label><input type="radio" name="r7" value="Funcionó" data-txt="Funcionó"> Funcionó</label>
+    <label><input type="radio" name="r7" value="No funcionó" data-txt="No funcionó"> No funcionó</label>
+    <label><input type="radio" name="r7" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v7" placeholder="Qué hizo exactamente y qué vio"></textarea>
+  <div class="print-only" id="pr7"></div>
+</section>
+
+<section class="prueba" id="p8">
+  <h2>8. Reloj</h2>
+  <ol>
+    <li>Apague y encienda el equipo.</li>
+    <li>Espere 2 minutos sin tocar nada.</li>
+    <li>Pulse "Consultar reloj" en el Maestro y copie el texto completo que contesta, sobre todo la
+      línea que empieza "ON: RDY:".</li>
+    <li>Repita en el Esclavo.</li>
+  </ol>
+  <div class="espera">Se espera: copiar el texto exacto de las dos tarjetas.</div>
+  <p>Después, cuente qué es exactamente lo que falla con el reloj: la hora no se ajusta / se pierde al
+    apagar / el Esclavo no la toma / otra cosa (explique cuál).</p>
+  <div class="resultado">
+    <label><input type="radio" name="r8" value="Funcionó" data-txt="Funcionó"> Funcionó</label>
+    <label><input type="radio" name="r8" value="No funcionó" data-txt="No funcionó"> No funcionó</label>
+    <label><input type="radio" name="r8" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v8" placeholder="Texto de las dos tarjetas y qué falla exactamente"></textarea>
+  <div class="print-only" id="pr8"></div>
+</section>
+
+<section class="prueba" id="pF">
+  <h2>Algo más que haya visto</h2>
+  <textarea id="vF" placeholder="Cualquier otra cosa que quiera anotar"></textarea>
+  <div class="print-only" id="prF"></div>
+</section>
+
+<div class="recordatorio">
+  <strong>No olvide, antes de irse:</strong> exportar la cinta de tramas y el diario de órdenes de la
+  aplicación, de las DOS tarjetas. Indique en cada archivo de qué tarjeta es (Maestro o Esclavo).
+</div>
+
+</main>
+
+<footer>
+  <button id="btnPdf">Guardar en PDF</button>
+  <p class="nota-impresion">En el diálogo, elija "Guardar como PDF" y envíela por WhatsApp.</p>
+  <p id="estado"></p>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+  var estado = document.getElementById('estado');
+  var camposTexto = document.querySelectorAll('input[type=text], input[type=date], textarea');
+  var camposRadio = document.querySelectorAll('input[type=radio]');
+
+  function clave(id) { return 'pf_' + id; }
+
+  try {
+    camposTexto.forEach(function (el) {
+      var v = localStorage.getItem(clave(el.id));
+      if (v !== null) el.value = v;
+    });
+    camposRadio.forEach(function (el) {
+      var v = localStorage.getItem(clave(el.name + '_' + el.value));
+      if (v === '1') el.checked = true;
+    });
+  } catch (e) { /* sin almacenamiento: la hoja se sigue rellenando y se imprime igual */ }
+
+  function guardarTexto(el) {
+    try {
+      localStorage.setItem(clave(el.id), el.value);
+      if (estado) estado.textContent = 'guardado ' + new Date().toLocaleTimeString();
+    } catch (e) {
+      if (estado) estado.textContent = 'este teléfono no guarda: imprima antes de cerrar';
+    }
+  }
+
+  function guardarRadio(grupo) {
+    try {
+      Array.prototype.forEach.call(grupo, function (el) {
+        localStorage.setItem(clave(el.name + '_' + el.value), el.checked ? '1' : '0');
+      });
+      if (estado) estado.textContent = 'guardado ' + new Date().toLocaleTimeString();
+    } catch (e) {
+      if (estado) estado.textContent = 'este teléfono no guarda: imprima antes de cerrar';
+    }
+  }
+
+  camposTexto.forEach(function (el) {
+    el.addEventListener('input', function () { guardarTexto(el); refrescarImpresion(); });
+  });
+  camposRadio.forEach(function (el) {
+    el.addEventListener('change', function () {
+      guardarRadio(document.getElementsByName(el.name));
+      refrescarImpresion();
+    });
+  });
+
+  // Para cada prueba, arma en el recuadro de impresión el resultado elegido y lo
+  // escrito, en texto llano. Así, al imprimir, se ve la respuesta aunque el
+  // teléfono no dibuje los controles marcados.
+  var ids = ['0', '1', '2', '3', '4', '5', '6', '7', '8'];
+  function refrescarImpresion() {
+    ids.forEach(function (n) {
+      var pr = document.getElementById('pr' + n);
+      if (!pr) return;
+      var marcado = document.querySelector('input[name=r' + n + ']:checked');
+      var resultado = marcado ? marcado.getAttribute('data-txt') : 'sin responder';
+      var texto = document.getElementById('v' + n);
+      var vio = (texto && texto.value.trim()) ? texto.value : '(sin escribir)';
+      pr.textContent = 'Resultado: ' + resultado + '. Qué vio: ' + vio;
+    });
+    var libre = document.getElementById('vF');
+    var prF = document.getElementById('prF');
+    if (prF) {
+      prF.textContent = (libre && libre.value.trim()) ? libre.value : '(sin escribir)';
+    }
+  }
+
+  window.addEventListener('beforeprint', refrescarImpresion);
+  document.getElementById('btnPdf').addEventListener('click', function () {
+    refrescarImpresion();
+    window.print();
+  });
+
+  refrescarImpresion();
+})();
+</script>
+</body>
+</html>

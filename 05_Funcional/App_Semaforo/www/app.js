@@ -243,6 +243,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const camEstadoEl = document.getElementById('cam-estado');     // D-13
   const camDetalleEl = document.getElementById('cam-detalle');   // D-13
 
+  // La caja de la Prueba de Alcance (28/09): el funcional en campo pulsaba el boton y
+  // no sabia "donde se ve este valor" -el % ya se pintaba en rf-quality, pero en la
+  // pestana de Operacion, mientras el boton vive en la de Tecnico-. Ver
+  // pintarCajaAlcance() mas abajo.
+  const alcanceCajaEl = document.getElementById('alcance-caja');
+  const alcanceCajaPctEl = document.getElementById('alcance-caja-pct');
+  const alcanceCajaRttEl = document.getElementById('alcance-caja-rtt');
+  const alcanceCajaFraseEl = document.getElementById('alcance-caja-frase');
+
   // Bitacora del enlace (pestana de eventos)
   const registroTiraEl = document.getElementById('registro-tira');
   const registroListaEl = document.getElementById('registro-lista');
@@ -807,6 +816,49 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
     return tramo;
+  }
+
+  // =========================================================================
+  // 1.ter.bis LA CAJA DE LA PRUEBA DE ALCANCE (28/09, funcional en campo)
+  // =========================================================================
+  // "La prueba de enlace no comprendo como funciona o donde se ve este valor": el
+  // boton btn-modo-alcance vive en la pestana de Tecnico y el % que mide -rf-quality,
+  // pintado por pintarEnlace() arriba- vive en la pestana de Operacion. El tecnico
+  // pulsaba el boton y no tenia delante ningun numero que le dijera que la prueba
+  // estaba corriendo.
+  //
+  // CAMBIO MINIMO: mientras el equipo diga MODO:ALCANCE, esta funcion pinta el MISMO
+  // dato -mismo % y mismo RTT que ya calculo pintarEnlace()/lecturaDeEnlace()- en una
+  // caja aparte, puesta justo debajo del boton que arranca la prueba. No se mide nada
+  // nuevo: es el unico escritor de rf-quality (pintarEnlace) leido dos veces.
+  //
+  // LOS TRAMOS Y LOS UMBRALES SON LOS QUE YA USA LA APP -RF_BIEN, RF_JUSTO y
+  // ENLACE_ROTULO, arriba-, no una escala nueva: CLAUDE.md 14 prohibe una cifra que
+  // esta app no pueda recalcular, y estas SI las recalcula, porque son las mismas
+  // constantes de este mismo fichero.
+  function pintarCajaAlcance(lectura) {
+    if (!alcanceCajaEl) return;
+    if (state.modo !== 'ALCANCE') {
+      alcanceCajaEl.hidden = true;
+      return;
+    }
+    alcanceCajaEl.hidden = false;
+    const tramo = clasificarEnlace(lectura);
+    const medido = tramo !== 'SIN_DATO';
+    if (alcanceCajaPctEl) {
+      alcanceCajaPctEl.textContent = medido ? lectura.pct + '%' : '--';
+    }
+    const hayRtt = lectura && lectura.rtt !== null && lectura.rtt !== undefined;
+    if (alcanceCajaRttEl) {
+      alcanceCajaRttEl.textContent = hayRtt ? 'RTT ' + lectura.rtt + ' ms' : 'RTT --';
+    }
+    if (alcanceCajaFraseEl) {
+      alcanceCajaFraseEl.textContent = medido
+        ? ENLACE_ROTULO[tramo] + ' · cuanto más alto, mejor: ' + RF_BIEN +
+          '% o más es ' + ENLACE_ROTULO.BIEN.toLowerCase() + ', por debajo de ' +
+          RF_JUSTO + '% está ' + ENLACE_ROTULO.CAYENDO.toLowerCase() + '.'
+        : 'esperando la primera medida del equipo en esta prueba.';
+    }
   }
 
   // =========================================================================
@@ -1637,9 +1689,34 @@ document.addEventListener('DOMContentLoaded', () => {
                    frase: 'VERDE, este poste da paso' },
     'AMARILLO':  { lampara: 'amber', texto: 'AMARILLO',       color: 'var(--amber-lamp)', anillo: 'amber',
                    frase: 'AMARILLO, este poste está cerrando su paso' },
+    // FALLO COM ES UN SOLO S_FALLO PARA DOS CAUSAS DISTINTAS (28/09, funcional en
+    // campo). El firmware entra en el mismo estado -y publica el mismo literal- tanto
+    // cuando el ambar lo PIDE el operario (SET_MODO:AMBAR) como cuando se pierde la
+    // radio entre postes, y eso no se toca aqui: es semaforo.cpp, no la app. Lo que SI
+    // puede hacer la app es no llamarle "FALLO" a un ambar que el propio operario acaba
+    // de pedir -asi lo leyo el funcional, como averia-. La distincion se hace con MODO,
+    // que llega en la MISMA trama (ver 4117-4121): AMBAR es el modo que puso el
+    // operario; cualquier otro modo (o su ausencia) deja la frase de fallo de siempre.
+    // Este `frase` de aqui es ese fallback; quien pinta la version AMBAR es
+    // _fraseDeEstadoLuces(), que las dos llamadas de mas abajo usan en vez de leer
+    // `.frase` directo.
     'FALLO COM': { lampara: 'amber', texto: 'ÁMBAR DESTELLO', color: 'var(--amber-lamp)', anillo: 'amber',
                    frase: 'FALLO COM: ámbar intermitente y TALANQUERA ARRIBA, se pasa con precaución' }
   };
+
+  // LA UNICA FUNCION QUE DECIDE SI 'FALLO COM' SE LEE COMO AVERIA O COMO PEDIDO.
+  // Un MODO distinto de AMBAR (DEGRADADO, RENDIDO, DESCONOCIDO, sin dato...) es
+  // exactamente el resto de las causas de S_FALLO -radio caida, Modo Degradado
+  // vencido-, y para esas SI es un fallo de comunicacion: se deja la frase original.
+  function _fraseDeEstadoLuces(estado) {
+    const info = ESTADOS[estado];
+    if (!info) return null;
+    if (estado === 'FALLO COM' && state.modo === 'AMBAR') {
+      return 'ÁMBAR intermitente PEDIDO por el operario (Modo Ámbar) y TALANQUERA ' +
+             'ARRIBA, se pasa con precaución';
+    }
+    return info.frase;
+  }
 
   // =========================================================================
   // EL VOCABULARIO DE ESC:, QUE NO ES EL DE ESTADO: Y POR ESO ES OTRA TABLA
@@ -1770,7 +1847,16 @@ document.addEventListener('DOMContentLoaded', () => {
       // SFTY-6: el ambar intermitente sube la pluma A PROPOSITO -politica del cliente,
       // 27/08-. Se dice aqui aunque la tabla ESTADOS ya lo diga, porque quien mira la
       // barrera puede no estar mirando la lampara.
-      if (state.estadoLuces === 'FALLO COM') return 'sin enlace: se pasa con precaución';
+      //
+      // Y con el mismo MODO:AMBAR de _fraseDeEstadoLuces() (28/09): si el ambar lo pidio
+      // el operario, "sin enlace" es una averia que no existe -la radio puede estar
+      // perfecta-. Sin ese MODO (radio caida, Degradado vencido...) la causa SI es de
+      // enlace y la frase se queda.
+      if (state.estadoLuces === 'FALLO COM') {
+        return state.modo === 'AMBAR'
+          ? 'ámbar pedido por el operario: se pasa con precaución'
+          : 'sin enlace: se pasa con precaución';
+      }
       if (state.estadoLuces === 'ROJO' || state.estadoLuces === 'AMARILLO') {
         // D-13. Con las camaras habra ratos de LUZ ROJA CON LA PLUMA ARRIBA: hay algo
         // debajo y la barrera no baja. Hoy un operario eso lo lee como averia y llama.
@@ -2097,8 +2183,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // el operario la lee. Desde N-149 la segunda mitad ya no es siempre "no informa":
     // la escribe pintarAjeno(), que es quien decidio que se pinto en esa columna.
     if (phaseDescEl) {
-      phaseDescEl.textContent = (esEsclavo ? 'ESCLAVO' : 'MAESTRO') + ': ' + info.frase +
-                                ' · ' + frAjeno;
+      // info.frase NO se lee directo: FALLO COM tiene dos causas y solo MODO -de esta
+      // MISMA trama- distingue cual es (_fraseDeEstadoLuces(), 28/09).
+      phaseDescEl.textContent = (esEsclavo ? 'ESCLAVO' : 'MAESTRO') + ': ' +
+                                _fraseDeEstadoLuces(state.estadoLuces) + ' · ' + frAjeno;
     }
   }
 
@@ -4212,6 +4300,9 @@ document.addEventListener('DOMContentLoaded', () => {
       // pintarEnlace() quien decide, y sabe declarar la ausencia.
       const lectura = lecturaDeEnlace(data);
       pintarEnlace(lectura);
+      // Mismo dato, misma trama: se pinta ademas en la caja de la Prueba de Alcance si
+      // el equipo esta en ese modo (28/09). state.modo ya viene actualizado de arriba.
+      pintarCajaAlcance(lectura);
       registrarMuestraEnlace(lectura);
       if (data.BAT !== undefined) {
         // N-108 (31/08): EL FIRMWARE DEJO DE INVENTARSE ESTE NUMERO Y AHORA MANDA "--".
@@ -6127,6 +6218,10 @@ document.addEventListener('DOMContentLoaded', () => {
       badgeModoEl.style.color = '';
       badgeModoEl.textContent = 'SIN ENLACE';
     }
+    // La caja de Alcance se retira igual que el badge: state.modo se queda con el
+    // ultimo valor conocido (no lo borra esta funcion, ver arriba), y sin este `if`
+    // quedaria una caja de ALCANCE encendida sobre un equipo que ya no habla.
+    if (alcanceCajaEl) alcanceCajaEl.hidden = true;
 
     // Sin telemetria no se sabe el modo, asi que el control que depende de el se
     // apaga. Dejarlo habilitado con el ultimo modo conocido seria decidir con un dato

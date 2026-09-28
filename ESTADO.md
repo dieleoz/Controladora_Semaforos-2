@@ -1,11 +1,28 @@
-# ESTADO — dónde está parado el trabajo HOY (14/09/2026)
+# ESTADO — dónde está parado el trabajo HOY (28/09/2026)
 
-> ## ▶️ PUNTO DE CONTINUACION — 16/09/2026, Y ES POR AQUI POR DONDE SE RETOMA
+> ## ▶️ PUNTO DE CONTINUACION — 28/09/2026, Y ES POR AQUI POR DONDE SE RETOMA
+>
+> 🚦 **LLEGARON LAS TRAMAS DEL FUNCIONAL (Marco, Maestro `4D2007`, firmware `1889631` por declaracion:
+> el puente contesto `FW:--`).** Lo medido en la cinta y lo hecho:
+>
+> - 🔴 **La prueba de focos daba VERDE CONTRA VERDE en servicio** (medido con el C++ real: 2 s con el
+>   Esclavo en verde). **Ahora se rechaza en servicio** (`EN_SERVICIO_PASE_A_MENU`), solo corre en
+>   MENU/HORA/ALCANCE **con el rojo del Esclavo acusado** (`ESPERANDO_ROJO_DEL_ESCLAVO`) y al acabar
+>   devuelve la luz del estado. Decision del responsable: *«es lo esperado, asi no le guste al funcional»*.
+> - La app ya no rotula `FALLO COM` el ambar PEDIDO, y la Prueba de Alcance pinta el enlace donde se pulsa.
+> - **Camaras: `CAM:?` toda la sesion** — ninguna cerro su contacto; el cableado que paso Marco casa con
+>   `SPEC_5` §3. Sin medir si es la camara o el equipo: lo separa el puente p10-p9 del `.html` nuevo.
+> - **Hora, degradado:** sin evidencia en la cinta. Van en `05_Funcional/Pruebas_Funcional_2026-09-28.html`,
+>   que el funcional rellena y devuelve en PDF.
+>
+> **Lo siguiente: el PDF de Marco con las cintas de LAS DOS tarjetas.** Pedir la version antes de leer nada.
+
+> ## PUNTO DE CONTINUACION ANTERIOR — 16/09/2026 (cronica)
 >
 > 🚦 **SE ESPERAN LAS TRAMAS DEL FUNCIONAL.** Se le mando
 > **`Paquete_Banco_2026-09-16_1889631_SIN_BANCO.zip`** (sha256 `59643817`) con la APK
 > `IOT_VIAL_Semaforos_2026-09-16_1889631_SIN_BANCO.apk` (`1e2080d4`). Compuerta **18 PASS /
-> 1 FALLA / 0 ABORTADO**, banco **1459/1460 en 80 packs** —el rojo es `D-22` y **necesita una
+> 1 FALLA / 0 ABORTADO**, banco con **un solo rojo** —es `D-22` y **necesita una
 > tarjeta delante**, no se cierra con teclado—.
 >
 > **LO PRIMERO QUE HAY QUE HACER CON ESAS TRAMAS, en este orden:**
@@ -83,7 +100,7 @@
 > inyecciones se hicieron sobre el `.cpp` real con restauración verificada por hash.
 >
 > **Compuerta: 18 PASS · 1 FALLA · 0 ABORTADO**, dos pasadas iguales con el árbol quieto. Banco
-> **1459/1460** en 80 packs. **El único rojo es correcto y no se decora** (`CLAUDE.md` §1): es
+> **1469/1470** en 80 packs. **El único rojo es correcto y no se decora** (`CLAUDE.md` §1): es
 > `decisiones_01_anclas` acusando a **`D-22`**, la única decisión vigente sin construir, y **no
 > se cierra con teclado: necesita una tarjeta delante**. Las que este rojo contaba antes ya
 > salieron: `D-23` y `D-33` están construidas, `D-14` no se instala y `D-30` quedó recortada.
@@ -91,7 +108,7 @@
 > 🚚 **15/09 — ENVIADO AL FUNCIONAL: `ca2de3d`.** Es el primer paquete que sale con la ventana ambar-contra-verde
 > cerrada en las dos puntas (`D-34`) y con los tres defectos de `1.49` arreglados: la camara pidiendo paso ya no
 > sostiene el silencio del Maestro, el cristal parado ya no deja reanudar el Degradado y `REINICIAR_RELOJ` no dice
-> OK sin comprobarlo. Compuerta **18 PASS / 1 FALLA (`D-22`) / 0 ABORTADO**, banco 1459/1460, flash 64.1 % y 55.4 %.
+> OK sin comprobarlo. Compuerta **18 PASS / 1 FALLA (`D-22`) / 0 ABORTADO**.
 > **Se retiran sin mandarse `226ae26` y `622a20b`** (`roadmap` E5). **Nada de esto ha visto una tarjeta todavia.**
 >
 > **LO QUE ESPERA AL RESPONSABLE, hoy:**
@@ -512,13 +529,13 @@ acta es el ESTADO: `decisiones_01_anclas` vuelve a acusar a `D-14`, `D-22` y `D-
 ancla en el fuente, y esa acusación es CORRECTA — están decididas y sin construir.**
 
 Cifras **copiadas del acta
-[`evidencia/2026-09-16_compuerta.txt`](evidencia/2026-09-16_compuerta.txt)**, no escritas a mano —
+[`evidencia/2026-09-28_compuerta.txt`](evidencia/2026-09-28_compuerta.txt)**, no escritas a mano —
 lo comprueban `documentos_01`, `documentos_04` y `documentos_05` en cada corrida.
 
 | | |
 |---|---|
-| Flash | Maestro **64.1 %** (**42008** de 65536 B → **23.528 B libres**) · Esclavo **55.4 %** (36332 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
-| Banco por packs | 🔴 **1459/1460 comprobaciones** en **80 packs** — 79 PASS, **1 FALLA**. 🔴 **Y el rojo es CORRECTO, no es una regresión:** es `decisiones_01_anclas` acusando a **`D-22`**, la única decisión vigente sin ancla en el firmware — y no se construye con teclado: **necesita una tarjeta delante**. Las que este rojo contaba antes ya salieron de la lista: `D-23` y `D-33` están **construidas**, `D-14` **no se instala** (la cámara graba el evento sola en su microSD, 12/09) y `D-30` quedó **recortada** al retirarse el LCD (`D-32` (1)). 🔴 **Que esta cuenta suba no dice que el banco se degrade: dice que se está decidiendo más rápido de lo que se construye, y se arregla con teclado, no tocando el instrumento** |
+| Flash | Maestro **64.7 %** (**42380** de 65536 B → **23.156 B libres**) · Esclavo **55.4 %** (36336 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
+| Banco por packs | 🔴 **1469/1470 comprobaciones** en **80 packs** — 79 PASS, **1 FALLA**. 🔴 **Y el rojo es CORRECTO, no es una regresión:** es `decisiones_01_anclas` acusando a **`D-22`**, la única decisión vigente sin ancla en el firmware — y no se construye con teclado: **necesita una tarjeta delante**. Las que este rojo contaba antes ya salieron de la lista: `D-23` y `D-33` están **construidas**, `D-14` **no se instala** (la cámara graba el evento sola en su microSD, 12/09) y `D-30` quedó **recortada** al retirarse el LCD (`D-32` (1)). 🔴 **Que esta cuenta suba no dice que el banco se degrade: dice que se está decidiendo más rápido de lo que se construye, y se arregla con teclado, no tocando el instrumento** |
 | Arneses que compilan C++ real | ~~287/287 pantalla~~ *(retirado con el LCD, `D-32` (1))* · **75/75** automático · 22/22 ciclo · **122/122 dos puntas** · **71/71 Degradado a dos puntas** |
 | Puente ESP32 | **101/101** |
 | App | **310/310** jsdom · **70/70** funcional · **63/63** unitarios · **75/75** TDD |

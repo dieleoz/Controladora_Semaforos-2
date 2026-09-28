@@ -480,3 +480,151 @@ def correr(b, fw):
         == ("(a && b)", "X", "Y"),
         "el extractor del ternario devuelve la condicion entera y sus dos ramas, y no "
         "se queda con un trozo")
+
+    # ---- 9. N-82.bis: SOLO FUERA DE SERVICIO, Y AL ACABAR DEVUELVE EL ESTADO ----
+    #
+    # Cinta del 28/09 (serie 4D2007): TEST_LEDS en AUTO con el Maestro en VERDE; al acabar,
+    # luz ROJA con $STATUS en VERDE y la pluma abajo hasta cambiar de modo. Y medido en el
+    # arnes del automatico: en AUTO con el Esclavo en verde, la fase verde del test encendia
+    # el verde del Maestro 2 s -SFTY-2 solo enclava rojo/verde del MISMO poste-.
+    #
+    # EL BORDE, Y POR QUE ES ESE: se admite solo en los modos cuyo *_setup() llama a
+    # coordinador_forzarMenu() -rojo fijo en las DOS puntas- y con la luz en S_ROJO. La
+    # lista de modos NO se teclea: sale del switch de main.cpp y del cuerpo de cada setup.
+    b.verificar(
+        re.search(r"if\s*\(\s*!\s*testLedsAdmitido\s*\(\s*\)\s*\)", cuerpoInicio)
+        is not None and "%s = true" % bandera in cuerpoInicio and
+        cuerpoInicio.index("testLedsAdmitido") < cuerpoInicio.index("%s = true" % bandera),
+        "semaforo_iniciarTestLeds() pregunta testLedsAdmitido() ANTES de armar `%s`"
+        % bandera,
+        "semaforo_iniciarTestLeds() arma el test sin preguntar testLedsAdmitido(): "
+        "TEST_LEDS vuelve a correr en servicio")
+    b.verificar(
+        re.search(r"if\s*\(\s*%s\s*&&\s*!\s*testLedsAdmitido\s*\(\s*\)\s*\)\s*"
+                  r"terminarTestLeds\s*\(\s*\)\s*;" % re.escape(bandera),
+                  cuerpoAct) is not None
+        and cuerpoAct.index("testLedsAdmitido") < i,
+        "semaforo_actualizar() corta el test ANTES de su bloque si el equipo sale de "
+        "fuera de servicio: un test pedido en MENU no sigue en el AUTO siguiente",
+        "semaforo_actualizar() ya no corta el test al salir de fuera de servicio: un "
+        "test pedido en MENU seguiria ensenando su verde dentro del ciclo")
+
+    # El final: el literal de rojo fijo es el defecto de la cinta. Se exige que el
+    # bloque del test acabe en terminarTestLeds() -y no en un cuarto aplicarSalidas()- y
+    # que esta devuelva CADA estado por su propio setter.
+    fin = _cuerpo(codigo, "terminarTestLeds")
+    pares = dict(re.findall(r"case\s+(S_\w+)\s*:\s*(semaforo_\w+)\s*\(\s*\)\s*;", fin or ""))
+    esperado = {"S_ROJO": "semaforo_forzarRojo", "S_VERDE": "semaforo_forzarVerde",
+                "S_AMARILLO": "semaforo_iniciarTransicionAVerde",
+                "S_FALLO": "semaforo_iniciarFallo"}
+    def _final_bueno(bloque):
+        f = [g for g in re.findall(r"\baplicarSalidas\s*\(([^)]*)\)", bloque)]
+        return "terminarTestLeds" in bloque and len(f) == 3
+
+    # Control negativo: el final de antes de la cinta, reinyectado en el bloque REAL. Solo
+    # se puede reinyectar si el bloque lleva el final nuevo; si no lo lleva, la
+    # comprobacion de abajo ya sale en FALLA y el control no tendria sobre que operar.
+    if "terminarTestLeds();" in bloqueTest:
+        viejo = bloqueTest.replace(
+            "terminarTestLeds();", "%s = false; aplicarSalidas(true, false, false);" % bandera)
+        b.control_negativo(
+            not _final_bueno(viejo),
+            "el final de rojo fijo de antes del 28/09, reinyectado en el bloque real del "
+            "test, se detecta")
+
+    b.verificar(
+        fin is not None and pares == esperado and _final_bueno(bloqueTest),
+        "al acabar el test la lampara vuelve a la luz de `estado` por su propio setter "
+        "(%d estados): luz, estado y PLUMA: dicen lo mismo" % len(pares),
+        "el final del test no devuelve la luz del estado (fases=%s, pares=%s). Es el "
+        "defecto de la cinta del 28/09: rojo fijo con $STATUS en VERDE y la pluma abajo"
+        % (fases, pares))
+
+    admit = _cuerpo(codigo, "testLedsAdmitido")
+    # Su AUSENCIA es un defecto del firmware, no una ceguera del pack: el test sin guarda
+    # es justo lo que la cinta del 28/09 midio. Por eso FALLA y no ABORTADO.
+    b.verificar(
+        admit is not None,
+        "semaforo.cpp tiene testLedsAdmitido(): el test pregunta si esta fuera de servicio",
+        "semaforo.cpp NO tiene testLedsAdmitido(): TEST_LEDS corre en cualquier modo y su "
+        "fase verde sale contra el otro sentido (cinta del 28/09)")
+    if admit is None:
+        return
+    mRet = re.search(r"return\s+(.+?);", re.sub(r"\s+", " ", admit))
+    if not mRet:
+        raise fw.Abortado("testLedsAdmitido() no tiene un `return <expr>;` legible")
+    # El rojo del Esclavo CONFIRMADO (ACK_RED en C_MENU_IDLE) entra como una variable mas
+    # de la tabla, RC, evaluada en sus dos valores: sin ella, recien entrado en MENU desde
+    # AUTO el Esclavo puede seguir en verde (medido con el arnes del automatico, 28/09).
+    exprAdm = re.sub(r"coordinador_rojoEsclavoConfirmado\s*\(\s*\)", "RC", mRet.group(1))
+    enum = re.search(r"enum\s+ModoSistema\s*\{([^}]*)\}",
+                     fw.codigo("Maestro", "include", "modos.h"))
+    if not enum:
+        raise fw.Abortado("no se lee el enum ModoSistema de Maestro/include/modos.h")
+    modos = [t.strip() for t in enum.group(1).split(",") if t.strip()]
+    main_c = fw.codigo("Maestro", "src", "main.cpp")
+    setups = {k: v for k, v in
+              re.findall(r"case\s+(\w+)\s*:\s*(\w+)\s*\(\s*\)\s*;\s*break", main_c)
+              if v.lower().endswith("setup")}
+    fuera_de_servicio = set()
+    for modo, fn in setups.items():
+        for f in fw.fuentes_de("Maestro", "src"):
+            cf = fw.codigo("Maestro", "src", f)
+            mm = re.search(r"\bvoid\s+%s\s*\(\s*\)\s*\{" % re.escape(fn), cf)
+            if mm:
+                tr = _bloque(cf, mm.end() - 1)
+                if tr and "coordinador_forzarMenu" in cf[tr[0]:tr[1]]:
+                    fuera_de_servicio.add(modo)
+    if len(setups) != len(modos) or not fuera_de_servicio:
+        raise fw.Abortado(
+            "del switch de main.cpp salieron %d setups para %d modos y %d fuera de "
+            "servicio: el lector se quedo ciego y la tabla de abajo no mediria nada"
+            % (len(setups), len(modos), len(fuera_de_servicio)))
+    estados = ("S_ROJO", "S_VERDE", "S_AMARILLO", "S_FALLO")
+    desconocidos = set(_IDENT.findall(exprAdm)) - set(modos) - set(estados) - {
+        "m", "estado", "RC"}
+    if desconocidos:
+        raise fw.Abortado("testLedsAdmitido() menciona %s, que este pack no sabe evaluar"
+                          % ", ".join(sorted(desconocidos)))
+    def _admision(expr):
+        py = expr.replace("&&", " and ").replace("||", " or ").replace("!=", " __NE__ ")
+        py = py.replace("!", " not ").replace("__NE__", "!=")
+        malos, alguno = [], False
+        for modo in modos:
+            for est in estados:
+                for rc in (True, False):
+                    ent = {n: n for n in modos + list(estados)}
+                    ent.update({"m": modo, "estado": est, "RC": rc})
+                    si = bool(eval(py, {"__builtins__": {}}, ent))  # noqa: S307
+                    alguno = alguno or si
+                    if si and not (modo in fuera_de_servicio and est == "S_ROJO" and rc):
+                        malos.append("%s/%s/%s" % (modo, est,
+                                                   "rojo_esclavo" if rc else "SIN_ACK_RED"))
+        return malos, alguno
+
+    malos, alguno = _admision(exprAdm)
+    # Control negativo sobre el texto REAL: la misma expresion con un modo de servicio
+    # colado -y sin la condicion de la luz- tiene que salir con casos malos.
+    enServicio = sorted(set(modos) - fuera_de_servicio)[0]
+    b.control_negativo(
+        bool(_admision(exprAdm.replace("m == MENU", "m == MENU || m == %s" % enServicio,
+                                       1))[0])
+        and bool(_admision(re.sub(r"&&\s*estado\s*==\s*S_ROJO", "", exprAdm))[0])
+        and bool(_admision(re.sub(r"&&\s*RC\b", "", exprAdm))[0]),
+        "testLedsAdmitido() con %s colado, sin `estado == S_ROJO` o sin el rojo del "
+        "Esclavo confirmado, sale con casos admitidos: la tabla distingue el defecto"
+        % enServicio)
+    b.verificar(
+        not malos,
+        "el test solo se admite con los DOS postes en rojo fijo (%s, luz en S_ROJO y "
+        "ACK_RED del Esclavo): en "
+        "ningun modo con ciclo puede encender un verde contra el otro sentido"
+        % ", ".join(sorted(fuera_de_servicio)),
+        "EL TEST SE ADMITE EN SERVICIO: %s. Su fase verde enciende VERDE1/VERDE2 sin "
+        "mirar el ciclo, y SFTY-2 no lo impide porque solo conoce este poste"
+        % ", ".join(malos))
+    b.verificar(
+        alguno,
+        "y hay al menos un caso admitido: el test no se ha quedado sin uso",
+        "testLedsAdmitido() no admite NINGUN caso: el test de lamparas dejo de existir "
+        "sin que nadie lo decidiera")
