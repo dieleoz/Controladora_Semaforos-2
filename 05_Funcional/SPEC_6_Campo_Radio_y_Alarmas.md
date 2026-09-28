@@ -168,7 +168,7 @@ agnosticas a la topologia y **lo unico que cambia es el CANAL**.
 ## B.5 Antenas
 
 **La especificacion completa de fabricacion —frecuencia, ROE, plano de tierra, BOM y cable— vive en
-`05_Funcional/7_Especificacion_Antenas.md`** y no se copia aqui. Lo unico que se repite, porque puede herir:
+`05_Funcional/historico/7_Especificacion_Antenas.md`** y no se copia aqui. Lo unico que se repite, porque puede herir:
 
 - **Una antena se pide por su FRECUENCIA REAL, no por su etiqueta comercial**, y fuera de banda **devuelve la potencia
   al amplificador**. ⚠️ **Las genericas de «LoRa» del 31/07 eran de otra banda y no se reinstalan en ningun radio.**

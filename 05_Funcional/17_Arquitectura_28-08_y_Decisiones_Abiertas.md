@@ -11,7 +11,7 @@ medido** (`CLAUDE.md` §12) — y **no gana en nada mas**: lo decidido lo fija `
 > paso aqui: del 28/08 al 12/09 esto llego a **4.182 lineas** y ya solo se citaban trozos.
 >
 > **Lo que salio NO se ha borrado ni se ha resumido: esta INTEGRO Y LITERAL en
-> [`17_hist_Arquitectura.md`](17_hist_Arquitectura.md)**, que publica al final las dos cuentas para
+> [`17_hist_Arquitectura.md`](historico/17_hist_Arquitectura.md)**, que publica al final las dos cuentas para
 > demostrarlo. Salio **cronica**, **decisiones ya cerradas** y **medidas derogadas** —que se mudan,
 > no se borran (`CLAUDE.md` §7.4)—. Se queda **lo que alguien necesita para no equivocarse HOY**.
 >
@@ -55,7 +55,7 @@ revision de abajo** sin tocar el firmware: el firmware sigue leyendo `PB0` como 
 y con `J14` vacio `R64` (10 kOhm a masa) deja el pin en 0 V —`J14` medido en cobre en los pasos
 17-18 del banco del 03-04/09—, asi que no pide nada. **Mientras el firmware lea `PB0` como
 demanda, en `J14` no se conecta nada.** (3) La configuracion de cada camara es la del manual del
-modelo (`04_Manuales/MANUAL_CONFIGURACION_CAMARAS_IA.md`); este documento no recita valores de
+modelo (`05_Funcional/historico/MANUAL_CONFIGURACION_CAMARAS_IA.md`); este documento no recita valores de
 configuracion, asi que no cambia nada aqui por ello. (4) Talanquera por rele a `OPEN` de la
 centralita, como en la guia del Sisga — igual que ya decia la revision de abajo.
 
@@ -96,7 +96,7 @@ condensador en el netlist** (`C28`, `C29`), al contrario de lo que decia §1.7.b
 ## Revisiones anteriores — ninguna se ha borrado, y aqui esta donde vive cada una
 
 Se citan desde fuera **por su fecha** (*«17_…, revision del 04/09 por la tarde»*): la fila se queda
-aqui y el texto integro esta en [`17_hist_Arquitectura.md`](17_hist_Arquitectura.md).
+aqui y el texto integro esta en [`17_hist_Arquitectura.md`](historico/17_hist_Arquitectura.md).
 
 | revision | de que iba | donde esta |
 |---|---|---|
@@ -113,7 +113,7 @@ aqui y el texto integro esta en [`17_hist_Arquitectura.md`](17_hist_Arquitectura
 
 > **DE ESTA REVISION SE QUEDA AQUI LO MEDIDO EN COBRE, Y NADA MAS.** La discrepancia de la cuenta
 > del informe de banco y la tabla «este documento decia / lo que midio el banco» estan integras en
-> [`17_hist_Arquitectura.md`](17_hist_Arquitectura.md), en esta misma revision.
+> [`17_hist_Arquitectura.md`](historico/17_hist_Arquitectura.md), en esta misma revision.
 
 ### Lo que se midio en `J16`, que es el nucleo de todo lo anterior
 
@@ -179,7 +179,7 @@ leyendo**, que es justo el que se habria revisado.
 ## 0. Como se lee este documento
 
 Tres niveles, y no se mezclan nunca. Es la misma escala que usa
-`03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md` §0, extendida al firmware.
+`05_Funcional/historico/MAPEO_TARJETA_KICAD.md` §0, extendida al firmware.
 
 | marca | que significa |
 |---|---|
@@ -278,7 +278,7 @@ Todo esta MEDIDO en `01_Firmware/Maestro/include/pines.h`.
 > **El bloque de arriba sigue entero y no se toca: es cierto.** Lo que faltaba es la otra mitad, y
 > cambia tres cifras que este documento publica como hechos. Todo lo de abajo sale del
 > `.kicad_pcb` (2.158.421 B), del `.kicad_sch` y del desensamblado del `.elf`. **El censo completo,
-> con los comandos pegados, está en `05_Funcional/2_Manual_Hardware_y_Pruebas.md` §11.**
+> con los comandos pegados, está en `05_Funcional/historico/2_Manual_Hardware_y_Pruebas.md` §11.**
 >
 > ### 1 · Los tres canales muertos están COMPLETOS en la placa
 >
@@ -392,7 +392,7 @@ Esclavo/src/bluetooth.cpp   static HardwareSerial SerialBT(PB7, PB6);   <- grep 
 
 **El ESP32 lleva fuente propia desde 12 V.** No se alimenta de los 3,3 V de `J17` p6/p8.
 
-El motivo esta ESCRITO en `05_Funcional/15_Lista_de_Compras_Hardware.md:102-106` y en el
+El motivo esta ESCRITO en `05_Funcional/historico/15_Lista_de_Compras_Hardware.md:102-106` y en el
 Manual 10: un ESP32 con radio da picos de corriente del orden de **500 mA**, y ese riel de 3,3 V
 —el que sale del `U5` LM1117DT-3.3, `MAPEO_TARJETA_KICAD.md` §2— es **el mismo que alimenta al
 STM32 que gobierna el semaforo**. Un reset del controlador por una caida de riel provocada por un
@@ -500,7 +500,7 @@ footprint (`Molex_KK-254_AE-6410-16A_1x16_P2.54mm_Vertical`, 16 pads, tanto en `
 > 🔴 **REFUTADO el 31/08. Esas tres cifras son la distancia entre PADS, y esa NO es la separacion
 > real entre los 12 V y la senal.** Los 12 V son una **red**, no un pad: salen de `J16` p1 y recorren
 > la placa hasta las diez borneras de potencia con pistas de hasta 1,0 mm. Medido cobre a cobre
-> —pads, pistas y vias, respetando capas— en `03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md:576-588`:
+> —pads, pistas y vias, respetando capas— en `05_Funcional/historico/MAPEO_TARJETA_KICAD.md:576-588`:
 >
 > | red de 12 V contra | separacion minima real | donde |
 > |---|---|---|
@@ -1073,11 +1073,11 @@ salida de emergencia que ya no existe, al final el acta que se firma.**
 
 | orden | documento | donde esta la ficha |
 |---|---|---|
-| **1** | `05_Funcional/15_Lista_de_Compras_Hardware.md` — hay dinero a punto de salir | historico, §B · Orden 1 |
+| **1** | `05_Funcional/historico/15_Lista_de_Compras_Hardware.md` — hay dinero a punto de salir | historico, §B · Orden 1 |
 | **2** | `05_Funcional/10_Manual_Modulo_Bluetooth_Telemetria.md` — congelado, y manda enchufar un `HC-05` en `J17` | historico, §B · Orden 2 |
-| **3** | `05_Funcional/8_Procedimiento_Modo_Degradado.md` | historico, §B · Orden 3 |
-| **4** | `04_Manuales/MANUAL_MANDO_4_RELES.md` — describe un accionador que no esta | historico, §B · Orden 4 |
-| **5** | `05_Funcional/3_Protocolo_Pruebas_Rigurosas.md` — el acta que se firma | historico, §B · Orden 5 |
+| **3** | `05_Funcional/historico/8_Procedimiento_Modo_Degradado.md` | historico, §B · Orden 3 |
+| **4** | `05_Funcional/historico/MANUAL_MANDO_4_RELES.md` — describe un accionador que no esta | historico, §B · Orden 4 |
+| **5** | `05_Funcional/historico/3_Protocolo_Pruebas_Rigurosas.md` — el acta que se firma | historico, §B · Orden 5 |
 | — | el segundo bloque (doce documentos mas, sin dinero de por medio) | historico, §B |
 
 ---
@@ -1136,7 +1136,7 @@ solo el `==`** (punto 12), que **la caducidad del PIN se ejerza EN LA APK y no e
 ---
 
 *Escrito el 28/08/2026. Revisado el 31/08, el 04/09, el 05/09, el 07/09 y el 11/09/2026, y **partido
-el 12/09/2026** en este fichero y en [`17_hist_Arquitectura.md`](17_hist_Arquitectura.md), que trae
+el 12/09/2026** en este fichero y en [`17_hist_Arquitectura.md`](historico/17_hist_Arquitectura.md), que trae
 la cuenta que demuestra que no se perdio nada. Lo marcado **MEDIDO** se repite abriendo el fichero
 que se cita; **MEDIDO EN COBRE**, con un multimetro y trae el numero que dio; **ESCRITO** tiene su
 fuente al lado; **SIN VERIFICAR** no lo ha comprobado nadie, ni aqui ni en ningun otro sitio.*

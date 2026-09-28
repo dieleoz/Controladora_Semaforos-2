@@ -19,14 +19,16 @@ que es donde se anotan las medidas.
 > todos los documentos de esta carpeta: donde un manual y esa tabla no digan lo mismo, **gana la
 > tabla**.
 > **1.** Reconfigure las **2 radios** —enlace directo, **sin repetidor**— a `2.4 kbps` de Air Data
-> Rate → **[`4_Manual_Configuracion_Radios.md`](4_Manual_Configuracion_Radios.md)**
+> Rate → **[`4_Manual_Configuracion_Radios.md`](historico/4_Manual_Configuracion_Radios.md)**
 > *(~~«las 4 radios»~~ — **corregido el 07/09**: la configuración vigente son **2 radios en enlace
 > directo**, como dice la cabecera de ese mismo manual y `CLAUDE.md` §3. El repetidor está fuera de
 > la configuración vigente. ~~⚠️ El CUERPO de `4_Manual` todavía dice «cambiar en las 4 radios» en
 > dos sitios: haga caso a su cabecera.~~ ✅ **Los dos sitios se corrigieron en el propio manual el
 > 07/09** — ya no hay que hacerle caso a la cabecera contra su cuerpo.)*
-> **2.** Cargue el firmware **en las dos tarjetas, la MISMA versión** → [`2_Manual_Hardware_y_Pruebas.md`](2_Manual_Hardware_y_Pruebas.md) §4
-> **3.** Ejecute el checklist y firme el acta → **[`3_Protocolo_Pruebas_Rigurosas.md`](3_Protocolo_Pruebas_Rigurosas.md)**
+> **2.** Cargue el firmware **en las dos tarjetas, la MISMA versión**
+> → [`2_Manual_Hardware_y_Pruebas.md`](historico/2_Manual_Hardware_y_Pruebas.md) §4
+> **3.** Ejecute el checklist y firme el acta
+> → **[`3_Protocolo_Pruebas_Rigurosas.md`](historico/3_Protocolo_Pruebas_Rigurosas.md)**
 > **4.** 🔧 **Si va a una SESIÓN DE BANCO, el protocolo vigente y ÚNICO es la
 > [`Guia_Cableado_y_Pruebas_Banco.html`](Guia_Cableado_y_Pruebas_Banco.html)** — 44 pasos, se abre en
 > el navegador, **se rellena y se devuelve en PDF**. *(El `ENCARGO_SESION_BANCO.md` de 29 pasos se
@@ -99,7 +101,7 @@ que es donde se anotan las medidas.
 
 > ## ⚠️ SI VA A OPERAR EL MODO DEGRADADO
 >
-> **Lea completo el [`8_Procedimiento_Modo_Degradado.md`](8_Procedimiento_Modo_Degradado.md) antes de
+> **Lea completo el [`8_Procedimiento_Modo_Degradado.md`](historico/8_Procedimiento_Modo_Degradado.md) antes de
 > tocar nada.** Ese modo da verde **sin confirmación del otro extremo** —con el radio muerto es
 > inevitable— y tiene riesgos residuales que el cliente aceptó por escrito. Tres cosas que hay que
 > saber de entrada:
@@ -153,7 +155,7 @@ que es donde se anotan las medidas.
 > | **NO existe** el puerto serie de cámara IA (`AI_CARS`) | **`AiBus` y sus tres funciones están RETIRADOS**, no huérfanos: `grep AiBus` sobre las dos puntas sólo devuelve comentarios de historia. Colgaba del mismo USART1 que el Bluetooth, así que *«el puerto IA a 115200» nunca existió*; el enlazador ya descartaba las funciones, pero el objeto costaba **280 B de RAM por punta** en cada arranque |
 > | **NO está construida** la cámara de umbral (despeje de tramo) | *Especificado, sin construir.* Falta una entrada física y un comando de radio. El despeje se hace **por tiempo** (`cfgDespejeSeg`), que es el criterio conservador. Ver `9_Manual_Parametrizacion_Camara_IA.md` |
 >
-> **Y el manual `04_Manuales/MANUAL_CONFIGURACION_CAMARAS_IA.md` salió el 26/08 con dos errores de
+> **Y el manual `05_Funcional/historico/MANUAL_CONFIGURACION_CAMARAS_IA.md` salió el 26/08 con dos errores de
 > pin**, corregidos el 28/08 y registrados en su §0: asignaba la cámara de demanda a **`PB9`**.
 >
 > 🔴 **`PB9` y `PB13` son hoy `MANDO_A` y `MANDO_B`, los canales del mando de relés** (`J16` p5 y
@@ -166,8 +168,9 @@ que es donde se anotan las medidas.
 > llamadas y `pines.h` de las dos puntas). **Ninguna línea está VERIFICADA EN LA PLACA todavía**:
 > la sesión de banco es su primera comprobación física.
 >
-> Referencia de campo vigente: **[`9_Manual_Parametrizacion_Camara_IA.md`](9_Manual_Parametrizacion_Camara_IA.md)**
-> y **[`15_Lista_de_Compras_Hardware.md`](15_Lista_de_Compras_Hardware.md)**. ~~**Son 2 cámaras, una
+> Referencia de campo vigente:
+> **[`9_Manual_Parametrizacion_Camara_IA.md`](historico/9_Manual_Parametrizacion_Camara_IA.md)**
+> y **[`15_Lista_de_Compras_Hardware.md`](historico/15_Lista_de_Compras_Hardware.md)**. ~~**Son 2 cámaras, una
 > por poste** (`DECISIONES.md` `D-2` / `D-13`), y **van a `J16`: `p10` en un poste y `p12` en el
 > otro** (`D-3`).~~ → ✏️ **11/09, `D-25`: son 4 cámaras, DOS POR POSTE, y van a `J16` —`p10`
 > (contra `p9`) y `p12` (contra `p11`) en CADA poste—.** Guía de campo:
@@ -199,13 +202,18 @@ que es donde se anotan las medidas.
 
 ## 📄 Índice de Manuales y Documentos Core:
 
-1. 📘 **[1_Manual_Usuario.md](1_Manual_Usuario.md)** / **`1_Manual_Usuario.docx`**  
+> **ARCHIVADOS el 28/09 en `historico/`: todos los de esta lista salvo el 10 y el 17.** No son vigentes;
+> mandan las `SPEC_0..8`. Lo que sigue describe cada documento antes de archivarlo.
+
+1. 📘 **[1_Manual_Usuario.md](historico/1_Manual_Usuario.md)** / **`1_Manual_Usuario.docx`**  
    Manual de operación y secuencia de luces seguras bajo la **Resolución 2024 de MinTransporte Colombia**.
    Incluye el ~~**menú de dos niveles**, **AJUSTAR HORA**~~ *(⛔ `D-17.bis`: la pantalla y el menú se retiran del equipo)*, ~~el **mando de 4 relés**~~ *(⛔ `D-1`: **el mando no existe**; su código se conserva por SFTY-21)* y el **menú propio del Esclavo**. **Lo vigente de este manual es la operación por app** y el apartado de cámaras (§6, corregido el 07/09).
-2. 📘 **[2_Manual_Hardware_y_Pruebas.md](2_Manual_Hardware_y_Pruebas.md)** / **`2_Manual_Hardware_y_Pruebas.docx`**  
+2. 📘 **[2_Manual_Hardware_y_Pruebas.md](historico/2_Manual_Hardware_y_Pruebas.md)**
+   / **`2_Manual_Hardware_y_Pruebas.docx`**  
    Guía de ensamblaje, cableado de borneras RS485 `485_A` / `485_B` (A a A, B a B) y flasheo en PlatformIO.
    Incluye la **pila `CR2032` del reloj** (§5) y el **mando de relés** (§6). 🔴 **07/09:** ~~con la advertencia de que **el Esclavo no tiene receptor**~~ → **`D-1`: NO HAY MANDO en ninguna punta.** Y **§5 está derogada en su parte de diagnóstico**: `D-15` — el STM32 ya no contesta a `SET_RTC`; se consulta con **`CMD:LEER_RTC`** (`D-17`).
-3. 📘 **[3_Protocolo_Pruebas_Rigurosas.md](3_Protocolo_Pruebas_Rigurosas.md)** / **`3_Protocolo_Pruebas_Rigurosas.docx`**  
+3. 📘 **[3_Protocolo_Pruebas_Rigurosas.md](historico/3_Protocolo_Pruebas_Rigurosas.md)**
+   / **`3_Protocolo_Pruebas_Rigurosas.docx`**  
    Checklist obligatorio de pruebas de laboratorio y campo para certificar el equipo antes de puesta en marcha.
    ~~**68 pruebas**, con las Secciones **7 (reloj y sincronización)**, **8 (mando)**, **9 (Modo Degradado)** y **10 (interfaz del Esclavo)** nuevas.~~
    🔴 **AQUÍ NO VA UN TOTAL, y no es un descuido: es lo que el propio documento exige — 05/09.**
@@ -221,19 +229,22 @@ que es donde se anotan las medidas.
    ejecute la sesión. **Este README publicaba justo la cifra que el documento se niega a inventar.**
    ⚠️ **Y la Sección 10 (interfaz del Esclavo) está RETIRADA entera, no es nueva.** Las nuevas
    vigentes son la **7 (reloj)**, la **8 (mando)** y la **9 (Modo Degradado)**.
-4. 📘 **[4_Manual_Configuracion_Radios.md](4_Manual_Configuracion_Radios.md)** / **`4_Manual_Configuracion_Radios.docx`**  
+4. 📘 **[4_Manual_Configuracion_Radios.md](historico/4_Manual_Configuracion_Radios.md)**
+   / **`4_Manual_Configuracion_Radios.docx`**  
    Configuración de radios industriales **E90-DTU** con `RF_Setting4.6.exe` y DIP switches `M0`/`M1`.
-5. 📘 **[5_Manual_Puente_ESP32.md](5_Manual_Puente_ESP32.md)** / **`5_Manual_Puente_ESP32.docx`**  
+5. 📘 **[5_Manual_Puente_ESP32.md](historico/5_Manual_Puente_ESP32.md)** / **`5_Manual_Puente_ESP32.docx`**  
    Instrucciones para la instalación del puente repetidor con ESP32 (Modo 4 Radios para curvas ciegas).
-6. 📘 **[6_Preguntas_Diseno_Funcional.md](6_Preguntas_Diseno_Funcional.md)** / **`6_Preguntas_Diseno_Funcional.docx`**  
+6. 📘 **[6_Preguntas_Diseno_Funcional.md](historico/6_Preguntas_Diseno_Funcional.md)**
+   / **`6_Preguntas_Diseno_Funcional.docx`**  
    Cuestionario y parámetros de diseño de obra, y la **detección vehicular por contacto seco**.
    Contiene la decisión **CERRADA** de *«Cero Computadores Edge Externos»* (§2): la analítica corre
    **dentro de la cámara**, y al equipo llega **un pulso de hardware** — no vídeo ni datos.
-7. 📡 **[7_Especificacion_Antenas.md](7_Especificacion_Antenas.md)** / **`7_Especificacion_Antenas.docx`**  
+7. 📡 **[7_Especificacion_Antenas.md](historico/7_Especificacion_Antenas.md)** / **`7_Especificacion_Antenas.docx`**  
    **Especificación para fabricación de antenas bajo pedido.** Documento para entregar al proveedor:
    sintonía a **171 MHz**, ROE ≤ 1,5:1 en 168–174 MHz, sin plano de tierra y con **reporte de medición
    de ROE exigido como entregable**. Resuelve la causa del alcance de 3 cuadras medido el 31/07.
-8. 🕹️ **[8_Procedimiento_Modo_Degradado.md](8_Procedimiento_Modo_Degradado.md)** / **`8_Procedimiento_Modo_Degradado.docx`**  
+8. 🕹️ **[8_Procedimiento_Modo_Degradado.md](historico/8_Procedimiento_Modo_Degradado.md)**
+   / **`8_Procedimiento_Modo_Degradado.docx`**  
    **Procedimiento de campo del MODO DEGRADADO.** Requisitos previos, activación **en las dos puntas**
    con verificación visual de ambas, el **límite duro de 48 h**, la salida —también verificada en
    ambas puntas— y los **riesgos residuales aceptados por el cliente**. **Obligatorio leerlo antes de
@@ -244,36 +255,36 @@ que es donde se anotan las medidas.
 > **Medido:** `ls -1 05_Funcional/[0-9]*.md | wc -l` → **19**. Los once que faltaban aquí incluyen
 > **los tres que hoy más mandan**, y uno de ellos gana a este README en cobre:
 
-9. 📷 **[9_Manual_Parametrizacion_Camara_IA.md](9_Manual_Parametrizacion_Camara_IA.md)** —
+9. 📷 **[9_Manual_Parametrizacion_Camara_IA.md](historico/9_Manual_Parametrizacion_Camara_IA.md)** —
    **entregable principal desde `D-12`**: sin red y sin analítica en el controlador, **toda la
    inteligencia vive en la CONFIGURACIÓN de la cámara.** Es lo que se lleva delante de la cámara.
    🎯 **11/09, `D-27`:** los **valores** de esa configuración son los del manual del modelo
-   comprado, [`../04_Manuales/MANUAL_CONFIGURACION_CAMARAS_IA.md`](../04_Manuales/MANUAL_CONFIGURACION_CAMARAS_IA.md)
+   comprado, [`historico/MANUAL_CONFIGURACION_CAMARAS_IA.md`](historico/MANUAL_CONFIGURACION_CAMARAS_IA.md)
    §4 —la tabla valor a valor está en el §4 Paso 3 del Manual 9—, y **las cuatro cámaras están
    compradas**. ~~⚠️ La guía, paso 07, todavía dice «objetivo: no filtrar»~~ — ✅ **corregida el 11/09 (`7037eb6`)**: la
    guía [`Camaras_Sisga_4x.html`](Camaras_Sisga_4x.html) dice ya ☑ Vehículo · ☐ Humano si la casilla existe (`D-27`).
 10. 📱 **[10_Manual_Modulo_Bluetooth_Telemetria.md](10_Manual_Modulo_Bluetooth_Telemetria.md)** —
     el transporte SPP y la alimentación del módulo. **§1 congela el transporte: SPP, no BLE.**
-11. ⏱️ **[11_Manual_Instalacion_RTC_DS3231_Bateria.md](11_Manual_Instalacion_RTC_DS3231_Bateria.md)** —
+11. ⏱️ **[11_Manual_Instalacion_RTC_DS3231_Bateria.md](historico/11_Manual_Instalacion_RTC_DS3231_Bateria.md)** —
     pila del RTC y el `DS3231`. ⚠️ **§4.1 derogada por `D-15`: no se diagnostica el reloj mandando
     `SET_RTC` al STM32.** La orden vigente es **`CMD:LEER_RTC`** (`D-17`).
-12. 🧪 **[12_Cobertura_de_Pruebas_y_Huecos.md](12_Cobertura_de_Pruebas_y_Huecos.md)** — qué está
+12. 🧪 **[12_Cobertura_de_Pruebas_y_Huecos.md](historico/12_Cobertura_de_Pruebas_y_Huecos.md)** — qué está
     cubierto y qué no. **No publica cifras: remite al acta de `evidencia/`.**
-13. 🔌 **[13_Manual_Modulo_Expansion_I2C_y_Compras.md](13_Manual_Modulo_Expansion_I2C_y_Compras.md)** —
+13. 🔌 **[13_Manual_Modulo_Expansion_I2C_y_Compras.md](historico/13_Manual_Modulo_Expansion_I2C_y_Compras.md)** —
     🛑 **PRE-IMPLEMENTACIÓN. El bus I²C sobre el STM32 NO SE MONTA.** Lo vigente de él es **§3 y la
     fe de erratas `J14`/`J15`** —riesgo eléctrico real— y **§4.1**, el censo de pines.
-14. 📱 **[14_Manual_App_Movil_IOT_VIAL.md](14_Manual_App_Movil_IOT_VIAL.md)** — la app. **Y desde
+14. 📱 **[14_Manual_App_Movil_IOT_VIAL.md](historico/14_Manual_App_Movil_IOT_VIAL.md)** — la app. **Y desde
     `D-16`, la única superficie de mando del equipo.**
-15. 🛒 **[15_Lista_de_Compras_Hardware.md](15_Lista_de_Compras_Hardware.md)** — 💰 **el que se
+15. 🛒 **[15_Lista_de_Compras_Hardware.md](historico/15_Lista_de_Compras_Hardware.md)** — 💰 **el que se
     ejecuta con DINERO: cada fila es una compra.**
-16. 📋 **[16_Documento_Auditoria_Arquitectura_y_Usabilidad_App_IOT_VIAL.md](16_Documento_Auditoria_Arquitectura_y_Usabilidad_App_IOT_VIAL.md)**
+16. 📋 **[16_Documento_Auditoria_Arquitectura_y_Usabilidad_App_IOT_VIAL.md][doc16]**
 17. 🏗️ **[17_Arquitectura_28-08_y_Decisiones_Abiertas.md](17_Arquitectura_28-08_y_Decisiones_Abiertas.md)** —
     🔴 **GANA A TODO LO DEMÁS DE ESTA CARPETA EN HARDWARE MEDIDO.** Es donde se anotan las medidas de
     cobre, con su fecha, su instrumento y el firmware que había dentro.
-18. 🧩 **[18_Especificacion_Firmware_ESP32.md](18_Especificacion_Firmware_ESP32.md)** — el ESP32 de
+18. 🧩 **[18_Especificacion_Firmware_ESP32.md](historico/18_Especificacion_Firmware_ESP32.md)** — el ESP32 de
     **EXPANSIÓN** *(no el del repetidor del doc 5)*. 🟢 **Su firmware existe:**
     `01_Firmware/ESP32_Expansion/`, con rótulo Bluetooth y watchdog.
-19. 🔧 **[19_Especificacion_Placa_Portadora_ESP32.md](19_Especificacion_Placa_Portadora_ESP32.md)** —
+19. 🔧 **[19_Especificacion_Placa_Portadora_ESP32.md](historico/19_Especificacion_Placa_Portadora_ESP32.md)** —
     la portadora de la línea `A8`.
 
 ---
@@ -307,3 +318,5 @@ python 05_Funcional/convertir_a_word.py 3 8    # solo los numerados 3 y 8
   > Lo que quedó de esa fase es la lectura de **contactos secos** —`PB0` en `J14`, y `PB14`/`PB15`
   > en `J16` desde el 31/08— ver el aviso de cámaras más arriba. No hay computador edge ni
   > inferencia en el microcontrolador.
+
+[doc16]: historico/16_Documento_Auditoria_Arquitectura_y_Usabilidad_App_IOT_VIAL.md

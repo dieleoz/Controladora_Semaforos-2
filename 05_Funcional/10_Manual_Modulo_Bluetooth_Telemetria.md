@@ -65,7 +65,7 @@
 > ausencia para decir *«no hay nada que rotular y no hay módulo que instalar»*. **Ese motivo
 > desapareció.** Lo que sigue bloqueando el montaje es **otra cosa y sólo una**: la línea `A5`, la
 > fuente propia DC-DC, que **sigue sin pedirse** (verificado hoy en
-> `05_Funcional/15_Lista_de_Compras_Hardware.md`, fila `A5`: *«NO se ha pedido, y es LO QUE BLOQUEA
+> `05_Funcional/historico/15_Lista_de_Compras_Hardware.md`, fila `A5`: *«NO se ha pedido, y es LO QUE BLOQUEA
 > EL MONTAJE»*).
 >
 > ### 2. 🔴 Este documento CIERRA `BLQ-1` arriba y lo declara VIVO dos veces más abajo
@@ -615,7 +615,7 @@ Las dos mitades de este apartado **no tienen la misma solidez**, y se separan a 
 | dato | nivel de prueba |
 |---|---|
 | El firmware abre `USART1` sobre `PB7` (RX) y `PB6` (TX) a 9600 bps | ✅ **MEDIDO EN EL FUENTE.** `01_Firmware/Maestro/src/bluetooth.cpp` y `01_Firmware/Esclavo/src/bluetooth.cpp`, línea idéntica en las dos puntas: `static HardwareSerial SerialBT(PB7, PB6);` |
-| `J17` p2 = `PB7` (`U1` p43) · `J17` p3 = `PB6` (`U1` p42) · p6/p8 = 3,3 V · p7/p9 = `GND` | 📐 **MEDIDO EN EL ESQUEMÁTICO.** Trazado sobre `Controladora_Semaforos.kicad_sch` (§7 de `03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md`) |
+| `J17` p2 = `PB7` (`U1` p43) · `J17` p3 = `PB6` (`U1` p42) · p6/p8 = 3,3 V · p7/p9 = `GND` | 📐 **MEDIDO EN EL ESQUEMÁTICO.** Trazado sobre `Controladora_Semaforos.kicad_sch` (§7 de `05_Funcional/historico/MAPEO_TARJETA_KICAD.md`) |
 | Que en la tarjeta física esas vías vayan a donde dice el esquemático | 🔴 **NO VERIFICADO EN LA PLACA.** Nadie lo ha medido con multímetro |
 
 > 🔴 **Esa última fila es una advertencia, no un formalismo. Antes de enchufar el módulo, compruebe
@@ -783,7 +783,7 @@ tarjeta no los da:
 | masa | la del conector | **masa común con la tarjeta, obligatoria** |
 
 > 🛑 **PENDIENTE Y BLOQUEANTE DE MONTAJE: esa fuente NO SE HA PEDIDO.** Es la línea **`A5`** de
-> `05_Funcional/15_Lista_de_Compras_Hardware.md:90`, marcada **🔴 NO cubierta** — *«sin ella el `ESP32`
+> `05_Funcional/historico/15_Lista_de_Compras_Hardware.md:90`, marcada **🔴 NO cubierta** — *«sin ella el `ESP32`
 > reinicia el STM32 del semáforo»*. **Sin `A5` no se monta el ESP32**, ni «provisionalmente desde el
 > 3,3 V para probar»: esa prueba provisional se hace sobre el equipo que controla el tráfico.
 > **Dueño: responsable** (`ESTADO.md:251`, línea `A3`).
@@ -925,7 +925,7 @@ nada**. El puerto RS-485 de `J10` no está inactivo: está tomado y sordo.
 > **Antes esto era un precio pagado a cambio de algo** —liberar `PA10` para el Bluetooth—. **Hoy es
 > solo el precio.** El beneficio se fue con el remapeo a `J17` y el coste se quedó.
 
-> **Es la misma lección que `01_Firmware/TROUBLESHOOTING.md` dejó escrita con el repetidor el
+> **Es la misma lección que `05_Funcional/historico/TROUBLESHOOTING.md` dejó escrita con el repetidor el
 > 31/07/2026:** *«si un DE/RE se queda permanentemente en alto, esa línea queda bloqueada en ambos
 > sentidos»*. Allí fue un fallo; aquí **dejó de ser una decisión y volvió a ser lo que era allí**.
 

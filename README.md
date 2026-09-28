@@ -353,27 +353,31 @@ seis.**
 
 ## 🗂️ Paquete Oficial de Entregables y Manuales (`05_Funcional/`, en `.md` y `.docx`)
 
+> **ARCHIVADOS el 28/09 en `05_Funcional/historico/`: todas las filas salvo la 10 y la 17.** No son vigentes;
+> mandan las `SPEC_0..8` (CLAUDE.md §15). La columna «Estado» describe cada manual antes de archivarlo.
+
 | # | Manual | Estado |
 |---|---|---|
-| 1 | [`1_Manual_Usuario`](05_Funcional/1_Manual_Usuario.md) | Operación y comportamiento vial (Resolución 2024) |
-| 2 | [`2_Manual_Hardware_y_Pruebas`](05_Funcional/2_Manual_Hardware_y_Pruebas.md) | Hardware, borneras y ensamblaje STM32 |
-| 3 | [`3_Protocolo_Pruebas_Rigurosas`](05_Funcional/3_Protocolo_Pruebas_Rigurosas.md) | Protocolo de auditoría funcional. ⚠️ **reescrito**: cada prueba lleva su marca `SE REESCRIBE` / `SE RETIRA` / `SE APLAZA` |
-| 4 | [`4_Manual_Configuracion_Radios`](05_Funcional/4_Manual_Configuracion_Radios.md) | E90-DTU (2.4 kbps / 30 dBm / FEC) |
-| 5 | [`5_Manual_Puente_ESP32`](05_Funcional/5_Manual_Puente_ESP32.md) | Puente repetidor V7.6 — **fuera de la configuración vigente** |
-| 6 | [`6_Preguntas_Diseno_Funcional`](05_Funcional/6_Preguntas_Diseno_Funcional.md) | Decisiones de diseño cerradas |
-| 7 | [`7_Especificacion_Antenas`](05_Funcional/7_Especificacion_Antenas.md) | Antenas y línea de vista |
-| 8 | [`8_Procedimiento_Modo_Degradado`](05_Funcional/8_Procedimiento_Modo_Degradado.md) | Operación de emergencia por reloj sin radio |
-| 9 | [`9_Manual_Parametrizacion_Camara_IA`](05_Funcional/9_Manual_Parametrizacion_Camara_IA.md) | **4 cámaras, dos por poste** en `J16` p10/p12 (`D-25`, 11/09) — ~~⚠️ **el manual todavía dice una por poste: pendiente de alinear**~~ ✏️ **alineado el 11/09** (el `.docx` no: se regenera aparte). **Es el entregable principal del diseño de cámaras** (`D-12`): toda la inteligencia vive en la configuración de la cámara. 🎯 **11/09, `D-27`: sus VALORES de configuración salen del manual del modelo, [`04_Manuales/MANUAL_CONFIGURACION_CAMARAS_IA.md`](04_Manuales/MANUAL_CONFIGURACION_CAMARAS_IA.md) §4** —tabla valor a valor en su §4 Paso 3—; las cuatro cámaras están compradas |
+| 1 | [`1_Manual_Usuario`](05_Funcional/historico/1_Manual_Usuario.md) | Operación y comportamiento vial (Resolución 2024) |
+| 2 | [`2_Manual_Hardware_y_Pruebas`](05_Funcional/historico/2_Manual_Hardware_y_Pruebas.md) | Hardware, borneras y ensamblaje STM32 |
+| 3 | [`3_Protocolo_Pruebas_Rigurosas`](05_Funcional/historico/3_Protocolo_Pruebas_Rigurosas.md) | Protocolo de auditoría funcional. ⚠️ **reescrito**: cada prueba lleva su marca `SE REESCRIBE` / `SE RETIRA` / `SE APLAZA` |
+| 4 | [`4_Manual_Configuracion_Radios`](05_Funcional/historico/4_Manual_Configuracion_Radios.md) | E90-DTU (2.4 kbps / 30 dBm / FEC) |
+| 5 | [`5_Manual_Puente_ESP32`](05_Funcional/historico/5_Manual_Puente_ESP32.md) | Puente repetidor V7.6 — **fuera de la configuración vigente** |
+| 6 | [`6_Preguntas_Diseno_Funcional`](05_Funcional/historico/6_Preguntas_Diseno_Funcional.md) | Decisiones de diseño cerradas |
+| 7 | [`7_Especificacion_Antenas`](05_Funcional/historico/7_Especificacion_Antenas.md) | Antenas y línea de vista |
+| 8 | [`8_Procedimiento_Modo_Degradado`](05_Funcional/historico/8_Procedimiento_Modo_Degradado.md) | Operación de emergencia por reloj sin radio |
+| 9 | [`9_Manual_Parametrizacion_Camara_IA`](05_Funcional/historico/9_Manual_Parametrizacion_Camara_IA.md) | **4 cámaras, dos por poste** en `J16` p10/p12 (`D-25`, 11/09) — ~~⚠️ **el manual todavía dice una por poste: pendiente de alinear**~~ ✏️ **alineado el 11/09** (el `.docx` no: se regenera aparte). **Es el entregable principal del diseño de cámaras** (`D-12`): toda la inteligencia vive en la configuración de la cámara. 🎯 |
+|  |  | **11/09, `D-27`: sus VALORES de configuración salen del manual del modelo, [`05_Funcional/historico/MANUAL_CONFIGURACION_CAMARAS_IA.md`](05_Funcional/historico/MANUAL_CONFIGURACION_CAMARAS_IA.md) §4** —tabla valor a valor en su §4 Paso 3—; las cuatro cámaras están compradas |
 | 10 | [`10_Manual_Modulo_Bluetooth_Telemetria`](05_Funcional/10_Manual_Modulo_Bluetooth_Telemetria.md) | ⚠️ **manda enchufar un `HC-05` en `J17`, que es donde va el ESP32** |
-| 11 | [`11_Manual_Instalacion_RTC_DS3231_Bateria`](05_Funcional/11_Manual_Instalacion_RTC_DS3231_Bateria.md) | ~~`DS3231` en `PB0`/`PB8`~~ → **se muda al ESP32**. ⚠️ **manual sin corregir** |
-| 12 | [`12_Cobertura_de_Pruebas_y_Huecos`](05_Funcional/12_Cobertura_de_Pruebas_y_Huecos.md) | Qué mide cada instrumento y **qué queda sin medir** |
-| 13 | [`13_Manual_Modulo_Expansion_I2C_y_Compras`](05_Funcional/13_Manual_Modulo_Expansion_I2C_y_Compras.md) | ⚠️ **su §4 queda sin sujeto**: el I²C ya no vive en el STM32 |
-| 14 | [`14_Manual_App_Movil_IOT_VIAL`](05_Funcional/14_Manual_App_Movil_IOT_VIAL.md) | Operación de la app: SPP, gestor de cruces y Courier RTC |
-| 15 | [`15_Lista_de_Compras_Hardware`](05_Funcional/15_Lista_de_Compras_Hardware.md) | **Qué se pide, cuánto y cuándo** |
-| 16 | [`16_Documento_Auditoria_Arquitectura_y_Usabilidad_App`](05_Funcional/16_Documento_Auditoria_Arquitectura_y_Usabilidad_App_IOT_VIAL.md) | Auditoría de arquitectura y usabilidad de la app |
+| 11 | [`11_Manual_Instalacion_RTC_DS3231_Bateria`](05_Funcional/historico/11_Manual_Instalacion_RTC_DS3231_Bateria.md) | ~~`DS3231` en `PB0`/`PB8`~~ → **se muda al ESP32**. ⚠️ **manual sin corregir** |
+| 12 | [`12_Cobertura_de_Pruebas_y_Huecos`](05_Funcional/historico/12_Cobertura_de_Pruebas_y_Huecos.md) | Qué mide cada instrumento y **qué queda sin medir** |
+| 13 | [`13_Manual_Modulo_Expansion_I2C_y_Compras`](05_Funcional/historico/13_Manual_Modulo_Expansion_I2C_y_Compras.md) | ⚠️ **su §4 queda sin sujeto**: el I²C ya no vive en el STM32 |
+| 14 | [`14_Manual_App_Movil_IOT_VIAL`](05_Funcional/historico/14_Manual_App_Movil_IOT_VIAL.md) | Operación de la app: SPP, gestor de cruces y Courier RTC |
+| 15 | [`15_Lista_de_Compras_Hardware`](05_Funcional/historico/15_Lista_de_Compras_Hardware.md) | **Qué se pide, cuánto y cuándo** |
+| 16 | [`16_Documento_Auditoria_Arquitectura_y_Usabilidad_App`](05_Funcional/historico/16_Documento_Auditoria_Arquitectura_y_Usabilidad_App_IOT_VIAL.md) | Auditoría de arquitectura y usabilidad de la app |
 | 17 | [`17_Arquitectura_28-08_y_Decisiones_Abiertas`](05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md) | 🧭 **Manda sobre las filas 9, 10, 11 y 13.** Es donde se anotan las medidas de cobre |
-| 18 | [`18_Especificacion_Firmware_ESP32`](05_Funcional/18_Especificacion_Firmware_ESP32.md) | Especificación del firmware del módulo de expansión ESP32 |
-| 19 | [`19_Especificacion_Placa_Portadora_ESP32`](05_Funcional/19_Especificacion_Placa_Portadora_ESP32.md) | Especificación de la placa portadora del ESP32 |
+| 18 | [`18_Especificacion_Firmware_ESP32`](05_Funcional/historico/18_Especificacion_Firmware_ESP32.md) | Especificación del firmware del módulo de expansión ESP32 |
+| 19 | [`19_Especificacion_Placa_Portadora_ESP32`](05_Funcional/historico/19_Especificacion_Placa_Portadora_ESP32.md) | Especificación de la placa portadora del ESP32 |
 
 *(**La lista se ha desfasado CUATRO veces por lo mismo, y sigue sin instrumento**: el 27/08 anunciaba
 11 manuales de los 14 que existían; el 28/08, 15 de 16; el 31/08, 16 de 17; y hasta el 11/09, 17 de

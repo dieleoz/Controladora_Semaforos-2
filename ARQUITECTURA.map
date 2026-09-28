@@ -96,7 +96,7 @@ comando con el arbol quieto. Lo que SI es estable, porque cita un `§` concreto:
 | `05_Funcional/SPEC_4_App_y_Bluetooth.md:340,349` | `ARQUITECTURA.map §4-5` | SI |
 | `README.md` (sin linea fija, cerca de la estructura de firmware) | `ARQUITECTURA.map §7.3` (J14) | SI - §7 apunta a `ARQUITECTURA_conectores.map §7.3` |
 | `INDICE_CRUZADO.md` (11 citas) | `ARQUITECTURA.map` general, `Anexo A`, `C4`, `:97`, `:267` | 🔴 **NO**: `Anexo A`, `C4` y las citas por linea (`:97`, `:267`) no existen en esta reescritura (ver 4 de mas abajo) |
-| `CLAUDE.md` (3), `DECISIONES.md` (1), `99_Legacy/LEEME.md` (1), `02_LCD/MANUAL_PANTALLA_LCD.md` (1) | generica, sin `§` | sin cambio |
+| `CLAUDE.md` (3), `DECISIONES.md` (1), `99_Legacy/LEEME.md` (1), `05_Funcional/historico/MANUAL_PANTALLA_LCD.md` (1) | generica, sin `§` | sin cambio |
 
 **A quien apunta este fichero:** `ARQUITECTURA_conectores.map` (§7, integro, mismos
 numeros 7.1-7.7) · `evidencia/2026-09-28_compuerta.txt` (§2.4, §5) ·
@@ -283,7 +283,7 @@ mismo numero de lineas y contenido distinto -dos programas, uno probado y otro i
 
 ## 7. EL HARDWARE
 
-**Vive integro en [`ARQUITECTURA_conectores.map`](ARQUITECTURA_conectores.map), mismos
+**Vive integro en [`ARQUITECTURA_conectores.map`](05_Funcional/historico/ARQUITECTURA_conectores.map), mismos
 numeros de apartado (7.1-7.7)**: el fichero de KiCad, las diez cadenas de potencia,
 `J14`/`J15`/`J16`/`J17` pad a pad (7.3), el censo de pines, los pines libres, lo que
 sigue abierto y los avisos que no se pueden perder. **`05_Funcional/17_Arquitectura...md`
