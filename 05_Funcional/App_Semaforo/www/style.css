@@ -658,7 +658,7 @@ body {
 .pad-header h3 {
   font-size: 13px;
   font-weight: 800;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
   color: var(--cyan-neon);
 }
 
@@ -674,7 +674,7 @@ body {
    de la cabecera -"MAESTRO"/"ESCLAVO", que no significa nada para un banderillero- y
    un parrafo de 10 px debajo de la reja.
    Dice POSTE 1 / POSTE 2, que es el vocabulario que la propia pantalla ya usa encima
-   de cada semaforo, y NO SE SABE cuando no ha llegado un $STATUS. No inventa un poste
+   de cada semaforo, y "Poste sin identificar" sin $STATUS. No inventa un poste
    por descarte: la ausencia del dato tiene su propio rotulo y su propio color.
 
    ALTO EXACTO 17 px, QUE ES EL DEL <h3> QUE TIENE AL LADO, y eso no es un detalle de
@@ -690,14 +690,14 @@ body {
   border-radius: var(--radius-pill);
   color: var(--cyan-neon);
   background: rgba(0, 240, 255, 0.12);
-  white-space: nowrap;
+  white-space: nowrap; flex-shrink: 0;
 }
 
-/* "NO SE SABE" no es un poste peor: es la ausencia del dato, y lleva el mismo gris
-   que --enlace-sindato usa para lo mismo en la barra de enlace. 7.36:1 sobre el
-   fondo de la tarjeta. */
+/* "Poste sin identificar" es la ausencia del dato: gris de --enlace-sindato (7.36:1).
+   Letra 9 px sin espaciado: a 10 px partia el <h3> en dos lineas a 320 px y bajaba los
+   mandos 16 px (medido en Chrome, 320x647); el <h3> recorta con puntos antes que partir. */
 .pad-poste.pad-poste-sindato {
-  color: var(--enlace-sindato);
+  color: var(--enlace-sindato); font-size: 9px; letter-spacing: 0; padding: 0 5px;
   background: rgba(148, 163, 184, 0.14);
 }
 

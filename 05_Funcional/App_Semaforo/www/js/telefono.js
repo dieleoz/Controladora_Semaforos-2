@@ -5,7 +5,7 @@
 // ninguna trama y no cambia que hace un boton. Tres piezas:
 //
 //   1. ATRAS DE ANDROID. Con una ventana abierta (conexion, PIN, sitio, degradado,
-//      via) cierra ESA ventana; sin ninguna, hace lo de siempre.
+//      via) cierra ESA ventana; sin ninguna, doble atras en 2 s para salir.
 //   2. LAS VENTANAS ABREN ARRIBA. La hoja de conexion abria a mitad de scroll con la
 //      cabecera cortada.
 //   3. LA BARRA DE ABAJO NO TAPA NADA. El hueco inferior del contenido se mide con la
@@ -18,10 +18,10 @@ const Telefono = (() => {
   // window.Capacitor.Plugins.App. OJO con lo que hace el plugin (AppPlugin.java de
   // @capacitor/app 6.0.3): en cuanto esta instalado se queda con la tecla, y si nadie
   // escucha solo hace goBack() del WebView y NADA mas; la app ya no se va. Por eso aqui
-  // se escucha SIEMPRE y, sin ventana abierta, se replica lo que Android hacia antes
-  // del plugin en una actividad raiz de Android 12 o posterior: mandar la app al fondo
-  // (moveTaskToBack), que es lo que hace App.minimizeApp(). El enlace Bluetooth no se
-  // toca: la actividad no se destruye.
+  // se escucha SIEMPRE. Sin ventana abierta (decision del responsable, 28/09): el primer
+  // atras solo avisa; un segundo dentro de PLAZO_SALIR_MS sale con App.exitApp(), que
+  // cierra la actividad (antes minimizeApp() la dejaba viva). Que pasa con el enlace
+  // Bluetooth al salir no esta medido en telefono. Un atras que cierra ventana no cuenta.
   //
   // La ventana se cierra con un clic sobre su propio fondo, que es el camino que app.js
   // ya escucha para las cinco -`e.target === m`- y el que limpia lo que cada una deja
@@ -32,19 +32,41 @@ const Telefono = (() => {
     return abiertas.length ? abiertas[abiertas.length - 1] : null;
   }
 
-  // Devuelve lo que hizo, para que la prueba lo pueda aseverar: 'cerrada', 'minimizada'
-  // o 'nada' (sin plugin al que pedirselo).
+  const PLAZO_SALIR_MS = 2000;
+  const AVISO_SALIR = 'Pulse otra vez para salir';
+  let avisoEn = null;          // cuando se dio el ultimo aviso; null = ninguno vigente
+
+  // El toast es el de app.js (#toast-msg); su showToast() no se exporta, asi que se
+  // escribe igual: texto, clase `show` y se retira pasado el plazo.
+  function avisar(doc) {
+    const t = doc.getElementById('toast-msg');
+    if (!t) return;
+    t.textContent = AVISO_SALIR;
+    t.classList.add('show');
+    doc.defaultView.setTimeout(() => {
+      if (t.textContent === AVISO_SALIR) t.classList.remove('show');
+    }, PLAZO_SALIR_MS);
+  }
+
+  // Devuelve lo que hizo, para que la prueba lo pueda aseverar: 'cerrada', 'aviso',
+  // 'salida' o 'nada' (sin plugin al que pedirselo).
   function alPulsarAtras(doc, app) {
     const v = ventanaAbierta(doc);
     if (v) {
+      avisoEn = null;
       v.dispatchEvent(new doc.defaultView.MouseEvent('click', { bubbles: true }));
       return 'cerrada';
     }
-    if (app && typeof app.minimizeApp === 'function') {
-      app.minimizeApp();
-      return 'minimizada';
+    if (!app || typeof app.exitApp !== 'function') return 'nada';
+    const ahora = doc.defaultView.Date.now();
+    if (avisoEn !== null && ahora - avisoEn < PLAZO_SALIR_MS) {
+      avisoEn = null;
+      app.exitApp();
+      return 'salida';
     }
-    return 'nada';
+    avisoEn = ahora;
+    avisar(doc);
+    return 'aviso';
   }
 
   function instalarAtras(win) {

@@ -2640,11 +2640,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function actualizarMandosDePunta(punta) {
     if (padPosteEl) {
-      // Tres rotulos y no dos: "NO SE SABE" no es un poste, es la ausencia del dato, y
+      // Tres rotulos y no dos: "sin identificar" no es un poste, es la ausencia del dato, y
       // por eso tiene rotulo y color propios en vez de quedarse en blanco.
       padPosteEl.textContent = punta === 'MAESTRO' ? 'POSTE 1'
                              : punta === 'ESCLAVO' ? 'POSTE 2'
-                             : 'POSTE: ?';
+                             : 'Poste sin identificar';
       padPosteEl.classList.toggle('pad-poste-sindato', !punta);
     }
     for (const par of MANDOS_DE_CICLO) {

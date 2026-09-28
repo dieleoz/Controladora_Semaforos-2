@@ -105,8 +105,9 @@ module.exports = function pruebaUsabilidad(montarAppLimpia, assert) {
   assert(rotulos.length === 2 && rotulos.every(r => !/\u00b7/.test(r)),
     `F: los rotulos de los postes ya no llevan el punto que colgaba (${rotulos.join(' | ')})`);
   const padPoste = fresca.d.getElementById('pad-poste').textContent.trim();
-  assert(padPoste === 'POSTE: ?',
-    `F: sin punta la botonera dice de QUE no se sabe (${padPoste})`);
+  // Texto decidido por el responsable el 28/09: "algo que se entienda" sin explicacion.
+  assert(padPoste === 'Poste sin identificar',
+    `F: sin punta la botonera dice "Poste sin identificar" (${padPoste})`);
 
   // --- E. APP-1.6: la hoja de conexion abre arriba y avisa del permiso ---------------
   const e = montarAppLimpia();
@@ -129,7 +130,7 @@ module.exports = function pruebaUsabilidad(montarAppLimpia, assert) {
     // --- H. atras de Android: cierra la ventana; sin ventana, lo de siempre --------
     const T = e.w.Telefono;
     const llam = [];
-    const app = { minimizeApp: () => llam.push('min'),
+    const app = { minimizeApp: () => llam.push('min'), exitApp: () => llam.push('exit'),
                   addListener: (ev, cb) => { llam.push(ev); app.cb = cb; } };
     e.w.Capacitor = { Plugins: { App: app } };
     assert(T.instalarAtras(e.w) === true && llam[0] === 'backButton',
@@ -141,7 +142,23 @@ module.exports = function pruebaUsabilidad(montarAppLimpia, assert) {
     via.classList.add('active');
     assert(T.alPulsarAtras(e.d, app) === 'cerrada' && !via.classList.contains('active'),
       'H: igual con el teclado del PIN');
-    assert(T.alPulsarAtras(e.d, app) === 'minimizada' && llam.filter(v => v === 'min').length === 1,
-      'H: sin ventana abierta, atras manda la app al fondo como hacia Android');
+    // Sin ventana: doble atras para salir, plazo 2 s (decision del responsable, 28/09).
+    const cuenta = (v) => llam.filter(x => x === v).length;
+    const t0 = e.w.Date.now();
+    let reloj = t0;
+    e.w.Date.now = () => reloj;
+    const toast = e.d.getElementById('toast-msg');
+    assert(T.alPulsarAtras(e.d, app) === 'aviso' && cuenta('exit') === 0 && cuenta('min') === 0 &&
+           toast.textContent === 'Pulse otra vez para salir' && toast.classList.contains('show'),
+      `H: sin ventana, el primer atras NO sale y avisa "Pulse otra vez para salir" (${toast.textContent})`);
+    reloj = t0 + 1999;
+    assert(T.alPulsarAtras(e.d, app) === 'salida' && cuenta('exit') === 1 && cuenta('min') === 0,
+      'H: un segundo atras dentro de 2 s sale de la app (exitApp)');
+    reloj = t0 + 10000;
+    assert(T.alPulsarAtras(e.d, app) === 'aviso' && cuenta('exit') === 1,
+      'H: pasado el plazo vuelve a pedirlo: el tercer atras solo avisa');
+    reloj = t0 + 12001;
+    assert(T.alPulsarAtras(e.d, app) === 'aviso' && cuenta('exit') === 1,
+      'H: un atras a 2001 ms del aviso tampoco sale: el plazo es de 2 s');
   });
 };
