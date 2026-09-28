@@ -376,9 +376,80 @@ assert(AvisoCamaraPluma11.ver(tramaCam('HORA_ESP32_SEMBRADA')) === null &&
        AvisoCamaraPluma11.ver({ ORIGEN: 'ENLACE_RF', DETALLE: 'RX:1 OK:1 RUIDO:0' }) === null,
   'Control: el modulo de la camara no se lleva por delante los $EVENT de los otros sujetos');
 
-console.log('\n' + '='.repeat(80));
-console.log(` RESUMEN TDD: ${passed} PASS | ${failed} FALLAS  (Total: ${passed + failed})`);
-console.log('='.repeat(80));
-if (failed === 0) {
-  console.log('🎉 TODAS LAS PRUEBAS UNITARIAS TDD PASARON AL 100%\n');
+// 12. EXPORTAR EN LA APK: @capacitor/filesystem + @capacitor/share (28/09)
+//
+// Los valores que se aseveran vienen de FUERA de exportar.js: 'CACHE' es Directory.Cache
+// de @capacitor/filesystem 6.0.4 (dist/esm/definitions.js), y 'Share canceled' es el
+// texto con que rechaza SharePlugin.java de @capacitor/share 6.0.4 al cerrar la hoja.
+// Lo que NO mide esto: que un telefono real abra la hoja y adjunte (SPEC_4 7.12).
+const Exportar12 = require('../js/exportar.js');
+
+function doblesNativos(opc) {
+  const o = opc || {};
+  const llamadas = { write: [], share: [] };
+  return {
+    llamadas,
+    plugins: {
+      Filesystem: { writeFile: (a) => { llamadas.write.push(a);
+        return o.fallaWrite ? Promise.reject(new Error(o.fallaWrite))
+                            : Promise.resolve({ uri: 'file:///data/user/0/x/cache/' + a.path }); } },
+      Share: { share: (a) => { llamadas.share.push(a);
+        return o.fallaShare ? Promise.reject(new Error(o.fallaShare))
+                            : Promise.resolve({ activityType: 'com.whatsapp' }); } }
+    }
+  };
 }
+
+async function pruebasExportar12() {
+  console.log('\n--- 12. Exportar como archivo dentro de la APK ---');
+  assert(Exportar12.salida({ nativo: true, pluginsNativos: true }) === 'NATIVO',
+    'APK con los dos plugins: sale por la pieza nativa');
+  assert(Exportar12.salida({ nativo: true }) === 'SIN_SALIDA',
+    'APK sin plugins (anterior al 28/09): SIN_SALIDA, no una descarga que no hace nada');
+  assert(Exportar12.salida({ puedeCompartirFicheros: true }) === 'COMPARTIDO' &&
+         Exportar12.salida({}) === 'DESCARGA',
+    'Navegador sin cambios: Web Share con fichero, y si no, descarga');
+
+  const solo = { Plugins: { Filesystem: { writeFile() {} } } };
+  assert(Exportar12.pluginsNativos(undefined) === null && Exportar12.pluginsNativos(solo) === null,
+    'Sin Capacitor, o con Filesystem sin Share: no hay pieza nativa (un fichero que nadie ve)');
+  const d0 = doblesNativos();
+  assert(Exportar12.pluginsNativos({ Plugins: d0.plugins }) !== null,
+    'Con los dos en window.Capacitor.Plugins: pieza nativa disponible');
+
+  const d1 = doblesNativos();
+  const r1 = await Exportar12.compartirNativo(d1.plugins, 'IOTVIAL_S_1.txt', 'Firmware: MAESTRO abc');
+  const w = d1.llamadas.write[0] || {};
+  assert(w.directory === 'CACHE' && w.encoding === 'utf8' && w.path === 'IOTVIAL_S_1.txt' &&
+         w.data === 'Firmware: MAESTRO abc',
+    'Escribe el texto tal cual, en utf8, en la cache de la app (sin permisos)');
+  const s1 = d1.llamadas.share[0] || {};
+  assert(Array.isArray(s1.files) && s1.files.length === 1 &&
+         s1.files[0] === 'file:///data/user/0/x/cache/IOTVIAL_S_1.txt' && r1 === 'COMPARTIDO',
+    'Comparte como ADJUNTO la uri que devolvio writeFile, no el texto');
+
+  const d2 = doblesNativos({ fallaShare: 'Share canceled' });
+  assert(await Exportar12.compartirNativo(d2.plugins, 'a.txt', 'x') === 'CANCELADO',
+    'Cerrar la hoja es CANCELADO, no un fallo en rojo');
+
+  const d3 = doblesNativos({ fallaWrite: 'disco lleno' });
+  let e3 = null;
+  try { await Exportar12.compartirNativo(d3.plugins, 'a.txt', 'x'); } catch (e) { e3 = e; }
+  assert(e3 && /disco lleno/.test(e3.message) && d3.llamadas.share.length === 0,
+    'Si no se pudo escribir, rechaza y NO abre la hoja con un fichero que no existe');
+
+  const d4 = doblesNativos({ fallaShare: 'only file urls are supported' });
+  let e4 = null;
+  try { await Exportar12.compartirNativo(d4.plugins, 'a.txt', 'x'); } catch (e) { e4 = e; }
+  assert(e4 && /only file urls/.test(e4.message),
+    'Un fallo de la hoja que no es cancelar se propaga (la app lo pinta en rojo)');
+}
+
+pruebasExportar12().catch(e => { assert(false, 'pruebasExportar12 lanzo: ' + e); }).then(() => {
+  console.log('\n' + '='.repeat(80));
+  console.log(` RESUMEN TDD: ${passed} PASS | ${failed} FALLAS  (Total: ${passed + failed})`);
+  console.log('='.repeat(80));
+  if (failed === 0) {
+    console.log('🎉 TODAS LAS PRUEBAS UNITARIAS TDD PASARON AL 100%\n');
+  }
+});

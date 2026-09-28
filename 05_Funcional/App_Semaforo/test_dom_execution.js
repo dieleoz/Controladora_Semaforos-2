@@ -2205,12 +2205,11 @@ assert(/ESCRITA SIN ENLACE/.test(diarioMudo),
   '1.50 (b): y la entrada de ESA orden lo dice, para que no se lea como un rechazo del equipo');
 sinE.w.Date.now = relojReal;
 
-console.log('='.repeat(80));
-console.log(` RESULTADO JSDOM: ${testsPassed} PASS | ${testsFailed} FALLAS`);
-console.log('='.repeat(80));
-
-if (testsFailed > 0) {
-  process.exit(1);
-} else {
-  process.exit(0);
-}
+// EXPORTAR TODO DENTRO DE LA APK: tests/dom_exportar.js, con este montaje y este assert.
+require('./tests/dom_exportar.js')(montarAppLimpia, assert)
+  .catch(e => assert(false, 'pruebaExportarApk lanzo: ' + e)).then(() => {
+    console.log('='.repeat(80));
+    console.log(` RESULTADO JSDOM: ${testsPassed} PASS | ${testsFailed} FALLAS`);
+    console.log('='.repeat(80));
+    process.exit(testsFailed > 0 ? 1 : 0);
+  });

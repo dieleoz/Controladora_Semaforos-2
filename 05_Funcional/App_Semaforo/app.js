@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     site: 'KM 12 · EL SISGA',
     node: null, // 'MAESTRO', 'ESCLAVO', 'REPETIDOR' - lo dice $STATUS
     serie: null,
+    firmware: {}, // NODE -> sello FW de ESTE enlace (js/exportar.js); se olvida con el
     modo: null, // 'AUTO', 'MANUAL', 'AMBAR', 'ROJO_TOTAL'
     estadoLuces: null, // V1_R2, Y1_R2, R1_R2, R1_V2, R1_Y2, AMBAR_FAIL, ALL_RED
     // LO QUE EL MAESTRO SABE DEL ESCLAVO (N-149, 05/09). Viaja en el campo ESC: del
@@ -1320,22 +1321,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // -no hay forma fiable de preguntarselo-, y entonces el tecnico se baja del poste
   // creyendo que lleva el fichero. La segunda salida es la que no puede fallar: el
   // texto entero a la vista, seleccionado, para pegarlo donde sea.
-  function textoDepuracion() {
-    return RegistroCrudo.aTexto(Date.now(), {
-      App: 'IOT-VIAL V9.0 (Controladora Semaforos)',
-      Cruce: state.site,
-      Equipo: state.node === null ? 'sin identificar (ningun $STATUS con NODE)' : state.node,
-      Serie: state.serie === null ? 'sin identificar' : state.serie,
-      Modo: state.modo === null ? 'sin telemetria' : state.modo,
-      Estado: state.estadoLuces === null ? 'sin telemetria' : state.estadoLuces,
-      Hora_RTC: state.hora === null ? 'sin telemetria' : state.hora,
-      Pluma: state.pluma === null ? 'sin telemetria' : state.pluma,
-      Camaras: state.cam === null ? 'sin telemetria' : state.cam,
-      Enlace: state.rfQuality === null
-        ? 'no medido en esta sesion'
-        : state.rfQuality + '% a las ' + _horaDe(state.rfMedidaMs)
-    });
-  }
+  function textoDepuracion() { return Exportar.textoCinta(state, _horaDe); }
 
   function nombreFicheroDepuracion() {
     return 'Tramas_' + state.site.replace(/[\s\·\/]+/g, '_') + '_' +
@@ -1427,6 +1413,12 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderDiario() {
     diarioVista.render();
   }
+
+  Exportar.conectarBoton(document.getElementById('btn-exportar-todo'), {
+    vacio: () => !DiarioOrdenes.todas().length && !RegistroCrudo.todas().length,
+    texto: () => diarioVista.texto() + '\n\n' + '='.repeat(72) + '\n\n' + textoDepuracion(),
+    nombre: () => Exportar.nombreFichero(state.serie, new Date()), showToast, addEvent
+  });
 
   // =========================================================================
   // 2. RENDER DE SEMAFOROS: SE PINTA LA PUNTA QUE HABLA, Y SE DECLARA LA OTRA
@@ -3547,7 +3539,7 @@ document.addEventListener('DOMContentLoaded', () => {
     'VERSION|SIN_SELLAR': {
       texto: 'Equipo: este firmware NO SABE de que commit salio, y lo dice en vez de ' +
              'inventarlo. Pasa cuando se compilo fuera del repositorio -por ejemplo desde ' +
-             'un .zip descomprimido, que no lleva git dentro-. El equipo funciona igual; lo ' +
+             'un .zip descomprimido sin git y sin su FW_HASH.txt-. El equipo funciona igual; lo ' +
              'que no se puede es atribuir una prueba de banco a un commit. Quien lo compilo ' +
              'tiene que decir el hash a mano.',
       toast: 'Firmware sin sellar: no se sabe de que commit salio'
@@ -3947,6 +3939,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     const parts = veredicto.partes;
     const header = veredicto.tipo;
+    Exportar.anotarVersion(state.firmware, header, _camposNmea(parts)); // antes de la cadena
 
     if (header === '$STATUS') {
       const data = _camposNmea(parts);
@@ -4673,6 +4666,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function olvidarEnlace() {
     state.connected = false;
     state.node = null;
+    state.firmware = {};
     // D-23: los contadores de radio son de UN poste y arrancan con su micro. Si no se
     // olvidan al soltar el enlace, la primera muestra del SIGUIENTE poste se resta contra
     // la ultima del anterior y sale un delta inventado -y casi siempre negativo, que
@@ -4769,7 +4763,7 @@ document.addEventListener('DOMContentLoaded', () => {
         addEvent('green', `Bluetooth conectado: ${name} (${mac})`);
 
         // N-75: sin esto la app no oye al equipo. El firmware emite $STATUS solo,
-        // cada segundo, asi que NO se pide nada al conectar (N-66: GET_STATUS no
+        // cada segundo, asi que NO se pide el estado al conectar (N-66: GET_STATUS no
         // existe en ninguna punta y lo primero que veia el tecnico era un $ERR).
         bt.subscribe(
           '\n',
@@ -4778,6 +4772,7 @@ document.addEventListener('DOMContentLoaded', () => {
           },
           (err) => console.warn('Error en suscripcion serie:', err)
         );
+        Exportar.pedirVersionAlConectar(state, enviarComandoFirmware, addEvent, TIMEOUT_ENLACE_MS);
       },
       (err) => {
         // LAS DOS DESGRACIAS ENTRAN POR AQUI Y NO SON LA MISMA -- ver 6.pre. Con

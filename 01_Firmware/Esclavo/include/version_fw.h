@@ -16,7 +16,8 @@
 // porque el responsable se acordaba. Una medida de campo sin sujeto no es una medida.
 //
 // EL VALOR SE INYECTA AL COMPILAR Y NO SE ESCRIBE AQUI. Lo saca de git el '!' de
-// platformio.ini. Un numero escrito a mano en un fuente nace caducado y nadie puede
+// platformio.ini -o, sin git, del FW_HASH.txt que escribe el empaquetador-. Un numero
+// escrito a mano en un fuente nace caducado y nadie puede
 // recalcularlo: es el caso exacto de CLAUDE.md 14 -"un numero en un sitio que no puede
 // recalcularlo no se sincroniza: se retira"-, y un sello a mano ademas MIENTE con
 // autoridad, porque lo que afirma es precisamente de que commit sale el binario.
@@ -42,8 +43,8 @@
 // cinta.
 // ---------------------------------------------------------------------------
 //
-// SI EL SELLO NO ENTRO, NO SE INVENTA NINGUNO. Falta cuando git no esta en el PATH, cuando
-// el arbol no es un repositorio, y -medido- cuando estos fuentes los compila un arnes de
+// SI EL SELLO NO ENTRO, NO SE INVENTA NINGUNO. Falta cuando ni git ni FW_HASH.txt
+// contestan, y -medido- cuando estos fuentes los compila un arnes de
 // banco con g++ de host: Simulaciones/puente_esp32/compilar.ps1 compila los dos
 // bluetooth.cpp REALES y no pasa por platformio.ini. En ese caso FW_SELLADO vale 0, el
 // despachador NO contesta OK y la respuesta lleva la marca de "todavia no lo se".

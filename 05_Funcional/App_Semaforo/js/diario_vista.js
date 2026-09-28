@@ -187,6 +187,7 @@ const DiarioVista = {
         Cruce: state.site,
         Equipo: state.node === null ? 'sin identificar (ningun $STATUS con NODE)' : state.node,
         Serie: state.serie === null ? 'sin identificar' : state.serie,
+        Firmware: Exportar.textoFirmware(state.firmware),
         Modo: state.modo === null ? 'sin telemetria' : state.modo,
         Estado: state.estadoLuces === null ? 'sin telemetria' : state.estadoLuces,
         Hora_RTC: state.hora === null ? 'sin telemetria' : state.hora
@@ -254,7 +255,7 @@ const DiarioVista = {
       });
     }
 
-    return { render: renderDiario };
+    return { render: renderDiario, texto: textoDiario };
   }
 };
 

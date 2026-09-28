@@ -177,6 +177,17 @@ lampara es ahora un rojo del banco en vez de una excepcion ya aprobada por su no
   devuelve `bool`: pulsar un boton no es saber que el equipo obedecio, y **ni siquiera es saber que la orden
   salio**. Una orden que no salio se anota en el Diario **y no en la cinta** —por el cable no paso un byte—.
 
+- **La unica orden que sale sin que nadie pulse es `CMD:VERSION`** (sin PIN, no cambia nada): una vez por enlace,
+  a los `TIMEOUT_ENLACE_MS` de conectar, solo con telemetria viva y si el CONTROLADOR no ha contestado ya
+  (`EVT:VERSION` es el sello del puente). No renueva la inactividad del PIN. El sello de cada `NODE` va en la linea
+  `Firmware:` de la cabecera del diario y de la cinta, y **«Exportar todo como archivo»** saca los dos en un
+  `IOTVIAL_<serie>_<AAAAMMDD-HHMMSS>.txt` (`js/exportar.js`). En el navegador sale por la hoja de compartir con
+  el fichero adjunto o, si no la hay, como descarga. En la APK se escribe en la cache de la app
+  (`@capacitor/filesystem`, `Directory.Cache`) y se abre la hoja de compartir de Android con ese fichero
+  (`@capacitor/share`, por el `FileProvider` `<applicationId>.fileprovider` y el `<cache-path>` de
+  `file_paths.xml`); cerrar la hoja se dice como cancelado, y un fallo, o una APK sin los dos plugins, va en rojo a
+  la bitacora con «use Copiar». Sin probar en un telefono (§7.12).
+
 🔴 **Lo que el PIN NO cubre hoy esta medido y esta en §7.**
 
 ---
@@ -330,6 +341,16 @@ ninguna entrada para ese evento**: `traducirAlarma()` devuelve `null` y la alarm
 dice si mirar la radio o el reloj. **(b)** El acuse diferido de `REINICIAR_RELOJ` (§3.1) **no lo recorre ningun
 arnes en el tiempo**: el doble del arnes del puente acepta la orden que fija el veredicto del cristal, pero
 ningun guion la manda; lo que hay son packs de texto sobre la forma de la rama (`reloj_01`, `app_08`).
+
+⚠️ **12 · «Exportar todo como archivo» en la APK: construido, SIN PROBAR EN UN TELEFONO.** Hecho: `@capacitor/android`
+6.2.1 (su WebView no registra `DownloadListener`, asi que `<a download>` no hace nada) con `@capacitor/filesystem`
+6.0.4 y `@capacitor/share` 6.0.4, versiones fijadas en `package.json`; `npx cap sync android` los da de alta en
+`capacitor.settings.gradle` y `app/capacitor.build.gradle`. Lo que se ha medido en el PC es la app contra dobles
+de los dos plugins (`tests/test_unitarios.js` §12 y `test_dom_execution.js`). **Queda sin medir:** que la APK
+compile con los dos modulos; que el puente publique los dos en `window.Capacitor.Plugins`; que el `FileProvider`
+acepte la ruta de la cache; y que WhatsApp reciba el `.txt` como adjunto y no como texto. Se cierra con la APK
+instalada: exportar, enviarlo a un chat y abrir el fichero recibido. Hasta entonces, si falla, se copia el texto.
+
 ---
 
 ## 8. QUIEN EJERCE CADA BARRERA DE ESTE DOCUMENTO

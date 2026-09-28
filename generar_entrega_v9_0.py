@@ -67,6 +67,7 @@ import re
 import subprocess
 import sys
 import zipfile
+import entrega_zip  # el sello FW_HASH.txt y la carpeta de salida del zip
 
 from entrega_leeme_html import _md_a_html
 import entrega_apk  # la APK y su CRC contra www/
@@ -291,7 +292,7 @@ mirar.
 
 | carpeta | que es |
 |---|---|
-| `01_Firmware_PlatformIO/` | **Fuente** para PlatformIO: Maestro, Esclavo, Repetidor. Sin `.bin`: se compila de aqui, y asi lo que se carga es lo que se revisa |
+| `01_Firmware_PlatformIO/` | **Fuente** para PlatformIO: Maestro, Esclavo, Repetidor. Sin `.bin`: se compila de aqui, y asi lo que se carga es lo que se revisa. Cada proyecto con sello lleva `FW_HASH.txt` con el commit: el equipo lo contesta a `CMD:VERSION`. **Si se toca un fuente, se borra ese fichero**: el sello diria un commit que el binario ya no es |
 | `02_Manuales/` | Manuales en `.docx` y `.md`. **Se lee primero `{{ARQ}}`**, que corrige a los demas y ellos todavia no lo incorporan |
 | `03_Cableado/` | `{{GUIA}}` — guia de conexiones: `J17` (ESP32), `J16` (camaras), `PB6`/`PB7`, `DS3231` y el conector SWD. **Es tambien el formulario de vuelta**: se rellena y se devuelve |
 | `04_App/` | **Solo la APK** `{{APK}}`. Se instala, no se compila |
@@ -338,8 +339,9 @@ Asi el contenido del paquete es exactamente el del commit que lleva en el nombre
     return plantilla
 
 
-def crear_paquete():
+def crear_paquete(dir_destino):
     hash_head, arbol_limpio = _cabecera_del_arbol()
+    sello = entrega_zip.sello_para_el_zip(_desde_head, _git, Aborta)
     acta = _acta_mas_reciente()
     nombre_apk, ruta_apk, nassets = _apk_verificada()
     acta["nassets"] = nassets
@@ -355,7 +357,7 @@ def crear_paquete():
     leeme_htm = _md_a_html(leeme_md, "V9.0 Controladora de Semaforos - LEEME PRIMERO")
 
     zip_name = "Paquete_Revision_V9.0_%s_%s_SIN_BANCO.zip" % (acta["fecha"], hash_head)
-    destino = os.path.join(BASE_DIR, zip_name)
+    destino = entrega_zip.ruta_del_zip(dir_destino, zip_name, Aborta)
 
     # Lo versionado, con su ruta dentro del zip. El contenido se toma de HEAD.
     versionado = []
@@ -384,6 +386,8 @@ def crear_paquete():
             esperado[dentro] = hashlib.md5(datos).hexdigest()
             z.writestr(dentro, datos)
 
+        sellados = entrega_zip.sellar(z, versionado, sello, _desde_head, Aborta)
+
         # App: SOLO la APK. El fuente de la PWA estuvo aqui hasta el 31/08 y se
         # retiro: quien recibe esto la INSTALA, no la compila. Diez ficheros de
         # fuente al lado del .apk solo invitan a abrir el que no toca.
@@ -408,6 +412,8 @@ def crear_paquete():
         if difieren:
             raise Aborta("%d entradas del zip no coinciden con HEAD: %s"
                          % (len(difieren), ", ".join(difieren[:5])))
+
+        linea_sello = entrega_zip.comprobar(z, sellados, sello, Aborta)
 
         md5_apk_zip = hashlib.md5(z.read("04_App/" + nombre_apk)).hexdigest()
         md5_apk_disco = hashlib.md5(open(ruta_apk, "rb").read()).hexdigest()
@@ -443,6 +449,7 @@ def crear_paquete():
     print("     LEEME_PRIMERO.htm + .md | %d filas de tabla, iguales en los dos" % filas_md)
     print("     contenido versionado tomado de HEAD %s: %d entradas, 0 difieren"
           % (hash_head, len(esperado)))
+    print(linea_sello)
     if not arbol_limpio:
         print("     AVISO: arbol con cambios sin commitear; el LEEME lo dice dentro")
     print("\n     Esto NO ha pasado banco. No es una entrega de campo.")
@@ -450,7 +457,7 @@ def crear_paquete():
 
 if __name__ == "__main__":
     try:
-        crear_paquete()
+        crear_paquete(entrega_zip.destino_de_la_linea())
     except Aborta as e:
         print("\n[ABORTADO] %s\n" % e)
         print("  ABORTADO no es PASS: el paquete NO se ha creado. Un fichero que falta")
