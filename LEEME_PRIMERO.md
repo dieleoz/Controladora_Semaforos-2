@@ -57,7 +57,7 @@ carga en el equipo del Sisga y el sufijo `SIN_BANCO` no se quita.** Lo quita qui
 ## 6. Que hay dentro, y que documento se ejecuta
 
 **El documento que se ejecuta es `05_Funcional/Guia_Cableado_y_Pruebas_Banco.html`**, la guia que lleva el paquete
-(`GUIA_HTML` en `generar_entrega_v9_0.py`). Este LEEME no sustituye a ninguna de sus casillas.
+(`GUIA_HTML` en `herramientas/entrega/generar_entrega_v9_0.py`). Este LEEME no sustituye a ninguna de sus casillas.
 
 - Paquete: `Paquete_Banco_2026-09-15_ca2de3d_SIN_BANCO.zip`
 - Maestro: `Maestro_2026-09-15_ca2de3d_SIN_BANCO.bin` · 42228 B · sha256

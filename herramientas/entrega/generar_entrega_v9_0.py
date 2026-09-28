@@ -41,7 +41,7 @@
 #      si el ESP32 tiene Bluetooth Clasico (`BLQ-1`, cerrado el 31/08). O sea: el
 #      unico documento que se lee ANTES de tocar nada BLOQUEABA trabajo ya
 #      desbloqueado y CALLABA los bloqueantes de verdad -la tarjeta Maestro muerta,
-#      las entradas de campo desnudas-. Es la misma forma que el punto 3 de 2026-08-31,
+#      las entradas de campo desnudas-. Es la misma forma que el punto 3 de arriba,
 #      cometida otra vez en el mismo parrafo que la denuncia.
 #      Ahora esa seccion se EXTRAE de la tabla `BLOQUEANTES` de `ESTADO.md` en HEAD,
 #      y si no se puede leer, el paquete no sale. Una fila menos que envejece sola.
@@ -72,7 +72,7 @@ import entrega_zip  # el sello FW_HASH.txt y la carpeta de salida del zip
 from entrega_leeme_html import _md_a_html
 import entrega_apk  # la APK y su CRC contra www/
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # raiz del repo
 FUNCIONAL = os.path.join(BASE_DIR, "05_Funcional")
 EVIDENCIA = os.path.join(BASE_DIR, "evidencia")
 
