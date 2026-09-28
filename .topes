@@ -11,3 +11,6 @@ CODIGO_EXCEPTO='^01_Firmware/(Maestro|Esclavo|ESP32_Expansion)/src/'   # firmwar
 # la poda B; se BAJA cuando un acta de campo archiva un tema, nunca se sube.
 RAZON_TECHO=1.665
 RAZON_TECHO="$RAZON_TECHO" bash "$(git rev-parse --show-toplevel)/.githooks/trinquete.sh" || exit 1
+
+# Capa cruda: lo archivado no cuenta en el presupuesto de documentos (se anade o se borra, no se modifica).
+CRUDAS='^(fuentes/|05_Funcional/historico/)'
