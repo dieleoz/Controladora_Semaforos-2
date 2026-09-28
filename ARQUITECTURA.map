@@ -120,6 +120,7 @@ Controladora_Semaforos 2/
 +-- CLAUDE.md               reglas permanentes del repositorio
 +-- DECISIONES.md           tabla D-x / A-x. GANA en toda decision vigente
 +-- ESTADO.md               donde esta parado el trabajo HOY
++-- HISTORIA.md             cronica literal que salio de CLAUDE.md y ESTADO.md el 28/09. Sin tope; no manda
 +-- roadmap.md              el porque, con los N-x debajo
 +-- README.md               portada. Sus cifras se copian del acta
 +-- CERTIFICACION_SW.md     lo que se puede afirmar del software
