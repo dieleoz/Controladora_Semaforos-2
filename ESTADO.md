@@ -15,6 +15,9 @@
 > - **Hora, degradado:** sin evidencia en la cinta. Van en `05_Funcional/Pruebas_Funcional_2026-09-28.html`,
 >   que el funcional rellena y devuelve en PDF.
 >
+> 📦 **Enviado: `Paquete_Banco_2026-09-28_1e56d83_SIN_BANCO.zip`** (sha256 `5edc8055`) con la APK
+> `IOT_VIAL_Semaforos_2026-09-28_1e56d83_SIN_BANCO.apk` (`a249e42a`) y el `.html` de pruebas.
+>
 > **Lo siguiente: el PDF de Marco con las cintas de LAS DOS tarjetas.** Pedir la version antes de leer nada.
 
 > ## PUNTO DE CONTINUACION ANTERIOR — 16/09/2026 (cronica)
