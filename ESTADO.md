@@ -33,8 +33,8 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 | instalacion certificada | V8.4, `e303485` | la ultima que paso banco |
 | Maestro `179DB0` (El Sisga) | `7ff7d12` `SIN_BANCO`, probado despues `b354fe9` | cinta y diario en `evidencia/` |
 | Esclavo del Sisga | sin medir | su cinta no se ha traido |
-| Maestro `4D2007` (Marco) | `1889631` por declaracion: el puente contesto `FW:--` | su cinta |
-| paquete enviado a Marco | `8974932` `SIN_BANCO` (Paquete_Funcional), zip sha256 `6db7024c`, el 29/09 | Marco dice que la web conecta desde el PC; version sin ver |
+| Maestro `4D2007` y Esclavo `38EB53` (Marco, banco) | `8974932` en controlador y puente, medido: `$ACK,CMD:VERSION` el 29/09 | `evidencia/2026-09-29_campo_testigo/` |
+| paquete enviado a Marco | `8974932` `SIN_BANCO` (Paquete_Funcional), zip sha256 `6db7024c`, el 29/09 | testigo probado en banco el 29/09 (rojo hasta inicio, verdes alternos); Degradado normal dio verde contra ambar (`D-37`) |
 
 ## Verificacion en escritorio
 
@@ -44,9 +44,9 @@ cabecera con que HEAD y que arbol se midio; las comprueba `documentos_01` en cad
 | | |
 |---|---|
 | Flash | Maestro **70.9 %** · Esclavo **61.4 %** · Repetidor **20.6 %** · ESP32 **35.7 %** |
-| Banco por packs | **1325/1326 comprobaciones** en **70 packs**; el unico FALLA, `D-22`, es correcto: pide una tarjeta delante (`CLAUDE.md` §1) |
+| Banco por packs | **1327/1328 comprobaciones** en **70 packs**; el unico FALLA, `D-22`, es correcto: pide una tarjeta delante (`CLAUDE.md` §1) |
 | Arneses de C++ real | 75/75 automatico · 22/22 ciclo · 122/122 dos puntas · 71/71 Degradado a dos puntas |
-| App y puente | **341/341** jsdom · **70/70** funcional · **63/63** unitarios · 85/85 TDD · puente 123/123 |
+| App y puente | **344/344** jsdom · **70/70** funcional · **63/63** unitarios · 85/85 TDD · puente 123/123 |
 
 ## BLOQUEANTES: lo que no se cierra con teclado (roadmap §1 y §4)
 
