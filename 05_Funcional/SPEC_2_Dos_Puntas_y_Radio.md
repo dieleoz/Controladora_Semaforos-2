@@ -278,6 +278,14 @@ gemelo en `Esclavo/` (puerta nueva, enum nuevo, `TOLERANCIA_TESTIGO_S`) · `{Mae
 nuevo). **No toca el ESP32** —ni `despachador.cpp` ni `siembra.cpp`— ni `reloj.cpp/.h`: la comparación usa
 `reloj_segundosDelDia()`, que ya existe. `ciclo_degradado.h` NO se toca: la fase la calcula la MISMA función.
 
+**El testigo con el poste YA en Degradado** (la visita mensual, o un Degradado de `D-18` activo). 🔴 NO CONSTRUIDO.
+Pasa las mismas comprobaciones (`ahora`, `inicio`, rangos). Si `verde` y `despeje` son los que el poste ya aplica,
+**renueva la cuenta de 31 días y la hora, y sigue alternando**: no vuelve a rojo ni espera `inicio`, porque la fase
+es la de pared y no cambia. Si el ciclo es distinto, vuelve a ROJO fijo hasta `inicio` como una entrada nueva.
+
+**Registro en la pila:** antes de escribirlo se miden los bytes libres del dominio de respaldo y se comprueba que no
+comparte ranura con `respaldo_guardarCiclo()` (lo escriben hoy el Automático y el Degradado de `D-18`).
+
 **Lo que queda fuera de este apartado:** la pantalla de la app (SPEC 4 §3.ter) y la vista de campo (SPEC 6 A.1.bis).
 
 **Packs que leen por FORMA las funciones de entrada de hoy, y que NO ven la puerta nueva porque tiene otro nombre**
