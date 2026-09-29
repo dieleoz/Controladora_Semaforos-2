@@ -286,6 +286,21 @@ es la de pared y no cambia. Si el ciclo es distinto, vuelve a ROJO fijo hasta `i
 **Registro en la pila:** antes de escribirlo se miden los bytes libres del dominio de respaldo y se comprueba que no
 comparte ranura con `respaldo_guardarCiclo()` (lo escriben hoy el Automático y el Degradado de `D-18`).
 
+**Reglas para construir** (medidas sobre el fuente; 🔴 NO CONSTRUIDO):
+- **La pila está llena:** DR1..DR10 del F103 están repartidos en `respaldo.cpp`. Se rehace el formato y sube la
+  firma; al actualizar, cada poste pierde una vez lo guardado y el técnico que actualiza pone el testigo.
+- **DR6/DR7:** la librería STM32duino RTC los reserva para la fecha (`RTC_BKP_DATE`) y `respaldo.cpp` los usa para
+  la sync. El formato nuevo no los usa. La colisión con el formato de hoy queda como hallazgo SIN MEDIR en tarjeta.
+- **Los 31 días se cuentan con la fecha del DS3231** que trae `CMD:HORA_ESP32`, no con `reloj_contadorSegundos()`:
+  sin `Y2` ese contador no sirve y `HAL_RTC_GetTime` puede reescribir CNT (sin medir). Se permite tocar `reloj.cpp`
+  sólo para guardar el día que trae la siembra.
+- **`verde` distinto de 180:** rechazo de formato. **Medianoche:** `inicio` vencido si
+  `(inicio − reloj) mod 86400 > 12 h`. **A los 28 días sólo avisa;** el ámbar llega a los 31.
+- **El cerrojo de 48 h del Esclavo** (`syncVencidaLatch`) no actúa en modo testigo.
+- **Ventana aceptada por `D-35`:** si el Esclavo rechaza por `INICIO_VENCIDO` y nadie vuelve al Maestro, a la hora de
+  `inicio` el Maestro da verde por reloj contra el ámbar de huérfano del Esclavo. La app lo dice al rechazar: «vuelva
+  al Maestro y póngalo en Automático o repita el testigo».
+
 **Lo que queda fuera de este apartado:** la pantalla de la app (SPEC 4 §3.ter) y la vista de campo (SPEC 6 A.1.bis).
 
 **Packs que leen por FORMA las funciones de entrada de hoy, y que NO ven la puerta nueva porque tiene otro nombre**
