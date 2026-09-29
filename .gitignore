@@ -96,3 +96,7 @@ deep_sort/
 
 # --- Paquetes de entrega: salen aqui y no se versionan (CLAUDE.md 13)
 entregas/
+
+# --- Instaladores pesados que viven en la carpeta pero no se versionan -------
+# 29/09: instalador de KiCad 10.0.6 (922 MB); supera el limite de 100 MB de GitHub.
+04_Manuales/kicad-*.exe
