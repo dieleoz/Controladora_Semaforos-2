@@ -1,0 +1,9 @@
+Fecha_ISO,Hora_local,Clase,Enlace_pct,RTT_ms,Detalle
+2026-09-29T17:24:57.915Z,"12:24:57","MUESTRA",,,"el equipo hablo pero el enlace no venia medido (RF:OK)"
+2026-09-29T17:25:02.946Z,"12:25:02","CAIDA",,,"silencio de mas de 5 s; no se llego a medir el enlace en esta sesion"
+2026-09-29T17:25:39.616Z,"12:25:39","REGRESO",,,"el equipo vuelve a emitir telemetria"
+2026-09-29T17:25:39.617Z,"12:25:39","MUESTRA",,,"el equipo hablo pero el enlace no venia medido (RF:OK)"
+2026-09-29T17:25:44.944Z,"12:25:44","CAIDA",,,"silencio de mas de 5 s; no se llego a medir el enlace en esta sesion"
+2026-09-29T17:26:04.914Z,"12:26:04","REGRESO",,,"el equipo vuelve a emitir telemetria"
+2026-09-29T17:26:04.914Z,"12:26:04","MUESTRA",,,"el equipo hablo pero el enlace no venia medido (RF:OK)"
+2026-09-29T17:27:04.916Z,"12:27:04","MUESTRA",,,"el equipo hablo pero el enlace no venia medido (RF:OK)"
