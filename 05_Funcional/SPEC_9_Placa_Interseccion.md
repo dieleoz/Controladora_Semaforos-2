@@ -107,6 +107,13 @@ latido · tarjeta ausente o de variante equivocada · realimentacion del corte q
 **Matriz de conflictos:** puentes o microinterruptores en la placa, uno por pareja de grupos (6 parejas). **Un puente
 ausente o abierto significa CONFLICTO**, nunca libre.
 
+**La norma vial pide otra cosa que `D-36`, y lo decide el responsable (PREGUNTA ABIERTA).** Manual de Senalizacion
+Vial 2024, 4.2.3 (p. 378, cotejado en el PDF el 29/09): ante conflicto, fallo de lamparas o activacion erronea,
+*"amarillo intermitente para la via principal y en rojo intermitente para la via secundaria"*; y 4.6.5 (p. 416): los
+peatonales en intermitente *"deberan exhibir la senal de rojo intermitente"*. **Por eso la ruta de falla se dibuja
+capaz de destellar AMBAR O ROJO por grupo, elegido con un puente** (principal / secundaria / peatonal): la placa
+cumple las dos lecturas y la decision queda en configuracion, no en cobre.
+
 **Punto unico que queda:** si falla el canal de ambar de un grupo, ese grupo queda oscuro mientras los otros destellan.
 El monitor lo detecta pero no lo repara. Que muestra un grupo peatonal en falla: lo dice la norma vial (§8.2).
 
@@ -171,8 +178,10 @@ de OE, pulsador de reinicio, latido de entrada, linea de FALLA, UART, presencia 
    o incandescente): sin eso no se dimensiona la medida de corriente, el triac ni la pista. Una lampara LED en AC puede
    no llegar a la corriente de mantenimiento del triac, y la fuga del snubber puede encenderla debil. **La variante AC
    no se dibuja hasta cerrar este hueco y el 3.**
-2. **Norma vial:** que exige el Manual de Senalizacion Vial en falla, en grupos peatonales y en pulsadores. Se
-   transcribe a `fuentes/md/`; hasta entonces, sin citar.
+2. **Norma vial: TRANSCRITA** en `fuentes/md/Manual_Senalizacion_Vial_semaforos.md` (ANSV 2024, 2.a ed., fe de
+   erratas oct. 2025). Abierto: la resolucion que la adopta NO CONSTA en el PDF, asi que su exigibilidad aqui depende
+   del contrato. **No regula la luz de confirmacion del pulsador** (NO CONSTA). Pide monitor de conflictos, de fallo
+   de lampara y de activacion erronea (4.2.3): esta placa lo cumple por §3 y §4.
 3. **Norma electrica para la variante AC 120 V** (aislamiento, protecciones, puesta a tierra): sin cargar.
 4. **Modelo de pulsador y de fin de carrera:** su contacto (seco o con tension) y la alimentacion de la luz de
    confirmacion fijan la etapa de entrada.
