@@ -283,14 +283,14 @@ Pasa las mismas comprobaciones (`ahora`, `inicio`, rangos). Si `verde` y `despej
 **renueva la cuenta de 31 días y la hora, y sigue alternando**: no vuelve a rojo ni espera `inicio`, porque la fase
 es la de pared y no cambia. Si el ciclo es distinto, vuelve a ROJO fijo hasta `inicio` como una entrada nueva.
 
-**Registro en la pila:** antes de escribirlo se miden los bytes libres del dominio de respaldo y se comprueba que no
-comparte ranura con `respaldo_guardarCiclo()` (lo escriben hoy el Automático y el Degradado de `D-18`).
+**El testigo se guarda en la ÚLTIMA PÁGINA DE LA FLASH del STM32, no en la pila.** Medido: los diez registros de
+respaldo del F103 están ocupados y el registro mínimo (45 bits) no cabe sin retirar otras garantías. La página se
+reserva en `platformio.ini` (`board_upload.maximum_size`) para que el enlazador no pueda poner código encima; se
+escribe una vez por testigo, con el poste en ROJO, y lleva su propia suma. `respaldo.cpp` no cambia de formato.
 
 **Reglas para construir** (medidas sobre el fuente; 🔴 NO CONSTRUIDO):
-- **La pila está llena:** DR1..DR10 del F103 están repartidos en `respaldo.cpp`. Se rehace el formato y sube la
-  firma; al actualizar, cada poste pierde una vez lo guardado y el técnico que actualiza pone el testigo.
 - **DR6/DR7:** la librería STM32duino RTC los reserva para la fecha (`RTC_BKP_DATE`) y `respaldo.cpp` los usa para
-  la sync. El formato nuevo no los usa. La colisión con el formato de hoy queda como hallazgo SIN MEDIR en tarjeta.
+  la sync. Hallazgo SIN MEDIR en tarjeta, fuera de este apartado.
 - **Los 31 días se cuentan con la fecha del DS3231** que trae `CMD:HORA_ESP32`, no con `reloj_contadorSegundos()`:
   sin `Y2` ese contador no sirve y `HAL_RTC_GetTime` puede reescribir CNT (sin medir). Se permite tocar `reloj.cpp`
   sólo para guardar el día que trae la siembra.
