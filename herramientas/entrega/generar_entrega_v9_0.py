@@ -374,6 +374,9 @@ def crear_paquete(dir_destino):
             continue
         if resto.endswith((".docx", ".md")):
             versionado.append((rel, "02_Manuales/" + resto))
+        elif resto.endswith(".html") and resto != GUIA_HTML:
+            # Los .html de campo del primer nivel (pruebas, guia del PC): se abren en el banco.
+            versionado.append((rel, "03_Cableado/" + resto))
 
     # La guia de conexiones. Va en su propia carpeta para que no se pierda entre 38
     # manuales: es el documento que se abre CON la tarjeta delante.
