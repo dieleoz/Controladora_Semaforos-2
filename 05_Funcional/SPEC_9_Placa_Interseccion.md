@@ -100,11 +100,13 @@ el ESP32. Si el ESP32 tocara la lectura de vuelta, el vigilado se vigilaria a si
 color · un rojo sin corriente (fundido) · lo medido no es lo ordenado pasado un plazo · el ESP32 deja de enviar su
 latido · tarjeta ausente o de variante equivocada · realimentacion del corte que no coincide · testigo de cadena mal.
 
-**Que hace:** el monitor **abre el corte de rojos y verdes** en cada tarjeta y pasa los ambar a la **ruta de falla**:
-**AMBAR INTERMITENTE** (`D-36`).
+**Que hace:** el monitor **abre el corte de los verdes** en cada tarjeta y pasa cada grupo a la **ruta de falla**,
+que destella **segun el Manual de Senalizacion Vial 4.2.3 y 4.6.5** (`D-36`, responsable 29/09): **AMBAR intermitente
+la via principal, ROJO intermitente la secundaria y los peatonales**. Que grupo es cual lo fija un puente por grupo.
 
-- **[C1] El destello de falla NO lo genera el STM32:** lo genera un **destellador independiente** (tipo 555) en la
-  ruta de falla, alimentado sin pasar por el STM32. Con el STM32 sin energia o colgado, el ambar sigue destellando.
+- **[C1] El destello de falla NO lo genera el STM32:** lo genera un **destellador independiente** (tipo 555, 50 a 60
+  destellos/min, Manual 4.10) en la ruta de falla, alimentado sin pasar por el STM32. Con el STM32 sin energia o
+  colgado, la ruta de falla sigue destellando.
 - **[C2] Un STM32 colgado no sostiene el corte cerrado:** la bobina del corte se alimenta por una **bomba de carga
   acoplada en alterna** desde un pin del STM32. Solo un pulso continuo la mantiene; un nivel fijo, alto o bajo, la
   suelta. Mas IWDG y CSS en el micro.
@@ -112,17 +114,10 @@ latido · tarjeta ausente o de variante equivocada · realimentacion del corte q
   aguas abajo** que lee el monitor, y un **segundo elemento de corte en serie** (rele o MOSFET).
 - **[C4] Tarjeta ausente o equivocada es falla** (§2, presencia e identidad).
 - **[C5] El estado de arranque del monitor es SIEMPRE falla.** El enclavado no vive en RAM: tras un corte de energia
-  el cruce vuelve en ambar intermitente. **Solo lo levanta un pulsador fisico de reinicio en la placa**, en sitio.
+  el cruce vuelve en intermitente de falla. **Solo lo levanta un pulsador fisico de reinicio en la placa**, en sitio.
 
 **Matriz de conflictos:** puentes o microinterruptores en la placa, uno por pareja de grupos (6 parejas). **Un puente
 ausente o abierto significa CONFLICTO**, nunca libre.
-
-**La norma vial pide otra cosa que `D-36`, y lo decide el responsable (PREGUNTA ABIERTA).** Manual de Senalizacion
-Vial 2024, 4.2.3 (p. 378, cotejado en el PDF el 29/09): ante conflicto, fallo de lamparas o activacion erronea,
-*"amarillo intermitente para la via principal y en rojo intermitente para la via secundaria"*; y 4.6.5 (p. 416): los
-peatonales en intermitente *"deberan exhibir la senal de rojo intermitente"*. **Por eso la ruta de falla se dibuja
-capaz de destellar AMBAR O ROJO por grupo, elegido con un puente** (principal / secundaria / peatonal): la placa
-cumple las dos lecturas y la decision queda en configuracion, no en cobre.
 
 **Punto unico que queda:** si falla el canal de ambar de un grupo, ese grupo queda oscuro mientras los otros destellan.
 El monitor lo detecta pero no lo repara. Que muestra un grupo peatonal en falla: lo dice la norma vial (§8.2).
@@ -199,15 +194,15 @@ de OE, pulsador de reinicio, latido de entrada, linea de FALLA, UART, presencia 
 ## 9. Verificacion de extremo a extremo (en banco, sobre la placa fabricada, con firmware minimo de prueba)
 
 1. Encender con el ESP32 sin firmware: **las 20 salidas a 0 V** en bornera.
-2. Puentear dos verdes en conflicto a mano: **ambar intermitente** en todos los grupos y enclavado.
-3. Quitar una lampara roja con el ciclo en marcha: **falla** y ambar intermitente.
-4. Detener el ESP32 (reset mantenido): el monitor detecta la falta de latido y pasa a **ambar intermitente**.
+2. Puentear dos verdes en conflicto a mano: **intermitente de falla** en todos los grupos (§4) y enclavado.
+3. Quitar una lampara roja con el ciclo en marcha: **falla** e intermitente de falla.
+4. Detener el ESP32 (reset mantenido): el monitor detecta la falta de latido y pasa a **intermitente de falla**.
 5. Quitar la alimentacion del STM32: **el ambar sigue destellando** por el destellador independiente.
-6. Congelar el STM32 con una salida en alto (depurador parado): **el corte cae** y queda ambar intermitente.
+6. Congelar el STM32 con una salida en alto (depurador parado): **el corte cae** y queda el intermitente de falla.
 7. Puentear a mano el contacto de un corte (simula soldado): el monitor lee la realimentacion y declara **falla**.
 8. Sacar una tarjeta de grupo, y poner una de la otra variante: **falla** en los dos casos.
 9. Pegar la linea de datos de una cadena `74HC165` a 0 y a 1: **falla de cadena** por los testigos.
-10. Tras una falla, cortar y devolver la energia: **sigue en ambar intermitente**; solo el pulsador de reinicio lo
+10. Tras una falla, cortar y devolver la energia: **sigue en intermitente de falla**; solo el pulsador de reinicio lo
     levanta.
 11. Pulsar una demanda peatonal: la fase entra **en el siguiente punto permitido**, nunca antes, y se enciende **su luz
     de confirmacion**. Mover la pluma a mano: cambia el **fin de carrera**.
