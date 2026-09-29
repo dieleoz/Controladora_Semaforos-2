@@ -100,6 +100,7 @@ prometia rojo y hacia ambar con la talanquera arriba. Lo rechaza **nombrando el 
 | `SET_MODO:ALCANCE` | **no** | `$ERR ... EN_MARCHA_PARE_EL_MODO` si `modoActual_get()` es `MODO_DEGRADADO`; si no, `RESULT:OK` **incondicional** — ver §7 |
 | `SET_MODO:INTELIGENTE` | si | igual que la anterior, y con la misma reserva de §7 |
 | `SET_MODO:DEGRADADO` | si | depende del `MotivoDegradado` que devuelve `modo_degradado_evaluarEntrada()`: `$ERR ... DESC:<motivoL1> <motivoL2>` con **los mismos dos textos** que ensenaba el gabinete, o `RESULT:OK` solo si `MDG_OK` |
+| `SET_MODO:DEG_T:ahora,inicio,verde,despeje` | si | 🔴 NO CONSTRUIDO (`D-35`, SPEC 2 §7.bis). Puerta nueva y PARALELA a la de arriba, sin sync de radio: `MotivoTestigo` propuesto — `$ERR ... DESC:<motivo>` por `MDT_FALTA_HORA` / `MDT_AHORA_DESFASADO` (`ahora` vs `reloj_segundosDelDia()`, tolerancia `TOLERANCIA_TESTIGO_S`) / `MDT_DESPEJE_RANGO` / `MDT_INICIO_VENCIDO` / `MDT_AMBAR_VIGENTE`, o `RESULT:OK` si `MDT_OK`. No depende de que haya habido `SET_RTC` antes |
 | `FORZAR_ROJO` | **no** (y con PIN tambien) | `RESULT:OK` incondicional. `coordinador_forzarRojoTotal()` es `void` y no tiene guarda: no hay nada que mirar |
 | `MANUAL:CAMBIAR_TURNO` | si | **tres, y el ORDEN importa** (`N-151`): `$ERR ... MODO_SIN_CICLO_SALGA_PRIMERO` si `modoMueveElCoordinador()` es falso; si no, `RESULT:OK` cuando `pedirCambioVerificado()` devuelve true, y `$ERR ... EN_TRANSICION_REINTENTE` cuando no |
 | `TEST_LEDS` | si | **solo FUERA DE SERVICIO** (`N-82.bis`, cinta del 28/09): decide `testLedsAdmitido()` de `semaforo.cpp` —modo `MENU`, `HORA` o `ALCANCE` (los que dejan los dos postes en rojo fijo), luz en `S_ROJO` **y** `ACK_RED` del Esclavo recibido (`coordinador_rojoEsclavoConfirmado()`)—, porque la fase verde del test encenderia el verde de este poste contra el otro sentido y `SFTY-2` solo enclava el mismo poste. El despachador pregunta `semaforo_testLedsEnCurso()` DESPUES de llamar: `RESULT:STARTING_6S` si quedo armado; `$ERR ... SIN_ENLACE_AMBAR_NO_SE_PRUEBA` si la luz esta en `S_FALLO`; `$ERR ... ESPERANDO_ROJO_DEL_ESCLAVO` en esos tres modos sin el acuse; `$ERR ... EN_SERVICIO_PASE_A_MENU` en el resto |
@@ -120,6 +121,7 @@ que viviera en una funcion comun los dejaria midiendo un bloque vacio (`N-89`).
 | `CANCELAR_AMBAR` | si | **PIDE PIN al reves que armar**, y es deliberado: quitar el ambar devuelve el cruce a dar verdes, o sea **abre paso**. Depende de `ambarEmergencia`: con latch puesto lo retira y contesta `RESULT:RETIRADO`, o `RESULT:RETIRADO_QUEDA_MANDO` si `mando_ambarLocal()` sigue vetando —contestar OK a secas mandaria al tecnico a esperar un cambio que no va a llegar—. Sin latch, `RESULT:REENVIADO_AL_MAESTRO` si esta punta **sigue** en `S_FALLO` (la red de la trama perdida, `N-152`), y `$ERR ... NO_HAY_AMBAR_VIGENTE` si no |
 | `SOLICITAR_PASO` | si | depende del bool de `demanda_solicitar()`: `RESULT:PEDIDO_AL_MAESTRO` o `$ERR ... REPITA_EN_UNOS_SEGUNDOS`. **El Esclavo PIDE; no ordena** (SFTY-27) |
 | `SET_MODO:DEGRADADO` | si | depende del `RechazoDegradado` que devuelve `degradado_entrar()` —**no de un bool**—: `$ERR ... DESC:<degradado_textoRechazo(r)>`, un motivo por rama, con la MISMA tabla que ensenaba el gabinete. Si acepto, **`RESULT:YA_ACTIVO`** cuando el modo ya gobernaba (`antesDeg` leido antes de la llamada) y `RESULT:OK` cuando esta pulsacion lo encendio |
+| `SET_MODO:DEG_T:ahora,inicio,verde,despeje` | si | 🔴 NO CONSTRUIDO (`D-35`, SPEC 2 §7.bis). Misma orden, `RechazoTestigo` propio (como ya pasa con `SET_MODO:DEGRADADO`): `DEG_RECHAZO_T_SIN_HORA` / `_AHORA_DESFASADO` / `_INICIO_VENCIDO` —texto «repita el testigo en el Maestro»— / `_DESPEJE_RANGO` / `_AMBAR_VIGENTE`, o `RESULT:OK` |
 | `FORZAR_ROJO` | las dos formas | `$ERR ... RENOMBRADO_USE_AMBAR_EMERGENCIA`. **Se rechaza ensenando el nombre bueno**, no en silencio: quien lo manda tiene una app o un manual anteriores al cambio |
 | `TEST_LEDS` | si | `$ERR ... NO_EN_SERVICIO_USE_EL_MAESTRO`, **rechazado a proposito**: la secuencia enciende VERDE sin mirar nada, y ese verde saldria mientras el Maestro da paso al otro sentido |
 
@@ -161,6 +163,48 @@ ENTERO con el mando**, en vez de quedarse dentro sin nadie que lo ejerza. Con el
 escribe los pines por un solo sitio —`aplicarSalidas()`, donde vive el enclavamiento `SFTY-2`— y la
 lista de funciones autorizadas a saltarselo **baja de cinco a una**: cualquier camino nuevo a una
 lampara es ahora un rojo del banco en vez de una excepcion ya aprobada por su nombre.
+
+## 3.ter EL DEGRADADO CON TESTIGO EN LA APP — flujo, y todo 🔴 SIN CONSTRUIR (`D-35`, SPEC 2 §7.bis)
+
+**Boton nuevo, en LAS DOS pantallas** —Maestro y Esclavo—, gobernado por `puntaCorrecta()` igual que los demas
+(`app.js`, §7 hueco nuevo abajo): «Degradado con testigo». Aparece junto a `SET_MODO:DEGRADADO`, no en su lugar.
+
+**En el Maestro (primera punta que se toca):**
+1. El operario escribe el **traslado** —minutos hasta el Esclavo, por defecto **20**— y el **despeje** —30 a 255 s,
+   el mismo limite que el firmware exige (§3.1)—. `verde` no se pide: viaja fijo en **180**.
+2. La app manda `SET_RTC:<fecha del telefono>,<hora del telefono>` a ESTA punta, igual que siempre —**no bloquea
+   el paso siguiente**: el resultado (`RESULT:OK` o `HORA_PUESTA_SIN_PROPAGAR`) se registra en el Diario, pero
+   el testigo ya no depende de el (SPEC 2 §7.bis: la garantia la da `ahora`, no el `SET_RTC` previo).
+3. La app LEE la hora del telefono OTRA VEZ, justo antes de enviar —es el `ahora` de la orden—, calcula
+   `inicio = ahora + traslado` y manda `SET_MODO:DEG_T:ahora,inicio,180,<despeje>`.
+4. **Lo que la app GUARDA, para el paso 2 del Esclavo** (localmente, no en el equipo): `inicio`, `verde`,
+   `despeje`, la `SERIE:` del Maestro (del `$STATUS`, `NODE:` distingue de cual poste vino) y el instante en
+   que se emitio. Sin este dato el operario tendria que teclear los mismos numeros dos veces, y un numero mal
+   repetido en el Esclavo es exactamente lo que este modo NO puede permitirse (§8(e): un ciclo distinto en cada
+   punta solapa verdes).
+
+**En el Esclavo (segunda punta, tras desplazarse):**
+1. La pantalla ofrece «Aplicar testigo guardado — Maestro `<serie>`, inicio `HH:MM:SS`», con `inicio`, `verde`
+   y `despeje` del paso anterior, **no un formulario nuevo**: repetirlos a mano es el error que el guardado
+   del paso 4 evita.
+2. La app manda `SET_RTC` a esta punta primero, igual que en el Maestro — tampoco bloquea aqui.
+3. La app LEE la hora del telefono de nuevo —un `ahora` distinto del que uso el Maestro, mas tarde por el
+   traslado— y manda `SET_MODO:DEG_T:ahora,inicio,verde,despeje`: `inicio`, `verde` y `despeje` son los
+   GUARDADOS, no se recalculan aqui; `ahora` es fresco.
+4. **Si `ahora` no coincide con el reloj de esta punta** (mas de `TOLERANCIA_TESTIGO_S`), se rechaza con
+   `DEG_RECHAZO_T_AHORA_DESFASADO`; la app sugiere repetir el `SET_RTC`. **Si `inicio` ya pasó**, se rechaza con
+   `DEG_RECHAZO_T_INICIO_VENCIDO` y la app traduce el motivo tal cual lo devuelve el firmware: «el testigo
+   caducó — repita el paso completo en el Maestro». **No ofrece reintentar con el mismo `inicio`**: el traslado
+   ya se cumplió (el motivo no lo arregla el reintento, lo arregla un testigo nuevo).
+
+**Testigo con más de 31 días (el limite de vigencia del testigo):** la app no puede saberlo de
+antemano —el contador vive en la tarjeta, no en el telefono—; se entera por el `$STATUS`/`$ALARM` igual que
+hoy se entera del ámbar por límite duro (`SPEC 6` Parte C), y el texto es el que ya existe para ese aviso,
+sin uno nuevo.
+
+**Lo que esto deja HUECO, y no se construye aquí:** `puntaCorrecta()` y el mapa de botones por `NODE:`
+(`actualizarMandosDePunta()`, `app.js`) no conocen esta orden todavía —hoy solo listan las de siempre—, y
+extenderlos es parte de esta misma spec, no de otra.
 
 ## 4. El PIN
 
@@ -350,6 +394,11 @@ de los dos plugins (`tests/test_unitarios.js` §12 y `test_dom_execution.js`). *
 compile con los dos modulos; que el puente publique los dos en `window.Capacitor.Plugins`; que el `FileProvider`
 acepte la ruta de la cache; y que WhatsApp reciba el `.txt` como adjunto y no como texto. Se cierra con la APK
 instalada: exportar, enviarlo a un chat y abrir el fichero recibido. Hasta entonces, si falla, se copia el texto.
+
+🔴 **13 · EL DEGRADADO CON TESTIGO (§3.ter, `D-35`) ES CERO CÓDIGO EN LA APP.** `grep -n "DEG_T"
+app.js` da cero en las cuatro copias. Falta el boton, el flujo de dos pasos (con la doble lectura de `ahora`),
+el guardado local del testigo y la extension de `puntaCorrecta()`/`actualizarMandosDePunta()` que hoy no
+conocen esta orden.
 
 ---
 

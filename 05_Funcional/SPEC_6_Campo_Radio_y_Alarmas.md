@@ -61,6 +61,42 @@ Medido sobre las funciones de entrada y rechazo de cada punta. **MAESTRO — sei
 > Esclavo rechaza. ⚠️ **Y de que las dos listas sean distintas sale lo peor: UNA PUNTA PUEDE ENTRAR Y LA OTRA NO**,
 > que es peor que ninguna — **si la segunda rechaza, se saca a la primera** (A.4) antes de arreglar el motivo.
 
+## A.1.bis EL TESTIGO — para cuando la radio no vuelve en semanas, no en minutos 🔴 SIN CONSTRUIR (`D-35`)
+
+**Cuando se usa:** el enlace entre postes está muerto y **no hay repuesto a la vista** —el de A.1 es para un corte
+que se resuelve pronto—. **Una orden por poste**, `SET_MODO:DEG_T:ahora,inicio,verde,despeje` —la app manda
+`SET_RTC` primero por costumbre, pero YA NO CONDICIONA el testigo: éste prueba por sí solo que el reloj del
+poste coincide con el del teléfono, comparando `ahora` (SPEC 4 §3.ter trae el flujo completo, con el traslado
+y el despeje)—. **Primero el Maestro, después el Esclavo** —el segundo aplica el MISMO testigo que guardó la
+app en el primero, no uno nuevo, pero LEE `ahora` otra vez al enviarlo—.
+
+| respuesta | qué hacer |
+|---|---|
+| `RESULT:OK` | entró. Queda en **ROJO fijo hasta `inicio`**, después alterna sola: no repita |
+| `$ERR ... DESC:<motivo>` | rechazado. Lea el motivo — A.2.bis dice cuál falta |
+
+## A.2.bis LOS MOTIVOS DEL TESTIGO, Y CUÁL SE PAGA CAMINANDO 🔴 SIN CONSTRUIR
+
+**MAESTRO — cinco motivos:**
+
+| lo que se lee en el teléfono | qué falta, y qué se hace |
+|---|---|
+| `Falta: reloj sin poner en hora` | esta punta no tiene una hora propia fiable con qué comparar. Ponga la hora |
+| `Ahora no coincide` | el reloj del teléfono y el del poste difieren más de la tolerancia — revise la hora del teléfono y repita |
+| `Despeje fuera de rango (30-255)` | corrija el número en la app antes de reenviar |
+| `Inicio ya vencido` | el reloj de esta punta ya pasó de `inicio` al recibir la orden — repita el flujo |
+| `Ambar de emergencia puesto` | alguien lo dejó encendido; hay que `CANCELAR_AMBAR` antes de reintentar |
+
+**ESCLAVO — los mismos cinco, y UNO es el que de verdad se paga en el poste:**
+
+| lo que se lee en el teléfono | qué falta, y qué se hace |
+|---|---|
+| `Inicio ya vencido` | 🔸 **la que muerde.** El traslado se agotó antes de llegar. **No se reintenta con el mismo `inicio`**: vuelva al Maestro y repita el testigo entero, con un traslado nuevo |
+| las otras cuatro | mismo texto y mismo remedio que en el Maestro |
+
+**Y la comprobación visual sigue siendo la de A.3:** entrar por testigo no cambia qué se mira al confirmar que
+las dos puntas quedaron de acuerdo — sólo cambia cómo llegaron a ponerse de acuerdo sin radio.
+
 ## A.3 Verificacion visual de LAS DOS puntas — obligatoria, y tambien al salir
 
 Con las dos dentro, **quedese a ver un ciclo completo** y compruebe **con los ojos, no en la pantalla**:
@@ -305,6 +341,11 @@ reconfigurada con este firmware dentro — **ni `T-2`**. Que firmware corre en c
 de sus filas habla de subir el techo de orfandad de la version de campo** —buscado por el propio nombre del parche, cero
 apariciones—. **Describe un binario construido, no una decision tomada**, y sin fila **no hay nada escrito que autorice
 cargarlo** ni que fije cual plazo es el bueno. Se nombra como hueco; esta spec no abre filas.
+
+**10. 🔴 EL DEGRADADO CON TESTIGO (A.1.bis, A.2.bis, `D-35`) ES CERO CÓDIGO Y CERO BANCO.**
+`grep -rn "DEG_T" {Maestro,Esclavo}/{src,include}` da cero: la puerta, la comparación de `ahora` contra el
+reloj propio, el registro de vigencia de 31 días y el flujo de la app (SPEC 4 §3.ter) están sin construir. No
+hay pack ni acta de campo que lo cierre.
 
 *Las decisiones vigentes que esta spec recoge van citadas donde aplican; nombradas como hueco, la pieza del aviso de
 oscilador parado y `T-2` sin fila. Remedido el 12/09/2026 sobre

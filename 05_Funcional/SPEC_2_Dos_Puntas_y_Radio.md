@@ -201,6 +201,91 @@ de la radio**, sólo con tramas de **gobierno** · **el límite duro** sin sincr
 salida decidida por fila. **Las dos acaban en ámbar y sólo el Esclavo pasa por el despeje** (**SPEC 6 A.4**); del
 estado rendido no se sale solo.
 
+## 7.bis EL DEGRADADO CON TESTIGO — segunda puerta, para cuando la radio no vuelve en semanas (`D-35`)
+
+> 🔴 **HUECO ENTERO: NADA DE ESTE APARTADO EXISTE EN EL FUENTE.** Se especifica lo que hay que construir. No toca
+> `modo_degradado_evaluarEntrada()` ni `degradado_entrar()` (`D-18`), que siguen exactamente como están — es una
+> puerta NUEVA y PARALELA, para el caso en que el repuesto del radio tarda semanas y las condiciones de §8 —sync
+> confirmada, desfase medido, ciclo acusado por radio— no se pueden cumplir porque no hay radio que las produzca.
+
+**El comando, en las DOS puntas:** `SET_MODO:DEG_T:ahora,inicio,verde,despeje`
+(`HH:MM:SS,HH:MM:SS,v,d`), con PIN. `ahora` es la hora del teléfono EN EL INSTANTE DE ENVIAR — no depende de que
+haya habido un `SET_RTC` antes (abajo se explica por qué). `inicio` es la hora de arranque —hora del teléfono más
+el traslado, 20 min por defecto—; `verde` viaja fijo en **180**; `despeje` es el que configuró el operario, con
+suelo **30** y tope **255** (el byte entero, no los 10–90 de `DESPEJE_SEG_MIN/MAX` del ciclo automático: esta orden
+usa SU PROPIO rango, `TESTIGO_DESPEJE_MIN/MAX`, porque un modo sin cámara ni radio que lo vigile pide más margen).
+Longitud con PIN: `CMD:PIN:1234:SET_MODO:DEG_T:HH:MM:SS,HH:MM:SS,VVV,DDD` son **53 B** contra los 63 útiles de
+`TRAMA_MAX_UTIL` (`ESP32_Expansion/include/contrato.h:64`, gemelo medido de `btBufIn[64]` en las dos puntas,
+`Maestro/src/bluetooth.cpp:35` y `Esclavo/src/bluetooth.cpp:32`) — cabe con margen.
+
+**Por qué `ahora` basta y no hace falta tocar el ESP32.** En vez de confiar en CUÁNDO llegó la última siembra,
+el STM32 compara directamente `ahora` —la hora que el teléfono acaba de leer, dentro de esta misma orden— contra su
+PROPIA hora (`reloj_segundosDelDia()`, ya existe en las dos puntas) y rechaza si difieren más de una tolerancia.
+**Eso prueba que el reloj del poste coincide con el del teléfono EN ESE INSTANTE**, se haya hecho o no un `SET_RTC`
+antes —la app lo sigue mandando primero, pero ya no es una condición de esta puerta—. No hay pieza nueva en el ESP32.
+
+**La tolerancia: se reutiliza el criterio de `TOLERANCIA_DESFASE_S`, no se inventa uno.** Propuesta
+`TOLERANCIA_TESTIGO_S = 3` (mismo valor, constante propia en cada `modo_degradado.cpp`, Maestro y Esclavo — la
+original vive sólo en el Maestro, para el desfase de RADIO). Se deriva de la MISMA razón que ya está escrita en
+`Maestro/src/modo_degradado.cpp:127`: *diez veces por debajo del todo-rojo más corto (30 s) y varias veces por
+encima del sesgo conocido de una transmisión* —allí tiempo de aire de radio, aquí Bluetooth teléfono-poste, del
+mismo orden de magnitud—. **Sin decidir por el responsable**, va como propuesta, no como cerrada.
+
+**Maestro — entra en ROJO FIJO hasta `inicio`.** Función propuesta `modo_degradado_evaluarEntradaTestigo(ahora,
+inicio, despeje)`, motivo nuevo (no confundir con `MotivoDegradado`, `Maestro/include/modo_degradado.h:32`):
+`MDT_FALTA_HORA` (`reloj_horaFiable()` falso: sin una hora propia fiable no hay con qué comparar) ·
+`MDT_AHORA_DESFASADO` (`|ahora − reloj_segundosDelDia()| > TOLERANCIA_TESTIGO_S`) · `MDT_DESPEJE_RANGO` (fuera de
+30–255) · `MDT_INICIO_VENCIDO` (`inicio` ya pasó al llegar la orden) · `MDT_AMBAR_VIGENTE` (mismo veto que hoy,
+`R-4`). Aceptada, fuerza rojo y queda esperando `inicio` con la MISMA máquina de estados (`DEG_ENTRANDO`), no una
+nueva: al llegar `inicio` entra por la puerta de siempre, `ciclo_degradado_fase()`.
+
+**Esclavo — la MISMA orden, y una tabla de rechazo distinta (como ya pasa con `D-18`, SPEC 6 A.2).** Motivo nuevo
+`RechazoTestigo`: `DEG_RECHAZO_T_SIN_HORA` · `DEG_RECHAZO_T_AHORA_DESFASADO` · `DEG_RECHAZO_T_INICIO_VENCIDO` —
+**ésta es la que muerde de verdad**: el operario se desplaza entre postes, y si `inicio` ya pasó cuando llega al
+Esclavo, se rechaza con el texto «repita el testigo en el Maestro», exactamente como pide `D-35` — ·
+`DEG_RECHAZO_T_DESPEJE_RANGO` · `DEG_RECHAZO_T_AMBAR_VIGENTE`.
+
+**Vigencia y corte de luz — extiende `D-29`, no lo cambia.** Se persiste, en cada punta, un registro NUEVO junto a
+los que ya usa `respaldo.cpp` (`respaldo_guardarCiclo()`, `respaldo_marcarSync()`): la hora de `inicio` (absoluta),
+`verde`, `despeje`, y la marca del ÚLTIMO testigo aplicado en ESE poste —propuestos `respaldo_guardarTestigo(...)` /
+`respaldo_horasDesdeTestigo()`, del mismo molde que `respaldo_marcarSync()`/`respaldo_horasDesdeSync()`, pero en su
+PROPIO registro: no comparte el de la sincronización de radio, porque son dos relojes de vencimiento distintos —
+**31 días** aquí, **48 h** en `D-18`—. Tras un corte, `degradado_reanudarTrasCorte()` gana una rama: si el permiso
+persistido es de testigo, la puerta que comprueba es el **límite de 31 días**, no `LIMITE_SIN_SYNC_MS`; y si el
+reinicio cayó ANTES de `inicio`, sigue en rojo fijo hasta esa hora — la reanudación no enciende nada que la entrada
+no hubiera encendido ya.
+
+**Vencimiento (31 días, aviso a los 28).** Al llegar el aviso o el límite, misma salida que hoy: ámbar intermitente,
+sin marcha atrás (§7 arriba). Repetir el testigo —una vez al mes— reinicia la cuenta. **La deriva entre los DOS
+DS3231**, que es lo único que corre sin radio y sin la vigilancia de §8, es del orden de **10 s/mes** (`DECISIONES.md`
+D-26, motivo: ±2 ppm cada uno) — **cifra de decisión, no medida en tarjeta** — contra el suelo de **30 s** del
+despeje de esta orden: el margen que queda es del orden de 20 s, y **nadie lo ha medido en un banco**.
+
+**Lo que NO cambia, y se dice explícito (`D-35`):** la vuelta de la radio sigue exactamente como hoy —`SFTY-21`,
+el latido del Maestro saca al Esclavo del Degradado con tramas de gobierno, arriba en este mismo §7—; y
+`SET_MODO:DEGRADADO` (`D-18`) sigue siendo el camino normal, sin tocar, para cuando SÍ hay sincronización de radio.
+
+**Verificación de extremo a extremo en banco (nada de esto se prueba con un pack nuevo — CLAUDE.md §4, simulador
+CONGELADO):** con las dos tarjetas reales y el cable de radio entre postes DESCONECTADO, mandar el testigo a las
+dos por Bluetooth con el MISMO `verde`/`despeje`, leyendo `ahora` justo antes de cada envío; observar ROJO fijo en
+las dos hasta `inicio`, y que al llegar `inicio` alternen sin solaparse (osciloscopio o cronómetro sobre las luces
+reales) igual que en §8(e). Repetir cortando la alimentación de una tarjeta mientras espera `inicio`, y otra vez ya
+alternando, y comprobar que reanuda sin encender un verde que no le tocaba.
+
+**Ficheros e interfaces que se tocarían — nada construido:** `Maestro/{src,include}/modo_degradado.cpp,.h` y su
+gemelo en `Esclavo/` (puerta nueva, enum nuevo, `TOLERANCIA_TESTIGO_S`) · `{Maestro,Esclavo}/src/bluetooth.cpp`
+(rama `SET_MODO:DEG_T`, parsea las DOS horas) · `{Maestro,Esclavo}/{src,include}/respaldo.cpp,.h` (registro
+nuevo). **No toca el ESP32** —ni `despachador.cpp` ni `siembra.cpp`— ni `reloj.cpp/.h`: la comparación usa
+`reloj_segundosDelDia()`, que ya existe. `ciclo_degradado.h` NO se toca: la fase la calcula la MISMA función.
+
+**Lo que queda fuera de este apartado:** la pantalla de la app (SPEC 4 §3.ter) y la vista de campo (SPEC 6 A.1.bis).
+
+**Packs que leen por FORMA las funciones de entrada de hoy, y que NO ven la puerta nueva porque tiene otro nombre**
+(`grep -rln "modo_degradado_evaluarEntrada\|degradado_entrar" 01_Firmware/Simulaciones/banco/packs`):
+`camara_02_j16.py` · `costura_06_reanudacion.py` · `esclavo_01_latch_ambar.py` · `esclavo_06_no_abre_paso.py` ·
+`maestro_03_puerta_degradado.py` · `reloj_04_hora_que_caduca.py`. **Ninguno se toca ni se clona**: el simulador está
+congelado (§4), y la verificación de esta puerta es de banco, no de pack.
+
 ## 8. CÓMO SE PONEN DE ACUERDO LAS DOS PUNTAS SIN RADIO
 
 > **El Degradado da verde sin confirmar con el otro extremo, pero no a ciegas: lo hace sobre un acuerdo cerrado
@@ -332,3 +417,7 @@ pendientes**: apuntan al fichero de protocolo y al coordinador fuera del ciclo �
    hay `static_assert`, las dos constantes viven en proyectos distintos, y el pack que sí las lee **reproduce la
    separación y la publica como residual: mide el hueco, no lo tapa. Es el hueco más grande del acuerdo de §8**, porque
    lo que falla no es la radio: es la puerta.
+8. 🔴 **EL DEGRADADO CON TESTIGO (§7.bis, `D-35`) NO EXISTE: CERO CÓDIGO.**
+   `grep -rn "DEG_T\|MDT_\|RechazoTestigo\|TOLERANCIA_TESTIGO_S" {Maestro,Esclavo}/{src,include}` da cero. La
+   puerta, la comparación de `ahora` contra `reloj_segundosDelDia()` y el registro de vigencia de 31 días son
+   propuestas de esta spec, sin construir y sin banco.
