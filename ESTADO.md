@@ -34,7 +34,7 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 | Maestro `179DB0` (El Sisga) | `7ff7d12` `SIN_BANCO`, probado despues `b354fe9` | cinta y diario en `evidencia/` |
 | Esclavo del Sisga | sin medir | su cinta no se ha traido |
 | Maestro `4D2007` (Marco) | `1889631` por declaracion: el puente contesto `FW:--` | su cinta |
-| paquete enviado a Marco | `bd2780e` `SIN_BANCO`, zip sha256 `29023007`, el 28/09 | nadie ha informado de que este cargado |
+| paquete enviado a Marco | `8974932` `SIN_BANCO` (Paquete_Funcional), zip sha256 `6db7024c`, el 29/09 | Marco dice que la web conecta desde el PC; version sin ver |
 
 ## Verificacion en escritorio
 
