@@ -381,6 +381,9 @@ def crear_paquete(dir_destino):
     # La guia de conexiones. Va en su propia carpeta para que no se pierda entre 38
     # manuales: es el documento que se abre CON la tarjeta delante.
     versionado.append((GUIA_RUTA, "03_Cableado/" + GUIA_HTML))
+    # La app web, para abrirla en el navegador de un PC (Guia_Conectar_PC_Bluetooth.html).
+    for rel in _ficheros_versionados("05_Funcional/App_Semaforo/www"):
+        versionado.append((rel, "04_App/web/" + rel[len("05_Funcional/App_Semaforo/www/"):]))
 
     esperado = {}
     with zipfile.ZipFile(destino, "w", zipfile.ZIP_DEFLATED) as z:
