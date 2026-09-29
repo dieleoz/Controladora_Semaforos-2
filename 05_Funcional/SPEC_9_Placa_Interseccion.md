@@ -60,6 +60,16 @@ de 3 canales cada una, en dos variantes:
 - **Grupos sin usar** (el paso alternado usa 2): se declaran en la configuracion del monitor, o disparan "grupo sin
   color".
 
+**Dimensionamiento DC (dato del responsable, 29/09, declarado y SIN MEDIR por nosotros):** lampara de **12 V DC,
+~7 W promedio (~0,6 A)**; motor de la pluma **0,6 A DC**.
+- **Por canal: 2 A continuos** (x3 sobre 0,6 A, para arranque de fuente LED y tolerancia). El `IRLZ44N` sobra; manda
+  la pista, el conector y el fusible de tarjeta.
+- **Lampara fundida:** resistencia de medida de 0,1 ohm (~60 mV a 0,6 A); el comparador marca "sin corriente" por
+  debajo de ~0,3 A. **El umbral se fija midiendo una lampara real en banco**, no desde este numero.
+- **Canal de la pluma:** 0,6 A inductivo, con rueda libre; mismo dimensionamiento de 2 A.
+- **Bus de 12 V de lamparas:** peor caso ~4,7 A (4 grupos con rojo+ambar a la vez) + pluma + confirmaciones + logica:
+  **~6 A; fusible y pistas del bus a 10 A.**
+
 **Reparto de los 20 canales:** 12 en las tarjetas de grupo (rojo, ambar, verde; un grupo peatonal usa 2 de 3) +
 **en la placa base, a 12 V:** 4 luces de confirmacion de los pulsadores + 1 pluma + 3 de reserva.
 
@@ -174,10 +184,9 @@ de OE, pulsador de reinicio, latido de entrada, linea de FALLA, UART, presencia 
 
 ## 8. HUECOS MEDIDOS — sin cerrar no se dibuja esa parte
 
-1. **Corriente de cada lampara, en las DOS variantes** (12 V solar y 120 V AC; rojo, ambar, verde) **y su tipo** (LED
-   o incandescente): sin eso no se dimensiona la medida de corriente, el triac ni la pista. Una lampara LED en AC puede
-   no llegar a la corriente de mantenimiento del triac, y la fuga del snubber puede encenderla debil. **La variante AC
-   no se dibuja hasta cerrar este hueco y el 3.**
+1. **DC 12 V: DECLARADO** (§2, ~7 W por lampara, pluma 0,6 A); falta medirlo en banco con una lampara de cada color
+   para fijar el umbral de fundida. **AC 120 V: abierto** (tipo LED o incandescente, corriente, carga minima del
+   triac y fuga del snubber). **La variante AC no se dibuja hasta cerrar este hueco y el 3.**
 2. **Norma vial: TRANSCRITA** en `fuentes/md/Manual_Senalizacion_Vial_semaforos.md` (ANSV 2024, 2.a ed., fe de
    erratas oct. 2025). Abierto: la resolucion que la adopta NO CONSTA en el PDF, asi que su exigibilidad aqui depende
    del contrato. **No regula la luz de confirmacion del pulsador** (NO CONSTA). Pide monitor de conflictos, de fallo
