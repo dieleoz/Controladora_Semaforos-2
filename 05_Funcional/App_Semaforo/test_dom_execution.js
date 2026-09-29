@@ -687,14 +687,14 @@ assert(sentFrames.length === 0,
 assert(btnAmbarEmerg.style.display === 'none',
   `Contra un Maestro el mando de ambar ni siquiera se ofrece: display="${btnAmbarEmerg.style.display}"`);
 
-// SOLICITAR_PASO es la simetrica: solo la entiende el Esclavo
-// (Esclavo/src/bluetooth.cpp:128), asi que aqui NO puede salir.
+// D-36: SOLICITAR_PASO sin boton (invertida, CLAUDE.md 9); CANCELAR_AMBAR, del Esclavo.
+assert(!document.querySelector('[data-cmd="SOLICITAR_PASO"]'), 'D-36: sin boton SOLICITAR_PASO');
 sentFrames = [];
-const btnSolicitar = document.querySelector('[data-cmd="SOLICITAR_PASO"]');
-assert(!!btnSolicitar, 'El mando SOLICITAR_PASO (N-58) tiene boton en Modo Tecnico');
-btnSolicitar.click();
+const btnCancelarEsc = document.getElementById('btn-op-cancelar-ambar');
+assert(!!btnCancelarEsc, 'El mando CANCELAR_AMBAR existe en la botonera');
+btnCancelarEsc.click();
 assert(sentFrames.length === 0,
-  `SOLICITAR_PASO es del Esclavo: contra un Maestro NO sale al cable: ${sentFrames.join(' | ')}`);
+  `CANCELAR_AMBAR es del Esclavo: contra un Maestro NO sale al cable: ${sentFrames.join(' | ')}`);
 
 // =========================================================================
 // 6.ter VUELTA AL ESCLAVO: LO QUE ESA PUNTA SI ATIENDE, Y EL PIN DE LA SESION
@@ -708,9 +708,9 @@ assert(nodeNameEl.textContent.includes('ESCLAVO'),
   `La app vuelve al ESCLAVO con su $STATUS: ${nodeNameEl.textContent}`);
 
 sentFrames = [];
-btnSolicitar.click();
-assert(sentFrames.some(f => f.includes('SOLICITAR_PASO')),
-  `SOLICITAR_PASO llega al canal serie: ${sentFrames.join(' | ')}`);
+btnCancelarEsc.click();
+assert(sentFrames.some(f => f.includes('CANCELAR_AMBAR')),
+  `CANCELAR_AMBAR llega al canal serie: ${sentFrames.join(' | ')}`);
 // El PIN es de la SESION y del operario, no del poste: cambiar de punta no vuelve a
 // pedirlo. Si esto empezara a fallar, el tecnico tendria que reautorizarse cada vez
 // que salta de un poste al otro, que es media obra.

@@ -67,6 +67,10 @@ SIN_BOTON_A_PROPOSITO = {
     # PIN en cuanto hubiera un puente viejo en medio. Por eso esta excepcion se MIDE
     # (comprobacion 2.bis): no basta con que este aqui, la app no puede mandarla.
     "HORA_ESP32",
+    # D-36 (29/09): el responsable retira el boton. Solo actuaba en Modo Inteligente y
+    # desde el Poste 2, y en campo parecia roto; el Esclavo la sigue atendiendo por
+    # terminal serie. No es trabajo sin interfaz: es interfaz retirada por decision.
+    "SOLICITAR_PASO",
 }
 
 # La orden que la app NO puede mandar, por el motivo de arriba. Se nombra aparte porque

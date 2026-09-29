@@ -1,7 +1,7 @@
 ACTA DE VERIFICACION - Controladora de Semaforos
 ==============================================================================
 Fecha        : 2026-09-29
-HEAD         : adc43e6   rama: main
+HEAD         : faccd8e   rama: main
 Arbol        : CON CAMBIOS SIN COMMITEAR
 Modo         : completo
 PlatformIO   : PlatformIO Core, version 6.1.19
@@ -20,8 +20,8 @@ RESULTADOS
   PASS      test funcional de la app          [TEST] RESUMEN: 70/70 comprobaciones funcionales de la app en PASS
   PASS      test unitarios de la app          RESUMEN DE PRUEBAS: 63 PASS | 0 FALLAS  (Total: 63)
   PASS      test unitarios TDD de la app      RESUMEN TDD: 85 PASS | 0 FALLAS  (Total: 85)
-  PASS      app ejecutada en DOM              RESULTADO JSDOM: 340 PASS | 0 FALLAS
-  FALLA     banco por packs                   RESUMEN: 1323/1324 comprobaciones  |  packs: 69 PASS, 1 FALLA, 0 ABORTADO
+  PASS      app ejecutada en DOM              RESULTADO JSDOM: 341 PASS | 0 FALLAS
+  FALLA     banco por packs                   RESUMEN: 1325/1326 comprobaciones  |  packs: 69 PASS, 1 FALLA, 0 ABORTADO
   PASS      arnes del ciclo                   RESULTADO: 22/22 comprobaciones OK
   PASS      arnes del respaldo                respaldo.cpp y respaldo.h identicos entre puntas | arnes vivo (PING/PONG)
   PASS      arnes del automatico              RESULTADO: 75/75 comprobaciones OK
@@ -32,8 +32,8 @@ RESULTADOS
   RESUMEN: 18 PASS | 1 FALLA | 0 ABORTADO
 
 ABORTADO no es PASS: una comprobacion que no pudo correr no dice nada del
-firmware. Esta acta se verifica volviendo a adc43e6 y re-corriendo
+firmware. Esta acta se verifica volviendo a faccd8e y re-corriendo
 python 01_Firmware/compuerta.py.
 
 AVISO: el arbol tenia cambios sin commitear al medir. Estas
-cifras NO corresponden exactamente a adc43e6.
+cifras NO corresponden exactamente a faccd8e.

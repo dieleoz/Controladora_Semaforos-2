@@ -2686,9 +2686,10 @@ Y CON EL CICLO EN MARCHA, cualquiera de ellas -> EN_MARCHA_PARE_EL_MODO</pre>
           no en el acuse</b>.</p>
       </div>
       <p><b class="et">Haz</b> Con las dos tarjetas hablando por radio, y el cruce <b>FUERA</b> del
-        Modo Inteligente —déjalo en automático o en menú—, conéctate al <b>ESCLAVO</b> y pulsa
-        <b>«Solicitar Paso»</b> (o manda <code>CMD:PIN:1234:SOLICITAR_PASO</code>). <b>Espera unos
-        segundos mirando la pestaña <code>Eventos</code>.</b> Después <b>repítelo con el cruce SÍ en
+        Modo Inteligente —déjalo en automático o en menú—, conéctate al <b>ESCLAVO</b> con un terminal serie Bluetooth y
+        manda <code>CMD:PIN:1234:SOLICITAR_PASO</code> (la app ya no
+        tiene ese botón desde el 29/09). <b>Espera unos
+        segundos mirando las tramas <code>$EVENT</code> que llegan.</b> Después <b>repítelo con el cruce SÍ en
         Modo Inteligente</b> —el modo se pone desde el <b>Maestro</b>—.</p>
       <div class="diagrama" style="margin:.3rem 0">
 <pre>FUERA de Modo Inteligente   $ACK ... RESULT:PEDIDO_AL_MAESTRO

@@ -1071,6 +1071,8 @@ static void procesarComando(const char* cmd) {
     bluetooth_reportarEvento("APP_BLUETOOTH", "FORZAR_ROJO_RENOMBRADO");
   } else if (strcmp(accion, "SOLICITAR_PASO") == 0) {
     // EL ESCLAVO PIDE; NO ORDENA. Ver OPTIMIZACIONES.md SFTY-27.
+    // D-36 (29/09): la app ya no tiene boton para esta orden; se conserva para el
+    // terminal serie. No es huerfana: no se borra sin otra decision.
     //
     // El funcional del PMT se coloca en el extremo que haga falta y no tiene por que
     // saber cual de los dos postes es el Maestro. Esto lo resuelve sin darle mando a

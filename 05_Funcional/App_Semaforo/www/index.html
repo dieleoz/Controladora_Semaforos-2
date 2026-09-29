@@ -594,10 +594,8 @@
             <strong>Modo Manual</strong>
             <small>Sin ciclo automático</small>
           </button>
-          <button class="ctrl-btn btn-request" data-cmd="SOLICITAR_PASO">
-            <strong>Solicitar Paso</strong>
-            <small>Demanda de paso</small>
-          </button>
+          <!-- D-36 (29/09): aqui estaba «Solicitar Paso». Salio: solo actuaba en Modo
+               Inteligente y desde el Poste 2. El paso se da con Manual y DAR PASO. -->
           <!-- Arranca un ciclo que DA VERDES, por eso pide PIN igual que el resto. -->
           <button class="ctrl-btn btn-mode-smart" data-cmd="SET_MODO:INTELIGENTE">
             <strong>Modo Inteligente</strong>
