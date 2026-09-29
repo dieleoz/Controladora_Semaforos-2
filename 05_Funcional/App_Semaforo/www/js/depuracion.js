@@ -586,7 +586,7 @@ const DiarioOrdenes = {
   casa(cmd, orden) {
     if (!cmd || !orden) return null;
     if (cmd === orden) return 'EXACTA';
-    if (cmd === String(orden).split(':')[0]) return 'POR_CABECERA';
+    if (String(orden).indexOf(cmd + ':') === 0) return 'POR_CABECERA'; // corte en CUALQUIER ':' (SET_MODO:DEG_T:..., 29/09)
     if (this.ALIAS_CMD[orden] === cmd) return 'POR_ALIAS';
     return null;
   },

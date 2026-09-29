@@ -2206,7 +2206,7 @@ assert(/ESCRITA SIN ENLACE/.test(diarioMudo),
 sinE.w.Date.now = relojReal;
 
 // APP-1 y cinta sin enlace: tests/dom_usabilidad.js; exportar en la APK: tests/dom_exportar.js.
-require('./tests/dom_usabilidad.js')(montarAppLimpia, assert).then(() => require('./tests/dom_exportar.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_version.js')(montarAppLimpia, assert))
+require('./tests/dom_usabilidad.js')(montarAppLimpia, assert).then(() => require('./tests/dom_exportar.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_version.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_acuse_con_argumentos.js')(montarAppLimpia, assert))
   .catch(e => assert(false, 'pruebaExportarApk lanzo: ' + e)).then(() => {
     console.log('='.repeat(80));
     console.log(` RESULTADO JSDOM: ${testsPassed} PASS | ${testsFailed} FALLAS`);
