@@ -83,6 +83,10 @@ static const uint16_t FIRMA = 0x5EB2;   // 0x5EB1 no tenia los tiempos del ciclo
 static const uint16_t FLAG_CICLO     = 0x0001;
 static const uint16_t FLAG_SYNC      = 0x0002;
 static const uint16_t FLAG_DEGRADADO = 0x0004;
+// D-35: el Degradado en curso es de TESTIGO (sus parametros viven en testigo_flash). Va en
+// un bit que estaba libre de DR4, dentro de la suma: no cambia el formato ni la firma, y un
+// firmware anterior lo ignora. Solo vale junto a FLAG_DEGRADADO.
+static const uint16_t FLAG_TESTIGO   = 0x0008;
 
 static bool contenidoValido = false;
 
@@ -305,7 +309,12 @@ uint32_t respaldo_horasDesdeSync(uint32_t segundosRtcAhora) {
 
 void respaldo_guardarDegradado(bool activo) {
   uint16_t f = leerReg(REG_FLAGS);
+  // D-35: las dos formas BAJAN el testigo. La entrada de D-18 lo baja porque ya no es un
+  // testigo lo que corre, y la salida porque el Degradado se acabo: asi todas las salidas
+  // que hoy llaman aqui -main.cpp, irAAmbar, pedirSalida, iniciarSalida- lo borran sin
+  // tener que saber que existe.
   f = activo ? (uint16_t)(f | FLAG_DEGRADADO) : (uint16_t)(f & ~FLAG_DEGRADADO);
+  f = (uint16_t)(f & ~FLAG_TESTIGO);
   escribirReg(REG_FLAGS, f);
   escribirReg(REG_FIRMA, FIRMA);
   sellar();
@@ -313,4 +322,15 @@ void respaldo_guardarDegradado(bool activo) {
 
 bool respaldo_degradadoActivo() {
   return contenidoValido && (leerReg(REG_FLAGS) & FLAG_DEGRADADO) != 0;
+}
+
+void respaldo_guardarTestigo() {
+  escribirReg(REG_FLAGS, (uint16_t)(leerReg(REG_FLAGS) | FLAG_DEGRADADO | FLAG_TESTIGO));
+  escribirReg(REG_FIRMA, FIRMA);
+  sellar();
+}
+
+bool respaldo_testigoActivo() {
+  const uint16_t f = leerReg(REG_FLAGS);
+  return contenidoValido && (f & FLAG_DEGRADADO) != 0 && (f & FLAG_TESTIGO) != 0;
 }

@@ -278,7 +278,6 @@ const char* camara_estado() { return "?"; }
 // en todo el arnes y medir otra cosa.
 bool camara_presenciaJ16() { return false; }
 
-
 #if defined(PUNTA_MAESTRO)
 #include "reloj.h"   // struct RelojDiag: solo la declara el reloj.h del Maestro
 // N-114 - EL SUSTITUTO DE LA CONSULTA DEL RELOJ, Y POR QUE DEVUELVE UN IMPOSIBLE.
@@ -362,7 +361,6 @@ bool protocolo_hayPaqueteDisponible(RF_Packet* destino) {
   return true;
 }
 
-
 #if defined(PUNTA_MAESTRO)
 // menu.cpp arrastra la pantalla entera; bluetooth.cpp solo llama a su setup.
 // N-82.bis: pero SI hace lo que el menu_setup() real hace con la maquina -modo y
@@ -409,6 +407,7 @@ unsigned long modo_degradado_msDesdeSync() { return mdg_ms_sync; }
 bool modo_degradado_avisoLimite()          { return mdg_hubo_sync && mdg_ms_sync >= MDG_AVISO_MS; }
 bool modo_degradado_syncVencida()          { return mdg_ms_sync >= MDG_LIMITE_MS; }
 
+#include "arnes_puente_testigo1.inc"  // D-35: dobles del testigo
 // modo_ambar.cpp: lo llama bluetooth.cpp al atender SET_MODO:AMBAR desde la app -es
 // el unico camino que queda para pedir el ambar, desde D-30 (14/09)-.
 // Aqui habia tambien un modo_degradado_setup(): su unico llamador era mando.cpp, y
@@ -445,7 +444,9 @@ bool botonAceptar() { return false; }
 bool botonCancelar() { return false; }
 #endif
 
+#include "arnes_puente_testigo2.inc"  // D-35: dobles del testigo
 #if defined(PUNTA_ESCLAVO)
+#include "arnes_puente_testigo3.inc"  // D-35: dobles del testigo
 // D-30 (14/09): AQUI VIVIA EL SUSTITUTO DEL VETO DEL MANDO -mando_ambarLocal()-.
 //
 // Lo consultaba bluetooth.cpp para no sacar del ambar a una punta cuyo ambar habia
@@ -741,7 +742,6 @@ int main(void) {
 #else
       printf("OK deg=n/a\n");
 #endif
-
 
     } else if (strncmp(linea, "CFG_CICLO ", 10) == 0) {
 #if defined(PUNTA_ESCLAVO)

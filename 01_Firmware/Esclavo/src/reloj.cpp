@@ -31,6 +31,27 @@ static bool rtcOperativo = false;
 static uint32_t tBaseMillis = 0;
 static uint32_t segBaseDelDia = 0;
 static uint8_t diaBase = 1;
+// D-35: dias desde la epoca del DS3231 (su anio 00) del instante base, sacados de la FECHA que trae
+// CMD:HORA_ESP32 (el DS3231). 0 = esta base no tiene fecha. Gemela de la del Maestro.
+static uint16_t diaAbsBase = 0;
+
+static uint16_t diasDesde2000(int anio, int mes, int dia) {
+  if (anio < 2000 || anio > 2150 || mes < 1 || mes > 12 || dia < 1 || dia > 31) return 0;
+  static const uint16_t ACUM[12] = {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334};
+  uint32_t d = 365UL * (uint32_t)(anio - 2000) + (uint32_t)((anio - 2000 + 3) / 4);
+  d += ACUM[mes - 1] + (uint32_t)(dia - 1);
+  if (mes > 2 && (anio % 4) == 0) d += 1;   // 2000..2150: la regla de los siglos solo muerde en 2100
+  if (anio > 2100 || (anio == 2100 && mes > 2)) d -= 1;
+  return (uint16_t)(d + 1);                  // +1: el 0 queda como "sin fecha"
+}
+
+// Segundos desde la epoca del DS3231 (su anio 00) con la fecha del DS3231, o 0 si esta base no la tiene. Una
+// sola lectura de millis() para dia y segundo. Declarada en modo_degradado.h.
+uint32_t reloj_segundosDesde2000() {
+  if (!horaValida || tBaseMillis == 0 || diaAbsBase == 0) return 0;
+  const uint32_t t = segBaseDelDia + (millis() - tBaseMillis) / 1000UL;
+  return (uint32_t)(diaAbsBase - 1U) * 86400UL + t;
+}
 
 // D-21 (1): la base pasada de HORA_CADUCA_MS, con cerrojo. Gemela de la del Maestro.
 static bool siembraCaducada = false;
@@ -153,6 +174,7 @@ void reloj_setup() {
   tBaseMillis = 0;
   segBaseDelDia = 0;
   diaBase = 1;
+  diaAbsBase = 0;   // D-35: sin base no hay dia
   fuenteHora = FH_NINGUNA;
   siembraCaducada = false;
   cristalCongelado = false;   // 1.22: el arranque del periferico es lo que quita el cerrojo
@@ -366,6 +388,18 @@ bool reloj_ajustarConAcuse(int hora, int minuto, int segundo, int dia) {
   if (segundo < 0 || segundo > 59) return false;
   if (dia < 0 || dia > 31) return false;
 
+  // D-35: una hora sin fecha (la radio) no pierde el dia del DS3231: se conserva el dia en
+  // curso y, si el ajuste cruza la medianoche, se toma el dia mas cercano.
+  if (diaAbsBase != 0 && tBaseMillis != 0) {
+    const uint32_t t = segBaseDelDia + (millis() - tBaseMillis) / 1000UL;
+    uint32_t d = (uint32_t)diaAbsBase + t / 86400UL;
+    const int32_t antes = (int32_t)(t % 86400UL);
+    const int32_t nuevo = hora * 3600L + minuto * 60L + segundo;
+    if (nuevo - antes < -43200L) d += 1;
+    else if (nuevo - antes > 43200L && d > 1) d -= 1;
+    diaAbsBase = (uint16_t)d;
+  }
+
   // D-20: Siembra de la base de software (independiente de si Y2 oscila)
   segBaseDelDia = (uint32_t)hora * 3600UL + (uint32_t)minuto * 60UL + (uint32_t)segundo;
   tBaseMillis = millis();
@@ -487,5 +521,19 @@ bool reloj_sembrarDesdeIso(const char* str) {
   const bool puesta = reloj_ajustarConAcuse(h, m, s, dia);
   if (puesta) fuenteHora = FH_ESP32;
   return puesta;
+}
+
+// D-35: guarda el dia absoluto que trae la siembra del ESP32, para los 31 dias del testigo.
+// La llama la rama CMD:HORA_ESP32 de bluetooth.cpp SOLO si reloj_sembrarDesdeIso() devolvio
+// true, con la misma cadena: la base recien sembrada es la de esa hora. Declarada en
+// modo_degradado.h (reloj.h del Maestro no puede crecer).
+bool reloj_guardarFechaEsp32(const char* str) {
+  if (str == nullptr || !isoBienFormado(str) || tBaseMillis == 0) return false;
+  int anio = 0, mes = 0, dia = 0;
+  if (sscanf(str, "%d-%d-%d", &anio, &mes, &dia) != 3) return false;
+  const uint16_t d = diasDesde2000(anio, mes, dia);
+  if (d == 0) return false;
+  diaAbsBase = d;
+  return true;
 }
 

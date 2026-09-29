@@ -96,8 +96,13 @@ uint32_t respaldo_horasDesdeSync(uint32_t segundosRtcAhora);
 // --- Modo Degradado activo -------------------------------------------------
 // Permite REANUDAR tras un corte en vez de caer a ambar y desincronizarse de la
 // otra punta. Ver la nota de cabecera.
-void respaldo_guardarDegradado(bool activo);
+void respaldo_guardarDegradado(bool activo);   // D-35: las dos formas bajan el testigo
 bool respaldo_degradadoActivo();
+
+// D-35: marca el Degradado en curso como de TESTIGO (y activo). Lo baja cualquier
+// respaldo_guardarDegradado(). Los parametros del testigo no van aqui: van a testigo_flash.
+void respaldo_guardarTestigo();
+bool respaldo_testigoActivo();
 
 // Borra todo. Deja el respaldo como en un equipo nuevo.
 void respaldo_borrar();

@@ -754,5 +754,5 @@ PUNTA_API void punta_dominio_escribir(int indice, long valor) {
   }
 #endif
 }
-
 }  // extern "C"
+#include "adaptador_esclavo_testigo1.inc"  // D-35: dobles del testigo

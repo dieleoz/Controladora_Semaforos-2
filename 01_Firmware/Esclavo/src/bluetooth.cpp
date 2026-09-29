@@ -575,6 +575,11 @@ static const char* obtenerNombreModo(EstadoDegradado e) {
 // LO QUE ESO OBLIGA, Y NO ES UNA NOTA DE ESTILO: cada rama de aqui abajo tiene que
 // contestar lo que de verdad paso. Cuando esta era una via mas entre varias, un acuse
 // optimista lo corregia el operario mirando la pantalla; hoy no hay pantalla que mirar.
+// D-35: una hora del dia de SET_MODO:DEG_T, mirada sobre el int y antes de castear.
+static bool horaDelDiaValida(int h, int m, int s) {
+  return h >= 0 && h <= 23 && m >= 0 && m <= 59 && s >= 0 && s <= 59;
+}
+
 static void procesarComando(const char* cmd) {
   // AB-1 - LA LINEA RESERVADA DEL PUENTE, Y VA LA PRIMERA DE TODAS.
   //
@@ -840,6 +845,9 @@ static void procesarComando(const char* cmd) {
         bluetooth_reportarEvento("ESP32", "HORA_ESP32_IGNORADA_MANDA_RADIO");
       }
     } else if (reloj_sembrarDesdeIso(cmd + 15)) {
+      // D-35: y el dia que trae, para los 31 dias del testigo. Sin el, el testigo no entra
+      // (Falta: reloj sin poner en hora) y uno en curso sigue con el dia que ya llevaba.
+      reloj_guardarFechaEsp32(cmd + 15);
       horaEsp32Rechazada = false;
       horaEsp32Llego = true;
       if (horaEsp32Estado != HE_SEMBRADA) {
@@ -1155,6 +1163,34 @@ static void procesarComando(const char* cmd) {
     } else {
       enviarTramaConCrc("$ACK,CMD:SET_MODO:DEGRADADO,RESULT:OK");
       bluetooth_reportarEvento("APP_BLUETOOTH", "SET_MODO_DEGRADADO");
+    }
+  } else if (strncmp(accion, "SET_MODO:DEG_T:", 15) == 0) {
+    // D-35 (SPEC_2 7.bis): la MISMA orden que en el Maestro, con su tabla de rechazo propia
+    // (RechazoTestigo). Aqui solo se traduce texto a numeros (molde SET_TIEMPOS, con el %c
+    // que delata lo que sobra); verde distinto de 180 es formato. La respuesta sale de lo
+    // que devolvio degradado_entrarTestigo(), un $ERR por motivo.
+    int ah = -1, am = -1, as = -1, ih = -1, im = -1, is = -1, v = 0, d = 0;
+    char sobra = 0;
+    const int n = sscanf(accion + 15, "%d:%d:%d,%d:%d:%d,%d,%d%c",
+                         &ah, &am, &as, &ih, &im, &is, &v, &d, &sobra);
+    if (n != 8 || !horaDelDiaValida(ah, am, as) || !horaDelDiaValida(ih, im, is) || v != 180) {
+      enviarTramaConCrc("$ERR,CMD:SET_MODO:DEG_T,DESC:FORMATO_INVALIDO");
+    } else {
+      const RechazoTestigo r = degradado_entrarTestigo(
+          (uint32_t)ah * 3600UL + (uint32_t)am * 60UL + (uint32_t)as,
+          (uint32_t)ih * 3600UL + (uint32_t)im * 60UL + (uint32_t)is, d);
+      if (r == DEG_T_ACEPTADO) {
+        enviarTramaConCrc("$ACK,CMD:SET_MODO:DEG_T,RESULT:OK");
+        bluetooth_reportarEvento("APP_BLUETOOTH", "SET_MODO_DEG_T");
+      } else if (r == DEG_T_RENOVADO) {
+        enviarTramaConCrc("$ACK,CMD:SET_MODO:DEG_T,RESULT:RENOVADO");
+        bluetooth_reportarEvento("APP_BLUETOOTH", "SET_MODO_DEG_T_RENOVADO");
+      } else {
+        char p[96];   // 29 del prefijo + 50 del motivo mas largo + NUL
+        snprintf(p, sizeof(p), "$ERR,CMD:SET_MODO:DEG_T,DESC:%s", degradado_textoRechazoTestigo(r));
+        enviarTramaConCrc(p);
+        bluetooth_reportarEvento("APP_BLUETOOTH", "SET_MODO_DEG_T_RECHAZADO");
+      }
     }
   } else if (strcmp(accion, "TEST_LEDS") == 0) {
     // RECHAZADO A PROPOSITO, y no es una limitacion pendiente de quitar.

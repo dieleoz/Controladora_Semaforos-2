@@ -136,6 +136,9 @@ COMANDOS_PERMITIDOS = {
                         "luz -la fase la calcula el fichero compartido-, porque entra "
                         "por todo-rojo, porque la puerta es degradado_entrar() y no una "
                         "copia de sus condiciones, y porque pide PIN",
+    # D-35 (SPEC_2 7.bis): Degradado con testigo, puerta paralela con PIN que entra por rojo.
+    "SET_MODO:DEG_T:":  "ABRE PASO como SET_MODO:DEGRADADO: verde por reloj tras rojo fijo "
+                        "hasta inicio, con PIN, la puerta es degradado_entrarTestigo()",
     "FORZAR_ROJO":      "presente solo para RECHAZARLO ensenando el nombre nuevo",
     "SOLICITAR_PASO":   "PIDE al Maestro; no enciende nada en esta punta",
     "TEST_LEDS":        "presente solo para RECHAZARLO con un motivo legible",

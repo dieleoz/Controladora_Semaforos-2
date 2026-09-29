@@ -10,6 +10,7 @@
 #include "reloj.h"
 #include "respaldo.h"
 #include "semaforo.h"
+#include "testigo_flash.h"
 
 // ---------------------------------------------------------------------------
 // CONFIGURACION DEL CICLO DEGRADADO
@@ -146,6 +147,59 @@ static const uint32_t LIMITE_DURO_H = LIMITE_DURO_MS / 3600000UL;
 // mismo motivo por el que existe el despeje: es el tiempo que tarda en vaciarse el
 // tramo. Entrar o salir mas rapido que eso seria dar por vacio algo que no lo esta.
 static const unsigned long ROJO_TRANSICION_MS = (unsigned long)DEG_DESPEJE_SEG * 1000UL;
+
+// ---------------------------------------------------------------------------
+// D-35 - EL DEGRADADO CON TESTIGO (SPEC_2 7.bis). Constantes y estado.
+//
+// TOLERANCIA_TESTIGO_S: el MISMO criterio que TOLERANCIA_DESFASE_S -diez veces por debajo
+// del todo-rojo mas corto (30 s) y por encima del sesgo de una transmision, aqui
+// Bluetooth telefono-poste-; constante propia porque la otra es del desfase de RADIO.
+//
+// EL DESPEJE TIENE SU PROPIO RANGO, 30..255, no los 10..90 del Automatico: un modo sin
+// camara ni radio que lo vigile pide mas margen. El suelo de 30 es el despeje de D-18, asi
+// que SALTO_SIN_ROJO_MAX_S (derivado de 30) queda del lado seguro con cualquier despeje
+// admitido. El verde viaja fijo en 180 (DEG_VERDE_SEG): lo rechaza el despachador por formato.
+//
+// LA VIGENCIA SE CUENTA CON LA FECHA DEL DS3231 (reloj_segundosDesde2000()), no con el
+// contador del RTC: sin Y2 ese contador no cuenta, y HAL_RTC_GetTime puede reescribirlo.
+// ---------------------------------------------------------------------------
+static const int32_t  TOLERANCIA_TESTIGO_S   = 3;
+static const int      TESTIGO_DESPEJE_MIN    = 30;
+static const int      TESTIGO_DESPEJE_MAX    = 255;
+static const uint32_t TESTIGO_INICIO_MAX_S   = 43200UL;           // 12 h: mas es "ya paso"
+static const uint32_t TESTIGO_VIGENCIA_S     = 31UL * 86400UL;    // 31 dias: ambar
+static const uint32_t TESTIGO_AVISO_S        = 28UL * 86400UL;    // 28 dias: solo aviso
+
+static bool testigo = false;            // el Degradado en curso es de testigo
+static uint8_t testigoDespeje = DEG_DESPEJE_SEG;
+static uint32_t testigoMarcaS = 0;      // s desde 2000 del ultimo testigo aceptado
+static uint32_t testigoInicioS = 0;     // s desde 2000 de inicio
+static bool entradaTestigoHecha = false;  // setup() no debe rehacer lo que hizo entrarTestigo
+static bool reanudarComoTestigo = false;  // la reanudacion pendiente es de testigo
+static TestigoFlash testigoLeido;         // lo que leyo la reanudacion de la flash
+
+static uint8_t despejeEnUso() { return testigo ? testigoDespeje : (uint8_t)DEG_DESPEJE_SEG; }
+
+// El todo-rojo de entrada y salida es el despeje EN USO: con testigo, el pedido.
+static unsigned long rojoTransicionMs() {
+  return testigo ? (unsigned long)testigoDespeje * 1000UL : ROJO_TRANSICION_MS;
+}
+
+// a - b por el camino corto del circulo del dia, en (-43200, 43200].
+static int32_t difCircular(uint32_t a, uint32_t b) {
+  int32_t d = (int32_t)((a + 86400UL - b) % 86400UL);
+  return d > 43200L ? d - 86400L : d;
+}
+
+// Antiguedad del testigo en segundos; 0xFFFFFFFF si no se puede fechar (sin fecha del
+// DS3231, o el reloj retrocedio por debajo de la marca). Ante la duda, vencido.
+static uint32_t edadTestigoS() {
+  const uint32_t ahora = reloj_segundosDesde2000();
+  if (ahora == 0 || ahora < testigoMarcaS) return 0xFFFFFFFFUL;
+  return ahora - testigoMarcaS;
+}
+
+static bool testigoEnCurso() { return testigo && modoActual_get() == MODO_DEGRADADO; }
 
 // ---------------------------------------------------------------------------
 // D-26 (4) - UNA HORA QUE SALTA MAS QUE EL MARGEN DEL CRUCE SE APLICA PASANDO POR ROJO.
@@ -467,6 +521,9 @@ unsigned long modo_degradado_msDesdeSync() {
 // con el otro. Es la misma forma que degradado_avisoLimite() del Esclavo, que pregunta
 // primero por huboSyncAlguna.
 bool modo_degradado_avisoLimite() {
+  // D-35: con testigo el limite que manda es el suyo, y es el que se publica (SPEC_4
+  // 3.ter: el aviso sale por el MISMO $EVENT, sin texto nuevo). Sin fecha cuenta como vencido.
+  if (testigoEnCurso()) return edadTestigoS() >= TESTIGO_AVISO_S;
   const unsigned long ms = msDesdeSyncEfectivo();
   if (ms == 0xFFFFFFFFUL) return false;
   return ms >= AVISO_LIMITE_MS;
@@ -478,6 +535,7 @@ bool modo_degradado_avisoLimite() {
 // opinion paralela. Si contestara false sin fecha, la trama diria "no vencido" del mismo
 // equipo que esta a punto de irse a ambar por esta causa.
 bool modo_degradado_syncVencida() {
+  if (testigoEnCurso()) return edadTestigoS() >= TESTIGO_VIGENCIA_S;   // D-35: el borde del bucle
   return msDesdeSyncEfectivo() >= LIMITE_DURO_MS;
 }
 
@@ -519,6 +577,30 @@ bool modo_degradado_reanudarTrasCorte() {
     reanudacionPorDecidir = false;
     respaldo_guardarDegradado(false);
     return false;
+  }
+
+  // D-35 - UN DEGRADADO DE TESTIGO SE REANUDA CON SU PROPIA PUERTA: el limite es el de 31
+  // dias con la fecha del DS3231, no LIMITE_DURO_H ni el ciclo de la pila, que es el de
+  // D-18. Si el reinicio cayo antes de inicio, setup() lo deja en rojo hasta esa hora: la
+  // reanudacion no enciende nada que la entrada no hubiera encendido ya. La fecha la trae
+  // la siembra del ESP32 despues del arranque, asi que se espera dentro de la ventana de
+  // D-29 sin borrar nada.
+  if (respaldo_testigoActivo()) {
+    TestigoFlash t;
+    const bool hayRegistro = testigoFlash_leer(&t);
+    const uint32_t ahora = reloj_segundosDesde2000();
+    if (hayRegistro && ahora == 0 && millis() < VENTANA_REANUDACION_MS) return false;
+    const bool vigente = hayRegistro && ahora != 0 && reloj_horaFiable() &&
+                         ahora >= t.marcaS && (ahora - t.marcaS) < TESTIGO_VIGENCIA_S;
+    reanudacionPorDecidir = false;
+    if (!vigente) {
+      respaldo_guardarDegradado(false);
+      return false;
+    }
+    testigoLeido = t;
+    reanudarComoTestigo = true;
+    reanudacionPendiente = true;
+    return true;
   }
 
   // Las tres condiciones que mantienen VIGENTE la autorizacion de antes. Se piden
@@ -600,7 +682,8 @@ bool modo_degradado_reanudarTrasCorte() {
 // Fase del instante actual. Aisla la lectura del reloj para que el resto del modulo
 // no toque nunca los segundos del dia por su cuenta.
 static FaseDegradado faseAhora() {
-  return ciclo_degradado_fase(reloj_segundosDelDia(), DEG_VERDE_SEG, DEG_DESPEJE_SEG);
+  // D-35: el despeje es el EN USO (el del testigo, si lo hay); el verde es 180 en los dos.
+  return ciclo_degradado_fase(reloj_segundosDelDia(), DEG_VERDE_SEG, despejeEnUso());
 }
 
 static void irAAmbar(const char* l1, const char* l2) {
@@ -630,6 +713,21 @@ void modo_degradado_setup() {
   // N-20: la reanudacion se consume aqui, de una sola vez.
   const bool reanudando = reanudacionPendiente;
   reanudacionPendiente = false;
+
+  // D-35: la entrada por testigo ya dejo el modo en rojo y con su estado; aqui no se
+  // re-evalua la puerta de D-18, que la rechazaria por falta de sync de radio.
+  if (entradaTestigoHecha) {
+    entradaTestigoHecha = false;
+    return;
+  }
+  const bool comoTestigo = reanudando && reanudarComoTestigo;
+  reanudarComoTestigo = false;
+  testigo = comoTestigo;
+  if (comoTestigo) {
+    testigoDespeje = testigoLeido.despejeSeg;
+    testigoMarcaS = testigoLeido.marcaS;
+    testigoInicioS = testigoLeido.inicioS;
+  }
 
   // Se vuelve a evaluar la puerta AQUI aunque el mando ya la haya evaluado. La
   // entrada por pantalla no pasa por el mando, y una puerta que dependa de que la
@@ -675,7 +773,8 @@ void modo_degradado_setup() {
   // Al reanudar tambien se reescribe, aunque ya estuviera puesto. Cuesta un registro
   // de 16 bits sin desgaste y evita el caso de que la entrada anterior quedara a
   // medias.
-  respaldo_guardarDegradado(true);
+  if (comoTestigo) respaldo_guardarTestigo();   // D-35: sigue siendo testigo
+  else respaldo_guardarDegradado(true);
 
   // SE ENTRA POR TODO-ROJO TAMBIEN AL REANUDAR. No se salta a verde desde el arranque
   // ni aunque la fase que toque sea la del verde del Maestro: DEG_ENTRADA_ROJO exige
@@ -702,6 +801,102 @@ bool modo_degradado_pedirSalida() {
   estado = DEG_SALIDA_ROJO;
   tEstado = millis();
   return true;
+}
+
+// ---------------------------------------------------------------------------
+// D-35 - LA PUERTA DEL TESTIGO. Paralela a modo_degradado_evaluarEntrada(), que no se toca.
+// El orden de los motivos es el de SPEC_2 7.bis para el Maestro.
+// ---------------------------------------------------------------------------
+MotivoTestigo modo_degradado_evaluarEntradaTestigo(uint32_t ahora, uint32_t inicio, int despeje) {
+  if (!reloj_horaFiable() || reloj_segundosDesde2000() == 0) return MDT_FALTA_HORA;
+  const uint32_t reloj = reloj_segundosDelDia();
+  const int32_t d = difCircular(ahora, reloj);   // por el camino corto: 23:59:59 vs 00:00:01 = 2 s
+  if (d > TOLERANCIA_TESTIGO_S || d < -TOLERANCIA_TESTIGO_S) return MDT_AHORA_DESFASADO;
+  if (despeje < TESTIGO_DESPEJE_MIN || despeje > TESTIGO_DESPEJE_MAX) return MDT_DESPEJE_RANGO;
+  if ((inicio + 86400UL - reloj) % 86400UL > TESTIGO_INICIO_MAX_S) return MDT_INICIO_VENCIDO;
+  // R-4 en esta punta: el ambar de emergencia del Maestro es MODO_AMBAR (no hay latch).
+  if (modoActual_get() == MODO_AMBAR) return MDT_AMBAR_VIGENTE;
+  return MDT_OK;
+}
+
+// Escribe la flash y lo publica con lo que tardo el borrado (medida para el banco).
+static bool guardarTestigoFlash(uint32_t marcaS, uint32_t inicioS, uint8_t despeje) {
+  TestigoFlash t;
+  t.marcaS = marcaS;
+  t.inicioS = inicioS;
+  t.verdeSeg = (uint8_t)DEG_VERDE_SEG;
+  t.despejeSeg = despeje;
+  uint32_t us = 0;
+  const bool ok = testigoFlash_escribir(&t, &us);
+  char det[40];
+  snprintf(det, sizeof(det), "FLASH_%s_BORRADO_US:%lu", ok ? "OK" : "FALLO", (unsigned long)us);
+  bluetooth_reportarEvento("TESTIGO", det);
+  return ok;
+}
+
+MotivoTestigo modo_degradado_entrarTestigo(uint32_t ahora, uint32_t inicio, int despeje) {
+  const MotivoTestigo m = modo_degradado_evaluarEntradaTestigo(ahora, inicio, despeje);
+  if (m != MDT_OK) return m;
+
+  const uint32_t reloj = reloj_segundosDelDia();
+  const uint32_t ahoraS = reloj_segundosDesde2000();
+  const uint32_t inicioS = ahoraS + (inicio + 86400UL - reloj) % 86400UL;
+  const bool enModo = modoActual_get() == MODO_DEGRADADO;
+
+  // YA ALTERNANDO CON ESTE MISMO CICLO: renueva la cuenta y sigue, sin volver a rojo ni
+  // esperar inicio -la fase es la de pared y no cambia-. Vale tambien sobre un D-18 activo
+  // (su despeje es 30). La flash solo se escribe con esta punta en rojo; en su verde se
+  // rechaza y se repite en rojo. Lo guardado lleva inicio = ahora: ya empezo.
+  if (enModo && estado == DEG_ACTIVO && despejeEnUso() == (uint8_t)despeje) {
+    if (faseAhora() == FD_VERDE_MAESTRO) return MDT_EN_VERDE;
+    if (!guardarTestigoFlash(ahoraS, ahoraS, (uint8_t)despeje)) return MDT_NO_GUARDADO;
+    testigo = true;
+    testigoDespeje = (uint8_t)despeje;
+    testigoMarcaS = ahoraS;
+    testigoInicioS = ahoraS;
+    respaldo_guardarTestigo();
+    return MDT_RENOVADO;
+  }
+
+  // ENTRADA NUEVA (o ciclo distinto): rojo YA, y despues la flash.
+  coordinador_forzarRojoTotal();
+  semaforo_forzarRojo();
+  if (!guardarTestigoFlash(ahoraS, inicioS, (uint8_t)despeje)) {
+    // Sin registro no hay reanudacion posible: no se entra. Si ya estaba en Degradado sale
+    // por su todo-rojo; si no, al menu, que es rojo fijo.
+    if (enModo) modo_degradado_pedirSalida();
+    else modoActual_set(MENU);
+    return MDT_NO_GUARDADO;
+  }
+  testigo = true;
+  testigoDespeje = (uint8_t)despeje;
+  testigoMarcaS = ahoraS;
+  testigoInicioS = inicioS;
+  respaldo_guardarTestigo();
+  motivo = MDG_OK;
+  reanudacionPendiente = false;
+  reanudacionPorDecidir = false;   // D-29: una entrada nueva cierra la reanudacion pendiente
+  anclarHora();
+  estado = DEG_ENTRADA_ROJO;
+  tEstado = millis();
+  if (!enModo) {
+    entradaTestigoHecha = true;    // el setup() que dispara el cambio de modo no rehace nada
+    modoActual_set(MODO_DEGRADADO);
+  }
+  return MDT_OK;
+}
+
+const char* modo_degradado_textoTestigo(MotivoTestigo m) {
+  switch (m) {
+    case MDT_FALTA_HORA:      return "Falta: reloj sin poner en hora";
+    case MDT_AHORA_DESFASADO: return "Ahora no coincide";
+    case MDT_DESPEJE_RANGO:   return "Despeje fuera de rango (30-255)";
+    case MDT_INICIO_VENCIDO:  return "Inicio ya vencido";
+    case MDT_AMBAR_VIGENTE:   return "Ambar de emergencia puesto";
+    case MDT_EN_VERDE:        return "En verde: repita en rojo";
+    case MDT_NO_GUARDADO:     return "No se pudo guardar el testigo";
+    default:                  return "";
+  }
 }
 
 void modo_degradado_loop() {
@@ -738,7 +933,7 @@ void modo_degradado_loop() {
       return;
 
     case DEG_SALIDA_ROJO:
-      if (millis() - tEstado >= ROJO_TRANSICION_MS) {
+      if (millis() - tEstado >= rojoTransicionMs()) {   // D-35: el despeje en uso
         modoActual_set(MENU);
         menu_setup();
       }
@@ -819,6 +1014,16 @@ void modo_degradado_loop() {
   // pila tambien lo devuelve con mas de 48 h bien fechadas, y alli el rotulo "48h" es cierto.
   // Se publica UNA vez: irAAmbar() deja el modo en DEG_AMBAR y de ahi no se vuelve aqui. Los
   // rotulos no nombran ninguna pieza, por lo mismo que N-45 quito "Es Y2: toca hardware".
+  // D-35: CON TESTIGO EL TOPE ES EL SUYO, 31 dias desde el ultimo testigo con la fecha del
+  // DS3231. El de 48 h mide la sync de radio, que este modo existe para no necesitar. Sin
+  // fecha, o con el reloj por debajo de la marca, se da por vencido.
+  if (testigo) {
+    if (edadTestigoS() >= TESTIGO_VIGENCIA_S) {
+      bluetooth_reportarAlarma("DEGRADADO", "LIMITE_31D", "CAMBIO_A_AMBAR");
+      irAAmbar("Testigo vencido", "Repita el testigo");
+      return;
+    }
+  } else {
   unsigned long desdeSync = msDesdeSyncEfectivo();
   if (desdeSync >= LIMITE_DURO_MS) {
     if (reloj_estadoCristal() == RELOJ_CRISTAL_CONGELADO) {
@@ -834,6 +1039,7 @@ void modo_degradado_loop() {
     }
     return;
   }
+  }   // D-35: fin de la rama sin testigo
 
   // D-26 (4): ANTES de calcular la fase y de decidir la luz. Un salto mayor que el margen
   // -una siembra del ESP32 tras mucha deriva, o un DS3231 puesto con otra hora- vuelve a
@@ -858,7 +1064,12 @@ void modo_degradado_loop() {
     //      se daria paso sin el despeje que le precede, que es justo lo que el
     //      despeje existe para evitar. Esperando a que la fase pase de largo, el
     //      primer verde que se de sera un verde entero contado desde su principio.
-    if (millis() - tEstado >= ROJO_TRANSICION_MS && fase != FD_VERDE_MAESTRO) {
+    //   3. D-35: con testigo, haber llegado a inicio. Es el tiempo que el operario tiene
+    //      para ir al otro poste; hasta entonces, rojo fijo.
+    //      Y el todo-rojo es el despeje DEL TESTIGO (>= 30, asi que cubre el de arriba).
+    if (millis() - tEstado >= ROJO_TRANSICION_MS && fase != FD_VERDE_MAESTRO &&
+        (!testigo || (millis() - tEstado >= rojoTransicionMs() &&
+                      reloj_segundosDesde2000() >= testigoInicioS))) {
       estado = DEG_ACTIVO;
     }
     semaforo_forzarRojo();

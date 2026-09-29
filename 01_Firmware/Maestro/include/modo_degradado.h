@@ -152,6 +152,43 @@ void modo_degradado_loop();
 // en rojo y camino del menu, asi que false no es un error: es "no hice nada nuevo".
 bool modo_degradado_pedirSalida();
 
+// --- D-35: EL DEGRADADO CON TESTIGO (SPEC_2 7.bis) --------------------------
+//
+// Segunda puerta, PARALELA a modo_degradado_evaluarEntrada(), que no se toca. No exige
+// sync de radio, desfase ni ciclo acusado: la base comun es que el reloj de ESTA punta
+// coincide con el del telefono en el instante de la orden (`ahora`, tolerancia
+// TOLERANCIA_TESTIGO_S). Aceptada, ROJO fijo hasta `inicio` por la misma DEG_ENTRADA_ROJO,
+// y despues la fase de siempre (ciclo_degradado_fase) con verde 180 y el despeje pedido.
+// Vence a los 31 dias del ultimo testigo, contados con la fecha del DS3231; avisa a los 28.
+enum MotivoTestigo {
+  MDT_OK,               // entro: rojo fijo hasta inicio
+  MDT_RENOVADO,         // ya alternaba con este mismo ciclo: renueva la cuenta y sigue
+  MDT_FALTA_HORA,       // reloj_horaFiable() falso, o la hora no trae fecha del DS3231
+  MDT_AHORA_DESFASADO,  // |ahora - reloj_segundosDelDia()| > TOLERANCIA_TESTIGO_S
+  MDT_DESPEJE_RANGO,    // fuera de 30..255
+  MDT_INICIO_VENCIDO,   // (inicio - reloj) mod 86400 > 12 h: ya paso
+  MDT_AMBAR_VIGENTE,    // el Maestro esta en MODO_AMBAR (su ambar de emergencia)
+  MDT_EN_VERDE,         // renovar pide escribir la flash, y solo se escribe en rojo
+  MDT_NO_GUARDADO       // la flash no quedo escrita: sale por todo-rojo
+};
+
+// Solo mira. ahora e inicio en segundos del dia (HH:MM:SS de la orden).
+MotivoTestigo modo_degradado_evaluarEntradaTestigo(uint32_t ahora, uint32_t inicio, int despeje);
+
+// Vuelve a evaluar y, si procede, entra o renueva, escribe la flash y pone MODO_DEGRADADO.
+// El despachador contesta segun lo que ESTO devuelve (CLAUDE.md 2).
+MotivoTestigo modo_degradado_entrarTestigo(uint32_t ahora, uint32_t inicio, int despeje);
+
+// Texto del $ERR, uno por motivo (SPEC_6 A.2.bis).
+const char* modo_degradado_textoTestigo(MotivoTestigo m);
+
+// Definida en reloj.cpp (D-35). Se declara aqui y no en reloj.h, que pasa de 500 lineas
+// y no puede crecer. Segundos desde la epoca del DS3231 (su anio 00) con la fecha del DS3231; 0 = sin fecha.
+uint32_t reloj_segundosDesde2000();
+// Definida en reloj.cpp (D-35): guarda el dia que trae CMD:HORA_ESP32. La llama bluetooth.cpp
+// solo tras un reloj_sembrarDesdeIso() que devolvio true, con la misma cadena.
+bool reloj_guardarFechaEsp32(const char* str);
+
 // El ambar intermitente vive en modo_ambar.h desde la Fase 4 (03/08/2026): es un MODO
 // DEL SISTEMA -la salida de emergencia de B.B.B-, no una parte del Modo Degradado.
 

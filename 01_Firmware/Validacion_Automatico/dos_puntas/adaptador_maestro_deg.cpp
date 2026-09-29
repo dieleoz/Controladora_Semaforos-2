@@ -128,7 +128,6 @@ bool botonAceptar()  { bool v = g_pulsarAceptar;  g_pulsarAceptar = false;  retu
 // verdad es el Bloque F/G de arnes_automatico.cpp, que compila botones.cpp REAL.
 bool camara_presenciaJ16() { return false; }
 
-
 // N-73: la Caja Negra. El stub no puede limitarse a callar. [literal de adaptador_maestro.cpp]
 static char g_ultimaAlarmaEvento[48] = "";
 static int  g_alarmasEmitidas = 0;
@@ -504,3 +503,4 @@ PUNTA_API void punta_dominio_escribir(int indice, long valor) {
 }
 
 }  // extern "C"
+#include "adaptador_maestro_deg_testigo1.inc"  // D-35: dobles del testigo

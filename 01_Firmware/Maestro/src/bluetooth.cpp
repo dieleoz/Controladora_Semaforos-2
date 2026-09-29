@@ -562,6 +562,11 @@ static void atenderVeredictoReloj() {
   }
 }
 
+// D-35: una hora del dia de SET_MODO:DEG_T, mirada sobre el int y antes de castear.
+static bool horaDelDiaValida(int h, int m, int s) {
+  return h >= 0 && h <= 23 && m >= 0 && m <= 59 && s >= 0 && s <= 59;
+}
+
 static void procesarComando(const char* cmd) {
   // AB-1 - LA LINEA RESERVADA DEL PUENTE, Y VA LA PRIMERA DE TODAS.
   //
@@ -666,6 +671,9 @@ static void procesarComando(const char* cmd) {
   // de cambio: si alguna vez sale, sale en cada siembra, y eso tambien es un dato.
   if (strncmp(cmd, "CMD:HORA_ESP32:", 15) == 0) {
     if (reloj_sembrarDesdeIso(cmd + 15)) {
+      // D-35: y el dia que trae, para los 31 dias del testigo. Sin el, el testigo no entra
+      // (Falta: reloj sin poner en hora) y uno en curso sigue con el dia que ya llevaba.
+      reloj_guardarFechaEsp32(cmd + 15);
       horaEsp32Rechazada = false;
       horaEsp32Llego = true;
       if (!coordinador_sincronizarHora()) {
@@ -830,6 +838,34 @@ static void procesarComando(const char* cmd) {
       modoActual_set(MODO_DEGRADADO);
       enviarTramaConCrc("$ACK,CMD:SET_MODO:DEGRADADO,RESULT:OK");
       bluetooth_reportarEvento("APP_BLUETOOTH", "SET_MODO_DEGRADADO");
+    }
+  } else if (strncmp(accion, "SET_MODO:DEG_T:", 15) == 0) {
+    // D-35 (SPEC_2 7.bis): EL DEGRADADO CON TESTIGO, una puerta PARALELA a la de arriba.
+    // Formato ahora,inicio,verde,despeje = HH:MM:SS,HH:MM:SS,v,d. Aqui solo se traduce texto
+    // a numeros (molde SET_TIEMPOS, con el %c que delata lo que sobra); verde distinto de
+    // 180 es formato. Los rangos y la hora los decide modo_degradado_entrarTestigo(), y la
+    // respuesta sale de lo que ESA llamada devolvio, un $ERR por motivo.
+    int ah = -1, am = -1, as = -1, ih = -1, im = -1, is = -1, v = 0, d = 0;
+    char sobra = 0;
+    const int n = sscanf(accion + 15, "%d:%d:%d,%d:%d:%d,%d,%d%c",
+                         &ah, &am, &as, &ih, &im, &is, &v, &d, &sobra);
+    if (n != 8 || !horaDelDiaValida(ah, am, as) || !horaDelDiaValida(ih, im, is) || v != 180) {
+      enviarTramaConCrc("$ERR,CMD:SET_MODO:DEG_T,DESC:FORMATO_INVALIDO");
+    } else {
+      const MotivoTestigo m = modo_degradado_entrarTestigo(
+          (uint32_t)ah * 3600UL + (uint32_t)am * 60UL + (uint32_t)as,
+          (uint32_t)ih * 3600UL + (uint32_t)im * 60UL + (uint32_t)is, d);
+      if (m == MDT_OK) {
+        enviarTramaConCrc("$ACK,CMD:SET_MODO:DEG_T,RESULT:OK");
+        bluetooth_reportarEvento("APP_BLUETOOTH", "SET_MODO_DEG_T");
+      } else if (m == MDT_RENOVADO) {
+        enviarTramaConCrc("$ACK,CMD:SET_MODO:DEG_T,RESULT:RENOVADO");
+        bluetooth_reportarEvento("APP_BLUETOOTH", "SET_MODO_DEG_T_RENOVADO");
+      } else {
+        char p[80];   // 29 del prefijo + 31 del motivo mas largo + NUL
+        snprintf(p, sizeof(p), "$ERR,CMD:SET_MODO:DEG_T,DESC:%s", modo_degradado_textoTestigo(m));
+        enviarTramaConCrc(p);
+      }
     }
   } else if (strcmp(accion, "FORZAR_ROJO") == 0) {
     coordinador_forzarRojoTotal();

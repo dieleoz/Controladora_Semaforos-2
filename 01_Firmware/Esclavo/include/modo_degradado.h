@@ -149,6 +149,37 @@ FaseDegradado   degradado_fase();
 // Sale de ciclo_degradado_restante(), no de un contador propio.
 uint32_t degradado_segundosParaCambio();
 
+// --- D-35: EL DEGRADADO CON TESTIGO (SPEC_2 7.bis) --------------------------
+// Segunda puerta, PARALELA a degradado_comprobar()/degradado_entrar(), que no se tocan.
+// Misma orden que en el Maestro y su propia tabla de rechazo, en el orden de la spec.
+// Aceptada, ROJO fijo hasta inicio por la misma DEG_ENTRANDO; despues la fase de siempre
+// con verde 180 y el despeje pedido. Vence a los 31 dias del ultimo testigo (fecha del
+// DS3231), avisa a los 28. El cerrojo de 48 h (syncVencidaLatch) no actua en este modo.
+enum RechazoTestigo {
+  DEG_T_ACEPTADO,                 // entro: rojo fijo hasta inicio
+  DEG_T_RENOVADO,                 // ya alternaba con este ciclo: renueva la cuenta y sigue
+  DEG_RECHAZO_T_SIN_HORA,         // reloj_horaFiable() falso, o la hora no trae fecha
+  DEG_RECHAZO_T_AHORA_DESFASADO,  // |ahora - reloj| > TOLERANCIA_TESTIGO_S
+  DEG_RECHAZO_T_INICIO_VENCIDO,   // inicio ya paso: el traslado se agoto
+  DEG_RECHAZO_T_DESPEJE_RANGO,    // fuera de 30..255
+  DEG_RECHAZO_T_AMBAR_VIGENTE,    // R-4: ambar de emergencia puesto
+  DEG_RECHAZO_T_EN_VERDE,         // renovar escribe la flash, y solo se escribe en rojo
+  DEG_RECHAZO_T_NO_GUARDADO       // la flash no quedo escrita: sale por todo-rojo
+};
+
+// Solo mira. ahora e inicio en segundos del dia.
+RechazoTestigo degradado_comprobarTestigo(uint32_t ahora, uint32_t inicio, int despeje);
+// Vuelve a mirar y, si procede, entra o renueva y escribe la flash.
+RechazoTestigo degradado_entrarTestigo(uint32_t ahora, uint32_t inicio, int despeje);
+const char* degradado_textoRechazoTestigo(RechazoTestigo r);
+
+// Definida en reloj.cpp (D-35); declarada aqui, como en el Maestro, cuyo reloj.h no puede
+// crecer. Segundos desde la epoca del DS3231 (su anio 00) con la fecha del DS3231; 0 = sin fecha.
+uint32_t reloj_segundosDesde2000();
+// Definida en reloj.cpp (D-35): guarda el dia que trae CMD:HORA_ESP32. La llama bluetooth.cpp
+// solo tras un reloj_sembrarDesdeIso() que devolvio true, con la misma cadena.
+bool reloj_guardarFechaEsp32(const char* str);
+
 const char* degradado_textoEstado();
 const char* degradado_textoFase();
 const char* degradado_textoRechazo(RechazoDegradado motivo);
