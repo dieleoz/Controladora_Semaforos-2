@@ -687,8 +687,8 @@ assert(sentFrames.length === 0,
 assert(btnAmbarEmerg.style.display === 'none',
   `Contra un Maestro el mando de ambar ni siquiera se ofrece: display="${btnAmbarEmerg.style.display}"`);
 
-// D-36: SOLICITAR_PASO sin boton (invertida, CLAUDE.md 9); CANCELAR_AMBAR, del Esclavo.
-assert(!document.querySelector('[data-cmd="SOLICITAR_PASO"]'), 'D-36: sin boton SOLICITAR_PASO');
+assert(!document.querySelector('[data-cmd="SOLICITAR_PASO"]'), 'D-36: sin boton SOLICITAR_PASO (invertida, CLAUDE.md 9)');
+assert(!document.getElementById('btn-modo-degradado'), 'D-37: sin boton del Degradado normal; solo el testigo');
 sentFrames = [];
 const btnCancelarEsc = document.getElementById('btn-op-cancelar-ambar');
 assert(!!btnCancelarEsc, 'El mando CANCELAR_AMBAR existe en la botonera');

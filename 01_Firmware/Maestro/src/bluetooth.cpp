@@ -821,6 +821,8 @@ static void procesarComando(const char* cmd) {
       bluetooth_reportarEvento("APP_BLUETOOTH", "SET_MODO_INTELIGENTE");
     }
   } else if (strcmp(accion, "SET_MODO:DEGRADADO") == 0) {
+    // D-37 (29/09): la app ya no tiene boton para esta orden (dio verde contra ambar
+    // mientras se iba al otro poste). Se conserva para el terminal serie.
     // LA PUERTA ES LA MISMA QUE LA DE LA PANTALLA Y LA DEL MANDO. Tres vias de entrada
     // con tres criterios serian una sola puerta: la mas floja de las tres. Y esta es la
     // unica del firmware que enciende un verde sin confirmacion del otro extremo.

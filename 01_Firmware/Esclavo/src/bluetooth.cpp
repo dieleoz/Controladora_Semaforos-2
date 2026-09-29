@@ -1090,6 +1090,8 @@ static void procesarComando(const char* cmd) {
       enviarTramaConCrc("$ERR,CMD:SOLICITAR_PASO,DESC:REPITA_EN_UNOS_SEGUNDOS");
     }
   } else if (strcmp(accion, "SET_MODO:DEGRADADO") == 0) {
+    // D-37 (29/09): la app ya no tiene boton para esta orden (dio verde contra ambar
+    // mientras se iba al otro poste). Se conserva para el terminal serie.
     // D-18: EL MODO DEGRADADO DE ESTE POSTE SE PIDE POR APP, Y ESTA RAMA ES LA LLAVE.
     // Resuelve A-11 (decision del responsable, 05/09: "esto ya es por app"). La salida
     // descartada era volver a poner pulsadores en el conector de la botonera: contradecia

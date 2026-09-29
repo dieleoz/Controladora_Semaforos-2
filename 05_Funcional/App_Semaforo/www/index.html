@@ -749,35 +749,9 @@
         </button>
       </div>
 
-      <!-- ===============================================================
-           MODO DEGRADADO - LA UNICA MANIOBRA QUE DA VERDE SIN RADIO
-           ===============================================================
-           No esta en la reja de mandos de arriba a proposito. Los demas botones piden
-           un cambio de modo que el otro extremo confirma; este enciende un verde
-           guiandose SOLO por el reloj, sin nadie al otro lado que diga que su sentido
-           esta en rojo. Un dedo que resbala sobre una reja de cuatro botones no puede
-           poder eso: va en su propia tarjeta, con su color, y detras de un dialogo que
-           dice lo que va a pasar y obliga a marcar la casilla. -->
-      <div class="card card-degradado">
-        <div class="card-header-flex">
-          <h3>⚠️ Modo Degradado (sin radio)</h3>
-          <span class="badge badge-degradado">PELIGROSO</span>
-        </div>
-        <p class="card-sub">Da verde <strong>solo por el reloj</strong>, sin confirmación de la otra punta. Sólo con el enlace caído y las dos unidades verificadas.</p>
-        <!-- A-11 (05/09): DESDE HOY LAS DOS PUNTAS ATIENDEN ESTA ORDEN, Y HAY QUE DECIR
-             A CUAL VA. Antes sólo la aceptaba el Maestro, así que "el equipo" no tenía
-             ambigüedad posible: si había un Esclavo al otro lado, la app frenaba la orden
-             y lo decía. Ahora sale al poste que esté conectado, y ese poste entra en
-             Degradado ÉL SOLO -el otro sigue como estaba-. Un operario que crea que ha
-             puesto el cruce entero se va dejando media maniobra hecha, que en este modo
-             es justo el escenario peligroso: una punta por reloj y la otra por radio. El
-             rótulo POSTE 1 / POSTE 2 de la botonera dice cuál es; esta línea dice que
-             importa. -->
-        <p class="card-sub"><strong>Entra en el poste al que está conectado ahora, y sólo en ése.</strong> El otro poste hay que ponerlo por separado: mientras uno esté en Degradado y el otro no, el cruce tiene dos autoridades distintas.</p>
-        <button class="btn-degradado" id="btn-modo-degradado">
-          ⚠️ Entrar en Modo Degradado…
-        </button>
-      </div>
+      <!-- D-37 (29/09): aqui estaba «Entrar en Modo Degradado». Salio: en banco dio verde en un
+           poste con el otro en ambar mientras se iba a ponerlo. Queda el testigo, que espera en
+           rojo a una hora comun. La orden sigue en el firmware (reanudacion y terminal). -->
 
       <!-- D-35: DEGRADADO CON TESTIGO (SPEC_4 §3.ter). Lo gobierna js/testigo.js. Pulsar es
            "orden enviada"; lo que el equipo hizo lo dicen su $ACK o su $ERR, en Eventos. -->
