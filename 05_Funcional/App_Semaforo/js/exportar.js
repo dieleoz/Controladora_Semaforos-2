@@ -30,6 +30,13 @@ const Exportar = {
     return true;
   },
 
+  // 29/09: LA LINEA DE EVENTOS QUE DICE EL SELLO. Antes solo iba a la cabecera del
+  // fichero exportado y en pantalla no se veia (el funcional no pudo leer su version).
+  lineaVersion(campos) {
+    const quien = campos.NODE === 'PUENTE' ? 'Puente (ESP32)' : 'Controlador ' + (campos.NODE || '?');
+    return 'Version cargada - ' + quien + ': FW ' + (campos.FW || '--');
+  },
+
   // Si ya contesto el CONTROLADOR. El sello del puente no dice nada del STM32.
   controladorContesto(mapa) {
     return Object.keys(mapa || {}).some(n => n !== 'PUENTE');

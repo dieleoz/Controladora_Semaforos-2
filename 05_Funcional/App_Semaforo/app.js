@@ -3484,11 +3484,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // A-9 con los tres relojes-. Lo que dice aqui es lo unico que la RESPUESTA garantiza.
     'VERSION|OK': {
       tono: 'green',
-      texto: 'Equipo: version contestada. El campo FW de la linea de arriba es el commit ' +
+      texto: 'Equipo: version contestada. La linea "Version cargada" es el commit ' +
              'del que salio el firmware que este equipo tiene CARGADO. Si termina en ' +
              '+SUCIO, ese binario se compilo sobre trabajo sin comitear: el commit NO lo ' +
              'describe entero y no sirve para acreditar una prueba de banco.',
-      toast: 'Version contestada - vea el campo FW'
+      toast: 'Version contestada - vea Eventos'
     },
     'LEER_RTC|OK': {
       tono: 'green',
@@ -3937,7 +3937,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     const parts = veredicto.partes;
     const header = veredicto.tipo;
-    Exportar.anotarVersion(state.firmware, header, _camposNmea(parts)); // antes de la cadena
+    if (Exportar.anotarVersion(state.firmware, header, _camposNmea(parts))) addEvent('green', Exportar.lineaVersion(_camposNmea(parts))); // antes de la cadena
 
     if (header === '$STATUS') {
       const data = _camposNmea(parts);
