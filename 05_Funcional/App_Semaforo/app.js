@@ -3719,11 +3719,11 @@ document.addEventListener('DOMContentLoaded', () => {
       toast: 'Sin reloj en marcha: los bits estan en Registro de Eventos'
     },
     'SIGUE_PARADO_VEA_CONSULTA_RELOJ': {
-      texto: 'Se reinicio el reloj y SIGUE PARADO. NO busque la consulta del reloj en la ' +
-             'pantalla del gabinete: no se puede abrir. El equipo acaba de publicar los ' +
-             'bits del reloj en el REGISTRO DE EVENTOS de esta app, justo debajo de este ' +
-             'aviso: son los que dicen si el problema es la pila, el cristal o el firmware.',
-      toast: 'El reloj sigue parado: los bits estan en Registro de Eventos'
+      texto: 'El reloj INTERNO del Maestro sigue parado. Es lo normal en esta placa y NO ' +
+             'es una averia: ese reloj no lleva la hora. La hora la guarda el reloj con pila ' +
+             'del ESP32 (DS3231): compruebela con "Consultar reloj". Los bits quedan en el ' +
+             'REGISTRO DE EVENTOS por si se los piden; no hace falta cambiar nada.',
+      toast: 'Reloj interno parado (normal): la hora la lleva el DS3231'
     },
     // 1.49 (a): el tercer caso del reinicio. El oscilador SI arranco -por eso no es el de
     // arriba- pero el contador no se movio en la ventana en que el equipo lo vigila, asi que
