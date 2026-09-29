@@ -569,6 +569,24 @@ saltó; queda anotado aquí en vez de arreglarse en silencio.**
 
 ---
 
+## A-15 · Degradado AUTOMATICO ante perdida de radio, a eleccion del operador (29/09)
+
+**Acordado en principio** por el responsable y el funcional (WhatsApp, 29/09); **sin construir**. Hoy, sin
+radio, los dos postes reintentan ~25 s, quedan en ambar intermitente y retoman solos al volver el enlace
+(confirmado por el funcional en banco sobre `8974932`). Se anaden dos cosas:
+
+1. **Dos opciones ante la perdida de radio:** MANUAL (la de hoy: ambar y alguien va al sitio) y AUTOMATICA,
+   que activa el operador aceptando el riesgo: tras N min sin radio los dos pasan solos a rojo fijo y
+   arrancan en la siguiente marca fija del reloj, alternando por hora con `ciclo_degradado_fase()` (el
+   mismo mecanismo que `D-35`, sin telefono).
+2. **En Degradado, la app avisa de que el enlace volvio sin cambiar de modo**; hoy el Maestro calla en la
+   radio a proposito y nadie se entera.
+
+**Falta decidir:** N · el intervalo de la marca (propuesta 5 min) · quien activa la opcion y donde · como se
+oye la radio sin obedecerla (trama nueva). **Riesgo que crea:** corte en un solo sentido, un poste por
+reloj y el otro en su ciclo o en ambar; revision del arquitecto antes de construir (`CLAUDE.md` §11.7).
+**Bloqueado por:** el banco de `D-35` manual. **Coste:** sin medir; protocolo de radio, las dos puntas y app.
+
 ## Cómo se cambia una fila
 
 1. Se escribe la nueva, con **fecha y motivo medido**. Un motivo sin números se deroga de
