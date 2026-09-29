@@ -5,20 +5,15 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 
 ## Por donde se retoma, en este orden
 
-1. **Marco carga el paquete `bd2780e`** (enviado el 28/09) y responde con el `FW_HASH` que ve; despues, `Firmware:`
-   en la app y `CMD:VERSION` con enlace. Sin ese hash no se lee ninguna foto ni cinta suya.
-2. **Tramas de Marco** (funcional, Maestro `4D2007`): los 17 s del Esclavo (`grep 17000` cero hoy: 21,5 s para
-   verde, 25 s para ambar; pista: un arbol V8.4 del 31/07 borrado subia ese silencio a 17.000 ms — puede ser
-   firmware viejo), focos solos, y camara con alguien delante (1.54). Pedir version antes de leer nada.
-3. **Fase 5, lo duplicado Maestro/Esclavo a `lib/`**: solo despues de que la candidata pase banco.
+1. **Marco prueba en banco el paquete de `D-35`** con `Pruebas_Funcional_2026-09-29.html`: version, perdida de
+   enlace, testigo sin cable, corte de luz. Informes del 28 y 29/09 en `evidencia/`: camaras OK en las cuatro.
+2. **Fase 5, lo duplicado Maestro/Esclavo a `lib/`**: solo despues de que la candidata pase banco.
 
 ## Frentes abiertos (tres como maximo)
 
-- **Camaras: `CAM:?` en toda la cinta, pero Marco midio 3,3 V con deteccion y 0 V sin ella** (roadmap 1.54). Falta la
-  cinta con alguien delante en modo Inteligente para separar camara de equipo.
-- **APK `SIN_BANCO` probada en telefono sin equipo** (28/09): export como adjunto, cinta sin ENVIADA falso, atras.
-  Sin medir con enlace: la linea `Firmware:` real y el `CMD:VERSION` automatico. Pendiente menor en `APP-1`
-  (titulo «BOTONERA DE C...» cortado). El doble ACK, sin vigilante ni correlacion: roadmap 1.56.
+- **Degradado con testigo (`D-35`)**: construido en firmware y app, `SIN_BANCO`. Sin medir: borrado de flash
+  frente al watchdog (`$EVENT` TESTIGO), conexion desde el PC (`Guia_Conectar_PC_Bluetooth.html`).
+- **Sin medir en tarjeta**: DR6/DR7 de la pila los escribe tambien la libreria RTC; CNT podria no ser monotono.
 
 ## Organizacion del repo por fases (acordada con el arquitecto de plataforma)
 
@@ -43,13 +38,13 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 
 ## Verificacion en escritorio
 
-Cifras copiadas del acta [`evidencia/2026-09-28_compuerta.txt`](evidencia/2026-09-28_compuerta.txt), que dice en su
+Cifras copiadas del acta [`evidencia/2026-09-29_compuerta.txt`](evidencia/2026-09-29_compuerta.txt), que dice en su
 cabecera con que HEAD y que arbol se midio; las comprueba `documentos_01` en cada corrida.
 
 | | |
 |---|---|
-| Flash | Maestro **64.7 %** · Esclavo **55.4 %** · Repetidor **20.6 %** · ESP32 **35.7 %** |
-| Banco por packs | **1318/1319 comprobaciones** en **70 packs**; el unico FALLA, `D-22`, es correcto: pide una tarjeta delante (`CLAUDE.md` §1) |
+| Flash | Maestro **70.9 %** · Esclavo **61.4 %** · Repetidor **20.6 %** · ESP32 **35.7 %** |
+| Banco por packs | **1323/1324 comprobaciones** en **70 packs**; el unico FALLA, `D-22`, es correcto: pide una tarjeta delante (`CLAUDE.md` §1) |
 | Arneses de C++ real | 75/75 automatico · 22/22 ciclo · 122/122 dos puntas · 71/71 Degradado a dos puntas |
 | App y puente | **340/340** jsdom · **70/70** funcional · **63/63** unitarios · 85/85 TDD · puente 123/123 |
 
