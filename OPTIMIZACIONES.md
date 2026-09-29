@@ -989,3 +989,11 @@ capturas por `adb exec-out screencap`. Ninguno toca seguridad; van sobre la ulti
 7. Menores: `POSTE 1 ·` con punto colgando; `SIN EQUIPO (sin enlace)` mezcla dos fuentes; «NO SE SABE» sin sujeto.
 8. Sin reproducir: una vez la actividad se cerro sola (cierre ordenado, no excepcion) al tocar conexion; la segunda
    salio el permiso de ubicacion y siguio. Hipotesis: el permiso. Sin medir.
+
+## 🧰 APP-2 — Terminal de depuracion por cable y iPhone (MEJORA, **NO CONSTRUIDO**, despues de D-35)
+
+1. Terminal de banco como la V4.6 (`D:\IT\P_RetroVertical_V4.6`, L4-24/L4-28): PC -> `adb forward` -> servicio de
+   la app -> SPP. Lista blanca de ordenes en la app, relectura automatica, log CSV. Para el banco de Marco con
+   Claude y un `.md` de indicaciones dentro del `.zip`. Falta un plugin nativo Capacitor (LocalServerSocket).
+2. iPhone: el ESP32 solo habla SPP y iOS no lo permite. Salida: BLE en `transporte_app.cpp` y la app web en
+   Bluefy. Sin medir si caben SPP y BLE a la vez en el ESP32.
