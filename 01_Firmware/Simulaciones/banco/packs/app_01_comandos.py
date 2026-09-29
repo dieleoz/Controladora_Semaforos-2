@@ -32,6 +32,8 @@ DESCRIPCION = "todo comando que la app manda lo atiende alguna punta, y lo que e
 PUNTAS = ("Maestro", "Esclavo")
 
 APP_JS = ("05_Funcional", "App_Semaforo", "app.js")
+# D-35: el Degradado con testigo sale al cable desde js/testigo.js, no desde app.js.
+TESTIGO_JS = ("05_Funcional", "App_Semaforo", "js", "testigo.js")
 APP_HTML = ("05_Funcional", "App_Semaforo", "index.html")
 
 # EL TERCER DESPACHADOR, Y NO ESTABA (A-9, 05/09).
@@ -120,7 +122,8 @@ def _envia(fw):
     "sin interfaz" un FORZAR_ROJO y un TEST_LEDS que la app manda desde hace meses
     -por openPinModal(), que guarda el comando y lo ejecuta al validar el PIN-.
     Es la regla del instrumento: descartar al buscador antes de acusar."""
-    return _envia_de(fw.texto_repo(*APP_JS), fw.texto_repo(*APP_HTML))
+    return _envia_de(fw.texto_repo(*APP_JS) + "\n" + fw.texto_repo(*TESTIGO_JS),
+                     fw.texto_repo(*APP_HTML))
 
 
 def _envia_de(js, html):

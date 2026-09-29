@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Conectar el PC por Bluetooth</title>
+<style>
+:root{--papel:#f6f5f2; --tarjeta:#fff; --tinta:#17191c; --tinta-2:#55555a; --linea:#dedcd5; --acento:#c4520c; --alto:#b52b26; --info-bg:#e3ecf3;}
+*{box-sizing:border-box;}
+body{margin:0; padding:12px 12px 40px; background:var(--papel); color:var(--tinta); font-family:"Segoe UI",system-ui,-apple-system,Arial,sans-serif; font-size:17px; line-height:1.45;}
+h1{font-size:22px; margin:4px 0 12px;} h2{font-size:19px; margin:0 0 8px;}
+section{background:var(--tarjeta); border:1px solid var(--linea); border-radius:10px; padding:14px; margin-bottom:14px;}
+ol,ul{padding-left:22px; margin:8px 0;} li{margin-bottom:6px;}
+.espera{background:var(--info-bg); border-left:4px solid var(--acento); padding:8px 10px; margin:10px 0; border-radius:6px; font-size:16px;}
+.alto{background:#fbe6e4; border-left:4px solid var(--alto); padding:8px 10px; margin:10px 0; border-radius:6px; font-size:16px;}
+.nota{background:#fdf3e3; border-left:4px solid var(--acento); padding:8px 10px; margin:10px 0; border-radius:6px; font-size:15px;}
+.sinprobar{display:inline-block; background:#fbe6e4; color:var(--alto); border:1px solid var(--alto); border-radius:4px; padding:0 6px; font-size:13px; font-weight:600; white-space:nowrap;}
+code{background:#eee; padding:1px 5px; border-radius:4px; font-size:15px; word-break:break-all;}
+.recordatorio{background:#fdf3e3; border:1px solid var(--acento); border-radius:10px; padding:14px; margin-bottom:16px; font-size:16px;}
+footer{font-size:14px; color:var(--tinta-2); text-align:center; margin-top:10px;}
+</style>
+</head>
+<body>
+
+<h1>Conectar el PC al semáforo por Bluetooth</h1>
+
+<div class="recordatorio">
+  <strong>Qué hay hoy, 29/09:</strong> la app abierta en <strong>Chrome o Edge de un PC con
+  Windows</strong> ofrece un <strong>«Puerto serie del PC (Bluetooth emparejado)»</strong> en la
+  lista de equipos. Al pulsarlo, el navegador pregunta qué puerto COM abrir. Por ese puerto
+  habla con el módulo Bluetooth emparejado en Windows, a 9600 baudios.
+  <br><br>
+  Lo que va marcado <span class="sinprobar">sin probar con un equipo</span> <strong>no se ha visto con
+  un poste de verdad</strong>: está construido, pero nadie lo ha comprobado todavía con un equipo
+  encendido al otro lado.
+</div>
+
+<section>
+  <h2>1. Emparejar el módulo en Windows</h2>
+  <ol>
+    <li>Abra <strong>Configuración &gt; Bluetooth y dispositivos</strong> y compruebe que el
+      Bluetooth está encendido.</li>
+    <li>Pulse <strong>Agregar dispositivo &gt; Bluetooth</strong>.</li>
+    <li>Busque el nombre <strong>SEM-...</strong> (lo pone el módulo; si no aprendió matrícula
+      sale como <strong>SEM-SIN-MATRICULA</strong>) y selecciónelo.</li>
+  </ol>
+  <div class="espera">Se espera: Windows dice «Emparejado». <span class="sinprobar">sin probar con un equipo</span></div>
+</section>
+
+<section>
+  <h2>2. Saber qué puerto COM le tocó</h2>
+  <ol>
+    <li>Abra <strong>Más opciones de Bluetooth</strong> (en Windows 11: Bluetooth y dispositivos
+      &gt; Dispositivos &gt; Configuración adicional de Bluetooth) y entre en la pestaña <strong>Puertos COM</strong>.</li>
+    <li>Anote el puerto <strong>Saliente</strong> del SEM-... (por ejemplo <code>COM7</code>).
+      Cada poste emparejado tiene el suyo: anote los dos.</li>
+  </ol>
+  <div class="nota">Windows suele crear dos puertos por módulo, uno Entrante y otro Saliente.
+    El que hay que elegir es el <strong>Saliente</strong>. <span class="sinprobar">sin probar con un equipo</span></div>
+</section>
+
+<section>
+  <h2>3. Abrir la app en Chrome o Edge</h2>
+  <ol>
+    <li>Abra <code>05_Funcional/App_Semaforo/index.html</code> en Chrome o Edge, con doble clic
+      o servida en <code>http://localhost</code>. Firefox no sirve porque no tiene puerto serie.
+      <strong>No use todavía la copia de <code>www/</code></strong>: aún no lleva este cambio.</li>
+    <li>Pulse <strong>📡 Sin enlace</strong> arriba a la derecha.</li>
+    <li>Pulse <strong>🔍 Buscar Módulos Bluetooth</strong>.</li>
+  </ol>
+  <div class="espera">Se espera: la lista muestra <strong>«Puerto serie del PC (Bluetooth
+    emparejado)»</strong>, sin el aviso «Sin radio en este entorno». <strong>Visto el 29/09</strong>
+    en el navegador del PC (Chromium 150), sin equipo y sin abrir ningún puerto.
+    Debajo sale una nota sobre «Ajustes de Android»: en el PC no aplica.</div>
+</section>
+
+<section>
+  <h2>4. Conectar</h2>
+  <ol>
+    <li>Pulse <strong>«Puerto serie del PC (Bluetooth emparejado)»</strong>.</li>
+    <li>El navegador abre su propia ventana con los puertos: elija el <strong>COM Saliente</strong>
+      del poste al que quiere hablar y pulse <strong>Conectar</strong>.</li>
+    <li>Espere a que arriba diga <strong>POSTE 1 · MAESTRO</strong> o <strong>POSTE 2 · ESCLAVO</strong>.
+      El equipo manda su estado solo, cada segundo.</li>
+  </ol>
+  <div class="espera">Se espera: «Bluetooth conectado» en Eventos y, en pocos segundos, el nombre
+    del poste. <span class="sinprobar">sin probar con un equipo</span></div>
+  <div class="nota">Para pasar al otro poste: pulse de nuevo el botón de enlace, elija la misma
+    entrada y, en la ventana del navegador, el COM del otro poste. La app cierra antes el puerto
+    anterior. <span class="sinprobar">sin probar con un equipo</span></div>
+</section>
+
+<section>
+  <h2>Si no conecta</h2>
+  <ul>
+    <li><strong>La ventana de puertos sale vacía o sin el COM:</strong> vuelva al paso 1 y
+      compruebe que Windows dice «Emparejado».</li>
+    <li><strong>Cerró la ventana sin elegir:</strong> sale «no se eligio ningun puerto COM».
+      Vuelva a pulsar la entrada.</li>
+    <li><strong>Error al abrir el puerto:</strong> otro programa lo tiene abierto (un terminal
+      serie, otra pestaña con la app). Ciérrelo: un puerto solo lo puede usar un programa a la vez.</li>
+    <li><strong>Conecta y no sale MAESTRO ni ESCLAVO:</strong> el poste tiene que estar
+      encendido y haber terminado de arrancar. Si no llega nada, puede ser el COM
+      <strong>Entrante</strong> en lugar del Saliente. <span class="sinprobar">sin probar con un equipo</span></li>
+  </ul>
+</section>
+
+<section>
+  <h2>Exportar la cinta y el diario desde el PC</h2>
+  <p>En un Chrome de escritorio los botones <strong>Exportar</strong> no abren la hoja de
+    compartir del teléfono: <strong>descargan el fichero</strong> a la carpeta de Descargas.</p>
+</section>
+
+<section>
+  <h2>Después de conectar</h2>
+  <p>Compruebe que arriba dice <strong>POSTE 1 · MAESTRO</strong> o <strong>POSTE 2 · ESCLAVO</strong>
+    antes de tocar cualquier mando. Después siga con <code>Pruebas_Funcional_2026-09-29.html</code>.</p>
+</section>
+
+<footer>Guía del 29/09/2026. Lo único que se ha visto es la lista con el puerto serie del PC,
+  sin equipo real y sin abrir ningún puerto. Lo demás va marcado «sin probar con un equipo».</footer>
+
+</body>
+</html>

@@ -780,6 +780,38 @@
           ⚠️ Entrar en Modo Degradado…
         </button>
       </div>
+
+      <!-- D-35: DEGRADADO CON TESTIGO (SPEC_4 §3.ter). Lo gobierna js/testigo.js. Pulsar es
+           "orden enviada"; lo que el equipo hizo lo dicen su $ACK o su $ERR, en Eventos. -->
+      <div class="card card-degradado" id="card-testigo">
+        <div class="card-header-flex">
+          <h3>⏱️ Degradado con testigo (radio caída semanas)</h3>
+          <span class="badge badge-degradado">PELIGROSO</span>
+        </div>
+        <p class="card-sub">Una orden por poste: <strong>primero el POSTE 1, después el POSTE 2</strong>, con el mismo testigo que este teléfono guarda. Los dos quedan en <strong>ROJO fijo hasta la hora de inicio</strong> y después alternan solos, sin radio.</p>
+        <p class="card-sub">Necesita un firmware que ya lleve esta orden: si el equipo la rechaza como desconocida, no la lleva. El testigo sale solo cuando el poste acusa la hora del teléfono.</p>
+        <label class="degradado-check">
+          <input type="checkbox" id="chk-testigo-verificado">
+          <span>He verificado en persona este poste y la radio entre postes está caída.</span>
+        </label>
+        <div id="testigo-maestro">
+          <div class="form-group">
+            <label for="num-testigo-traslado">Traslado hasta el POSTE 2 (min)</label>
+            <input type="number" id="num-testigo-traslado" class="form-input" min="1" max="720" value="20">
+            <small class="hint">1 a 720 min, por defecto 20. Inicio = hora del teléfono + traslado</small>
+          </div>
+          <div class="form-group">
+            <label for="num-testigo-despeje">Despeje todo-rojo (seg)</label>
+            <input type="number" id="num-testigo-despeje" class="form-input" min="30" max="255" value="30">
+            <small class="hint">30 a 255 seg · el verde va fijo en 180 s</small>
+          </div>
+          <button class="btn-degradado" id="btn-testigo-maestro">Degradado con testigo · POSTE 1</button>
+        </div>
+        <div id="testigo-esclavo">
+          <button class="btn-degradado" id="btn-testigo-esclavo">Enviar testigo</button>
+        </div>
+        <p class="card-sub" id="testigo-estado">Sin testigo guardado en este teléfono.</p>
+      </div>
     </section>
 
     <!-- ===================================================================
@@ -1119,6 +1151,8 @@
   <script src="js/lista_equipos.js"></script>
   <script src="js/exportar.js"></script>
   <script src="js/telefono.js"></script>
+  <script src="js/testigo.js"></script>
+  <script src="js/serial_pc.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

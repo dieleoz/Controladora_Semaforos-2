@@ -2958,6 +2958,9 @@ document.addEventListener('DOMContentLoaded', () => {
                        'respuesta: el equipo puede rechazarla y dira por que.');
     });
   }
+  // D-35, DEGRADADO CON TESTIGO: vive en js/testigo.js; aqui solo lo que necesita de app.js.
+  Testigo.iniciar({ state, enviarComandoFirmware, puntaCorrecta, avisarOtraPunta, addEvent,
+                    showToast, horaLocal24, fechaLocalISO, pedirPin });
 
   // =========================================================================
   // 4.quater DEMANDA: UN CONTROL QUE REFLEJA EL MODO EN VEZ DE GASTAR UN RECHAZO
@@ -3216,12 +3219,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // mando puesta la luz sigue vetada. Un "ambar retirado" a secas manda al operario a
     // esperar un cambio de fase que no va a llegar hasta que alguien suba a hacer el
     // A.A.A, y mientras tanto el cruce sigue en ambar con la talanquera abierta.
-    // ~~'CANCELAR_AMBAR|RETIRADO_QUEDA_MANDO'~~ -> RETIRADO el 14/09 con el
-    // mando. El firmware YA NO EMITE ese acuse: la rama que lo producia era
-    // inalcanzable desde que la bandera del ambar local se quedo sin armador, y
-    // salio con ella. Una traduccion para un acuse que nadie manda no es
-    // inofensiva: es una pantalla que el tecnico no va a ver nunca y que dice
-    // que suba al poste a hacer una secuencia que ya no existe.
     'CANCELAR_AMBAR|REENVIADO_AL_MAESTRO': {
       tono: 'red',
       texto: 'Equipo: en ESTA punta ya no queda ambar puesto desde la app -se quito en ' +
@@ -3381,6 +3378,19 @@ document.addEventListener('DOMContentLoaded', () => {
              'mover por esto: el modo ya venia puesto de antes.',
       toast: 'Ya estaba en Degradado: esta orden no ha cambiado nada'
     },
+    // D-35: OK entra y queda en rojo hasta inicio; RENOVADO ya alternaba con ese ciclo.
+    'SET_MODO:DEG_T|OK': {
+      tono: 'red',
+      texto: 'Equipo: TESTIGO ACEPTADO. Este poste queda en ROJO FIJO hasta la hora de ' +
+             'inicio y despues alterna solo, sin radio. La cuenta atras esta en la tarjeta del testigo.',
+      toast: 'Testigo aceptado: rojo fijo hasta la hora de inicio'
+    },
+    'SET_MODO:DEG_T|RENOVADO': {
+      tono: 'green',
+      texto: 'Equipo: TESTIGO RENOVADO. Este poste ya alternaba con ese mismo ciclo: ' +
+             'cuenta otros 31 dias y SIGUE ALTERNANDO, sin volver a rojo ni esperar el inicio.',
+      toast: 'Testigo renovado: 31 dias mas, sigue alternando'
+    },
     'SET_MODO:MENU|OK': {
       tono: 'green',
       texto: 'Equipo: orden VOLVER AL MENU aceptada. La unidad queda en la pantalla, ' +
@@ -3429,9 +3439,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Decian "hora puesta en el Maestro y propagada al Esclavo" y "entro en el MAESTRO
     // pero NO se propago al ESCLAVO". Los dos describian el $ACK del STM32, que
     // propagaba por radio con coordinador_sincronizarHora(). Ese comando ya no lo
-    // atiende el STM32: quien contesta es el puente, y el puente ~~NO PROPAGA NADA -pone
-    // la hora en el DS3231 de SU poste y ahi se acaba-~~ (cierto el 05/09; desde D-26 el
-    // puente SIEMBRA a su propio STM32 con la hora releida: ver el parrafo de abajo).
+    // atiende el STM32: quien contesta es el puente, que desde D-26 SIEMBRA a su propio
+    // STM32 con la hora releida (ver el parrafo de abajo).
     //
     // Dejar el texto viejo habria sido la mentira con formato de exito una capa mas
     // arriba: el firmware deja de mentir y la app sigue diciendo lo mismo. El tecnico
@@ -3867,20 +3876,10 @@ document.addEventListener('DOMContentLoaded', () => {
     })
   };
 
-  // Aqui vivia _segundosDeEspera(), el hueco reservado para una cuenta atras. Se retira
-  // el 04/09 al comprobar que esa cuenta NO DEBE EXISTIR: los tres motivos que la
-  // habrian usado rechazan por una condicion que el tiempo no cambia -el modo-, asi que
-  // cualquier cifra prometeria que esperando se arregla. El porque completo esta arriba,
-  // en la entrada de EN_MARCHA_PARE_EL_MODO.
-  //
-  // Se BORRA en vez de dejarse devolviendo null: una funcion que no llama nadie y que
-  // ademas no puede llegar a devolver nada util es la version silenciosa de la prueba
-  // muerta -§3.bis-, y encima con un comentario encima anunciandola como pendiente.
-
   // Resuelve una entrada de las dos tablas de rechazo: puede ser el objeto directo o
   // una funcion de los campos de la trama, para los motivos que traen un dato dentro.
   function _traducirRechazo(data) {
-    const entrada = ERR_TEXTO[(data.CMD || '?') + '|' + (data.DESC || '')] ||
+    const entrada = Testigo.rechazo(data, state.node) || ERR_TEXTO[(data.CMD || '?') + '|' + (data.DESC || '')] ||
                     ERR_MOTIVO[data.DESC || ''];
     if (!entrada) return null;
     return typeof entrada === 'function' ? entrada(data) : entrada;
@@ -4222,6 +4221,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // N-162: este acuse NO toca state.hora. Viene de NODE:PUENTE -el DS3231 del ESP32-
       // y state.hora es la hora del CONTROLADOR, la del $STATUS. Pintar una con la otra
       // tapaba justo lo que hay que ver: un STM32 que no recibio la hora.
+      Testigo.anotarAcuse(data, state.node);
       const dicho = ACK_TEXTO[clave];
       if (dicho) {
         addEvent(dicho.tono, dicho.texto);
@@ -5435,10 +5435,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const today = fechaLocalISO();
       if (!enviarComandoFirmware('SET_RTC', `${today},${comp.horaCompensada}`)) return;
       // "Enviada", no "exitosa". Esta app no sabe si el Esclavo puso la hora hasta que
-      // conteste. ~~su despachador contesta $ERR,SIN_CRISTAL o $ERR,FORMATO_INVALIDO~~
-      // -caducado: desde D-26 (11/09) el SET_RTC no cruza al STM32; lo atiende el puente
-      // ESP32 de ese poste, que contesta con NODE:PUENTE y, si su reloj la acepta, siembra
-      // a la controladora con la hora releida-.
+      // conteste: lo atiende el puente ESP32 de ese poste (NODE:PUENTE) y, si su reloj la
+      // acepta, siembra a la controladora con la hora releida (D-26).
       showToast(`Orden enviada al Esclavo: ${today} ${comp.horaCompensada}`);
       addEvent('cyan', `Courier RTC: orden SET_RTC enviada (${today} ${comp.horaCompensada}, ` +
                        `traslado ${comp.elapsedSeg}s). Espere el acuse del equipo.`);
@@ -5499,9 +5497,8 @@ document.addEventListener('DOMContentLoaded', () => {
       // DS3231 hoy cuelga del ESP32, no de esta puerta.
       //
       // Y NO SE DICE "sincronizado": la orden tiene varios finales y la app solo sabe que
-      // salio. ~~el Maestro tiene TRES finales: FORMATO_INVALIDO,
-      // SIN_CRISTAL_VEA_CONSULTA_RELOJ y OK~~ -caducado: desde D-26 (11/09) el SET_RTC lo
-      // contesta el puente ESP32 del poste conectado (ACK_TEXTO / ERR_MOTIVO), no el STM32-.
+      // salio. La contesta el puente ESP32 del poste conectado (ACK_TEXTO / ERR_MOTIVO),
+      // no el STM32 (D-26).
       showToast(`Orden de ajuste de hora enviada: ${today} ${now}`);
       addEvent('cyan', `Orden SET_RTC enviada al equipo con la hora del celular: ${today} ${now}. ` +
                        `Espere el acuse; si no llega, el reloj NO quedó puesto.`);

@@ -92,9 +92,6 @@ BT_ESCLAVO = ("Esclavo", "src", "bluetooth.cpp")
 # comprobacion de gramatica de este mismo pack: si alguien lo conecta, su trama con '$'
 # y checksum delante no casa con los prefijos del despachador y falla ahi.
 HUERFANOS_CONOCIDOS = {
-    # Capa de transporte SPP/BLE/Serial escrita entera. app.js habla por window.
-    # bluetoothSerial y por fetch() al puente, sin pasar por aqui.
-    "BluetoothDriver": "js/bluetooth_driver.js - transporte alternativo sin conectar",
     # Constantes del protocolo -PIN, baudrate, limites de tiempo, UUIDs BLE-. app.js
     # lleva las suyas propias, que es la segunda copia de siempre.
     "IOT_CONFIG": "js/config.js - constantes duplicadas en app.js",
