@@ -100,7 +100,8 @@ button#btnPdf{
 <div class="alto">
   <strong>Avise de inmediato, sin esperar a terminar:</strong> cualquier momento en que un poste esté en
   <strong>VERDE</strong> y el otro en <strong>ÁMBAR o VERDE</strong>. Anote la hora, apague el equipo,
-  exporte el diario de los dos postes y mande los archivos.
+  exporte el diario de los dos postes y mande los archivos. Única excepción: en la prueba 8 se espera el
+  verde del Poste 2 con el Poste 1 en Manual; allí se anota con la hora y se sigue midiendo.
 </div>
 
 <section class="prueba" id="p0">
@@ -118,8 +119,9 @@ button#btnPdf{
   <div class="espera">Se espera, en Eventos de cada poste, dos líneas:<br>
     "Version cargada - Controlador MAESTRO: FW ..." (en el Poste 2 dice ESCLAVO) y
     "Version cargada - Puente (ESP32): FW ...".<br>
-    El código del controlador es el mismo en los dos postes y coincide con el del nombre del paquete.
-    Si no coincide, no siga: avise.</div>
+    Copie el código completo, tal cual sale, con lo que lleve detrás. La versión buena es la que dice el
+    nombre del paquete (.zip): el código del controlador tiene que ser el mismo en los dos postes y el
+    mismo que figura en ese nombre. Si no coincide, no siga: avise.</div>
   <div class="horas">
     <label class="campo">Poste 1 - Controlador: FW <input type="text" id="h0a" class="hora"></label>
     <label class="campo">Poste 1 - Puente (ESP32): FW <input type="text" id="h0b" class="hora"></label>
@@ -143,7 +145,8 @@ button#btnPdf{
       Poste 2: "Enviar testigo" antes de la hora de inicio.</li>
     <li>En cada poste, pestaña <strong>Tramas</strong> &rarr; <strong>Diario de órdenes</strong>: busque la
       orden del testigo.</li>
-    <li>Al terminar, pulse "VOLVER AL MENÚ" en el Poste 1 y vuelva a conectar el cable.</li>
+    <li>Al terminar, pulse "VOLVER AL MENÚ" en el Poste 1 y vuelva a conectar el cable. Saldrá el aviso de
+      paleteros (ver el recuadro de antes de la prueba 3): marque la casilla y pulse "Cambiar este poste".</li>
   </ol>
   <div class="espera">Se espera: la respuesta del equipo aparece pegada a su orden. No debe salir
     ninguna "respuesta suelta" ni el texto "puede venir de otro teléfono".</div>
@@ -173,15 +176,46 @@ button#btnPdf{
 </section>
 
 <div class="recordatorio">
-  <strong>Pruebas 3 a 7: Degradado automático.</strong> Una persona en cada poste, cada una con cronómetro
+  <strong>Pruebas 3 a 8: Degradado automático.</strong> Una persona en cada poste, cada una con cronómetro
   o con la hora del celular, mirando las luces a la vez. Antes de cada caso: cable conectado, los dos en
   Automático. La opción se activa y desactiva en la tarjeta "Degradado automático (sin radio)" de la pestaña
   Técnico, con PIN, y <strong>solo con el cable conectado</strong>: el otro poste tiene que enterarse.
-  Mientras el otro poste no contesta, el botón dice "esperando al otro poste".<br>
+  Mientras el otro poste no contesta, el botón dice "Esperando al otro poste...".<br>
+  <strong>Pulse "Activar" o "Desactivar" con el Poste 1 en AUTOMÁTICO.</strong> Si el Poste 1 está en Menú,
+  el otro poste no confirma: a los pocos segundos (unos 10 s) sale "Cambiado en ESTE poste, pero el otro no lo
+  ha acusado". Si le pasa, ponga el Poste 1 en Automático y repita en los dos.<br>
   <strong>No cambie el modo del Poste 1 con el cable quitado</strong> (ni Manual, ni Menú, ni Ámbar) salvo que
-  el caso lo diga. <strong>En carretera: con los dos postes en degradado sin radio, cambiar el modo de uno solo
-  se hace con PALETEROS en los dos extremos</strong> — el otro poste no se entera y sigue dando verdes por reloj.
-  La aplicación lo avisa antes de enviar la orden.
+  el caso lo diga.
+</div>
+
+<div class="recordatorio">
+  <strong>El aviso de paleteros.</strong> Antes de enviar ciertas órdenes, la app abre una ventana
+  "Cuidado: ..." con la casilla <strong>"Hay paleteros en los dos extremos."</strong> y dos botones:
+  <strong>"Cancelar"</strong> (no se envía nada) y <strong>"Cambiar este poste"</strong> (solo se puede pulsar con
+  la casilla marcada). Sale en dos casos:
+  <ol>
+    <li>El poste está en degradado y le cambia el modo (por ejemplo "VOLVER AL MENÚ", Manual, o "Desactivar").
+      El otro poste no se entera y sigue dando verdes por su reloj.</li>
+    <li>El poste aún no está en degradado, pero tiene el degradado automático activado y no puede confirmar que
+      hay radio: el otro poste puede entrar solo y dar verdes mientras este cambia. <strong>En el Poste 2 sale
+      siempre</strong> que la opción esté activada, porque el Poste 2 nunca sabe si hay radio. En el Poste 1 sale
+      cuando la radio no está confirmada.</li>
+  </ol>
+  <strong>En banco</strong> no hay tráfico: marque la casilla y pulse "Cambiar este poste". Anote en cada prueba
+  si salió. <strong>En carretera, la casilla se marca solo con PALETEROS de verdad en los dos extremos.</strong>
+</div>
+
+<div class="recordatorio">
+  <strong>Si sale "No pudo entrar solo: ..."</strong> en Eventos, el poste intentó entrar en degradado y no pudo.
+  Detrás de los dos puntos va el motivo (por ejemplo "reloj sin poner en hora"). Termina de una de dos formas:
+  <ol>
+    <li><strong>"... Sigue en ámbar."</strong> El poste se queda en ámbar, como sin la opción. Copie el texto
+      exacto, siga el consejo del motivo (poner en hora, quitar el ámbar de emergencia, entrar con testigo) y
+      avise.</li>
+    <li><strong>"... Queda en ROJO FIJO en este poste, no en ámbar: avise a mantenimiento."</strong> El poste se
+      queda en rojo fijo. Anote la hora y la luz del otro poste, exporte el diario de los dos y avise.</li>
+  </ol>
+  Si sale "El otro poste esta en degradado y este no", vaya al otro poste y anote qué luz tiene cada uno.
 </div>
 
 <section class="prueba" id="p3">
@@ -198,7 +232,8 @@ button#btnPdf{
   <div class="espera">Se espera: ámbar en los dos a unos 25 s. A unos 5 min de quitar el cable, rojo fijo
     en los dos. El rojo dura al menos 7 minutos y termina en una hora redonda de 5 en 5 min
     (por ejemplo 10:35). Después alternan solos: verde 3 min en uno, todo-rojo, verde en el otro.
-    Nunca verde contra ámbar ni dos verdes.</div>
+    Nunca verde contra ámbar ni dos verdes. Si en lugar de "rojo hasta" sale "No pudo entrar solo", siga el
+    recuadro de arriba.</div>
   <div class="horas">
     <label class="campo">Hora en que quitó el cable <input type="text" id="h3a" class="hora"></label>
     <label class="campo">Poste 1 a rojo fijo (hora) <input type="text" id="h3b" class="hora"></label>
@@ -220,7 +255,8 @@ button#btnPdf{
   <ol>
     <li>Siguiendo la prueba 3, con los dos ya alternando, vuelva a conectar el cable y anote la hora.</li>
     <li>Mire 3 minutos sin tocar nada.</li>
-    <li>Pulse "VOLVER AL MENÚ" en el Poste 1 y anote qué hace cada poste.</li>
+    <li>Pulse "VOLVER AL MENÚ" en el Poste 1 (saldrá el aviso de paleteros: marque la casilla y pulse
+      "Cambiar este poste") y anote qué hace cada poste.</li>
   </ol>
   <div class="espera">Se espera: en Eventos de cada poste, antes de 1 minuto, "La radio volvió. Sigue en
     degradado". Los dos siguen alternando igual que antes, no vuelven solos al ciclo. Con
@@ -242,15 +278,25 @@ button#btnPdf{
 <section class="prueba" id="p5">
   <h2>5. Activado en un solo poste</h2>
   <ol>
-    <li>Con el cable conectado, deje el Poste 1 en "Activar" y pulse "Desactivar" en el Poste 2.
-      Anote qué dice "Listo para entrar solo" en cada uno.</li>
+    <li>Con el cable conectado, deje el Poste 1 en "Activar" y pulse "Desactivar" en el Poste 2. Saldrá
+      el aviso de paleteros (en el Poste 2 sale siempre con la opción activada): marque la casilla y pulse
+      "Cambiar este poste". Anote qué dice "Listo para entrar solo" en cada uno.</li>
     <li>Quite el cable, anote la hora y espere 15 minutos.</li>
+    <li>Sin volver a conectar, pulse "Desactivar" en el Poste 1 (si sale el aviso de paleteros, marque y
+      pulse "Cambiar este poste"). Anote qué sale en Eventos.</li>
+    <li>Vuelva a conectar el cable y mire Eventos de los dos postes durante 2 minutos.</li>
   </ol>
   <div class="espera">Se espera: "Listo para entrar solo: NO" en los dos. Sin cable, ámbar en los dos a
-    unos 25 s y siguen en ámbar los 15 minutos. Ninguno pasa a rojo fijo ni da verde.</div>
+    unos 25 s y siguen en ámbar los 15 minutos. Ninguno pasa a rojo fijo ni da verde.<br>
+    Al pulsar "Desactivar" sin cable, el poste lo rechaza: "No hay radio con el otro poste: la opcion solo se
+    cambia con radio ... No ha cambiado nada." Si dice que lo desactivó, anótelo.<br>
+    Al volver el cable <strong>no</strong> debe salir "La radio volvió. Sigue en degradado": ese aviso es solo
+    para un poste que está en degradado, y aquí ninguno lo está.</div>
   <div class="horas">
     <label class="campo">Hora en que quitó el cable <input type="text" id="h5a" class="hora"></label>
     <label class="campo">Luz de cada poste a los 15 min <input type="text" id="h5b" class="hora"></label>
+    <label class="campo">Qué salió al pulsar "Desactivar" sin cable <input type="text" id="h5c" class="hora"></label>
+    <label class="campo">¿Salió "La radio volvió" al conectar? (Poste 1 / Poste 2) <input type="text" id="h5d" class="hora"></label>
   </div>
   <div class="resultado">
     <label><input type="radio" name="r5" value="Funcionó" data-txt="Funcionó"> Funcionó</label>
@@ -265,7 +311,8 @@ button#btnPdf{
   <h2>6. Poste 1 en Manual al quitar el cable</h2>
   <ol>
     <li>Con el cable conectado, active la opción en los dos. Ponga el Poste 1 en "Modo Manual" y espere
-      30 s. Anote qué dice "Listo para entrar solo" en cada uno.</li>
+      30 s (si sale el aviso de paleteros, anótelo, marque la casilla y pulse "Cambiar este poste").
+      Anote qué dice "Listo para entrar solo" en cada uno.</li>
     <li>Quite el cable, anote la hora y espere 15 minutos sin tocar la app.</li>
   </ol>
   <div class="espera">Se espera: ninguno entra en degradado. En ningún poste sale "rojo hasta" en
@@ -292,7 +339,8 @@ button#btnPdf{
     <li>Suelte el cable de transmisión de un poste y anote la hora y cuál soltó.</li>
     <li>Anote cuándo pasa cada poste a rojo fijo, la hora "rojo hasta" de cada uno y quién da verde
       primero.</li>
-    <li>Al terminar: "VOLVER AL MENÚ" en el Poste 1 y vuelva a conectar.</li>
+    <li>Al terminar: "VOLVER AL MENÚ" en el Poste 1 (aviso de paleteros: marque y pulse "Cambiar este
+      poste") y vuelva a conectar.</li>
   </ol>
   <div class="espera">Se espera: los dos pasan a rojo fijo y los dos están en rojo antes del primer verde
     de cualquiera. Uno de ellos puede pasar la espera en rojo en vez de en ámbar. Nunca verde contra
@@ -311,6 +359,43 @@ button#btnPdf{
   </div>
   <textarea id="v7" placeholder="Qué hizo cada poste"></textarea>
   <div class="print-only" id="pr7"></div>
+</section>
+
+<section class="prueba" id="p8">
+  <h2>8. Poste 1 en Manual DURANTE el corte (riesgo conocido)</h2>
+  <div class="nota">Este caso <strong>no busca un fallo</strong>: muestra un riesgo que ya se conoce y que
+    en carretera cubren los paleteros. Se espera ver verde en el Poste 2 mientras el Poste 1 está en Manual.
+    Aquí eso no se corta ni se trata como fallo, pero sí se mide, se anota y se avisa al terminar.</div>
+  <ol>
+    <li>Con el cable conectado y el Poste 1 en Automático, active la opción en los dos (tarjeta "Listo para
+      entrar solo: SI").</li>
+    <li>Quite el cable y anote la hora.</li>
+    <li>Antes de que pasen 5 minutos, ponga el Poste 1 en "Modo Manual". Saldrá el aviso de paleteros: en banco,
+      marque la casilla y pulse "Cambiar este poste". Anote la hora.</li>
+    <li>No toque nada más. Anote cuándo pasa el Poste 2 a rojo fijo, su hora de "rojo hasta" y a qué hora da su
+      primer verde. Anote qué luz tiene el Poste 1 en ese momento.</li>
+    <li>Mire hasta 10 minutos después del primer verde del Poste 2 y anote cuánto dura cada verde y cada
+      todo-rojo del Poste 2.</li>
+    <li>Al terminar: vuelva a conectar el cable, pulse "VOLVER AL MENÚ" en el Poste 1 (aviso de paleteros:
+      marque y pulse "Cambiar este poste") y anote si el Poste 2 sale también.</li>
+  </ol>
+  <div class="espera">Se espera: el Poste 1 se queda en Manual y no entra en degradado. El Poste 2 entra
+    solo a unos 5 min de quitar el cable, pasa a rojo fijo y después da verdes por su reloj mientras el Poste 1
+    sigue en su modo. Anote cuánto dura esa situación y avise con esos tiempos.</div>
+  <div class="horas">
+    <label class="campo">Hora en que quitó el cable <input type="text" id="h8a" class="hora"></label>
+    <label class="campo">Hora en que puso el Poste 1 en Manual <input type="text" id="h8b" class="hora"></label>
+    <label class="campo">Poste 2: rojo fijo y "rojo hasta" <input type="text" id="h8c" class="hora"></label>
+    <label class="campo">Poste 2: primer verde (hora) y luz del Poste 1 <input type="text" id="h8d" class="hora"></label>
+    <label class="campo">Cuánto duró el Poste 2 dando verdes con el Poste 1 en Manual <input type="text" id="h8e" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r8" value="Funcionó" data-txt="Funcionó"> Funcionó</label>
+    <label><input type="radio" name="r8" value="No funcionó" data-txt="No funcionó"> No funcionó</label>
+    <label><input type="radio" name="r8" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v8" placeholder="Qué hizo cada poste y si el Poste 2 salió al final"></textarea>
+  <div class="print-only" id="pr8"></div>
 </section>
 
 <section class="prueba" id="pF">
@@ -391,7 +476,7 @@ button#btnPdf{
   // Para cada prueba, arma en el recuadro de impresión el resultado elegido y lo
   // escrito, en texto llano. Así, al imprimir, se ve la respuesta aunque el
   // teléfono no dibuje los controles marcados. Las horas anotadas van también.
-  var ids = ['0', '1', '2', '3', '4', '5', '6', '7'];
+  var ids = ['0', '1', '2', '3', '4', '5', '6', '7', '8'];
   function refrescarImpresion() {
     ids.forEach(function (n) {
       var pr = document.getElementById('pr' + n);
