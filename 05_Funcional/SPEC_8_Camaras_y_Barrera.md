@@ -37,9 +37,9 @@ camara, y lo que hace con ella tiene una sola direccion:
   que es como esta hoy la mayoria de los equipos.
 - **Pasado el retardo, CUALQUIERA de las dos camaras del poste VETA la bajada** mientras siga viendo
   algo. Sin consenso: con un AND, una camara muerta anularia el veto para siempre.
-- 🔴 **Al soltarse el veto, HOY baja en el instante; DEBE bajar 3 s despues** de que la ultima camara deje de
-  ver (`D-42`, 30/09, sin construir, `N-171`). Lo que no cambia: una camara que avisa DESPUES de los 3 s del rojo
-  encuentra la pluma ya abajo y no la sube.
+- **Al soltarse el veto el firmware baja en el instante, pero la camara mantiene su alarma 5 s tras el evento**
+  (de fabrica, `D-42`): la pluma baja unos 5 s despues de que el objeto salga. Esos 5 s son CONFIGURACION de la
+  camara. Una camara que avisa DESPUES de los 3 s del rojo encuentra la pluma ya abajo y no la sube.
 - **El veto es LOCAL y no para el ciclo.** *«Esas barreras son casi de adorno; el que manda es el
   semaforo y su estado»* (responsable, 14/09). El coordinador no lo consulta: el otro poste abre su
   verde igual.

@@ -96,7 +96,6 @@ python 01_Firmware/Simulaciones/banco/correr.py   # solo los packs. Sirve para i
 | 9 | **`N-168` `D-38`: en Degradado la punta que pierde la hora pasa a ROJO FIJO.** Runbook completo: SPEC, escenario del arnes de dos puntas visto en rojo, codigo, arquitecto, compuerta, QA. Antes, cargar la norma de senalizacion con la skill `norma` y citar lo que diga de semaforo en falla | orquestador | paquete nuevo | -- |
 | 10 | **`N-169` `D-40`: arranque en AMBAR INTERMITENTE tras corte o watchdog, en las dos puntas.** Runbook completo, como `N-168`, y la misma norma; el Degradado reanuda por reloj (`D-29`), no pasa a ambar | orquestador | paquete nuevo | -- |
 | 11 | **`N-170` Aviso de corte de luz en la app.** El puente ya manda `EVT:ARRANQUE,CAUSA:SUBIDA_DE_TENSION` en cada conexion (`vigilante.cpp`) y la app lo pinta vacio (log de Marco, 30/09, sin medir en la app): pintarlo con poste y modo, y anadir al puente la hora del arranque. Solo ESP32 y app | orquestador | paquete nuevo | -- |
-| 12 | **`N-171` `D-42`: la pluma retenida baja 3 s despues de soltarse la camara.** `escribirPines()` de las dos puntas; antes, censar las pruebas que cronometran la bajada al instante (`CLAUDE.md` §9: `arnes_automatico`, `orquestador`, `orquestador_degradado`) | orquestador | paquete nuevo | -- |
 
 ### `N-167` El paquete validado de `a0d605b`: el runbook entero — ✅ HECHO el 29-30/09, sale `a505fa2` `SIN_BANCO`
 
