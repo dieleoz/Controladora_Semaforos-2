@@ -99,6 +99,9 @@ module.exports = async function pruebaDegAuto(montarAppLimpia, assert) {
      /No pudo entrar solo: reloj sin poner en hora.*\. Sigue en ambar/],
     ['MAESTRO', 'AUTO_RECHAZADA_MDT_INICIO_VENCIDO', 'RF:97%,RTT:70ms,SINRESP:0', 'SIGUE_EN_AMBAR',
      /No pudo entrar solo: la hora de arranque ya habia pasado/],
+    // Maestro deg_auto.cpp: MDT_NO_GUARDADO -> ACCION:QUEDA_EN_ROJO; no puede decir ambar.
+    ['MAESTRO', 'AUTO_RECHAZADA_MDT_NO_GUARDADO', 'RF:97%,RTT:70ms,SINRESP:0', 'QUEDA_EN_ROJO',
+     /No pudo entrar solo: no se pudo guardar el testigo.*ROJO FIJO(?!.*Sigue en ambar)/],
     ['ESCLAVO', 'AUTO_RECHAZADA_DEG_RECHAZO_T_AHORA_DESFASADO', 'RX:10,OK:9,RUIDO:1', 'SIGUE_EN_AMBAR',
      /No pudo entrar solo: la hora del poste no cuadra/],
     ['MAESTRO', 'OTRO_POSTE_EN_DEGRADADO', 'RF:--,RTT:--,SINRESP:3', 'REVISE_EL_OTRO_POSTE',

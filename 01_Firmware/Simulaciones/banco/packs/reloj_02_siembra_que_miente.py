@@ -28,18 +28,10 @@
 # lo que lo hacia invisible: el defecto no estaba en el despachador, estaba en la
 # funcion intermedia que el despachador si mira.
 #
-# POR QUE NO LO VEIA NINGUNO DE LOS PACKS QUE YA HABIA. Se comprobo antes de escribir
-# este, porque un pack que vuelve a certificar lo ya certificado sustituye trabajo:
-#
-#   app_03_sin_ok_mudo      mide LAS RAMAS DEL DESPACHADOR. La del Maestro escribe
-#                           `if (reloj_sembrarDesdeIso(accion + 8))`, o sea CONSUME el
-#                           retorno: para app_03 esa rama esta bien hecha, y lo esta.
-#                           El defecto vivia DENTRO de la funcion intermedia, que es
-#                           justo donde app_03 ya no mira.
-#   esp32_03_ack_que_mira   mide el DESPACHADOR DEL PUENTE contra ResultadoReloj del
-#                           DS3231. Otro micro, otro reloj, otra funcion.
-#   maestro_04_sync_horaria mide el TRIO que sale por radio y sus ventanas. Da por
-#                           puesta la hora; no pregunta si la puesta ocurrio.
+# POR QUE NO LO VEIA NINGUNO DE LOS PACKS QUE YA HABIA: app_03 mide las ramas del
+# despachador, y la del Maestro CONSUME el retorno -el defecto vivia DENTRO de la funcion
+# intermedia-; esp32_03 mide el puente (otro micro, otro reloj); maestro_04 mide el trio
+# que sale por radio y da por puesta la hora.
 #
 # Y NO ERA COSMETICA, PORQUE ESE BOOLEANO GOBIERNA UNA PROPAGACION. En el Maestro es la
 # puerta de coordinador_sincronizarHora(), que es como D-20 empuja la hora al Esclavo.
@@ -57,35 +49,19 @@
 #
 # LO QUE ESTE PACK NO PUEDE HACER, ESCRITO PARA QUE NADIE LO LEA COMO PERMISO.
 #
-# ES UN PACK DE TEXTO: Python parseando el .cpp. NO ejecuta el firmware, no enciende un
-# STM32 y no ha visto un solo `return` de verdad. El barrido de la comprobacion 2 corre
-# sobre un MODELO de las dos funciones construido leyendo sus guardas del fuente en
-# cada corrida -sin un solo limite escrito a mano-, y un modelo no es la funcion.
-#
-# Y EL PUNTO CIEGO ESTA MEDIDO, NO SUPUESTO [MEDIDO 07/09]:
-#
-#   grep -rn "reloj.cpp" 01_Firmware/Validacion_*/ Simulaciones/puente_esp32/
-#     -> "reloj.cpp: NO se compila. Incluye <STM32RTC.h> y <stm32f1xx_hal.h>, que no
-#        tienen sustituto en el repositorio"   (arnes_puente.cpp, y lo mismo dicen
-#        adaptador_esclavo.cpp, adaptador_maestro_deg.cpp y arnes_lcd.cpp)
-#
-# NINGUN arnes enlaza reloj.cpp de las puntas, y Validacion_Automatico STUBEA las
-# funciones de reloj. Nadie EJECUTA reloj_sembrarDesdeIso() en ningun sitio, asi que
-# un defecto del TIEMPO -o del compilador con los casts- este pack no lo ve. El
-# instrumento que taparia ese hueco es un arnes que compile Maestro/src/reloj.cpp de
-# verdad, con un sustituto de STM32RTC.h que hoy no existe: eso es firmware que hay
-# que escribir, no una fila que anadir aqui.
+# ES UN PACK DE TEXTO: Python parseando el .cpp. NO ejecuta el firmware. El barrido de la
+# 2 corre sobre un MODELO de las dos funciones leido de sus guardas en cada corrida, y un
+# modelo no es la funcion. EL PUNTO CIEGO, MEDIDO EL 07/09: `grep -rn "reloj.cpp"
+# 01_Firmware/Validacion_*/ Simulaciones/puente_esp32/` -> "reloj.cpp: NO se compila"
+# (incluye STM32RTC.h y la HAL, sin sustituto). Nadie EJECUTA reloj_sembrarDesdeIso(): un
+# defecto del TIEMPO o de los casts este pack no lo ve; lo taparia un arnes que compile
+# reloj.cpp con un sustituto de STM32RTC.h, que es firmware por escribir.
 #
 # QUIEN TIRA EL RETORNO SE MIDE, NO SE AFIRMA, Y ESTA ES LA RAZON [07/09].
 #
-# Durante esta misma sesion el Esclavo llamaba `reloj_sembrarDesdeIso(accion + 8);` SIN
-# `if` -tiraba el booleano- y este pack llevaba escrita esa frase en la cabecera. Horas
-# despues esa rama gano su `if/else` con un $EVENT por cada lado, y la frase habria
-# quedado FALSA dentro de un comentario que nadie recompila: es el defecto que ya se
-# corrigio una vez en reloj_01, una afirmacion sobre el codigo envejeciendo con
-# autoridad de dato. Por eso lo que hay abajo no es una frase, es un reportar() que
-# vuelve a MEDIR quien consume el retorno en cada corrida y se calla cuando no hay nada
-# que decir -hoy se calla-.
+# El Esclavo llego a tirar el booleano y horas despues gano su if/else: la frase de la
+# cabecera habria quedado FALSA en un comentario que nadie recompila. Por eso abajo hay un
+# reportar() que vuelve a MEDIR quien consume el retorno y se calla si no hay nada.
 #
 # Y NO SE COBRA COMO COMPROBACION, que es lo que hay que escribir para que nadie lo lea
 # como blandura: la propiedad de este pack es que un acuse de exito DEPENDA de la
@@ -130,14 +106,12 @@
 #     cualquier guarda, y eso es D-20 -el Maestro acepta siempre la de su ESP32-. El orden
 #     de la guarda, y que no se cuele en el sembrador compartido, los mide reloj_03.
 #
-# SIN ETIQUETA SFTY, Y ES DELIBERADO. La tentacion era SFTY-18, que vive en
-# Maestro/src/reloj.cpp y cuya regla es "la regla de seguridad no es tener reloj, es
-# saber cuando NO se tiene". Pero SFTY-18 se EJERCE midiendo el ano marcador y
-# reloj_enHora(), y este pack no mira ninguno de los dos: mira si el retorno de la
-# siembra depende de la validacion. OPTIMIZACIONES.md ya dice que esa regla "tal como
-# esta definida no la ejerce ningun pack", y poner aqui un ✅ que no la ejerce dejaria
-# la fila cubierta por una prueba que mide otra cosa: peor que la fila vacia, porque
-# la vacia no miente.
+#   - A-15 (H4, 29/09): la rama IGNORADA llama ademas a reloj_fecharDesdeEsp32() -solo el
+#     DIA, anclado a la base de radio con tolerancia 1 h-. Segunda excepcion, medida en 2.ter.
+#
+# SIN ETIQUETA SFTY, Y ES DELIBERADO: SFTY-18 se EJERCE midiendo el ano marcador y
+# reloj_enHora(), y este pack no mira ninguno de los dos. Un ✅ que no la ejerce es peor
+# que la fila vacia, porque la vacia no miente.
 
 import re
 
@@ -182,6 +156,7 @@ ALARMA = "bluetooth_reportarAlarma"
 # lee antes de concederla (comprobacion 2.bis). Ver la cabecera, 11/09.
 GUARDA_ESCLAVO = "reloj_radioManda"
 PUNTA_GUARDA = "Esclavo"
+FECHADOR_ESCLAVO = "reloj_fecharDesdeEsp32"   # A-15 (H4): la otra excepcion, medida en 2.ter
 
 # EL BORDE DE LO QUE CUENTA COMO "ACUSE DE EXITO", ESCRITO AQUI PORQUE ES EL BORDE.
 #
@@ -1016,9 +991,33 @@ def correr(b, fw):
                                             " ".join(cuerpo_g.split())[:80]))
 
     exentas = {p: ((GUARDA_ESCLAVO,) if p == PUNTA_GUARDA else ()) for p in PUNTAS}
+
+    # ---- 2.ter. A-15 (H4, 29/09): LA SEGUNDA EXCEPCION DEL ESCLAVO, MEDIDA ANTES -------
+    # Con la radio mandando, FECHADOR_ESCLAVO toma de la linea del ESP32 SOLO el dia (D-26 (3)
+    # intacta). Se exime de la 3 si: es `bool`, de los `static` de reloj.cpp solo escribe
+    # diaAbsBase, rechaza por FECHA_TOLERANCIA_S y en la rama solo corre bajo el `if` de la guarda.
+    rc, rg = fw.codigo(*RELOJ_C[PUNTA_GUARDA]), ramas[PUNTA_GUARDA]
+    df = _definicion(rc, FECHADOR_ESCLAVO)
+    if df is None:
+        raise fw.Abortado("%s: no se hallo %s() en reloj.cpp y la 3 la exime (N-96)"
+                          % (PUNTA_GUARDA, FECHADOR_ESCLAVO))
+    escribe = {g for g in re.findall(r"^static\s+(?:volatile\s+)?\w+\s+(\w+)\s*[=;\[]", rc, re.M)
+               if re.search(r"\b%s\s*(?:[-+*/|&]?=(?!=)|\+\+|--)|(?:\+\+|--)\s*%s\b" % (g, g), df[2])}
+    usos = [m.start() for m in re.finditer(r"\b%s\s*\(" % FECHADOR_ESCLAVO, rg)]
+    fecha_ok = df[0] == "bool" and escribe == {"diaAbsBase"} and "FECHA_TOLERANCIA_S" in df[2] \
+        and all(any(_llama_a(c, GUARDA_ESCLAVO) for c in _gobernantes(rg, u)) for u in usos)
+    b.verificar(fecha_ok, "%s: %s() es `bool`, solo escribe diaAbsBase, rechaza por "
+                "FECHA_TOLERANCIA_S y corre solo bajo %s(): no toca la hora" % (
+                    PUNTA_GUARDA, FECHADOR_ESCLAVO, GUARDA_ESCLAVO),
+                "%s: %s() pierde la excepcion (tipo `%s`, escribe %s, %d uso(s) en la rama). "
+                "Una fecha fuera del `if` de %s(), o que toca la hora, no se hereda" % (
+                    PUNTA_GUARDA, FECHADOR_ESCLAVO, df[0], sorted(escribe), len(usos),
+                    GUARDA_ESCLAVO))
+    exentas3 = dict(exentas, **{PUNTA_GUARDA: exentas[PUNTA_GUARDA] + (
+        (FECHADOR_ESCLAVO,) if fecha_ok else ())})
     for p in PUNTAS:
         rama = ramas[p]
-        sueltas = _sueltas(rama, exentas[p])
+        sueltas = _sueltas(rama, exentas3[p])
         b.verificar(
             not sueltas,
             "%s / %s: todo lo que la rama hace ademas de sembrar esta DENTRO del bloque "

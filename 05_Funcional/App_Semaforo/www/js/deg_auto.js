@@ -113,8 +113,12 @@ const DegAuto = {
     if (!data || data.EVENTO !== 'DEGRADADO') return null;
     const causa = String(data.CAUSA || '');
     if (causa.indexOf('AUTO_RECHAZADA_') === 0) {
+      // Maestro con MDT_NO_GUARDADO: ACCION:QUEDA_EN_ROJO (rojo fijo); el resto, SIGUE_EN_AMBAR.
+      const rojo = data.ACCION === 'QUEDA_EN_ROJO';
       return { tono: 'red', toast: 'No pudo entrar solo en degradado',
-        texto: 'No pudo entrar solo: ' + this._motivo(causa) + '. Sigue en ambar.' };
+        texto: 'No pudo entrar solo: ' + this._motivo(causa) + (rojo
+          ? '. Queda en ROJO FIJO en este poste, no en ambar: avise a mantenimiento.'
+          : '. Sigue en ambar.') };
     }
     if (causa === 'OTRO_POSTE_EN_DEGRADADO') {
       return { tono: 'red', toast: 'El otro poste esta en degradado',

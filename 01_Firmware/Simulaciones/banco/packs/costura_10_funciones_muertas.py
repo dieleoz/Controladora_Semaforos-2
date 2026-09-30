@@ -265,8 +265,23 @@ def _declaradas(fw, punta):
     return fuera
 
 
+def _alias(codigo):
+    """Lo que hace el preprocesador con `#define A B` (dos identificadores): desde esa
+    linea hasta el final del FICHERO, cada `A(` es una llamada a `B(`.
+
+    A-15 (29/09): coordinador.cpp del Maestro lleva `#define protocolo_enviarPaquete
+    degAuto_enviar`, y sus llamadas son las de degAuto_enviar. Sin esto la contaba
+    huerfana. El borde: solo alias de nombre a nombre, solo en su fichero y solo detras
+    de la linea del #define; quitada la linea, degAuto_enviar vuelve a caer."""
+    for m in list(re.finditer(r"^[ \t]*#define[ \t]+(\w+)[ \t]+(\w+)[ \t]*$", codigo, re.M)):
+        a, b = m.group(1), m.group(2)
+        codigo = codigo[:m.end()] + re.sub(r"\b%s(?=\s*\()" % re.escape(a), b,
+                                           codigo[m.end():])
+    return codigo
+
+
 def _cuerpo(fw, punta):
-    return "".join(fw.codigo(punta, "src", f) for f in fw.fuentes_de(punta, "src")
+    return "".join(_alias(fw.codigo(punta, "src", f)) for f in fw.fuentes_de(punta, "src")
                    if f.endswith(".cpp"))
 
 

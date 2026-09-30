@@ -310,6 +310,36 @@ def _todos_los_lados_contestan(bloque):
     return False
 
 
+def _consulta_pura(bloque, vigiladas):
+    """True si la rama es una CONSULTA: contesta siempre, y lo que contesta ES el valor.
+
+    A-15 (29/09): CONSULTA_DEG_AUTO mira tres getters y no tiene $ERR ni if/else, porque
+    no hay camino malo: no ordena nada, publica lo que leyo. EL BORDE, escrito: ni un
+    if/switch/bucle/return (salvo el `return;` final), UNA sola trama, y TODA llamada
+    vigilada dentro de los argumentos del snprintf cuyo buffer es esa trama. Un resultado
+    guardado en una variable y no publicado, o una trama bajo un `if`, sigue cayendo
+    (control negativo)."""
+    cuerpo = re.sub(r"^\{(.*)\}$", r"\1", bloque.strip(), flags=re.S).strip()
+    cuerpo = re.sub(r"\breturn\s*;\s*$", "", cuerpo)
+    envios = re.findall(r"\benviarTramaConCrc\s*\(\s*(\w+)\s*\)", cuerpo)
+    if re.search(r"\b(if|switch|while|for|return)\b", cuerpo) or len(envios) != 1 \
+            or cuerpo.count("enviarTramaConCrc") != 1:
+        return False
+    tramos = []
+    for m in re.finditer(r"\bsnprintf\s*\(\s*(\w+)\s*,", cuerpo):
+        prof, fin = 0, None
+        for j in range(m.start() + m.group(0).index("("), len(cuerpo)):
+            prof += {"(": 1, ")": -1}.get(cuerpo[j], 0)
+            if prof == 0:
+                fin = j
+                break
+        if fin is not None and m.group(1) == envios[0]:
+            tramos.append((m.end(), fin))
+    return bool(tramos) and all(
+        any(a < m.start() < c for a, c in tramos)
+        for n in vigiladas for m in re.finditer(r"\b%s\s*\(" % re.escape(n), cuerpo))
+
+
 def _veredicto(bloque, vigiladas):
     """(hay_algo_que_verificar, motivo_de_fallo o None)."""
     llamadas = [n for n in sorted(vigiladas)
@@ -324,7 +354,8 @@ def _veredicto(bloque, vigiladas):
     if ign:
         return True, ("llama a %s y TIRA lo que devuelve -o no comprueba su guarda- "
                       "y aun asi manda $ACK" % ", ".join("%s()" % n for n in ign))
-    if '"$ERR' not in bloque and not _todos_los_lados_contestan(bloque):
+    if '"$ERR' not in bloque and not _todos_los_lados_contestan(bloque) \
+            and not _consulta_pura(bloque, vigiladas):
         return True, ("mira el resultado de %s y deja un camino SIN RESPUESTA: ni hay "
                       "$ERR ni los dos lados del if/else contestan, asi que el telefono "
                       "se queda esperando o da por bueno el $ACK anterior"
@@ -452,3 +483,17 @@ def correr(b, fw):
         and _veredicto(mismo, vigC) == (True, None),
         "una `void` con guarda seguida de `if (<mismo modulo>_...())` pasa; la misma "
         "llamada con el $ACK a pelo, o preguntando a OTRO modulo, se marca como OK mudo")
+
+    # A-15: la consulta pura pasa; guardada sin publicar, o con la trama bajo un if, no.
+    vigQ = {"mod_hecho"}
+    consulta = ('{ char p[9]; snprintf(p, sizeof(p), "$ACK,R:%s", mod_hecho() ? "SI" : '
+                '"NO"); enviarTramaConCrc(p); return; }')
+    guardada = ('{ char p[9]; bool r = mod_hecho(); snprintf(p, sizeof(p), "$ACK,R:OK"); '
+                'enviarTramaConCrc(p); }')
+    bajoIf = consulta.replace("enviarTramaConCrc(p);", "if (x) enviarTramaConCrc(p);")
+    b.control_negativo(
+        _veredicto(consulta, vigQ) == (True, None)
+        and _veredicto(guardada, vigQ)[1] is not None
+        and _veredicto(bajoIf, vigQ)[1] is not None,
+        "una consulta que publica el getter en su trama pasa; el getter guardado y no "
+        "publicado, o la trama bajo un `if`, se marca como camino sin respuesta")

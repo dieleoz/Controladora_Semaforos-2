@@ -57,6 +57,7 @@ NOMBRE = "app_10_ack_con_varios_sies"
 DESCRIPCION = "toda orden con mas de un RESULT posible tiene un texto distinto por respuesta en la app"
 
 APP_JS = ("05_Funcional", "App_Semaforo", "app.js")
+DEG_AUTO_JS = ("05_Funcional", "App_Semaforo", "js", "deg_auto.js")
 BT_MAESTRO = ("Maestro", "src", "bluetooth.cpp")
 BT_ESCLAVO = ("Esclavo", "src", "bluetooth.cpp")
 # 🔴 D-15 (05/09) - EL TERCER EMISOR, Y SIN EL ESTE PACK ACUSABA A LA APP DE INVENTARSE
@@ -86,6 +87,21 @@ TABLA_ERR = "ERR_TEXTO"
 # comilla detras del RESULT. Con el patron anterior el puente era invisible.
 _ACK_CPP = re.compile(r'"\$ACK,(?:NODE:[A-Z_]+,)?CMD:([A-Z_:0-9]+),RESULT:([A-Z_0-9]+)[,"]')
 _ERR_CPP = re.compile(r'"\$ERR,(?:NODE:[A-Z_]+,)?CMD:([A-Z_:0-9]+),DESC:([A-Z_0-9]+)[,"]')
+
+
+def _tabla_de_modulo(js_app, js_mod):
+    """{'ORDEN|RESULT': bloque} de la tabla ACUSE de un modulo de js/, SOLO si app.js la
+    alcanza: `const dicho = ACK_TEXTO[clave] || <x>` con `const <x> = DegAuto.acuse(`.
+
+    A-15 (29/09): los tres RESULT de SET_DEG_AUTO viven en DegAuto.ACUSE (js/deg_auto.js),
+    no en ACK_TEXTO. Si app.js deja de consultar el modulo, esto devuelve {} y la 2 cae."""
+    m = re.search(r"const\s+dicho\s*=\s*%s\s*\[\s*clave\s*\]\s*\|\|\s*(\w+)" % TABLA_ACK, js_app)
+    orden = re.search(r"\bORDEN\s*:\s*'([A-Z_]+)'", js_mod)
+    if not m or not orden or not re.search(
+            r"const\s+%s\s*=\s*DegAuto\.acuse\s*\(" % re.escape(m.group(1)), js_app):
+        return {}
+    acuse = _tabla(js_mod.replace("ACUSE: {", "const ACUSE = {", 1), "ACUSE") or {}
+    return {"%s|%s" % (orden.group(1), k): v for k, v in acuse.items()}
 
 
 def _tabla(js, nombre):
@@ -186,6 +202,8 @@ def correr(b, fw):
             "acuse; sin ella este pack compararia contra un diccionario vacio -y es "
             "como el banco entero se quedo en ABORTADO en N-75, con la app entrando sin "
             "vigilancia detras-" % TABLA_ACK)
+    for clave, bloque in _tabla_de_modulo(js, fw.texto_repo(*DEG_AUTO_JS)).items():
+        tabla.setdefault(clave, bloque)   # app.js consulta ACK_TEXTO primero
 
     faltan = []
     for cmd, resultados in sorted(varios.items()):

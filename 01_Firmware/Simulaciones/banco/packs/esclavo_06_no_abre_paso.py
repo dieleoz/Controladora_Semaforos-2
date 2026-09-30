@@ -139,6 +139,13 @@ COMANDOS_PERMITIDOS = {
     # D-35 (SPEC_2 7.bis): Degradado con testigo, puerta paralela con PIN que entra por rojo.
     "SET_MODO:DEG_T:":  "ABRE PASO como SET_MODO:DEGRADADO: verde por reloj tras rojo fijo "
                         "hasta inicio, con PIN, la puerta es degradado_entrarTestigo()",
+    "SET_DEG_AUTO:":    "ABRE PASO DIFERIDO (A-15, SPEC_2 7.ter): no enciende nada al "
+                        "recibirla; arma la opcion, que solo actua con la opcion en las "
+                        "DOS puntas y la radio caida, entra por rojo fijo y por la misma "
+                        "puerta degradado_entrarTestigo(). Pide PIN, se rechaza sin enlace "
+                        "o en Degradado, y el $ACK espera al ECO del Maestro",
+    "CONSULTA_DEG_AUTO": "CONTESTA y no hace nada mas: tres getters en un snprintf, sin "
+                        "estado; entra con y sin PIN (SPEC_4 3.2), como VERSION",
     "FORZAR_ROJO":      "presente solo para RECHAZARLO ensenando el nombre nuevo",
     "SOLICITAR_PASO":   "PIDE al Maestro; no enciende nada en esta punta",
     "TEST_LEDS":        "presente solo para RECHAZARLO con un motivo legible",
@@ -189,7 +196,10 @@ def _comandos_atendidos(codigo):
     FORZAR_ROJO se veian porque ADEMAS tienen forma con PIN; una orden solo sin PIN no se
     habria visto nunca."""
     con_pin = set(re.findall(r'strn?cmp\s*\(\s*accion\s*,\s*"([^"]+)"', codigo))
-    sin_pin = {c for c in re.findall(r'strn?cmp\s*\(\s*cmd\s*,\s*"CMD:([^"]+)"', codigo)
+    # A-15: "CMD:PIN:1234:CONSULTA_DEG_AUTO" comparado contra `cmd` es la MISMA orden que
+    # sin PIN; se nombra sin el prefijo para que la lista no lleve el PIN escrito.
+    sin_pin = {re.sub(r"^PIN:\d+:", "", c)
+               for c in re.findall(r'strn?cmp\s*\(\s*cmd\s*,\s*"CMD:([^"]+)"', codigo)
                if not re.match(r"PIN:\d+:$", c)}
     return con_pin | sin_pin
 
