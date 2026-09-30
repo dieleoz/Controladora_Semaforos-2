@@ -43,7 +43,7 @@ const AvisoDegradado = {
   riesgoAuto(state) {
     const da = typeof DegAuto !== 'undefined' ? DegAuto : null;
     const e = da && da._estado;
-    if (da && (da._sinOpcion || (e && !e.este))) return false;
+    if (!da || da._sinOpcion || !(e && e.este)) return false;  // solo si CONSTA activada
     const l = state.rfLectura;
     const radio = state.node === 'MAESTRO' && !!state.esc && state.esc !== '?' &&
                   !!l && l.medido === true && l.pct > 0;
