@@ -292,7 +292,8 @@ Cada uno trae con qué reproducirlo.
    transición de fallo a verde** del firmware: hoy inerte, saca del ámbar intermitente sin pasar por rojo.
 9. 🔴 **EL ARRANQUE ENTRA EN MENÚ (rojo fijo con enlace) Y DEBE ENTRAR EN ÁMBAR INTERMITENTE (`D-40`, 30/09, sin
    construir, `N-169`).** Tras un corte de luz o un reinicio por watchdog, las dos puntas en ámbar intermitente hasta
-   una orden del operario. Medido en campo el 30/09 (`evidencia/300920261130/`): hoy quedan en rojo con radio.
+   una orden del operario, salvo en Degradado, que reanuda por reloj (`D-29`). Medido en campo el 30/09
+   (`evidencia/300920261130/`): hoy quedan en rojo con radio.
 
 ## 13. QUIÉN EJERCE CADA BARRERA DE ESTE DOCUMENTO
 
