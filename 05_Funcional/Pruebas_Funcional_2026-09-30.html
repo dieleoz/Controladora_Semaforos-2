@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pruebas en banco 30-09</title>
+<style>
+:root{
+  --papel:#f6f5f2; --tarjeta:#ffffff; --tinta:#17191c; --tinta-2:#55555a;
+  --linea:#dedcd5; --acento:#c4520c; --ok:#1d7a48; --alto:#b52b26;
+  --info-bg:#e3ecf3; --campo:#fffdf8;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0; padding:12px 12px 40px; background:var(--papel); color:var(--tinta);
+  font-family:"Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+  font-size:17px; line-height:1.45;
+}
+h1{font-size:22px; margin:4px 0 12px;}
+h2{font-size:19px; margin:0 0 8px;}
+section.prueba{
+  background:var(--tarjeta); border:1px solid var(--linea); border-radius:10px;
+  padding:14px; margin-bottom:14px;
+}
+header.datos{
+  background:var(--tarjeta); border:1px solid var(--linea); border-radius:10px;
+  padding:14px; margin-bottom:16px;
+}
+label.campo{display:block; margin-bottom:10px; font-weight:600; font-size:15px;}
+input[type=text], input[type=date], textarea{
+  width:100%; font-size:16px; padding:8px; margin-top:4px;
+  border:1px solid var(--linea); border-radius:6px; background:var(--campo); color:var(--tinta);
+  font-family:inherit;
+}
+textarea{min-height:60px; resize:vertical;}
+ol{padding-left:22px; margin:8px 0;}
+li{margin-bottom:6px;}
+.espera{
+  background:var(--info-bg); border-left:4px solid var(--acento);
+  padding:8px 10px; margin:10px 0; border-radius:6px; font-size:16px;
+}
+.nota{
+  background:#fdf3e3; border-left:4px solid var(--acento);
+  padding:8px 10px; margin:10px 0; border-radius:6px; font-size:15px;
+}
+.resultado{margin:10px 0;}
+.resultado label{
+  display:block; padding:8px 6px; border:1px solid var(--linea); border-radius:6px;
+  margin-bottom:6px; font-size:16px;
+}
+.resultado input{margin-right:8px; transform:scale(1.3);}
+.print-only{display:none;}
+.recordatorio{
+  background:#fdf3e3; border:1px solid var(--acento); border-radius:10px;
+  padding:14px; margin-bottom:16px; font-size:16px;
+}
+.alto{
+  background:#fbe9e8; border:2px solid var(--alto); border-radius:10px;
+  padding:14px; margin-bottom:16px; font-size:16px;
+}
+.horas label.campo{font-weight:400;}
+footer{position:sticky; bottom:0; background:var(--papel); padding-top:10px;}
+button#btnPdf{
+  width:100%; font-size:18px; padding:14px; border:none; border-radius:8px;
+  background:var(--acento); color:#fff; font-weight:600;
+}
+.nota-impresion{font-size:14px; color:var(--tinta-2); text-align:center; margin:8px 0;}
+#estado{font-size:13px; color:var(--tinta-2); text-align:center;}
+@media print{
+  button#btnPdf, .nota-impresion, #estado{display:none;}
+  .resultado, textarea, .horas{display:none;}
+  .print-only{display:block; border:1px solid var(--linea); border-radius:6px; padding:8px; margin-top:8px; font-size:15px; background:#fafafa;}
+  section.prueba{break-inside:avoid; page-break-inside:avoid; border:1px solid #999;}
+}
+</style>
+</head>
+<body>
+<header class="datos">
+  <h1>Pruebas en banco — 30/09</h1>
+  <label class="campo">Fecha
+    <input type="date" id="fecha">
+  </label>
+  <label class="campo">Nombre de quien prueba
+    <input type="text" id="nombre">
+  </label>
+  <label class="campo">Nombre del paquete (.zip)
+    <input type="text" id="paquete">
+  </label>
+  <label class="campo">Serie del Poste 1 (Maestro)
+    <input type="text" id="serieM">
+  </label>
+  <label class="campo">Serie del Poste 2 (Esclavo)
+    <input type="text" id="serieE">
+  </label>
+</header>
+
+<main>
+
+<div class="alto">
+  <strong>Avise de inmediato, sin esperar a terminar:</strong> cualquier momento en que los dos postes estén en
+  <strong>VERDE</strong> a la vez. Anote la hora, exporte el diario de los dos postes y mande los archivos.
+</div>
+
+<div class="recordatorio">
+  <strong>Lo que ya probó el 30/09 no se repite</strong> (modos, testigo de 5 y de 2 minutos, ámbar de
+  emergencia). Aquí va solo lo nuevo de este paquete y lo que quedó pendiente.
+  <strong>Anote siempre la hora del celular</strong> de cada corte y de cada vuelta de la luz: con ella se
+  comprueba al segundo.
+</div>
+
+<section class="prueba" id="p0">
+  <h2>0. Instalar y comprobar la versión</h2>
+  <ol>
+    <li>Desinstale la app vieja e instale la APK nueva del paquete. En el PC, abra la web de <strong>04_App/web</strong>.</li>
+    <li>Cargue el firmware nuevo en los dos postes (controlador y puente).</li>
+    <li>Conéctese a cada poste. Pestaña Técnico: <strong>"Consultar version del firmware"</strong>. Copie las dos líneas de Eventos.</li>
+  </ol>
+  <div class="espera">Se espera: el mismo código en controlador y puente de los dos postes, y el mismo que figura en el nombre del .zip. Si no coincide, no siga: avise.</div>
+  <div class="horas">
+    <label class="campo">Poste 1 - Controlador: FW <input type="text" id="h0a" class="hora"></label>
+    <label class="campo">Poste 1 - Puente: FW <input type="text" id="h0b" class="hora"></label>
+    <label class="campo">Poste 2 - Controlador: FW <input type="text" id="h0c" class="hora"></label>
+    <label class="campo">Poste 2 - Puente: FW <input type="text" id="h0d" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r0" value="Funcionó" data-txt="Funcionó"> Funcionó</label>
+    <label><input type="radio" name="r0" value="No funcionó" data-txt="No funcionó"> No funcionó</label>
+    <label><input type="radio" name="r0" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v0" placeholder="Lo que vio distinto"></textarea>
+  <div class="print-only" id="pr0"></div>
+</section>
+
+<section class="prueba" id="p1">
+  <h2>1. Corte de luz del Poste 1 en pleno Degradado</h2>
+  <ol>
+    <li>Quite el cable entre postes. Ponga los dos en <strong>Degradado con testigo</strong> y espere a que alternen.</li>
+    <li>Anote la hora de un cambio de color de cada poste, para comparar después.</li>
+    <li>Corte la energía del <strong>Poste 1</strong> durante 1 minuto. Anote la hora del corte y la de la vuelta.</li>
+    <li>Mire el Poste 1 los primeros 30 s tras volver la luz. Si puede, grábelo con la hora visible.</li>
+    <li>Conéctese al Poste 1: debe salir el aviso de que se quedó sin luz (ver prueba 3).</li>
+  </ol>
+  <div class="espera">Se espera: el Poste 1 vuelve SOLO al Degradado, sin mandarle nada, y alterna en fase con el Poste 2: nunca los dos en verde, siempre 30 s los dos en rojo entre verdes, y los cambios a las mismas horas que antes. <strong>Si queda en ámbar, anote la hora</strong>: es lo que falló el 30/09 y este paquete lo corrige.</div>
+  <div class="horas">
+    <label class="campo">Hora de un cambio antes del corte <input type="text" id="h1a" class="hora"></label>
+    <label class="campo">Hora del corte <input type="text" id="h1b" class="hora"></label>
+    <label class="campo">Hora de la vuelta de la luz <input type="text" id="h1c" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r1" value="Funcionó" data-txt="Funcionó"> Funcionó</label>
+    <label><input type="radio" name="r1" value="No funcionó" data-txt="No funcionó"> No funcionó</label>
+    <label><input type="radio" name="r1" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v1" placeholder="Qué hizo el Poste 1 al volver y en los primeros 30 s"></textarea>
+  <div class="print-only" id="pr1"></div>
+</section>
+
+<section class="prueba" id="p2">
+  <h2>2. Corte de luz del Poste 2 en pleno Degradado</h2>
+  <ol>
+    <li>Con los dos aún en Degradado, repita la prueba 1 cortando el <strong>Poste 2</strong>.</li>
+  </ol>
+  <div class="espera">Se espera lo mismo: el Poste 2 vuelve solo al Degradado, en fase con el Poste 1.</div>
+  <div class="horas">
+    <label class="campo">Hora del corte <input type="text" id="h2a" class="hora"></label>
+    <label class="campo">Hora de la vuelta de la luz <input type="text" id="h2b" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r2" value="Funcionó" data-txt="Funcionó"> Funcionó</label>
+    <label><input type="radio" name="r2" value="No funcionó" data-txt="No funcionó"> No funcionó</label>
+    <label><input type="radio" name="r2" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v2" placeholder="Qué hizo el Poste 2 al volver y en los primeros 30 s"></textarea>
+  <div class="print-only" id="pr2"></div>
+</section>
+
+<section class="prueba" id="p3">
+  <h2>3. Corte de luz fuera del Degradado: arranca en ámbar y la app avisa</h2>
+  <ol>
+    <li>Al terminar la prueba 2: "VOLVER AL MENÚ" en el Poste 1, conecte el cable y ponga el Poste 1 en <strong>Automático</strong>.</li>
+    <li>Corte la energía del <strong>Poste 1</strong> 1 minuto y devuélvala. Anote las horas.</li>
+    <li>Mire los dos postes y conéctese al Poste 1 con la app.</li>
+    <li>Ponga otra vez el Poste 1 en Automático y repita cortando solo el <strong>Poste 2</strong>.</li>
+  </ol>
+  <div class="espera">Se espera: al volver la luz, <strong>los dos postes en ámbar intermitente</strong> (fuera de servicio), no en rojo, hasta que usted dé una orden; la pluma arriba. Al conectarse, la app muestra un aviso visible de que ese poste se quedó sin luz, con el poste y el modo en que quedó. Si en Eventos sale una línea vacía "Equipo [FIRMWARE]:", anótelo.</div>
+  <div class="horas">
+    <label class="campo">Poste 1: hora del corte <input type="text" id="h3a" class="hora"></label>
+    <label class="campo">Poste 1: hora de la vuelta <input type="text" id="h3b" class="hora"></label>
+    <label class="campo">Poste 2: hora del corte <input type="text" id="h3c" class="hora"></label>
+    <label class="campo">Poste 2: hora de la vuelta <input type="text" id="h3d" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r3" value="Funcionó" data-txt="Funcionó"> Funcionó</label>
+    <label><input type="radio" name="r3" value="No funcionó" data-txt="No funcionó"> No funcionó</label>
+    <label><input type="radio" name="r3" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v3" placeholder="Color de cada poste al volver y texto exacto del aviso"></textarea>
+  <div class="print-only" id="pr3"></div>
+</section>
+
+<section class="prueba" id="p4">
+  <h2>4. Salir del ámbar de arranque</h2>
+  <ol>
+    <li>Con los dos en el ámbar de la prueba 3, ponga el Poste 1 en <strong>Automático</strong>. Espere un ciclo completo.</li>
+    <li>Corte otra vez el Poste 1, quite el cable y, desde el ámbar, dé <strong>Degradado con testigo</strong> en los dos postes.</li>
+  </ol>
+  <div class="espera">Se espera: desde el ámbar, Automático arranca el ciclo normal en los dos postes (primero todo-rojo), y el testigo se acepta. Si alguna orden sale rechazada, copie el texto.</div>
+  <div class="resultado">
+    <label><input type="radio" name="r4" value="Funcionó" data-txt="Funcionó"> Funcionó</label>
+    <label><input type="radio" name="r4" value="No funcionó" data-txt="No funcionó"> No funcionó</label>
+    <label><input type="radio" name="r4" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v4" placeholder="Qué respondió cada orden"></textarea>
+  <div class="print-only" id="pr4"></div>
+</section>
+
+<section class="prueba" id="p5">
+  <h2>5. Cámaras conectadas</h2>
+  <ol>
+    <li>Configure las cuatro cámaras igual: Detección de Intrusión sobre el <strong>barrido de la pluma</strong>, ☑ Vehículo y ☑ Humano, sensibilidad alta, umbral mínimo, 24x7, alarma mantenida 5 s (de fábrica). Conexión: J16 p9-p10 la cámara 1, p11-p12 la cámara 2.</li>
+    <li>Poste en Automático: un <strong>carro</strong> debajo del brazo al ponerse el rojo.</li>
+    <li>Lo mismo con una <strong>persona</strong>.</li>
+    <li>Con la zona libre, mida cuánto tarda la pluma en bajar tras el rojo.</li>
+    <li><strong>Cronometre el retraso de la cámara</strong>: desde que el objeto entra en la zona hasta que se enciende el LED de alarma o cambia CAM: en la app.</li>
+  </ol>
+  <div class="espera">Se espera: con carro o persona debajo, la pluma no baja, y baja unos 5 s después de que se retiren. Con la zona libre baja unos 3 s después del rojo. En la app, CAM: deja de salir "?".</div>
+  <div class="horas">
+    <label class="campo">Retraso de la cámara (s) <input type="text" id="h5a" class="hora"></label>
+    <label class="campo">Zona libre: segundos del rojo a la bajada <input type="text" id="h5b" class="hora"></label>
+    <label class="campo">Tras retirarse: segundos hasta la bajada <input type="text" id="h5c" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r5" value="Funcionó" data-txt="Funcionó"> Funcionó</label>
+    <label><input type="radio" name="r5" value="No funcionó" data-txt="No funcionó"> No funcionó</label>
+    <label><input type="radio" name="r5" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v5" placeholder="Qué hizo la pluma con carro y con persona"></textarea>
+  <div class="print-only" id="pr5"></div>
+</section>
+
+<section class="prueba" id="p6">
+  <h2>6. Talanquera con su centralita</h2>
+  <ol>
+    <li>J15 a la bobina de un relé; el contacto del relé a OPEN/COM de la centralita. En J14 no se conecta nada.</li>
+    <li>Mire si la centralita abre <strong>mientras el contacto está cerrado</strong> y cierra sola al abrirse, o si abre con un <strong>pulso</strong> y cierra por su temporizador.</li>
+    <li>Recorra verde, rojo y ámbar intermitente. Corte la energía del poste con la pluma arriba.</li>
+  </ol>
+  <div class="espera">Se espera: sube con el verde y con el ámbar intermitente; baja unos 3 s después del rojo; sin energía, baja. <strong>Si la centralita trabaja por pulso, anótelo y no siga</strong>: así no sirve y hay que decidir antes.</div>
+  <div class="resultado">
+    <label><input type="radio" name="r6" value="Funcionó" data-txt="Funcionó"> Funcionó</label>
+    <label><input type="radio" name="r6" value="No funcionó" data-txt="No funcionó"> No funcionó</label>
+    <label><input type="radio" name="r6" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v6" placeholder="Tipo de centralita (contacto mantenido o pulso) y qué hizo la pluma"></textarea>
+  <div class="print-only" id="pr6"></div>
+</section>
+
+<section class="prueba" id="pF">
+  <h2>Algo más que haya visto</h2>
+  <textarea id="vF" placeholder="Cualquier otra cosa que quiera anotar"></textarea>
+  <div class="print-only" id="prF"></div>
+</section>
+
+<div class="recordatorio">
+  <strong>Al terminar cada prueba, en CADA poste:</strong> pestaña <strong>Tramas</strong> &rarr;
+  <strong>Diario de órdenes</strong> &rarr; <strong>"Exportar todo como archivo"</strong>, con el número de prueba
+  y el poste en el nombre (por ejemplo "prueba1_poste1"). Envíe todos los archivos junto con este PDF y el log
+  de la app.
+</div>
+
+</main>
+
+<footer>
+  <button id="btnPdf">Guardar en PDF</button>
+  <p class="nota-impresion">En el diálogo, elija "Guardar como PDF" y envíela por WhatsApp.</p>
+  <p id="estado"></p>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+  var estado = document.getElementById('estado');
+  var camposTexto = document.querySelectorAll('input[type=text], input[type=date], textarea');
+  var camposRadio = document.querySelectorAll('input[type=radio]');
+
+  function clave(id) { return 'pf30_' + id; }
+
+  try {
+    camposTexto.forEach(function (el) {
+      var v = localStorage.getItem(clave(el.id));
+      if (v !== null) el.value = v;
+    });
+    camposRadio.forEach(function (el) {
+      var v = localStorage.getItem(clave(el.name + '_' + el.value));
+      if (v === '1') el.checked = true;
+    });
+  } catch (e) { /* sin almacenamiento: la hoja se sigue rellenando y se imprime igual */ }
+
+  function guardarTexto(el) {
+    try {
+      localStorage.setItem(clave(el.id), el.value);
+      if (estado) estado.textContent = 'guardado ' + new Date().toLocaleTimeString();
+    } catch (e) {
+      if (estado) estado.textContent = 'este teléfono no guarda: imprima antes de cerrar';
+    }
+  }
+
+  function guardarRadio(grupo) {
+    try {
+      Array.prototype.forEach.call(grupo, function (el) {
+        localStorage.setItem(clave(el.name + '_' + el.value), el.checked ? '1' : '0');
+      });
+      if (estado) estado.textContent = 'guardado ' + new Date().toLocaleTimeString();
+    } catch (e) {
+      if (estado) estado.textContent = 'este teléfono no guarda: imprima antes de cerrar';
+    }
+  }
+
+  camposTexto.forEach(function (el) {
+    el.addEventListener('input', function () { guardarTexto(el); refrescarImpresion(); });
+  });
+  camposRadio.forEach(function (el) {
+    el.addEventListener('change', function () {
+      guardarRadio(document.getElementsByName(el.name));
+      refrescarImpresion();
+    });
+  });
+
+  // Para cada prueba, arma en el recuadro de impresión el resultado elegido y lo
+  // escrito, en texto llano. Así, al imprimir, se ve la respuesta aunque el
+  // teléfono no dibuje los controles marcados. Las horas anotadas van también.
+  var ids = ['0', '1', '2', '3', '4', '5', '6'];
+  function refrescarImpresion() {
+    ids.forEach(function (n) {
+      var pr = document.getElementById('pr' + n);
+      if (!pr) return;
+      var marcado = document.querySelector('input[name=r' + n + ']:checked');
+      var resultado = marcado ? marcado.getAttribute('data-txt') : 'sin responder';
+      var texto = document.getElementById('v' + n);
+      var vio = (texto && texto.value.trim()) ? texto.value : '(sin escribir)';
+      var horas = '';
+      document.querySelectorAll('#p' + n + ' input.hora').forEach(function (h) {
+        var rot = h.parentNode.firstChild.textContent.trim();
+        horas += rot + ': ' + (h.value.trim() || '(vacío)') + '. ';
+      });
+      pr.textContent = horas + 'Resultado: ' + resultado + '. Qué vio: ' + vio;
+    });
+    var libre = document.getElementById('vF');
+    var prF = document.getElementById('prF');
+    if (prF) {
+      prF.textContent = (libre && libre.value.trim()) ? libre.value : '(sin escribir)';
+    }
+  }
+
+  window.addEventListener('beforeprint', refrescarImpresion);
+  document.getElementById('btnPdf').addEventListener('click', function () {
+    refrescarImpresion();
+    window.print();
+  });
+
+  refrescarImpresion();
+})();
+</script>
+</body>
+</html>
