@@ -94,6 +94,7 @@ Compilar-Fuente (Join-Path $MAESTRO 'src\semaforo.cpp')        'semaforo.o'
 Compilar-Fuente (Join-Path $MAESTRO 'src\modo_automatico.cpp') 'modo_automatico.o'
 Compilar-Fuente (Join-Path $MAESTRO 'src\modo_inteligente.cpp') 'modo_inteligente.o'
 Compilar-Fuente (Join-Path $MAESTRO 'src\demanda.cpp')         'demanda.o'
+Compilar-Fuente (Join-Path $AQUI 'deg_auto_doble_maestro.cpp') 'deg_auto_doble.o'   # A-15
 Compilar-Fuente (Join-Path $AQUI 'arnes_automatico.cpp')       'arnes_automatico.o'
 
 $exe = Join-Path $BUILD 'validar_automatico.exe'

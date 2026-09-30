@@ -75,6 +75,7 @@ $fuentesMaestro = @(
     (Join-Path $MAESTRO 'src\modos.cpp'),
     (Join-Path $MAESTRO 'src\respaldo.cpp'),
     (Join-Path $MAESTRO 'src\reloj.cpp'),
+    (Join-Path $MAESTRO 'src\deg_auto.cpp'),     # A-15: lo llama coordinador.cpp
     (Join-Path $RR 'rtc_periferico.cpp'),
     (Join-Path $DP 'adaptador_maestro_deg.cpp')
 )
@@ -92,6 +93,7 @@ $fuentesEsclavo = @(
     (Join-Path $ESCLAVO 'src\demanda.cpp'),
     (Join-Path $ESCLAVO 'src\respaldo.cpp'),
     (Join-Path $ESCLAVO 'src\reloj.cpp'),
+    (Join-Path $ESCLAVO 'src\deg_auto.cpp'),     # A-15: lo llama main.cpp
     (Join-Path $RR 'rtc_periferico.cpp'),
     (Join-Path $DP 'adaptador_esclavo.cpp')
 )

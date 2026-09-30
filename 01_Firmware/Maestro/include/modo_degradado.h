@@ -103,6 +103,9 @@ bool modo_degradado_huboSync();
 // modo_degradado_huboSync() dice que si.
 unsigned long modo_degradado_msDesdeSync();
 
+// A-15 (SPEC_2 7.ter): la sync del par por debajo de SYNC_FRESCA_MS. Parte del APTO.
+bool modo_degradado_syncFresca();
+
 // Se acerca el limite duro: quedan AVISO_LIMITE_MS o menos. Existe para que la caida a
 // ambar no sorprenda a nadie -el estado seguro no puede depender de que alguien se
 // acuerde, pero avisar con margen evita que el cruce se degrade sin que hubiera falta-.

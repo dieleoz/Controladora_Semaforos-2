@@ -87,6 +87,11 @@ static const uint16_t FLAG_DEGRADADO = 0x0004;
 // un bit que estaba libre de DR4, dentro de la suma: no cambia el formato ni la firma, y un
 // firmware anterior lo ignora. Solo vale junto a FLAG_DEGRADADO.
 static const uint16_t FLAG_TESTIGO   = 0x0008;
+// A-15 (SPEC_2 7.ter): la opcion del Degradado automatico de ESTA punta y el ultimo APTO
+// oido de la otra. Mismo molde que FLAG_TESTIGO: bits libres de DR4, dentro de la suma y
+// sin tocar la firma. respaldo_borrar() los pone a 0, que es la opcion apagada.
+static const uint16_t FLAG_DEG_AUTO  = 0x0010;
+static const uint16_t FLAG_OTRO_APTO = 0x0020;
 
 static bool contenidoValido = false;
 
@@ -334,3 +339,19 @@ bool respaldo_testigoActivo() {
   const uint16_t f = leerReg(REG_FLAGS);
   return contenidoValido && (f & FLAG_DEGRADADO) != 0 && (f & FLAG_TESTIGO) != 0;
 }
+
+// --- A-15: Degradado automatico --------------------------------------------
+// Solo se escribe si el bit cambia: el APTO del otro llega en cada latido.
+static void ponerFlag(uint16_t bit, bool activo) {
+  const uint16_t f = leerReg(REG_FLAGS);
+  const uint16_t n = activo ? (uint16_t)(f | bit) : (uint16_t)(f & ~bit);
+  if (n == f && contenidoValido) return;
+  escribirReg(REG_FLAGS, n);
+  escribirReg(REG_FIRMA, FIRMA);
+  sellar();
+}
+
+void respaldo_guardarDegAuto(bool activo) { ponerFlag(FLAG_DEG_AUTO, activo); }
+bool respaldo_degAuto() { return contenidoValido && (leerReg(REG_FLAGS) & FLAG_DEG_AUTO) != 0; }
+void respaldo_guardarOtroApto(bool apto) { ponerFlag(FLAG_OTRO_APTO, apto); }
+bool respaldo_otroApto() { return contenidoValido && (leerReg(REG_FLAGS) & FLAG_OTRO_APTO) != 0; }

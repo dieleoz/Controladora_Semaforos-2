@@ -60,6 +60,7 @@ $fuentesMaestro = @(
     (Join-Path $MAESTRO 'src\coordinador.cpp'),
     (Join-Path $MAESTRO 'src\semaforo.cpp'),
     (Join-Path $MAESTRO 'src\modo_automatico.cpp'),
+    (Join-Path $AQUI 'deg_auto_doble_maestro.cpp'),   # A-15: ver su cabecera
     (Join-Path $DP 'adaptador_maestro.cpp')
 )
 
@@ -74,6 +75,7 @@ $fuentesEsclavo = @(
     (Join-Path $ESCLAVO 'src\config_ciclo.cpp'),
     (Join-Path $ESCLAVO 'src\demanda.cpp'),
     (Join-Path $ESCLAVO 'src\respaldo.cpp'),
+    (Join-Path $ESCLAVO 'src\deg_auto.cpp'),     # A-15: lo llama main.cpp
     (Join-Path $DP 'adaptador_esclavo.cpp')
 )
 

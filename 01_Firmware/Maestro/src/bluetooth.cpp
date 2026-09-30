@@ -14,6 +14,8 @@
 #include "botones.h"       // D-13: camara_estado(), la fuente del campo CAM:
 #include "protocolo.h"     // D-23 gemelo: los tres contadores de linea de SFTY-15
 #include "version_fw.h"    // el sello del binario, inyectado por platformio.ini
+#include "deg_auto.h"      // A-15: SET_DEG_AUTO / CONSULTA_DEG_AUTO
+#include "respaldo.h"      // A-15: la opcion propia y el APTO oido del otro, para la consulta
 #include <string.h>
 #include <stdio.h>
 
@@ -715,6 +717,7 @@ static void procesarComando(const char* cmd) {
   } else if (strncmp(cmd, "CMD:", 4) == 0 &&
              (strcmp(cmd + 4, "SET_MODO:MENU") == 0 ||
               strcmp(cmd + 4, "SET_MODO:ALCANCE") == 0 ||
+              strcmp(cmd + 4, "CONSULTA_DEG_AUTO") == 0 ||   // A-15: solo mira
               strcmp(cmd + 4, "VERSION") == 0)) {
     accion = cmd + 4;
   } else {
@@ -869,6 +872,32 @@ static void procesarComando(const char* cmd) {
         enviarTramaConCrc(p);
       }
     }
+  } else if (strncmp(accion, "SET_DEG_AUTO:", 13) == 0) {
+    // A-15 (SPEC_2 7.ter (a)): la opcion del Degradado automatico. Molde SET_TIEMPOS: el
+    // %c delata lo que sobra, y la respuesta sale de lo que devolvio degAuto_orden(). Si se
+    // acepta NO se contesta aqui: el $ACK sale de bluetooth_loop() cuando el ECO del Esclavo
+    // refleja el cambio (molde REINICIAR_RELOJ).
+    int v = -1;
+    char sobra = 0;
+    if (sscanf(accion + 13, "%d%c", &v, &sobra) != 1 || (v != 0 && v != 1)) {
+      enviarTramaConCrc("$ERR,CMD:SET_DEG_AUTO,DESC:FORMATO_INVALIDO");
+    } else {
+      const DegAutoOrden r = degAuto_orden(v == 1);
+      if (r == DAO_SIN_ENLACE) {
+        enviarTramaConCrc("$ERR,CMD:SET_DEG_AUTO,DESC:SIN_ENLACE_CON_EL_OTRO_POSTE");
+      } else if (r == DAO_EN_DEGRADADO) {
+        enviarTramaConCrc("$ERR,CMD:SET_DEG_AUTO,DESC:EN_DEGRADADO_SALGA_PRIMERO");
+      } else {
+        bluetooth_reportarEvento("APP_BLUETOOTH", v == 1 ? "SET_DEG_AUTO_1" : "SET_DEG_AUTO_0");
+      }
+    }
+  } else if (strcmp(accion, "CONSULTA_DEG_AUTO") == 0) {
+    // A-15: la opcion propia, el ultimo APTO oido del otro y el APTO propio. No toca nada.
+    char p[64];
+    snprintf(p, sizeof(p), "$ACK,CMD:CONSULTA_DEG_AUTO,RESULT:ESTE_%s_OTRO_%s_APTO_%s",
+             respaldo_degAuto() ? "ON" : "OFF", respaldo_otroApto() ? "ON" : "OFF",
+             degAuto_aptoPropio() ? "SI" : "NO");
+    enviarTramaConCrc(p);
   } else if (strcmp(accion, "FORZAR_ROJO") == 0) {
     coordinador_forzarRojoTotal();
     enviarTramaConCrc("$ACK,CMD:FORZAR_ROJO,RESULT:OK");
@@ -1197,6 +1226,17 @@ void bluetooth_loop() {
   // despachador para que una orden que llega en esta vuelta no se conteste en la misma: el
   // cristal recien adoptado todavia no ha podido contar.
   atenderVeredictoReloj();
+
+  // A-15: el $ACK diferido de SET_DEG_AUTO, una respuesta por veredicto.
+  switch (degAuto_veredicto()) {
+    case DAV_ON_EFECTIVO: enviarTramaConCrc("$ACK,CMD:SET_DEG_AUTO,RESULT:ON_EFECTIVO"); break;
+    case DAV_ON_FALTA: enviarTramaConCrc("$ACK,CMD:SET_DEG_AUTO,RESULT:ON_FALTA_EL_OTRO_POSTE"); break;
+    case DAV_OFF: enviarTramaConCrc("$ACK,CMD:SET_DEG_AUTO,RESULT:OFF"); break;
+    case DAV_SIN_ACUSE:
+      enviarTramaConCrc("$ERR,CMD:SET_DEG_AUTO,DESC:CAMBIADO_AQUI_SIN_ACUSE_DEL_OTRO_POSTE");
+      break;
+    default: break;
+  }
 
   // 2. Emision periodica de telemetria cada 2000 ms ($STATUS,...)
   //

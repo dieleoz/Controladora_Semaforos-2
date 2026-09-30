@@ -6,6 +6,8 @@
 #include "semaforo.h"
 #include "bluetooth.h"   // N-73: la Caja Negra, que hasta hoy no la llamaba nadie
 #include "modos.h"      // N-130: para no acusar una demanda que este modo no atiende
+#include "deg_auto.h"   // A-15: APTO|ECO en el param de toda PING/GO_* de este fichero
+#define protocolo_enviarPaquete degAuto_enviar
 #include <string.h>
 #include <stdio.h>
 
@@ -138,7 +140,7 @@ bool coordinador_hayCancelaAmbarDelEsclavo() {
 // tramas ya se perdian -sin leer- dentro del buffer del UART.
 void coordinador_escucharEnAmbar() {
   RF_Packet pkt;
-  if (!protocolo_hayPaqueteDisponible(&pkt)) return;
+  if (!protocolo_hayPaqueteDisponible(&pkt) || degAuto_alRecibir(&pkt)) return;
 
   if (pkt.command == CMD_AMBAR_ESCLAVO) {
     cancelaAmbarPedidaPorEsclavo = false;   // llego un armado despues: manda el ultimo
@@ -964,6 +966,7 @@ void coordinador_actualizar() {
 
   RF_Packet pkt;
   bool llego = protocolo_hayPaqueteDisponible(&pkt);
+  if (llego && degAuto_alRecibir(&pkt)) llego = false;   // A-15: PRESENTE no es respuesta
 
   if (llego) {
     // 1.49c: el reloj de silencio SOLO lo renueva una respuesta (ver la declaracion). Se
@@ -1017,7 +1020,7 @@ void coordinador_actualizar() {
     // otra pregunta-. rojoEsclavoConfirmado NO se pone con el PONG: el rojo consta cuando
     // llegue el ACK_RED de esta orden, no antes. Fuera de QV_ESCLAVO + C_IDLE el param se
     // ignora: en cualquier otra espera ya hay una orden de luz en curso que manda.
-    if (pkt.command == CMD_PONG && pkt.param == PONG_VERDE_SOLTADO &&
+    if (pkt.command == CMD_PONG && (pkt.param & PONG_VERDE_SOLTADO) != 0 &&
         quienVerde == QV_ESCLAVO && estadoC == C_IDLE) {
       quienVerde = QV_NINGUNO;
       rojoEsclavoConfirmado = false;
@@ -1503,6 +1506,11 @@ bool coordinador_listoParaContar() {
 
 bool coordinador_comunicacionPerdida() {
   return estadoC == C_FALLO;
+}
+
+// A-15: la cuenta del Degradado automatico. 0xFFFFFFFF = el Esclavo no contesto nunca.
+unsigned long coordinador_msDesdeRespuesta() {
+  return tUltimaRespuestaEsclavo > 0 ? millis() - tUltimaRespuestaEsclavo : 0xFFFFFFFFUL;
 }
 
 // N-82.bis: el rojo del Esclavo CONSTA, no se supone. coordinador_forzarMenu() pone la

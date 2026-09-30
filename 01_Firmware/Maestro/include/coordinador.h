@@ -19,6 +19,8 @@ void coordinador_actualizar();
 void coordinador_actualizar_background();
 bool coordinador_listoParaContar();
 bool coordinador_comunicacionPerdida();
+// A-15: ms desde la ultima RESPUESTA del Esclavo (el ancla de SFTY-6); 0xFFFFFFFF si nunca.
+unsigned long coordinador_msDesdeRespuesta();
 // N-82.bis: true solo en C_MENU_IDLE y con el ACK_RED del Esclavo a la orden de rojo de
 // esta entrada al menu. Es lo que hace seguro el test de lamparas del Maestro.
 bool coordinador_rojoEsclavoConfirmado();

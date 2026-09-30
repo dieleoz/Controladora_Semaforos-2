@@ -201,6 +201,17 @@ static uint32_t edadTestigoS() {
 
 static bool testigoEnCurso() { return testigo && modoActual_get() == MODO_DEGRADADO; }
 
+// A los 28 dias de la ultima marca, y despues una vez al dia: pedir renovar el testigo.
+static uint32_t diaRenovarAvisado = 0xFFFFFFFFUL;
+static void avisarRenovacion() {
+  const uint32_t edad = edadTestigoS();
+  if (edad == 0xFFFFFFFFUL || edad < TESTIGO_AVISO_S) { diaRenovarAvisado = 0xFFFFFFFFUL; return; }
+  const uint32_t dia = (edad - TESTIGO_AVISO_S) / 86400UL;
+  if (dia == diaRenovarAvisado) return;
+  diaRenovarAvisado = dia;
+  bluetooth_reportarAlarma("DEGRADADO", "RENOVAR_TESTIGO", "REPITA_EL_TESTIGO");
+}
+
 // ---------------------------------------------------------------------------
 // D-26 (4) - UNA HORA QUE SALTA MAS QUE EL MARGEN DEL CRUCE SE APLICA PASANDO POR ROJO.
 //
@@ -512,6 +523,11 @@ bool modo_degradado_huboSync() {
 
 unsigned long modo_degradado_msDesdeSync() {
   return msDesdeSyncEfectivo();
+}
+
+// A-15: la sync del PAR, fresca con el mismo borde que la puerta de D-18.
+bool modo_degradado_syncFresca() {
+  return msDesdeSyncEfectivo() < SYNC_FRESCA_MS;
 }
 
 // SIN FECHA NO HAY AVISO, Y ES DELIBERADO: "nunca sincronizado" no es "se acerca el
@@ -1018,6 +1034,7 @@ void modo_degradado_loop() {
   // DS3231. El de 48 h mide la sync de radio, que este modo existe para no necesitar. Sin
   // fecha, o con el reloj por debajo de la marca, se da por vencido.
   if (testigo) {
+    avisarRenovacion();   // 29/09: a los 28 dias y despues una vez al dia
     if (edadTestigoS() >= TESTIGO_VIGENCIA_S) {
       bluetooth_reportarAlarma("DEGRADADO", "LIMITE_31D", "CAMBIO_A_AMBAR");
       irAAmbar("Testigo vencido", "Repita el testigo");

@@ -104,5 +104,12 @@ bool respaldo_degradadoActivo();
 void respaldo_guardarTestigo();
 bool respaldo_testigoActivo();
 
+// A-15 (SPEC_2 7.ter): la opcion del Degradado automatico de esta punta (bit4) y el ultimo
+// APTO oido de la otra (bit5). Sin haberlo oido nunca, 0.
+void respaldo_guardarDegAuto(bool activo);
+bool respaldo_degAuto();
+void respaldo_guardarOtroApto(bool apto);
+bool respaldo_otroApto();
+
 // Borra todo. Deja el respaldo como en un equipo nuevo.
 void respaldo_borrar();

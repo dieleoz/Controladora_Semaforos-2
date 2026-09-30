@@ -9,6 +9,8 @@
 #include "botones.h"       // D-13: camara_estado(), la fuente del campo CAM:
 #include "modo_degradado.h"  // N-106: la salida ordenada y sus dos finales
 #include "version_fw.h"    // el sello del binario, inyectado por platformio.ini
+#include "deg_auto.h"      // A-15: SET_DEG_AUTO / CONSULTA_DEG_AUTO
+#include "respaldo.h"      // A-15: la opcion propia y el APTO oido del Maestro
 #include <string.h>
 #include <stdio.h>
 
@@ -885,6 +887,17 @@ static void procesarComando(const char* cmd) {
     return;
   }
 
+  // A-15 (SPEC_4 3.2): la consulta del Degradado automatico no toca nada: entra con y sin
+  // PIN, por lo mismo que la version.
+  if (strcmp(cmd, "CMD:CONSULTA_DEG_AUTO") == 0 || strcmp(cmd, "CMD:PIN:1234:CONSULTA_DEG_AUTO") == 0) {
+    char p[64];
+    snprintf(p, sizeof(p), "$ACK,CMD:CONSULTA_DEG_AUTO,RESULT:ESTE_%s_OTRO_%s_APTO_%s",
+             respaldo_degAuto() ? "ON" : "OFF", respaldo_otroApto() ? "ON" : "OFF",
+             degAuto_aptoPropio() ? "SI" : "NO");
+    enviarTramaConCrc(p);
+    return;
+  }
+
   // Validación estricta de PIN de 4 dígitos (1234)
   if (strncmp(cmd, "CMD:PIN:1234:", 13) != 0) {
     enviarTramaConCrc("$ERR,CMD:AUTH_FAILED,DESC:PIN_INVALIDO");
@@ -1196,6 +1209,23 @@ static void procesarComando(const char* cmd) {
         bluetooth_reportarEvento("APP_BLUETOOTH", "SET_MODO_DEG_T_RECHAZADO");
       }
     }
+  } else if (strncmp(accion, "SET_DEG_AUTO:", 13) == 0) {
+    // A-15 (SPEC_2 7.ter (a)): gemela de la del Maestro. Molde SET_TIEMPOS; aceptada, el
+    // $ACK sale de bluetooth_loop() cuando el ECO del Maestro refleja el cambio.
+    int v = -1;
+    char sobra = 0;
+    if (sscanf(accion + 13, "%d%c", &v, &sobra) != 1 || (v != 0 && v != 1)) {
+      enviarTramaConCrc("$ERR,CMD:SET_DEG_AUTO,DESC:FORMATO_INVALIDO");
+    } else {
+      const DegAutoOrden r = degAuto_orden(v == 1);
+      if (r == DAO_SIN_ENLACE) {
+        enviarTramaConCrc("$ERR,CMD:SET_DEG_AUTO,DESC:SIN_ENLACE_CON_EL_OTRO_POSTE");
+      } else if (r == DAO_EN_DEGRADADO) {
+        enviarTramaConCrc("$ERR,CMD:SET_DEG_AUTO,DESC:EN_DEGRADADO_SALGA_PRIMERO");
+      } else {
+        bluetooth_reportarEvento("APP_BLUETOOTH", v == 1 ? "SET_DEG_AUTO_1" : "SET_DEG_AUTO_0");
+      }
+    }
   } else if (strcmp(accion, "TEST_LEDS") == 0) {
     // RECHAZADO A PROPOSITO, y no es una limitacion pendiente de quitar.
     //
@@ -1472,6 +1502,17 @@ void bluetooth_loop() {
       avisoAmbarEsperando = false;
       bluetooth_reportarAlarma("AVISO_RF", "SIN_CONFIRMAR", "AVISE_POSTE_1");
     }
+  }
+
+  // A-15: el $ACK diferido de SET_DEG_AUTO, una respuesta por veredicto.
+  switch (degAuto_veredicto()) {
+    case DAV_ON_EFECTIVO: enviarTramaConCrc("$ACK,CMD:SET_DEG_AUTO,RESULT:ON_EFECTIVO"); break;
+    case DAV_ON_FALTA: enviarTramaConCrc("$ACK,CMD:SET_DEG_AUTO,RESULT:ON_FALTA_EL_OTRO_POSTE"); break;
+    case DAV_OFF: enviarTramaConCrc("$ACK,CMD:SET_DEG_AUTO,RESULT:OFF"); break;
+    case DAV_SIN_ACUSE:
+      enviarTramaConCrc("$ERR,CMD:SET_DEG_AUTO,DESC:CAMBIADO_AQUI_SIN_ACUSE_DEL_OTRO_POSTE");
+      break;
+    default: break;
   }
 
   // 1. Recepción de Comandos desde la App Móvil

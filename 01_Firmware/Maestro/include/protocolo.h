@@ -352,6 +352,16 @@
 // vez las dos cuentas-, y alli esta escrito el borde y por que es ese.
 #define AVISO_AMBAR_REINTENTOS  3
 
+// A-15 (SPEC_2 7.ter): EL DEGRADADO AUTOMATICO. Cada punta en Degradado emite
+// CMD_PRESENTE, param 0, cada 10 s en su segundo propio: la otra sabe que la radio volvio
+// sin salir del modo. No es orden de gobierno: no renueva ningun silencio ni la hora.
+// Los dos bits viajan en el param de CMD_PING/GO_GREEN/GO_RED (Maestro) y CMD_PONG
+// (Esclavo): APTO = esta punta entraria sola; ECO = el ultimo APTO que oyo del otro.
+// 0x01 es PONG_VERDE_SOLTADO (D-34): por eso el PONG se lee con mascara.
+#define CMD_PRESENTE   0x17
+#define DEG_AUTO_APTO  0x02
+#define DEG_AUTO_ECO   0x04
+
 // N-130: EL PARAM DE CMD_ACK_DEMANDA DICE SI LA DEMANDA SE VA A ATENDER O NO.
 //
 // Hasta el 04/09 el Maestro acusaba la demanda SIEMPRE y armaba su bandera SIEMPRE,

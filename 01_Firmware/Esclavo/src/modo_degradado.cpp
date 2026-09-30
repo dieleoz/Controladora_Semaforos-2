@@ -99,6 +99,17 @@ static uint32_t edadTestigoS() {
   return ahora - testigoMarcaS;
 }
 
+// A los 28 dias de la ultima marca, y despues una vez al dia: pedir renovar el testigo.
+static uint32_t diaRenovarAvisado = 0xFFFFFFFFUL;
+static void avisarRenovacion() {
+  const uint32_t edad = edadTestigoS();
+  if (edad == 0xFFFFFFFFUL || edad < TESTIGO_AVISO_S) { diaRenovarAvisado = 0xFFFFFFFFUL; return; }
+  const uint32_t dia = (edad - TESTIGO_AVISO_S) / 86400UL;
+  if (dia == diaRenovarAvisado) return;
+  diaRenovarAvisado = dia;
+  bluetooth_reportarAlarma("DEGRADADO", "RENOVAR_TESTIGO", "REPITA_EL_TESTIGO");
+}
+
 // ---------------------------------------------------------------------------
 // D-29 — LA VENTANA EN LA QUE LA REANUDACION TODAVIA PUEDE DECIDIRSE.
 //
@@ -765,6 +776,9 @@ void degradado_actualizar() {
     rendidoPorHora = false;
     iniciarSalida(true);
     return;
+  }
+  if (testigo && (estado == DEG_ENTRANDO || estado == DEG_ACTIVO)) {
+    avisarRenovacion();   // 29/09: a los 28 dias y despues una vez al dia
   }
   if (testigo && (estado == DEG_ENTRANDO || estado == DEG_ACTIVO) &&
       edadTestigoS() >= TESTIGO_VIGENCIA_S) {

@@ -16,6 +16,7 @@
 #include "respaldo.h"
 #include "semaforo.h"
 #include "bluetooth.h"
+#include "deg_auto.h"   // A-15: el Degradado automatico (SPEC_2 7.ter)
 #include <IWatchdog.h> // SFTY-1: Watchdog Timer
 
 // FASE 1 DEL PLAN DE ARQUITECTURA: aqui vivia el ultimo resto de la vieja maquina de
@@ -202,6 +203,9 @@ void loop() {
   if (modo_degradado_reanudarTrasCorte()) {
     modoActual_set(MODO_DEGRADADO);
   }
+  // A-15: cuenta y entrada del Degradado automatico, y PRESENTE en Degradado. Antes de
+  // leer 'modo', por lo mismo que la reanudacion de arriba.
+  degAuto_loop();
 
   ModoSistema modo = modoActual_get();
   if (modo != MODO_AUTOMATICO && modo != MODO_DEGRADADO && modo != MODO_AMBAR) {
@@ -219,6 +223,8 @@ void loop() {
      // fichero. Ademas asi el aviso queda anotado ANTES de que se consuma treinta
      // lineas mas abajo, en la misma vuelta.
      coordinador_escucharEnAmbar();
+  } else if (modo == MODO_DEGRADADO) {
+     degAuto_escucharEnDegradado();   // A-15: solo PRESENTE; lo demas se descarta
   }
 
   // N-142 (04/09): EL ESCLAVO PIDIO AMBAR DESDE SU TELEFONO. SE LLEVA EL CRUCE ENTERO.

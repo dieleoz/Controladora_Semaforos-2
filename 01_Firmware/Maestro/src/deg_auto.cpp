@@ -1,0 +1,164 @@
+// ===== src/deg_auto.cpp =====
+// A-15 (SPEC_2 7.ter): el Degradado automatico en la punta Maestro. Ver deg_auto.h.
+#include "deg_auto.h"
+#include "bluetooth.h"
+#include "coordinador.h"
+#include "modo_degradado.h"
+#include "modos.h"
+#include "reloj.h"
+#include "respaldo.h"
+#include <stdio.h>
+
+// (a) APTO del Maestro: opcion propia, un modo que cicla solo -en MENU, MANUAL, AMBAR,
+// ALCANCE u HORA hay una persona-, hora fiable y la sync del PAR fresca.
+bool degAuto_aptoPropio() {
+  const ModoSistema m = modoActual_get();
+  return respaldo_degAuto() && (m == MODO_AUTOMATICO || m == MODO_INTELIGENTE) &&
+         reloj_horaFiable() && modo_degradado_syncFresca();
+}
+
+// --- El $ACK diferido de SET_DEG_AUTO (molde REINICIAR_RELOJ) ---------------
+// Solo vale un ECO que conteste a una trama emitida DESPUES de la orden: el PONG que llega
+// antes refleja el APTO viejo.
+static bool ordenPendiente = false;
+static bool ordenValor = false;
+static bool enviadoTrasOrden = false;
+static bool aptoEnviado = false;
+static unsigned long tOrden = 0;
+static DegAutoVeredicto veredicto = DAV_NINGUNO;
+
+void degAuto_enviar(uint8_t cmd, uint8_t param) {
+  if (cmd == CMD_PING || cmd == CMD_GO_GREEN || cmd == CMD_GO_RED) {
+    aptoEnviado = degAuto_aptoPropio();
+    if (ordenPendiente) enviadoTrasOrden = true;
+    if (aptoEnviado) param |= DEG_AUTO_APTO;
+    if (respaldo_otroApto()) param |= DEG_AUTO_ECO;
+  }
+  protocolo_enviarPaquete(cmd, param);
+}
+
+DegAutoOrden degAuto_orden(bool activar) {
+  if (modoActual_get() == MODO_DEGRADADO) return DAO_EN_DEGRADADO;
+  // Sin enlace el Esclavo no se entera y creeria apta a esta punta (SPEC_2 7.ter (a)).
+  if (coordinador_msDesdeRespuesta() > SFTY6_SILENCIO_MS) return DAO_SIN_ENLACE;
+  respaldo_guardarDegAuto(activar);
+  ordenPendiente = true;
+  ordenValor = activar;
+  enviadoTrasOrden = false;
+  tOrden = millis();
+  veredicto = DAV_NINGUNO;
+  return DAO_ACEPTADA;
+}
+
+DegAutoVeredicto degAuto_veredicto() {
+  const DegAutoVeredicto v = veredicto;
+  veredicto = DAV_NINGUNO;
+  return v;
+}
+
+// --- (c) PRESENTE: la radio volvio, sin salir del modo ------------------------
+static bool presenteOido = false;
+static unsigned long tPresente = 0;
+
+static void oirPresente() {
+  // Una vez por recuperacion: se rearma tras 3 x PRESENTE_S sin oirla.
+  const bool nueva = !presenteOido || millis() - tPresente > 3UL * PRESENTE_S * 1000UL;
+  presenteOido = true;
+  tPresente = millis();
+  if (!nueva) return;
+  if (modoActual_get() == MODO_DEGRADADO) {
+    bluetooth_reportarEvento("DEGRADADO", "ENLACE_DISPONIBLE");
+  } else {
+    bluetooth_reportarAlarma("DEGRADADO", "OTRO_POSTE_EN_DEGRADADO", "REVISE_EL_OTRO_POSTE");
+  }
+}
+
+bool degAuto_alRecibir(const RF_Packet* pkt) {
+  // PRESENTE no es respuesta: no renueva tUltimaRespuestaEsclavo ni pone handshakeOk.
+  if (pkt->command == CMD_PRESENTE) {
+    oirPresente();
+    return true;
+  }
+  if (pkt->command == CMD_PONG) {
+    respaldo_guardarOtroApto((pkt->param & DEG_AUTO_APTO) != 0);
+    const bool eco = (pkt->param & DEG_AUTO_ECO) != 0;
+    if (ordenPendiente && enviadoTrasOrden && eco == aptoEnviado) {
+      ordenPendiente = false;
+      veredicto = !ordenValor ? DAV_OFF : (respaldo_otroApto() ? DAV_ON_EFECTIVO : DAV_ON_FALTA);
+    }
+  }
+  return false;
+}
+
+void degAuto_escucharEnDegradado() {
+  RF_Packet pkt;
+  if (protocolo_hayPaqueteDisponible(&pkt) && pkt.command == CMD_PRESENTE) {
+    degAuto_alRecibir(&pkt);
+  }
+}
+
+// --- (b) La entrada ----------------------------------------------------------
+static const char* nombreMotivo(MotivoTestigo m) {
+  switch (m) {
+    case MDT_FALTA_HORA:      return "MDT_FALTA_HORA";
+    case MDT_AHORA_DESFASADO: return "MDT_AHORA_DESFASADO";
+    case MDT_DESPEJE_RANGO:   return "MDT_DESPEJE_RANGO";
+    case MDT_INICIO_VENCIDO:  return "MDT_INICIO_VENCIDO";
+    case MDT_AMBAR_VIGENTE:   return "MDT_AMBAR_VIGENTE";
+    case MDT_EN_VERDE:        return "MDT_EN_VERDE";
+    case MDT_NO_GUARDADO:     return "MDT_NO_GUARDADO";
+    default:                  return "MDT_OK";
+  }
+}
+
+static void entrar() {
+  const uint32_t ahora = reloj_segundosDelDia();
+  // La primera marca de DEG_AUTO_MARCA_S que deja DEG_AUTO_ROJO_MIN_S de rojo o mas.
+  const uint32_t inicio = ((ahora + DEG_AUTO_ROJO_MIN_S + DEG_AUTO_MARCA_S - 1UL) /
+                           DEG_AUTO_MARCA_S * DEG_AUTO_MARCA_S) % 86400UL;
+  const MotivoTestigo m = modo_degradado_entrarTestigo(ahora, inicio, DEG_AUTO_DESPEJE_S);
+  if (m == MDT_OK) {
+    char det[sizeof("AUTO_ENTRADA_INICIO_HH:MM:SS")];
+    snprintf(det, sizeof(det), "AUTO_ENTRADA_INICIO_%02lu:%02lu:%02lu",
+             (unsigned long)(inicio / 3600UL), (unsigned long)(inicio / 60UL % 60UL),
+             (unsigned long)(inicio % 60UL));
+    bluetooth_reportarEvento("DEGRADADO", det);
+  } else {
+    char causa[sizeof("AUTO_RECHAZADA_MDT_AHORA_DESFASADO")];
+    snprintf(causa, sizeof(causa), "AUTO_RECHAZADA_%s", nombreMotivo(m));
+    bluetooth_reportarAlarma("DEGRADADO", causa, "SIGUE_EN_AMBAR");
+  }
+}
+
+static bool intentoHecho = false;   // un intento por corte: lo rearma una respuesta sana
+static uint32_t segPresente = 0xFFFFFFFFUL;
+
+void degAuto_loop() {
+  if (ordenPendiente && millis() - tOrden >= DEG_AUTO_ACUSE_MS) {
+    ordenPendiente = false;
+    veredicto = DAV_SIN_ACUSE;   // el cambio queda y se sigue publicando
+  }
+
+  if (modoActual_get() == MODO_DEGRADADO) {
+    // Maestro en s % 10 == 0, Esclavo en s % 10 == 5: medio duplex sin choque.
+    const uint32_t s = reloj_segundosDelDia();
+    if (reloj_enHora() && s % PRESENTE_S == 0 && s != segPresente) {
+      segPresente = s;
+      protocolo_enviarPaquete(CMD_PRESENTE);
+    }
+    return;
+  }
+
+  // Desde la ultima respuesta del Esclavo; sin ninguna, desde el arranque. No se mira
+  // C_FALLO: tambien llega por reintentos agotados con enlace (SPEC_2 3).
+  const unsigned long ms = coordinador_msDesdeRespuesta();
+  const unsigned long cuenta = (ms == 0xFFFFFFFFUL) ? millis() : ms;
+  if (cuenta < DEG_AUTO_ESPERA_MS) {
+    intentoHecho = false;
+    return;
+  }
+  // Opcion EFECTIVA -la propia Y el ultimo APTO oido del otro- y APTO propio ahora.
+  if (intentoHecho || !respaldo_otroApto() || !degAuto_aptoPropio()) return;
+  intentoHecho = true;
+  entrar();
+}

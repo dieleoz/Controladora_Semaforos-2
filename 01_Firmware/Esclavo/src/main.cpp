@@ -10,6 +10,7 @@
 #include "modo_degradado.h"  // SFTY-21
 #include "respaldo.h"        // N-20: lo que sobrevive al corte de energia
 #include "bluetooth.h"       // Módulo Bluetooth Serial (USART1)
+#include "deg_auto.h"        // A-15: el Degradado automatico (SPEC_2 7.ter)
 #include <IWatchdog.h>
 
 static unsigned long tInicioVerdeEsclavo = 0;
@@ -366,6 +367,7 @@ void loop() {
   // haya o no alguien mirando la pantalla. Con el modo inactivo esto no toca
   // nada; su unico efecto es mantener viva la cuenta atras del limite.
   degradado_actualizar();
+  degAuto_loop();   // A-15: cuenta, entrada automatica y PRESENTE en Degradado
 
   RF_Packet pkt;
   static unsigned long tUltimoComando = millis();
@@ -377,7 +379,8 @@ void loop() {
   // El PING NO la baja: el PING es justo por donde el aviso tiene que salir.
   static bool verdeSoltadoPorMargen = false;
 
-  if (protocolo_hayPaqueteDisponible(&pkt)) {
+  // A-15: PRESENTE se filtra AQUI, antes de reloj_notarRadio(): no es radio que gobierne.
+  if (protocolo_hayPaqueteDisponible(&pkt) && !degAuto_alRecibir(&pkt)) {
     // D-26 (3): LA RADIO SE OYE. Con CUALQUIER trama valida, de gobierno o de servicio, y
     // antes de mirar cual es: lo que se anota no es "el Maestro gobierna" -eso es
     // tUltimoComando, mas abajo, y NO lo refrescan ni la hora ni un PING en ambar- sino
@@ -410,7 +413,8 @@ void loop() {
       }
       // SFTY-17: se responde tras el retardo de cortesia. D-34: y el param dice si esta
       // punta solto su verde por margen, que es lo unico que el Maestro no puede ver.
-      programarRespuesta(CMD_PONG, verdeSoltadoPorMargen ? PONG_VERDE_SOLTADO : 0);
+      programarRespuesta(CMD_PONG, (verdeSoltadoPorMargen ? PONG_VERDE_SOLTADO : 0) |
+                                   degAuto_paramSaliente(CMD_PONG));   // A-15: APTO|ECO
     } else if (pkt.command == CMD_GO_AMBAR) {
       verdeSoltadoPorMargen = false;   // D-34: una orden de luz redefine la intencion
       // N-134 (04/09): EL AMBAR ORDENADO. Reportado en banco: "si le vuelvo a ambar,
