@@ -49,7 +49,7 @@ entonces cada lector deriva su propia versión.
 | | qué contesta |
 |---|---|
 | [`SPEC_1_Ciclo_y_Luces`](05_Funcional/SPEC_1_Ciclo_y_Luces.md) | qué hace **un** poste con sus tres luces y su pluma: modos, tiempos, transiciones, la barrera de salidas |
-| [`SPEC_2_Dos_Puntas_y_Radio`](05_Funcional/SPEC_2_Dos_Puntas_y_Radio.md) | 🔴 **lo único de verdad difícil: que los dos postes NUNCA den verde a la vez**, con una radio lenta que pierde tramas y sin cable entre ellos |
+| [`SPEC_2_Dos_Puntas_y_Radio`](05_Funcional/SPEC_2_Dos_Puntas_y_Radio.md) | 🔴 **lo único de verdad difícil: que los dos postes NUNCA den verde a la vez**, con una radio lenta que pierde tramas y sin cable entre ellos; y sin radio, el Degradado con testigo (§7.bis) y el **automatico a eleccion del tecnico** (§7.ter, 29/09) |
 | [`SPEC_3_La_Hora`](05_Funcional/SPEC_3_La_Hora.md) | de dónde sale la hora y qué pasa cuando se pierde — **es lo que autoriza el Degradado**, o sea el modo que da verdes sin confirmar con la otra punta |
 | [`SPEC_4_App_y_Bluetooth`](05_Funcional/SPEC_4_App_y_Bluetooth.md) | la **única** forma de operar el equipo (`D-16`): qué órdenes hay, qué contesta el equipo a cada una y de qué depende esa respuesta |
 | [`SPEC_5_Cobre_Camaras_Pluma`](05_Funcional/SPEC_5_Cobre_Camaras_Pluma.md) | 🛑 **qué hay en cada pin, qué es peligroso y qué no se ha medido nunca.** Se lee con un destornillador en la mano |

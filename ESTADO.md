@@ -5,14 +5,18 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 
 ## Por donde se retoma, en este orden
 
-1. **Marco prueba en banco el paquete de `D-35`** con `Pruebas_Funcional_2026-09-29.html`: version, perdida de
-   enlace, testigo sin cable, corte de luz. Informes del 28 y 29/09 en `evidencia/`: camaras OK en las cuatro.
-2. **Fase 5, lo duplicado Maestro/Esclavo a `lib/`**: solo despues de que la candidata pase banco.
+1. **Marco prueba en banco `a505fa2`** (Degradado automatico, `N-167`) con `Pruebas_Funcional_2026-09-29.html`, casos
+   0-8, y exporta los dos postes por caso. Se leen ENTEROS y contando (`CLAUDE.md` §7) antes de tocar nada.
+2. **Dos decisiones del responsable:** riesgo (f).6 (un poste pierde la hora: rojo fijo o ambar; recomendado rojo) y
+   el control negativo de `app_01`/`app_08` que el permiso bloqueo a un agente.
+3. **Fase 5, lo duplicado Maestro/Esclavo a `lib/`**: solo despues de que la candidata pase banco.
 
 ## Frentes abiertos (tres como maximo)
 
-- **Degradado con testigo (`D-35`)**: construido en firmware y app, `SIN_BANCO`. Sin medir: borrado de flash
-  frente al watchdog (`$EVENT` TESTIGO), conexion desde el PC (`Guia_Conectar_PC_Bluetooth.html`).
+- **Degradado automatico (`A-15`, `SPEC_2` §7.ter)**: `a505fa2` con arquitecto y QA APTO con condiciones atendidas,
+  compuerta 2x solo `D-22`. Riesgos residuales (f).1 (Manual durante el corte: 528 s de verde contra ambar en el arnes,
+  lo cubren paleteros y el aviso) y (f).6 sin decidir. Nada medido en tarjeta.
+- **Degradado con testigo (`D-35`)**: probado en banco el 29/09 (rojo hasta inicio, verdes alternos); ya no vence.
 - **Sin medir en tarjeta**: DR6/DR7 de la pila los escribe tambien la libreria RTC; CNT podria no ser monotono.
 
 ## Organizacion del repo por fases (acordada con el arquitecto de plataforma)

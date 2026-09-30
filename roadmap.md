@@ -89,12 +89,12 @@ python 01_Firmware/Simulaciones/banco/correr.py   # solo los packs. Sirve para i
 | 2 | Tramas de Marco: los 17 s del Esclavo, focos con el Maestro solo, camara con alguien delante (1.54) | funcional | acta de campo | respuesta de Marco |
 | 3 | Fase 5: lo duplicado Maestro/Esclavo a `lib/` | orquestador | un solo fuente por concepto | candidata pasada por banco |
 | 4 | `Validacion_LCD` se llevo 4 packs sin `banco/historico/` (`D-32`); renombrar toca 42 ficheros | responsable | decision | -- |
-| 5 | **`N-164` Degradado automatico (`SPEC_2` §7.ter, A-15):** firmware de las dos puntas y app en construccion el 29/09; sale en un solo paquete `SIN_BANCO` para banco de Marco con cortes en cada sentido y logs exportados de los dos postes | orquestador + funcional | paquete + exportes | compuerta |
+| 5 | **`N-164` Degradado automatico (`SPEC_2` §7.ter, A-15):** construido y validado en PC (`a505fa2`, `N-167`); falta el banco de Marco con la guia y los exportes; decidir el riesgo (f).6 | funcional + responsable | acta de banco | paquete `a505fa2` |
 | 6 | **`N-165`** El Degradado con testigo ya no vence (responsable, 29/09): alarma a los 28 dias para sincronizar desde el celular | orquestador | con `N-164` | -- |
 | 7 | **`N-166` Colision de nombre:** `A-15` ya existia (fila «UNA HORA» del 08/09) antes del Degradado automatico | orquestador | renombrar una | -- |
-| 8 | **30/09, paquete validado de `a0d605b`:** quitar el vencimiento de 31 dias (decidido, no construido), dobles del simulador del puente (no enlaza), pruebas del automatico vistas en rojo y arnes de dos puntas, arquitecto, QA, compuerta limpia y logs de Marco; `SET_DEG_AUTO` no se acusa con el Maestro en MENU | orquestador | .zip validado | logs de Marco |
+| 8 | ~~Paquete validado de `a0d605b`~~ — hecho: `a505fa2` (`N-167`) | -- | -- | -- |
 
-### `N-167` El paquete validado de `a0d605b` (30/09): el runbook entero, en orden y sin saltos
+### `N-167` El paquete validado de `a0d605b`: el runbook entero — ✅ HECHO el 29-30/09, sale `a505fa2` `SIN_BANCO`
 
 El 29/09 salio `a0d605b` `SIN_BANCO` sin pruebas propias ni compuerta, por decision del responsable, para que el
 funcional lo pruebe en banco. Este es el camino para que salga validado. **Un rojo en cualquier paso para el paquete**
