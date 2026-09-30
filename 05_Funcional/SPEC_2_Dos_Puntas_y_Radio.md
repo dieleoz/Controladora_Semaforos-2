@@ -258,7 +258,8 @@ persistido es de testigo, la puerta que comprueba es el **límite de 31 días**,
 reinicio cayó ANTES de `inicio`, sigue en rojo fijo hasta esa hora — la reanudación no enciende nada que la entrada
 no hubiera encendido ya.
 
-**Vencimiento (31 días, aviso a los 28).** 🔴 Hoy cada punta sale a ámbar en SU marca: dos testigos puestos con
+**~~Vencimiento (31 días)~~ — derogado el 29/09 (§7.ter (d)).**
+ 🔴 Hoy cada punta sale a ámbar en SU marca: dos testigos puestos con
 el traslado de por medio dan verde contra ámbar ese traslado. Lo sustituye la regla de medianoche de §7.ter (d).
 Repetir el testigo —una vez al mes— reinicia la cuenta. **La deriva entre los DOS DS3231**, que es lo único que
 corre sin radio y sin la vigilancia de §8, es del orden de **10 s/mes** (`DECISIONES.md` D-26, motivo: ±2 ppm cada uno)
@@ -393,15 +394,10 @@ conoce. El Maestro en Degradado hoy no lee la radio (`main.cpp` no llama al coor
 `coordinador_escucharEnAmbar()`, que consume y descarta todo salvo `CMD_PRESENTE`. **Oída por una punta NO degradada:**
 `$ALARM DEGRADADO,OTRO_POSTE_EN_DEGRADADO,...,ACCION:REVISE_EL_OTRO_POSTE`, sin tocar la luz.
 
-**(d) Vencimiento a los 31 días — en un instante de pared común, en dos pasos (entra en esta
-versión, 29/09).** Vale para todo Degradado con testigo
-(manual o automático). No se ejecuta en la marca propia —las dos marcas difieren y una punta se iría a ámbar con la
-otra en verde—, sino **a las 00:00:00 de pared**, donde la guarda de medianoche de `ciclo_degradado_fase()` pone
-despeje en las dos. **Primer paso:** la primera 00:00:00 con edad ≥ 31 días, ROJO FIJO (`$ALARM DEGRADADO,LIMITE_31D,
-CAMBIO_A_ROJO`). **Segundo paso:** la 00:00:00 siguiente, ámbar. Un solo paso no basta: si las dos marcas quedan a
-cada lado de una medianoche, las puntas vencen en noches distintas. Con las marcas a menos de 24 h (en la automática
-siempre: es el mismo corte), cuando una pasa a ámbar la otra ya está en rojo. **Cuesta 24 h de rojo fijo.** El aviso
-de los 28 días no cambia.
+**(d) Sin vencimiento (responsable, 29/09; deroga los 31 días de `D-35`).** El Degradado con testigo, manual o
+automático, no vence ni cambia de luz por antigüedad. A los 28 días de la última marca de testigo, y después una vez
+al día, cada punta manda `$ALARM` a la app pidiendo sincronizar desde el celular (repetir el testigo en los dos postes),
+sin tocar luz ni modo. Riesgo aceptado: la deriva de los dos relojes (~10 s/mes, `D-26`, sin medir) contra el despeje.
 
 **(e) Lo que publica.** El `$STATUS` del Maestro en `MODO_DEGRADADO` lleva **`ESC:?`**: `coordinador_estadoEsclavo()`
 pregunta el modo antes que `quienVerde`, que hoy sigue publicando lo último conocido. `CONSULTA_DEG_AUTO`, sin PIN,

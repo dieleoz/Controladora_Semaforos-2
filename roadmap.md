@@ -90,7 +90,7 @@ python 01_Firmware/Simulaciones/banco/correr.py   # solo los packs. Sirve para i
 | 3 | Fase 5: lo duplicado Maestro/Esclavo a `lib/` | orquestador | un solo fuente por concepto | candidata pasada por banco |
 | 4 | `Validacion_LCD` se llevo 4 packs sin `banco/historico/` (`D-32`); renombrar toca 42 ficheros | responsable | decision | -- |
 | 5 | **`N-164` Degradado automatico (`SPEC_2` §7.ter, A-15):** firmware de las dos puntas y app en construccion el 29/09; sale en un solo paquete `SIN_BANCO` para banco de Marco con cortes en cada sentido y logs exportados de los dos postes | orquestador + funcional | paquete + exportes | compuerta |
-| 6 | **`N-165` Vencimiento comun a 31 dias** (`SPEC_2` §7.ter (d)) entra en `N-164` por decision del responsable: cuesta 24 h de rojo fijo antes del ambar. Corrige tambien el de `D-35`, que vencia en la marca de cada punta | orquestador | con `N-164` | -- |
+| 6 | **`N-165`** El Degradado con testigo ya no vence (responsable, 29/09): alarma a los 28 dias para sincronizar desde el celular | orquestador | con `N-164` | -- |
 | 7 | **`N-166` Colision de nombre:** `A-15` ya existia (fila «UNA HORA» del 08/09) antes del Degradado automatico | orquestador | renombrar una | -- |
 
 Fases de organizacion del repo: 0 paquetes a `entregas/` · 1 inventarios · 2 `CLAUDE.md` a 200 y `HISTORIA.md` ·
