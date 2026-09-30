@@ -86,7 +86,7 @@ static void oirPresente() {
   if (modoActual_get() == MODO_DEGRADADO) {
     bluetooth_reportarEvento("DEGRADADO", "ENLACE_DISPONIBLE");
   } else {
-    bluetooth_reportarAlarma("DEGRADADO", "OTRO_POSTE_EN_DEGRADADO", "REVISE_EL_OTRO_POSTE");
+    bluetooth_reportarAlarma("DEGRADADO", "OTRO_EN_DEGRADADO", "REVISE_OTRO");
   }
 }
 
@@ -120,14 +120,14 @@ void degAuto_escucharEnDegradado() {
 // --- (b) La entrada ----------------------------------------------------------
 static const char* nombreMotivo(MotivoTestigo m) {
   switch (m) {
-    case MDT_FALTA_HORA:      return "MDT_FALTA_HORA";
-    case MDT_AHORA_DESFASADO: return "MDT_AHORA_DESFASADO";
-    case MDT_DESPEJE_RANGO:   return "MDT_DESPEJE_RANGO";
-    case MDT_INICIO_VENCIDO:  return "MDT_INICIO_VENCIDO";
-    case MDT_AMBAR_VIGENTE:   return "MDT_AMBAR_VIGENTE";
-    case MDT_EN_VERDE:        return "MDT_EN_VERDE";
-    case MDT_NO_GUARDADO:     return "MDT_NO_GUARDADO";
-    default:                  return "MDT_OK";
+    case MDT_FALTA_HORA:      return "HORA";
+    case MDT_AHORA_DESFASADO: return "DESFASE";
+    case MDT_DESPEJE_RANGO:   return "DESPEJE";
+    case MDT_INICIO_VENCIDO:  return "INICIO";
+    case MDT_AMBAR_VIGENTE:   return "AMBAR";
+    case MDT_EN_VERDE:        return "EN_VERDE";
+    case MDT_NO_GUARDADO:     return "GUARDADO";
+    default:                  return "OK";
   }
 }
 
@@ -142,11 +142,11 @@ static void entrar() {
              (unsigned long)(inicio % 60UL));
     bluetooth_reportarEvento("DEGRADADO", det);
   } else {
-    char causa[sizeof("AUTO_RECHAZADA_MDT_AHORA_DESFASADO")];
-    snprintf(causa, sizeof(causa), "AUTO_RECHAZADA_%s", nombreMotivo(m));
+    char causa[sizeof("AUTO_NO_GUARDADO")];   // la CAUSA del $ALARM cabe en 19 (esp32_07)
+    snprintf(causa, sizeof(causa), "AUTO_NO_%s", nombreMotivo(m));
     // Sin flash, modo_degradado_entrarTestigo() ya forzo el rojo y dejo el MENU: rojo fijo.
     bluetooth_reportarAlarma("DEGRADADO", causa,
-                             m == MDT_NO_GUARDADO ? "QUEDA_EN_ROJO" : "SIGUE_EN_AMBAR");
+                             m == MDT_NO_GUARDADO ? "QUEDA_ROJO" : "SIGUE_AMBAR");
   }
 }
 

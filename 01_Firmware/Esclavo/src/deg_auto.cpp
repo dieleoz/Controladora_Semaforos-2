@@ -89,7 +89,7 @@ static void oirPresente() {
   if (degradado_gobiernaLuz()) {
     bluetooth_reportarEvento("DEGRADADO", "ENLACE_DISPONIBLE");
   } else {
-    bluetooth_reportarAlarma("DEGRADADO", "OTRO_POSTE_EN_DEGRADADO", "REVISE_EL_OTRO_POSTE");
+    bluetooth_reportarAlarma("DEGRADADO", "OTRO_EN_DEGRADADO", "REVISE_OTRO");
   }
 }
 
@@ -122,14 +122,14 @@ bool degAuto_alRecibir(const RF_Packet* pkt) {
 // --- (b) La entrada ----------------------------------------------------------------
 static const char* nombreRechazo(RechazoTestigo r) {
   switch (r) {
-    case DEG_RECHAZO_T_SIN_HORA:        return "DEG_RECHAZO_T_SIN_HORA";
-    case DEG_RECHAZO_T_AHORA_DESFASADO: return "DEG_RECHAZO_T_AHORA_DESFASADO";
-    case DEG_RECHAZO_T_INICIO_VENCIDO:  return "DEG_RECHAZO_T_INICIO_VENCIDO";
-    case DEG_RECHAZO_T_DESPEJE_RANGO:   return "DEG_RECHAZO_T_DESPEJE_RANGO";
-    case DEG_RECHAZO_T_AMBAR_VIGENTE:   return "DEG_RECHAZO_T_AMBAR_VIGENTE";
-    case DEG_RECHAZO_T_EN_VERDE:        return "DEG_RECHAZO_T_EN_VERDE";
-    case DEG_RECHAZO_T_NO_GUARDADO:     return "DEG_RECHAZO_T_NO_GUARDADO";
-    default:                            return "DEG_T_ACEPTADO";
+    case DEG_RECHAZO_T_SIN_HORA:        return "HORA";
+    case DEG_RECHAZO_T_AHORA_DESFASADO: return "DESFASE";
+    case DEG_RECHAZO_T_INICIO_VENCIDO:  return "INICIO";
+    case DEG_RECHAZO_T_DESPEJE_RANGO:   return "DESPEJE";
+    case DEG_RECHAZO_T_AMBAR_VIGENTE:   return "AMBAR";
+    case DEG_RECHAZO_T_EN_VERDE:        return "EN_VERDE";
+    case DEG_RECHAZO_T_NO_GUARDADO:     return "GUARDADO";
+    default:                            return "OK";
   }
 }
 
@@ -144,11 +144,11 @@ static void entrar() {
              (unsigned long)(inicio % 60UL));
     bluetooth_reportarEvento("DEGRADADO", det);
   } else {
-    char causa[sizeof("AUTO_RECHAZADA_DEG_RECHAZO_T_AHORA_DESFASADO")];
-    snprintf(causa, sizeof(causa), "AUTO_RECHAZADA_%s", nombreRechazo(r));
-    // SIGUE_EN_AMBAR tambien con NO_GUARDADO: el rojo que fuerza la puerta dura una vuelta, y la
+    char causa[sizeof("AUTO_NO_GUARDADO")];   // la CAUSA del $ALARM cabe en 19 (esp32_07)
+    snprintf(causa, sizeof(causa), "AUTO_NO_%s", nombreRechazo(r));
+    // SIGUE_AMBAR tambien con NO_GUARDADO: el rojo que fuerza la puerta dura una vuelta, y la
     // orfandad de main.cpp lo devuelve a S_FALLO (medido 29/09, H12 del arnes del Degradado).
-    bluetooth_reportarAlarma("DEGRADADO", causa, "SIGUE_EN_AMBAR");
+    bluetooth_reportarAlarma("DEGRADADO", causa, "SIGUE_AMBAR");
   }
 }
 

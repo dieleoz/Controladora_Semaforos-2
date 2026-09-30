@@ -95,18 +95,18 @@ module.exports = async function pruebaDegAuto(montarAppLimpia, assert) {
   assert(/La radio volvio\. Sigue en degradado/.test(ultimo()),
     `DegAuto: $EVENT ENLACE_DISPONIBLE dice que sigue en degradado: "${ultimo().slice(0, 160)}"`);
   const alarmas = [
-    ['MAESTRO', 'AUTO_RECHAZADA_MDT_FALTA_HORA', 'RF:97%,RTT:70ms,SINRESP:0', 'SIGUE_EN_AMBAR',
+    ['MAESTRO', 'AUTO_NO_HORA', 'RF:97%,RTT:70ms,SINRESP:0', 'SIGUE_AMBAR',
      /No pudo entrar solo: reloj sin poner en hora.*\. Sigue en ambar/],
-    ['MAESTRO', 'AUTO_RECHAZADA_MDT_INICIO_VENCIDO', 'RF:97%,RTT:70ms,SINRESP:0', 'SIGUE_EN_AMBAR',
+    ['MAESTRO', 'AUTO_NO_INICIO', 'RF:97%,RTT:70ms,SINRESP:0', 'SIGUE_AMBAR',
      /No pudo entrar solo: la hora de arranque ya habia pasado/],
-    // Maestro deg_auto.cpp: MDT_NO_GUARDADO -> ACCION:QUEDA_EN_ROJO; no puede decir ambar.
-    ['MAESTRO', 'AUTO_RECHAZADA_MDT_NO_GUARDADO', 'RF:97%,RTT:70ms,SINRESP:0', 'QUEDA_EN_ROJO',
+    // Maestro deg_auto.cpp: MDT_NO_GUARDADO -> ACCION:QUEDA_ROJO; no puede decir ambar.
+    ['MAESTRO', 'AUTO_NO_GUARDADO', 'RF:97%,RTT:70ms,SINRESP:0', 'QUEDA_ROJO',
      /No pudo entrar solo: no se pudo guardar el testigo.*ROJO FIJO(?!.*Sigue en ambar)/],
-    ['ESCLAVO', 'AUTO_RECHAZADA_DEG_RECHAZO_T_AHORA_DESFASADO', 'RX:10,OK:9,RUIDO:1', 'SIGUE_EN_AMBAR',
+    ['ESCLAVO', 'AUTO_NO_DESFASE', 'RX:10,OK:9,RUIDO:1', 'SIGUE_AMBAR',
      /No pudo entrar solo: la hora del poste no cuadra/],
-    ['MAESTRO', 'OTRO_POSTE_EN_DEGRADADO', 'RF:--,RTT:--,SINRESP:3', 'REVISE_EL_OTRO_POSTE',
+    ['MAESTRO', 'OTRO_EN_DEGRADADO', 'RF:--,RTT:--,SINRESP:3', 'REVISE_OTRO',
      /El otro poste esta en degradado y este no/],
-    ['ESCLAVO', 'RENOVAR_TESTIGO', 'RX:10,OK:9,RUIDO:1', 'REPITA_EL_TESTIGO',
+    ['ESCLAVO', 'RENOVAR_TESTIGO', 'RX:10,OK:9,RUIDO:1', 'REPITA_TESTIGO',
      /28 dias o mas sin renovar el testigo/],
   ];
   for (const [nodo, causa, tramo, accion, re] of alarmas) {
@@ -124,24 +124,21 @@ module.exports = async function pruebaDegAuto(montarAppLimpia, assert) {
   assert(/renovar/.test(renovar) && !vence31.test(renovar),
     `DegAuto: el aviso RENOVAR_TESTIGO pide renovar y no dice que venza: "${renovar.slice(0, 160)}"`);
 
-  // (5b) Todo motivo que puede llegar en CAUSA:AUTO_RECHAZADA_<nombre> se traduce: censo de
+  // (5b) Todo codigo que puede llegar en CAUSA:AUTO_NO_<codigo> se traduce: censo de
   // nombreMotivo() (Maestro/src/deg_auto.cpp) y nombreRechazo() (Esclavo/src/deg_auto.cpp).
-  // MDT_OK es su default: sale si modo_degradado_entrarTestigo() devuelve MDT_RENOVADO.
+  // OK es su default: sale si modo_degradado_entrarTestigo() devuelve MDT_RENOVADO.
   const motivos = [
-    ['MAESTRO', 'MDT_FALTA_HORA'], ['MAESTRO', 'MDT_AHORA_DESFASADO'], ['MAESTRO', 'MDT_DESPEJE_RANGO'],
-    ['MAESTRO', 'MDT_INICIO_VENCIDO'], ['MAESTRO', 'MDT_AMBAR_VIGENTE'], ['MAESTRO', 'MDT_EN_VERDE'],
-    ['MAESTRO', 'MDT_NO_GUARDADO'], ['MAESTRO', 'MDT_OK'],
-    ['ESCLAVO', 'DEG_RECHAZO_T_SIN_HORA'], ['ESCLAVO', 'DEG_RECHAZO_T_AHORA_DESFASADO'],
-    ['ESCLAVO', 'DEG_RECHAZO_T_INICIO_VENCIDO'], ['ESCLAVO', 'DEG_RECHAZO_T_DESPEJE_RANGO'],
-    ['ESCLAVO', 'DEG_RECHAZO_T_AMBAR_VIGENTE'], ['ESCLAVO', 'DEG_RECHAZO_T_EN_VERDE'],
-    ['ESCLAVO', 'DEG_RECHAZO_T_NO_GUARDADO'],
+    ['MAESTRO', 'HORA'], ['MAESTRO', 'DESFASE'], ['MAESTRO', 'DESPEJE'], ['MAESTRO', 'INICIO'],
+    ['MAESTRO', 'AMBAR'], ['MAESTRO', 'EN_VERDE'], ['MAESTRO', 'GUARDADO'], ['MAESTRO', 'OK'],
+    ['ESCLAVO', 'HORA'], ['ESCLAVO', 'DESFASE'], ['ESCLAVO', 'INICIO'], ['ESCLAVO', 'DESPEJE'],
+    ['ESCLAVO', 'AMBAR'], ['ESCLAVO', 'EN_VERDE'], ['ESCLAVO', 'GUARDADO'],
   ];
   for (const [nodo, nombre] of motivos) {
-    entra(`ALARM,NODE:${nodo},EVENTO:DEGRADADO,CAUSA:AUTO_RECHAZADA_${nombre},RF:97%,RTT:70ms,SINRESP:0,` +
-          'ACCION:SIGUE_EN_AMBAR,HORA:14:37:00');
-    const crudo = nombre.replace(/^MDT_/, '').replace(/^DEG_RECHAZO_T_/, '');
+    entra(`ALARM,NODE:${nodo},EVENTO:DEGRADADO,CAUSA:AUTO_NO_${nombre},RF:97%,RTT:70ms,SINRESP:0,` +
+          'ACCION:SIGUE_AMBAR,HORA:14:37:00');
+    const crudo = 'solo: ' + nombre + '.';   // asi lo sacaria el fallback de _motivo()
     const t = ultimo().replace(/^[\s\S]*?(No pudo entrar solo: )/, '$1');  // la Caja Negra repite la CAUSA cruda
     assert(/No pudo entrar solo: /.test(t) && t.indexOf(crudo) < 0 && t.indexOf('sin motivo') < 0,
-      `DegAuto: AUTO_RECHAZADA_${nombre} se traduce y no sale "${crudo}" en crudo: "${t.slice(0, 160)}"`);
+      `DegAuto: AUTO_NO_${nombre} se traduce y no sale "${crudo}" en crudo: "${t.slice(0, 160)}"`);
   }
 };

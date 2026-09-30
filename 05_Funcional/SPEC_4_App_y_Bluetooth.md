@@ -101,8 +101,8 @@ prometia rojo y hacia ambar con la talanquera arriba. Lo rechaza **nombrando el 
 | `SET_MODO:INTELIGENTE` | si | igual que la anterior, y con la misma reserva de §7 |
 | `SET_MODO:DEGRADADO` | si | **Sin boton en la app desde `D-37`.** depende del `MotivoDegradado` que devuelve `modo_degradado_evaluarEntrada()`: `$ERR ... DESC:<motivoL1> <motivoL2>` con **los mismos dos textos** que ensenaba el gabinete, o `RESULT:OK` solo si `MDG_OK` |
 | `SET_MODO:DEG_T:ahora,inicio,verde,despeje` | si | Construido (`990c278`; `D-35`, SPEC 2 §7.bis). Puerta PARALELA a la de arriba, sin sync de radio: `MotivoTestigo` — `$ERR ... DESC:<texto>` (`modo_degradado_textoTestigo()`) por `MDT_FALTA_HORA` / `MDT_AHORA_DESFASADO` (`ahora` vs `reloj_segundosDelDia()`, tolerancia `TOLERANCIA_TESTIGO_S`) / `MDT_DESPEJE_RANGO` / `MDT_INICIO_VENCIDO` / `MDT_AMBAR_VIGENTE`, o `RESULT:OK` si `MDT_OK`, `RESULT:RENOVADO` si `MDT_RENOVADO`. No depende de que haya habido `SET_RTC` antes |
-| `SET_DEG_AUTO:1` / `SET_DEG_AUTO:0` | si | 🔴 NO CONSTRUIDO (`A-15`, SPEC 2 §7.ter (a)). **El `$ACK` sale DIFERIDO**, cuando el `ECO` del otro poste refleja el cambio: `RESULT:ON_EFECTIVO` (el otro tambien apto) / `RESULT:ON_FALTA_EL_OTRO_POSTE` / `RESULT:OFF`. Rechazos: `$ERR ... SIN_ENLACE_CON_EL_OTRO_POSTE` · `EN_DEGRADADO_SALGA_PRIMERO` · `FORMATO_INVALIDO`; sin `ECO` en `DEG_AUTO_ACUSE_MS`, `$ERR ... CAMBIADO_AQUI_SIN_ACUSE_DEL_OTRO_POSTE` (el cambio queda y se sigue publicando). Misma orden y mismos literales en el Esclavo |
-| `CONSULTA_DEG_AUTO` | no (es una consulta) | 🔴 NO CONSTRUIDO. `RESULT:ESTE_<ON/OFF>_OTRO_<ON/OFF>_APTO_<SI/NO>`: la opcion propia, el ultimo `APTO` oido del otro y el `APTO` propio. Igual en el Esclavo |
+| `SET_DEG_AUTO:1` / `SET_DEG_AUTO:0` | si | Construido (`A-15`, SPEC 2 §7.ter (a)). **El `$ACK` sale DIFERIDO**, cuando el `ECO` del otro poste refleja el cambio: `RESULT:ON_EFECTIVO` (el otro tambien apto) / `RESULT:ON_FALTA_EL_OTRO_POSTE` / `RESULT:OFF`. Rechazos: `$ERR ... SIN_ENLACE_CON_EL_OTRO_POSTE` · `EN_DEGRADADO_SALGA_PRIMERO` · `FORMATO_INVALIDO`; sin `ECO` en `DEG_AUTO_ACUSE_MS`, `$ERR ... CAMBIADO_AQUI_SIN_ACUSE_DEL_OTRO_POSTE` (el cambio queda y se sigue publicando). Maestro en `MENU`: siempre ese `$ERR` (SPEC 2 §7.ter (a)). Misma orden y mismos literales en el Esclavo |
+| `CONSULTA_DEG_AUTO` | no (es una consulta) | Construido. `RESULT:ESTE_<ON/OFF>_OTRO_<ON/OFF>_APTO_<SI/NO>`: la opcion propia, el ultimo `APTO` oido del otro y el `APTO` propio. Igual en el Esclavo |
 | `FORZAR_ROJO` | **no** (y con PIN tambien) | `RESULT:OK` incondicional. `coordinador_forzarRojoTotal()` es `void` y no tiene guarda: no hay nada que mirar |
 | `MANUAL:CAMBIAR_TURNO` | si | **tres, y el ORDEN importa** (`N-151`): `$ERR ... MODO_SIN_CICLO_SALGA_PRIMERO` si `modoMueveElCoordinador()` es falso; si no, `RESULT:OK` cuando `pedirCambioVerificado()` devuelve true, y `$ERR ... EN_TRANSICION_REINTENTE` cuando no |
 | `TEST_LEDS` | si | **solo FUERA DE SERVICIO** (`N-82.bis`, cinta del 28/09): decide `testLedsAdmitido()` de `semaforo.cpp` —modo `MENU`, `HORA` o `ALCANCE` (los que dejan los dos postes en rojo fijo), luz en `S_ROJO` **y** `ACK_RED` del Esclavo recibido (`coordinador_rojoEsclavoConfirmado()`)—, porque la fase verde del test encenderia el verde de este poste contra el otro sentido y `SFTY-2` solo enclava el mismo poste. El despachador pregunta `semaforo_testLedsEnCurso()` DESPUES de llamar: `RESULT:STARTING_6S` si quedo armado; `$ERR ... SIN_ENLACE_AMBAR_NO_SE_PRUEBA` si la luz esta en `S_FALLO`; `$ERR ... ESPERANDO_ROJO_DEL_ESCLAVO` en esos tres modos sin el acuse; `$ERR ... EN_SERVICIO_PASE_A_MENU` en el resto |
@@ -124,7 +124,7 @@ que viviera en una funcion comun los dejaria midiendo un bloque vacio (`N-89`).
 | `SOLICITAR_PASO` | si | depende del bool de `demanda_solicitar()`: `RESULT:PEDIDO_AL_MAESTRO` o `$ERR ... REPITA_EN_UNOS_SEGUNDOS`. **El Esclavo PIDE; no ordena** (SFTY-27). **Sin boton en la app desde `D-36`:** solo por terminal serie |
 | `SET_MODO:DEGRADADO` | si | **Sin boton en la app desde `D-37`.** depende del `RechazoDegradado` que devuelve `degradado_entrar()` —**no de un bool**—: `$ERR ... DESC:<degradado_textoRechazo(r)>`, un motivo por rama, con la MISMA tabla que ensenaba el gabinete. Si acepto, **`RESULT:YA_ACTIVO`** cuando el modo ya gobernaba (`antesDeg` leido antes de la llamada) y `RESULT:OK` cuando esta pulsacion lo encendio |
 | `SET_MODO:DEG_T:ahora,inicio,verde,despeje` | si | Construido (`990c278`; `D-35`, SPEC 2 §7.bis). Misma orden, `RechazoTestigo` propio (como ya pasa con `SET_MODO:DEGRADADO`): `DEG_RECHAZO_T_SIN_HORA` / `_AHORA_DESFASADO` / `_INICIO_VENCIDO` —texto «repita el testigo en el Maestro»— / `_DESPEJE_RANGO` / `_AMBAR_VIGENTE`, o `RESULT:OK` / `RESULT:RENOVADO` |
-| `SET_DEG_AUTO:1` / `SET_DEG_AUTO:0` · `CONSULTA_DEG_AUTO` | si · no | 🔴 NO CONSTRUIDO. Los del Maestro (§3.1); aqui el enlace es una orden de gobierno del Maestro en los ultimos `SFTY6_SILENCIO_MS`, y el `ECO` llega en su `PING` |
+| `SET_DEG_AUTO:1` / `SET_DEG_AUTO:0` · `CONSULTA_DEG_AUTO` | si · no | Construidos. Los del Maestro (§3.1); aqui el enlace es una orden de gobierno del Maestro en los ultimos `SFTY6_SILENCIO_MS`, y el `ECO` llega en su `PING` |
 | `FORZAR_ROJO` | las dos formas | `$ERR ... RENOMBRADO_USE_AMBAR_EMERGENCIA`. **Se rechaza ensenando el nombre bueno**, no en silencio: quien lo manda tiene una app o un manual anteriores al cambio |
 | `TEST_LEDS` | si | `$ERR ... NO_EN_SERVICIO_USE_EL_MAESTRO`, **rechazado a proposito**: la secuencia enciende VERDE sin mirar nada, y ese verde saldria mientras el Maestro da paso al otro sentido |
 
@@ -205,7 +205,7 @@ antemano —el contador vive en la tarjeta, no en el telefono—; se entera por 
 hoy se entera del ámbar por límite duro (`SPEC 6` Parte C), y el texto es el que ya existe para ese aviso,
 sin uno nuevo.
 
-## 3.ter.bis EL DEGRADADO AUTOMATICO EN LA APP — 🔴 SIN CONSTRUIR (`A-15`, SPEC 2 §7.ter)
+## 3.ter.bis EL DEGRADADO AUTOMATICO EN LA APP — construido en `js/deg_auto.js` (`A-15`, SPEC 2 §7.ter)
 
 **Tarjeta nueva en la pestana Tecnico, en LAS DOS pantallas**: «Degradado automatico (sin radio)». Al conectar, y
 tras cada orden, la app manda `CONSULTA_DEG_AUTO` y pinta tres lineas: **este poste** ON/OFF, **el otro poste** ON/OFF
@@ -218,10 +218,13 @@ riesgo: sin radio, los dos postes pasan solos a rojo y despues alternan por relo
 - `DEGRADADO` / `AUTO_ENTRADA_INICIO_HH:MM:SS` — «Sin radio 5 min: modo degradado automatico, rojo hasta HH:MM».
 - `DEGRADADO` / `ENLACE_DISPONIBLE` — «La radio volvio. Sigue en degradado: para volver al ciclo, Volver al menu en
   el Poste 1».
-- `$ALARM DEGRADADO,AUTO_RECHAZADA_<MDT_x o DEG_RECHAZO_T_x>` — «No pudo entrar solo: <motivo>. Sigue en ambar».
-- `$ALARM DEGRADADO,OTRO_POSTE_EN_DEGRADADO` — «El otro poste esta en degradado y este no: vaya al otro poste».
-- Aviso de 28 dias sin renovar el testigo — «sincronice desde el celular: repita el testigo en los dos postes».
-  Sin vencimiento: la luz no cambia (29/09).
+- `$ALARM DEGRADADO,CAUSA:AUTO_NO_<codigo>` (codigos en SPEC 2 §7.ter (b); tabla `DegAuto.MOTIVO`) — «No pudo
+  entrar solo: <motivo>.» y lo que dice la `ACCION`: con `SIGUE_AMBAR`, «Sigue en ambar»; con `QUEDA_ROJO` (solo el
+  Maestro con `GUARDADO`), «Queda en ROJO FIJO en este poste, no en ambar: avise a mantenimiento».
+- `$ALARM DEGRADADO,CAUSA:OTRO_EN_DEGRADADO,ACCION:REVISE_OTRO` — «El otro poste esta en degradado y este no: vaya
+  al otro poste».
+- `$ALARM DEGRADADO,CAUSA:RENOVAR_TESTIGO,ACCION:REPITA_TESTIGO` (28 dias sin renovar) — «vaya a los dos postes y
+  repita el Degradado con testigo». Sin vencimiento: la luz no cambia (29/09).
 
 **Y el `$STATUS` del Maestro en Degradado publica `ESC:?`**: la app lo pinta como «desconocido», no como el ultimo
 color que vio (SPEC 2 §7.ter (e)).
@@ -417,8 +420,8 @@ instalada: exportar, enviarlo a un chat y abrir el fichero recibido. Hasta enton
 
 🟢 **13 · ~~EL DEGRADADO CON TESTIGO (§3.ter, `D-35`) ES CERO CÓDIGO EN LA APP~~** → construido (`11b57b3`).
 
-🔴 **14 · EL DEGRADADO AUTOMATICO (§3.ter.bis, `A-15`) ES CERO CODIGO**, en la app y en el firmware:
-`grep -rn "DEG_AUTO" app.js 01_Firmware/{Maestro,Esclavo}` da cero.
+🟢 **14 · ~~EL DEGRADADO AUTOMATICO (§3.ter.bis, `A-15`) ES CERO CODIGO~~** → construido (`a0d605b`, `1a78873`;
+app en `js/deg_auto.js` y `js/aviso_degradado.js`), sin banco.
 
 ---
 

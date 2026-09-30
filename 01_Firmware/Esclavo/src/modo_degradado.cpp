@@ -107,7 +107,7 @@ static void avisarRenovacion() {
   const uint32_t dia = (edad - TESTIGO_AVISO_S) / 86400UL;
   if (dia == diaRenovarAvisado) return;
   diaRenovarAvisado = dia;
-  bluetooth_reportarAlarma("DEGRADADO", "RENOVAR_TESTIGO", "REPITA_EL_TESTIGO");
+  bluetooth_reportarAlarma("DEGRADADO", "RENOVAR_TESTIGO", "REPITA_TESTIGO");
 }
 
 // ---------------------------------------------------------------------------

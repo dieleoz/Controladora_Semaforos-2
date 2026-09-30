@@ -148,7 +148,7 @@ static int  g_alarmasRelojNoCuenta = 0;
 static int  g_alarmasLimite48h = 0;
 static int  g_alarmasSyncSinFecha = 0;
 void bluetooth_reportarAlarma(const char* evento, const char* causa, const char* accion) {
-  if (accion && !strncmp(causa, "AUTO_RECHAZADA_", 15))
+  if (accion && !strncmp(causa, "AUTO_NO_", 8))
     snprintf(g_daUltAccion, sizeof(g_daUltAccion), "%s", accion);   // bloque H
   snprintf(g_ultimaAlarmaEvento, sizeof(g_ultimaAlarmaEvento), "%s", evento);
   g_alarmasEmitidas++;

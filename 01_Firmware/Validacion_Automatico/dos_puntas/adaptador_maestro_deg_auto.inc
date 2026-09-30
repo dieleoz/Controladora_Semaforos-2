@@ -24,8 +24,8 @@
 static long g_daEntradas = 0, g_daRechazos = 0, g_daEnlace = 0, g_daOtroPoste = 0;
 static long g_daLimite31 = 0, g_daRenovar = 0;
 static long g_daInicioS = -1;   // el inicio que publico AUTO_ENTRADA_INICIO_HH:MM:SS
-static char g_daUltRechazo[64] = "";   // la causa del ultimo AUTO_RECHAZADA_, literal
-static char g_daUltAccion[32] = "";    // la ACCION del ultimo AUTO_RECHAZADA_, literal (la app la traduce)
+static char g_daUltRechazo[64] = "";   // la causa del ultimo AUTO_NO_, literal
+static char g_daUltAccion[32] = "";    // la ACCION del ultimo AUTO_NO_, literal (la app la traduce)
 static bool g_daFlashFalla = false;    // la pagina del testigo no se deja escribir (testigo1.inc)
 
 static void arnesDegAuto_notar(const char* origen, const char* detalle) {
@@ -35,12 +35,12 @@ static void arnesDegAuto_notar(const char* origen, const char* detalle) {
     int h = 0, m = 0, x = 0;
     if (sscanf(detalle + 20, "%d:%d:%d", &h, &m, &x) == 3) g_daInicioS = h * 3600L + m * 60L + x;
   }
-  if (!strncmp(detalle, "AUTO_RECHAZADA_", 15)) {
+  if (!strncmp(detalle, "AUTO_NO_", 8)) {
     g_daRechazos++;
     snprintf(g_daUltRechazo, sizeof(g_daUltRechazo), "%s", detalle);
   }
   if (!strcmp(detalle, "ENLACE_DISPONIBLE")) g_daEnlace++;
-  if (!strcmp(detalle, "OTRO_POSTE_EN_DEGRADADO")) g_daOtroPoste++;
+  if (!strcmp(detalle, "OTRO_EN_DEGRADADO")) g_daOtroPoste++;
   if (!strcmp(detalle, "LIMITE_31D")) g_daLimite31++;
   if (!strcmp(detalle, "RENOVAR_TESTIGO")) g_daRenovar++;
 }

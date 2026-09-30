@@ -47,17 +47,17 @@ const DegAuto = {
       'ha acusado. Mire la consulta de abajo y, si hace falta, repita con radio.',
   },
 
-  // Motivos de la puerta del testigo (MDT_* del Maestro, DEG_RECHAZO_T_* del Esclavo).
+  // CAUSA:AUTO_NO_<codigo>: nombreMotivo() del Maestro y nombreRechazo() del Esclavo, los
+  // mismos codigos en las dos puntas (cortos: la CAUSA del $ALARM cabe en 19, esp32_07).
   MOTIVO: {
-    'FALTA_HORA': 'reloj sin poner en hora; pongalo en hora y entre con testigo',
-    'SIN_HORA': 'reloj sin poner en hora; pongalo en hora y entre con testigo',
-    'AHORA_DESFASADO': 'la hora del poste no cuadra; ponga en hora los dos postes',
-    'DESPEJE_RANGO': 'despeje fuera de rango (30-255); avise a mantenimiento',
-    'INICIO_VENCIDO': 'la hora de arranque ya habia pasado; entre con testigo a mano',
-    'AMBAR_VIGENTE': 'hay un ambar de emergencia puesto; quitelo antes',
+    'HORA': 'reloj sin poner en hora; pongalo en hora y entre con testigo',
+    'DESFASE': 'la hora del poste no cuadra; ponga en hora los dos postes',
+    'DESPEJE': 'despeje fuera de rango (30-255); avise a mantenimiento',
+    'INICIO': 'la hora de arranque ya habia pasado; entre con testigo a mano',
+    'AMBAR': 'hay un ambar de emergencia puesto; quitelo antes',
     'EN_VERDE': 'estaba en verde y el testigo solo se guarda en rojo; entre con testigo en rojo',
-    'NO_GUARDADO': 'no se pudo guardar el testigo; repita y, si vuelve, avise a mantenimiento',
-    // MDT_OK: nombreMotivo() lo da por defecto, p.ej. si entrarTestigo() devuelve MDT_RENOVADO.
+    'GUARDADO': 'no se pudo guardar el testigo; repita y, si vuelve, avise a mantenimiento',
+    // OK: el default de los dos, p.ej. si entrarTestigo() devuelve MDT_RENOVADO.
     'OK': 'respuesta inesperada del poste; mire el modo y avise a mantenimiento',
   },
 
@@ -82,8 +82,7 @@ const DegAuto = {
   },
 
   _motivo(causa) {
-    const nombre = String(causa || '').replace(/^AUTO_RECHAZADA_/, '')
-      .replace(/^MDT_/, '').replace(/^DEG_RECHAZO_T_/, '');
+    const nombre = String(causa || '').replace(/^AUTO_NO_/, '');
     return this.MOTIVO[nombre] || nombre || 'sin motivo';
   },
 
@@ -112,15 +111,15 @@ const DegAuto = {
   alarma(data) {
     if (!data || data.EVENTO !== 'DEGRADADO') return null;
     const causa = String(data.CAUSA || '');
-    if (causa.indexOf('AUTO_RECHAZADA_') === 0) {
-      // Maestro con MDT_NO_GUARDADO: ACCION:QUEDA_EN_ROJO (rojo fijo); el resto, SIGUE_EN_AMBAR.
-      const rojo = data.ACCION === 'QUEDA_EN_ROJO';
+    if (causa.indexOf('AUTO_NO_') === 0) {
+      // Maestro con MDT_NO_GUARDADO: ACCION:QUEDA_ROJO (rojo fijo); el resto, SIGUE_AMBAR.
+      const rojo = data.ACCION === 'QUEDA_ROJO';
       return { tono: 'red', toast: 'No pudo entrar solo en degradado',
         texto: 'No pudo entrar solo: ' + this._motivo(causa) + (rojo
           ? '. Queda en ROJO FIJO en este poste, no en ambar: avise a mantenimiento.'
           : '. Sigue en ambar.') };
     }
-    if (causa === 'OTRO_POSTE_EN_DEGRADADO') {
+    if (causa === 'OTRO_EN_DEGRADADO') {
       return { tono: 'red', toast: 'El otro poste esta en degradado',
         texto: 'El otro poste esta en degradado y este no: vaya al otro poste.' };
     }

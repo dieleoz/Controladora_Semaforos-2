@@ -62,7 +62,7 @@ static void bloqueH2(unsigned long VENTANA, unsigned long SIN_ENTRADA) {
                   std::to_string(p.orden("da_en_degradado")) + ")");
   }
   // H12 (literal): la flash del testigo de una punta falla. La ACCION de su $ALARM dice lo que la
-  // luz hace en los 10 s siguientes: SIGUE_EN_AMBAR con el ambar, QUEDA_EN_ROJO con el rojo.
+  // luz hace en los 10 s siguientes: SIGUE_AMBAR con el ambar, QUEDA_ROJO con el rojo.
   for (int i = 0; i < 2; i++) {
     CfgH c;
     ObsH o;
@@ -78,10 +78,10 @@ static void bloqueH2(unsigned long VENTANA, unsigned long SIN_ENTRADA) {
       if (p.rojo()) msRojo += PASO_MS;
       if (ambarH(p)) msAmbar += PASO_MS;
     }
-    const long lr = p.orden("da_accion_es:QUEDA_EN_ROJO"), la = p.orden("da_accion_es:SIGUE_EN_AMBAR");
-    comprobar(rech && p.orden("da_rechazo_es:NO_GUARDADO") && ((lr && msRojo == 10000) || (la && msAmbar == 10000)),
+    const long lr = p.orden("da_accion_es:QUEDA_ROJO"), la = p.orden("da_accion_es:SIGUE_AMBAR");
+    comprobar(rech && p.orden("da_rechazo_es:AUTO_NO_GUARDADO") && ((lr && msRojo == 10000) || (la && msAmbar == 10000)),
               std::string("H12") + (i ? "" : "b") + " NO_GUARDADO en el " + (i ? "Esclavo" : "Maestro") +
-                  ": la ACCION dice lo que hace la luz (QUEDA_EN_ROJO " + std::to_string(lr) + ", SIGUE_EN_AMBAR " +
+                  ": la ACCION dice lo que hace la luz (QUEDA_ROJO " + std::to_string(lr) + ", SIGUE_AMBAR " +
                   std::to_string(la) + "; en 10 s: rojo " + std::to_string(msRojo) + " ms, ambar " +
                   std::to_string(msAmbar) + " ms)");
   }

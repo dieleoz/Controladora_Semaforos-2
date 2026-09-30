@@ -197,15 +197,15 @@ static void asevera_entran(const char* id, const char* titulo, const ObsH& o, co
                 std::to_string(ESCLAVO.orden("da_entradas")) + ", rechazos M " +
                 std::to_string(MAESTRO.orden("da_rechazos")) + " / E " +
                 std::to_string(ESCLAVO.orden("da_rechazos")) + ")");
-  // El motivo de un rechazo de la puerta del testigo, por su nombre del enum (lo que publica).
-  static const char* MOTIVOS[] = {"FALTA_HORA", "SIN_HORA", "AHORA_DESFASADO", "INICIO_VENCIDO",
-                                  "DESPEJE_RANGO", "AMBAR_VIGENTE", "EN_VERDE", "NO_GUARDADO"};
+  // El motivo de un rechazo de la puerta del testigo: CAUSA:AUTO_NO_<codigo> (nombreMotivo()).
+  static const char* MOTIVOS[] = {"_HORA", "_DESFASE", "_INICIO", "_DESPEJE", "_AMBAR", "_EN_VERDE",
+                                  "_GUARDADO", "_OK"};
   for (int i = 0; i < 2; i++) {
     if (puntaH(i).orden("da_rechazos") == 0) continue;
     std::string m = "?";
     for (const char* x : MOTIVOS)
       if (puntaH(i).orden((std::string("da_rechazo_es:") + x).c_str())) m = x;
-    nota(pre + ": el " + (i ? "Esclavo" : "Maestro") + " publico AUTO_RECHAZADA_..." + m);
+    nota(pre + ": el " + (i ? "Esclavo" : "Maestro") + " publico AUTO_NO" + m);
   }
   for (int i = 0; i < 2; i++)
     nota(pre + ": " + (i ? "Esclavo" : "Maestro") + " entra a " + hms(o.sEnt[i]) + ", publica inicio " +
@@ -358,7 +358,7 @@ static void bloqueH() {
     asevera_no_entran("H6", "Maestro en MANUAL al empezar el corte", o, ctl);
   }
 
-  // H7: CMD_PRESENTE oido por un poste NO degradado: $ALARM OTRO_POSTE_EN_DEGRADADO, y nada mas
+  // H7: CMD_PRESENTE oido por un poste NO degradado: $ALARM OTRO_EN_DEGRADADO, y nada mas
   // -no es respuesta, no reinicia la cuenta, no mete en el modo- (SPEC_2 7.ter (c)).
   {
     CfgH c;
@@ -379,7 +379,7 @@ static void bloqueH() {
     const long opM = MAESTRO.orden("da_otro_poste") - opM0, opE = ESCLAVO.orden("da_otro_poste") - opE0;
     const bool fuera = !MAESTRO.orden("da_en_degradado") && !ESCLAVO.orden("da_en_degradado");
     comprobar(opM == 1 && opE == 1 && fuera && msResp >= 30000,
-              "H7 PRESENTE oido por un poste no degradado: $ALARM OTRO_POSTE_EN_DEGRADADO en cada uno (M " +
+              "H7 PRESENTE oido por un poste no degradado: $ALARM OTRO_EN_DEGRADADO en cada uno (M " +
                   std::to_string(opM) + ", E " + std::to_string(opE) + "), ninguno entra por ella (" +
                   (fuera ? "fuera" : "ENTRO") + ") y el Maestro no la toma por respuesta (" +
                   std::to_string(msResp) + " ms desde la ultima)");
