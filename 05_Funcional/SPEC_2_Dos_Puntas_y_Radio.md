@@ -304,7 +304,7 @@ escribe una vez por testigo, con el poste en ROJO, y lleva su propia suma. `resp
 - **El cerrojo de 48 h del Esclavo** (`syncVencidaLatch`) no actúa en modo testigo.
 - **Ventana aceptada por `D-35`:** si el Esclavo rechaza por `INICIO_VENCIDO` y nadie vuelve al Maestro, a la hora de
   `inicio` el Maestro da verde por reloj contra el ámbar de huérfano del Esclavo. La app lo dice al rechazar: «vuelva
-  al Maestro y póngalo en Automático o repita el testigo».
+  al Maestro y póngalo en Automático o repita el testigo». **Ratificada el 30/09 tras la prueba de campo (`D-41`).**
 
 **Lo que queda fuera de este apartado:** la pantalla de la app (SPEC 4 §3.ter) y la vista de campo (SPEC 6 A.1.bis).
 
