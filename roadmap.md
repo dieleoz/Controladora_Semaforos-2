@@ -92,6 +92,7 @@ python 01_Firmware/Simulaciones/banco/correr.py   # solo los packs. Sirve para i
 | 5 | **`N-164` Degradado automatico (`SPEC_2` §7.ter, A-15):** firmware de las dos puntas y app en construccion el 29/09; sale en un solo paquete `SIN_BANCO` para banco de Marco con cortes en cada sentido y logs exportados de los dos postes | orquestador + funcional | paquete + exportes | compuerta |
 | 6 | **`N-165`** El Degradado con testigo ya no vence (responsable, 29/09): alarma a los 28 dias para sincronizar desde el celular | orquestador | con `N-164` | -- |
 | 7 | **`N-166` Colision de nombre:** `A-15` ya existia (fila «UNA HORA» del 08/09) antes del Degradado automatico | orquestador | renombrar una | -- |
+| 8 | **30/09, paquete validado de `a0d605b`:** quitar el vencimiento de 31 dias (decidido, no construido), dobles del simulador del puente (no enlaza), pruebas del automatico vistas en rojo y arnes de dos puntas, arquitecto, QA, compuerta limpia y logs de Marco; `SET_DEG_AUTO` no se acusa con el Maestro en MENU | orquestador | .zip validado | logs de Marco |
 
 Fases de organizacion del repo: 0 paquetes a `entregas/` · 1 inventarios · 2 `CLAUDE.md` a 200 y `HISTORIA.md` ·
 3 `orquestador@diego`, pre-commit y skills a `.claude/particularidades/` · 4 poda B y trinquete en el pre-commit ·
