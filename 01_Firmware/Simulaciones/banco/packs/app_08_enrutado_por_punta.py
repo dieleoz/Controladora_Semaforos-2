@@ -327,6 +327,12 @@ def correr(b, fw):
     mudo = ('if (strcmp(accion, "TEST_LEDS") == 0) { '
             'enviarTramaConCrc("$ERR,CMD:DESCONOCIDO,DESC:NO"); }')
 
+    # 30/09: "CMD:PIN:1234:X" es la orden X (a0d605b), y una X ausente sigue ausente.
+    conpin = ('if (strcmp(cmd, "CMD:PIN:1234:X_SINPIN") == 0) { '
+              'enviarTramaConCrc("$ACK,CMD:X_SINPIN,RESULT:OK"); }')
+    b.control_negativo(
+        set(_acciones(conpin)) == {"X_SINPIN"} and "X_OTRA" not in _acciones(conpin),
+        "una rama CMD:PIN:1234:X cuenta como la orden X y no como una orden PIN:1234:X")
     b.control_negativo(
         _implementa(_acciones(movido)["TEST_LEDS"]),
         "una orden que cambia de punta -pasa a contestar $ACK donde antes solo negaba- "

@@ -42,13 +42,13 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 
 ## Verificacion en escritorio
 
-Cifras copiadas del acta [`evidencia/2026-09-29_compuerta.txt`](evidencia/2026-09-29_compuerta.txt), que dice en su
+Cifras copiadas del acta [`evidencia/2026-09-30_compuerta.txt`](evidencia/2026-09-30_compuerta.txt), que dice en su
 cabecera con que HEAD y que arbol se midio; las comprueba `documentos_01` en cada corrida.
 
 | | |
 |---|---|
 | Flash | Maestro **74.4 %** · Esclavo **66.5 %** · Repetidor **20.6 %** · ESP32 **35.7 %** |
-| Banco por packs | **1335/1336 comprobaciones** en **70 packs**; el unico FALLA, `D-22`, es correcto: pide una tarjeta delante (`CLAUDE.md` §1) |
+| Banco por packs | **1337/1338 comprobaciones** en **70 packs**; el unico FALLA, `D-22`, es correcto: pide una tarjeta delante (`CLAUDE.md` §1) |
 | Arneses de C++ real | 75/75 automatico · 22/22 ciclo · 122/122 dos puntas · 117/117 Degradado a dos puntas |
 | App y puente | **401/401** jsdom · **70/70** funcional · **63/63** unitarios · 85/85 TDD · puente 126/126 |
 

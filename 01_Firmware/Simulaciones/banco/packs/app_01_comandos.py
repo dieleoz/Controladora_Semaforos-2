@@ -84,7 +84,11 @@ NO_LA_MANDA_LA_APP = "HORA_ESP32"
 
 def _atiende(fw, punta):
     """Los comandos que el despachador de esa punta reconoce. Leidos del C++."""
-    codigo = fw.codigo(punta, "src", "bluetooth.cpp")
+    return _atiende_codigo(fw.codigo(punta, "src", "bluetooth.cpp"))
+
+
+def _atiende_codigo(codigo):
+    """El lector de _atiende() sobre un texto: asi los controles negativos pasan por el."""
     exactos = set(re.findall(r'strcmp\s*\(\s*accion\s*,\s*"([^"]+)"', codigo))
     prefijos = set(re.findall(r'strncmp\s*\(\s*accion\s*,\s*"([^"]+):"', codigo))
     # Tambien la forma sin PIN, que es deliberada para el rojo de emergencia.
@@ -294,6 +298,15 @@ def correr(b, fw):
             "que lo para" % p)
 
     # ---- 5. Controles negativos ----
+    # 30/09: la lectura de "CMD:PIN:1234:X" como X (a0d605b) no puede volverse ciega: una
+    # orden que el despachador NO atiende no aparece, y la que si, aparece sin el PIN.
+    sint = 'if (strcmp(cmd, "CMD:X_SINPIN") == 0 || strcmp(cmd, "CMD:PIN:1234:X_SINPIN") == 0) {}'
+    leido = _atiende_codigo(sint)
+    b.control_negativo(
+        "X_SINPIN" in leido and not any(c.startswith("PIN:") for c in leido)
+        and "X_OTRA" not in leido,
+        "CMD:PIN:1234:X se lee como la orden X, sin inventar una orden PIN:1234:X, y una "
+        "orden ausente del despachador sigue ausente")
     b.control_negativo(
         "CMD_INVENTADO" not in todos,
         "un comando inventado no aparece como atendido por ninguna punta")

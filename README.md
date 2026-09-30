@@ -89,7 +89,7 @@ entonces cada lector deriva su propia versión.
 > tabla. Mismo cobre, distinto `pinMode`, distinta tensión. Ver `DECISIONES.md`, cerradas.)*
 
 **Verificación actual** — cifras **copiadas del acta**
-[`evidencia/2026-09-29_compuerta.txt`](evidencia/2026-09-29_compuerta.txt), que genera
+[`evidencia/2026-09-30_compuerta.txt`](evidencia/2026-09-30_compuerta.txt), que genera
 `python 01_Firmware/compuerta.py` en una sola corrida. No se escriben a mano — y desde **N-62**
 eso ya no es una promesa: el pack `documentos_01_cifras_del_acta` compara esta tabla contra la
 última acta en cada corrida del banco. Cuando se escribió por primera vez, **falló**: esta tabla
@@ -99,7 +99,7 @@ publicaba 32 rutas y 86,4 % de flash cuando el acta que ella misma citaba medía
 | Comprobación | Estado | |
 |---|---|---|
 | guarda de rutas de los instrumentos | ✅ | 63 rutas parseadas, todas existen |
-| banco por packs *(70 packs)* | 🔴 **FALLA** | **1335/1336 comprobaciones en 70 packs** — 69 PASS, **1 FALLA**. El rojo es CORRECTO: `decisiones_01_anclas` acusa a **`D-22`**, la única decisión vigente sin construir, y **necesita una tarjeta delante** (`CLAUDE.md` §1: no se decora) |
+| banco por packs *(70 packs)* | 🔴 **FALLA** | **1337/1338 comprobaciones en 70 packs** — 69 PASS, **1 FALLA**. El rojo es CORRECTO: `decisiones_01_anclas` acusa a **`D-22`**, la única decisión vigente sin construir, y **necesita una tarjeta delante** (`CLAUDE.md` §1: no se decora) |
 | compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **74.4 %** · 66.5 % · 20.6 % · 35.7 % — *el Maestro ocupa **48000 de 64512 B** (la ultima pagina queda para el testigo de `D-35`), o sea **18.760 B libres**; el Esclavo, **39584 B**. El salto de sitio lo dio el 13/09 la retirada del LCD (`D-32` (1)), no una optimización* |
 | simulador funcional | ✅ | 9/9 — eran 20, y 11 de aquellas no medían nada: se retiraron una a una con su evidencia |
 | simulador de repetidor | ✅ | 10/10 |
