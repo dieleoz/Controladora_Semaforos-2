@@ -1,0 +1,34 @@
+QA del Degradado automatico (N-167 paso 6) - HEAD 1ea1002 - 29/09/2026
+Veredicto: APTO CON CONDICIONES (QA no firma el APTO de lo que no escribio otro: firma quien no escribio codigo ni pruebas; aqui solo QA de ejecucion)
+
+1. BINARIOS
+- sha256 coinciden con lo declarado: APK f9d6925f..., Maestro cfe05e43..., Esclavo 862ce851...
+- Recompilado con pio run en HEAD: Maestro 48316 B y Esclavo 43220 B (sello 1ea1002). El entregado dice
+  "FW:7173d3b+SUCIO" (compilado con arbol sucio sobre 7173d3b). cmp -l entregado vs recompilado con el mismo
+  tamano: 7 bytes distintos = el hash. Fuente de firmware identico entre 7173d3b y HEAD (git diff --stat: solo
+  ESTADO.md, README.md, evidencia). Al recompilar se piso .pio/build; restaurados los binarios entregados (sha ok).
+- APK: CRC de 24 ficheros de assets/public contra App_Semaforo/www: 0 distintos (incluye js/deg_auto.js 12368 B y
+  js/aviso_degradado.js 5856 B); 3 solo en APK (cordova.js, cordova_plugins.js, plugin bluetoothSerial), normal.
+2. BATERIAS (todas en PASS): jsdom 401/0; unitarios 63/63; TDD ok; funcional app 70/70; simulador funcional 9/9;
+   puente 126/126; Degradado a dos puntas 117/117.
+3. CASOS LIMITE (bluetooth.cpp REAL de las dos puntas, dobles de degAuto en scratchpad; nivel simulador PC)
+   Maestro y Esclavo iguales: SET sin PIN / PIN mal -> AUTH_FAILED; CONSULTA sin PIN -> ACK; CONSULTA PIN mal ->
+   AUTH_FAILED; SET :2 :-1 : :1x ":1 " -> FORMATO_INVALIDO; los 4 veredictos diferidos salen con su literal;
+   trama troceada / byte ajeno -> DESCONOCIDO y la orden siguiente se atiende.
+   Entrada 23:55: arnes H con reloj a 23:48:30 (copia): entran 23:56:27/29, inicio 00:05:00, H1.1-H1.4, H3, H4, H5 OK.
+   Repetida: degAuto_orden() reinicia la espera; la primera orden no recibe ACK ni ERR (lectura de codigo).
+   Alarmas truncadas hacia la app (jsdom): 0 excepciones.
+4. DEFECTOS DE LA GUIA Pruebas_Funcional_2026-09-29.html (no editada)
+ G1 Media: prueba 5, "pulse Desactivar en el Poste 2" con cable: el aviso de paleteros SALTA en el Esclavo
+    (AvisoDegradado.riesgoAuto: node ESCLAVO nunca "sabe" la radio) -> permite() = false. La guia no menciona el
+    modal (casilla "Hay paleteros en los dos extremos." + "Cambiar este poste"). Igual VOLVER AL MENU en degradado
+    (pruebas 4 y 7) y cualquier SET_MODO del Esclavo con la opcion ON.
+ G2 Media: no dice que Activar/Desactivar se prueba con el Poste 1 en AUTOMATICO (en MENU no hay acuse y sale
+    $ERR ...SIN_ACUSE_DEL_OTRO_POSTE a 10 s); solo "los dos en Automatico" en general, y el Poste 2 no tiene modo.
+ G3 Media: (h)3 / (f).1 (Maestro a MANUAL DURANTE el corte, fila H13, 528 s de verde E contra ambar M) no esta:
+    la prueba 6 pone MANUAL con radio (= H6). Falta la medida "cuanto dura".
+ G4 Baja: no cubre (h)4 (SET_DEG_AUTO:0 sin radio rechazado), (h)5 PRESENTE con poste no degradado, (h)6 23:55.
+ G5 Baja: no trae los literales nuevos (AUTO_NO_*, "Sigue en ambar", "ROJO FIJO"); prueba 3 no dice que hacer si
+    sale "No pudo entrar solo".
+ G6 Baja: prueba 0 compara con "el nombre del paquete": el sello es 7173d3b+SUCIO, no 1ea1002.
+Riesgos (f).1 y (f).6 escritos en SPEC_2 7.ter (f): verificado.
