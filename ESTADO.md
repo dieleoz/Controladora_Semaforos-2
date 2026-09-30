@@ -7,16 +7,16 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 
 1. **Marco prueba en banco `a505fa2`** (Degradado automatico, `N-167`) con `Pruebas_Funcional_2026-09-29.html`, casos
    0-8, y exporta los dos postes por caso. Se leen ENTEROS y contando (`CLAUDE.md` §7) antes de tocar nada.
+   Acordado con el funcional el 30/09: en carretera el automatico va APAGADO (de fabrica) y sin radio se usa el
+   testigo manual, con el traslado real (15-20 min) en su campo de la app.
 2. **`N-168` (`D-38`, decidido 30/09):** en Degradado, la punta que pierde la hora pasa a ROJO fijo. Sin construir;
    antes, cargar la norma de senalizacion con la skill `norma`.
 3. **Fase 5, lo duplicado Maestro/Esclavo a `lib/`**: solo despues de que la candidata pase banco.
 
 ## Frentes abiertos (tres como maximo)
 
-- **Degradado automatico (`A-15`, `SPEC_2` §7.ter)**: `a505fa2` con arquitecto y QA APTO con condiciones atendidas,
-  compuerta 2x solo `D-22`. Riesgos residuales (f).1 (Manual durante el corte: 528 s de verde contra ambar en el arnes,
-  lo cubren paleteros y el aviso) y (f).6 sin decidir. Nada medido en tarjeta.
-- **Degradado con testigo (`D-35`)**: probado en banco el 29/09 (rojo hasta inicio, verdes alternos); ya no vence.
+- **Degradado (`A-15`, `D-35`)**: `a505fa2` con arquitecto y QA atendidos, compuerta 2x solo `D-22`; testigo probado
+  en banco el 29/09 y ya no vence. Riesgos (f).1 (Manual en el corte: 528 s verde contra ambar) y (f).6 (`D-38`).
 - **Sin medir en tarjeta**: DR6/DR7 de la pila los escribe tambien la libreria RTC; CNT podria no ser monotono.
 
 ## Organizacion del repo por fases (acordada con el arquitecto de plataforma)
