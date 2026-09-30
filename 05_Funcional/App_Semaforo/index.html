@@ -784,6 +784,24 @@
         </div>
         <p class="card-sub" id="testigo-estado">Sin testigo guardado en este teléfono.</p>
       </div>
+
+      <!-- A-15: DEGRADADO AUTOMATICO (SPEC_4 §3.ter.bis). Lo gobierna js/deg_auto.js. El
+           estado lo dice el equipo (CONSULTA_DEG_AUTO), no el boton pulsado. -->
+      <div class="card card-degradado" id="card-deg-auto">
+        <div class="card-header-flex">
+          <h3>📡 Degradado automático (sin radio)</h3>
+          <span class="badge badge-degradado">PELIGROSO</span>
+        </div>
+        <p class="card-sub">Hay que activarlo <strong>en los dos postes</strong>: en uno solo no hace nada. Con los dos activados, si la radio cae 5 min, <strong>los dos pasan a ROJO</strong> y después arrancan solos a una hora fija, alternando por reloj, sin nadie mirando.</p>
+        <p class="card-sub">Cuando la radio vuelve <strong>siguen en degradado</strong> hasta que el técnico los saque (Volver al menú en el POSTE 1).</p>
+        <p class="card-sub">Este poste: <strong id="degauto-este">sin conectar</strong><br>
+          Otro poste: <strong id="degauto-otro">-</strong><br>
+          Listo para entrar solo: <strong id="degauto-apto">-</strong></p>
+        <div class="card-header-flex">
+          <button class="btn-degradado" id="btn-degauto-on">Activar</button>
+          <button class="btn-secondary-bt" id="btn-degauto-off">Desactivar</button>
+        </div>
+      </div>
     </section>
 
     <!-- ===================================================================
@@ -1124,6 +1142,7 @@
   <script src="js/exportar.js"></script>
   <script src="js/telefono.js"></script>
   <script src="js/testigo.js"></script>
+  <script src="js/deg_auto.js"></script>
   <script src="js/serial_pc.js"></script>
   <script src="app.js"></script>
 </body>

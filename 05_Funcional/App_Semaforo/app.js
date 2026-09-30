@@ -388,7 +388,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // con PIN y sin PIN a proposito. Si aqui fuera con PIN, el equipo contestaria
   // AUTH_FAILED justo cuando el tecnico intenta averiguar QUE lleva dentro.
   const SIN_PIN = ['FORZAR_ROJO', 'AMBAR_EMERGENCIA', 'SET_MODO:MENU', 'SET_MODO:ALCANCE',
-                   'LEER_RTC', 'VERSION'];
+                   'LEER_RTC', 'VERSION', 'CONSULTA_DEG_AUTO'];
 
   // DEVUELVE SI LA ORDEN LLEGO A SALIR, y el que llama TIENE QUE MIRARLO.
   //
@@ -2958,9 +2958,10 @@ document.addEventListener('DOMContentLoaded', () => {
                        'respuesta: el equipo puede rechazarla y dira por que.');
     });
   }
-  // D-35, DEGRADADO CON TESTIGO: vive en js/testigo.js; aqui solo lo que necesita de app.js.
+  // D-35 (testigo) y A-15 (degradado automatico) viven en js/testigo.js y js/deg_auto.js.
   Testigo.iniciar({ state, enviarComandoFirmware, puntaCorrecta, avisarOtraPunta, addEvent,
                     showToast, horaLocal24, fechaLocalISO, pedirPin });
+  DegAuto.iniciar({ state, enviarComandoFirmware, addEvent, showToast, pedirPin });
 
   // =========================================================================
   // 4.quater DEMANDA: UN CONTROL QUE REFLEJA EL MODO EN VEZ DE GASTAR UN RECHAZO
@@ -3388,8 +3389,8 @@ document.addEventListener('DOMContentLoaded', () => {
     'SET_MODO:DEG_T|RENOVADO': {
       tono: 'green',
       texto: 'Equipo: TESTIGO RENOVADO. Este poste ya alternaba con ese mismo ciclo: ' +
-             'cuenta otros 31 dias y SIGUE ALTERNANDO, sin volver a rojo ni esperar el inicio.',
-      toast: 'Testigo renovado: 31 dias mas, sigue alternando'
+             'la cuenta del testigo vuelve a empezar y SIGUE ALTERNANDO, sin volver a rojo ni esperar el inicio.',
+      toast: 'Testigo renovado: la cuenta empieza de nuevo, sigue alternando'
     },
     'SET_MODO:MENU|OK': {
       tono: 'green',
@@ -3879,8 +3880,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // Resuelve una entrada de las dos tablas de rechazo: puede ser el objeto directo o
   // una funcion de los campos de la trama, para los motivos que traen un dato dentro.
   function _traducirRechazo(data) {
-    const entrada = Testigo.rechazo(data, state.node) || ERR_TEXTO[(data.CMD || '?') + '|' + (data.DESC || '')] ||
-                    ERR_MOTIVO[data.DESC || ''];
+    const entrada = DegAuto.rechazo(data) || Testigo.rechazo(data, state.node) ||
+                    ERR_TEXTO[(data.CMD || '?') + '|' + (data.DESC || '')] || ERR_MOTIVO[data.DESC || ''];
     if (!entrada) return null;
     return typeof entrada === 'function' ? entrada(data) : entrada;
   }
@@ -3955,6 +3956,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!state.telemetriaViva) marcarConEnlace();
 
       if (data.NODE) {
+        DegAuto.alStatus(data.NODE);  // A-15: consulta la opcion al identificar el poste
         state.node = data.NODE;
         if (nodeNameEl) {
           nodeNameEl.textContent = data.NODE === 'MAESTRO' ? 'MAESTRO (POSTE 1)' : 'ESCLAVO (POSTE 2)';
@@ -4128,7 +4130,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // js/avisos_equipo.js -el porque, en su cabecera- y sigue el molde de ERR_MOTIVO:
       // el literal en crudo se queda y la traduccion va detras. Lo que la tabla no
       // nombra sale como salia, en crudo, que es la red y no el destino.
-      const aviso = AvisosEquipo.traducirAlarma(data);
+      const aviso = DegAuto.alarma(data) || AvisosEquipo.traducirAlarma(data);
       showToast(aviso && aviso.toast ? aviso.toast
                                      : 'ALERTA: ' + (data.EVENTO || 'Fallo detectado'));
 
@@ -4221,8 +4223,8 @@ document.addEventListener('DOMContentLoaded', () => {
       // N-162: este acuse NO toca state.hora. Viene de NODE:PUENTE -el DS3231 del ESP32-
       // y state.hora es la hora del CONTROLADOR, la del $STATUS. Pintar una con la otra
       // tapaba justo lo que hay que ver: un STM32 que no recibio la hora.
-      Testigo.anotarAcuse(data, state.node);
-      const dicho = ACK_TEXTO[clave];
+      Testigo.anotarAcuse(data, state.node); const degAuto = DegAuto.acuse(data);  // A-15
+      const dicho = ACK_TEXTO[clave] || degAuto;
       if (dicho) {
         addEvent(dicho.tono, dicho.texto);
         showToast(dicho.toast);
@@ -4337,7 +4339,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // vuelve, la que se ignora porque manda la radio, y el salto de hora que pasa por
       // rojo-. Mismo molde que el $ALARM de arriba: crudo primero, traduccion detras, y
       // lo que la tabla no nombra en crudo y en cyan como siempre.
-      const aviso = AvisosEquipo.traducirEvento(data);
+      const aviso = DegAuto.evento(data) || AvisosEquipo.traducirEvento(data);
       const textoEvento = 'Equipo [' + (data.ORIGEN || 'FIRMWARE') + ']: ' +
                           (data.DETALLE || '') + (data.HORA ? ' - ' + data.HORA : '') +
                           (aviso ? ' -> ' + aviso.texto : '');
@@ -4455,10 +4457,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         'SET_MODO:MENU', 'SET_MODO:ALCANCE', 'SET_MODO:INTELIGENTE',
                         'MANUAL:CAMBIAR_TURNO', 'SET_TIEMPOS', 'TEST_LEDS',
                         'DEMANDA', 'REINICIAR_RELOJ', 'FORZAR_ROJO'];
-  // CANCELAR_AMBAR (R-3, 31/08) vive en el Esclavo por la misma razon que
-  // AMBAR_EMERGENCIA: es esa punta la que tiene el latch. El Maestro no conoce el
-  // literal, asi que sin esta linea el boton saldria al cable contra un Maestro y
-  // volveria como $ERR,CMD:DESCONOCIDO -el error que parece un boton roto-.
+  // CANCELAR_AMBAR (R-3) vive en el Esclavo, que tiene el latch como en AMBAR_EMERGENCIA:
+  // contra un Maestro volveria como $ERR,CMD:DESCONOCIDO, el error que parece boton roto.
   const SOLO_ESCLAVO = ['SOLICITAR_PASO', 'AMBAR_EMERGENCIA', 'CANCELAR_AMBAR'];
 
   // 🟠 N-124, VENTANA CONOCIDA Y ABIERTA A PROPOSITO - NO ES UN DESCUIDO.
