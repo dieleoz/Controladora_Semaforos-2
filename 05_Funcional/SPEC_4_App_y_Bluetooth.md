@@ -220,7 +220,8 @@ riesgo: sin radio, los dos postes pasan solos a rojo y despues alternan por relo
   el Poste 1».
 - `$ALARM DEGRADADO,AUTO_RECHAZADA_<MDT_x o DEG_RECHAZO_T_x>` — «No pudo entrar solo: <motivo>. Sigue en ambar».
 - `$ALARM DEGRADADO,OTRO_POSTE_EN_DEGRADADO` — «El otro poste esta en degradado y este no: vaya al otro poste».
-- `$ALARM DEGRADADO,LIMITE_31D,CAMBIO_A_ROJO` — «31 dias sin visita: rojo fijo; manana ambar. Repita el testigo».
+- Aviso de 28 dias sin renovar el testigo — «sincronice desde el celular: repita el testigo en los dos postes».
+  Sin vencimiento: la luz no cambia (29/09).
 
 **Y el `$STATUS` del Maestro en Degradado publica `ESC:?`**: la app lo pinta como «desconocido», no como el ultimo
 color que vio (SPEC 2 §7.ter (e)).
