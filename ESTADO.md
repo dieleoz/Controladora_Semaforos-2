@@ -38,7 +38,7 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 | Maestro `179DB0` (El Sisga) | `7ff7d12` `SIN_BANCO`, probado despues `b354fe9` | cinta y diario en `evidencia/` |
 | Esclavo del Sisga | sin medir | su cinta no se ha traido |
 | Maestro `4D2007` y Esclavo `38EB53` (Marco, banco) | `a505fa2` en controlador y puente, medido: `$ACK,CMD:VERSION` el 30/09 | `evidencia/300920261130/` |
-| paquete para Marco | `a505fa2` `SIN_BANCO` (Paquete_Funcional): Degradado automatico con runbook N-167 completo (arquitecto y QA con condiciones atendidas, compuerta 2x solo D-22); el enviado antes, `a0d605b` sin pruebas | falta banco de dos tarjetas con la guia y los exportes |
+| paquete para Marco | `6bd1e4f` `SIN_BANCO` (`Paquete_Funcional_2026-09-30`), sin runbook por decision del responsable: `D-40` en el Maestro (el Esclavo no cambia), aviso de corte `N-170`, hoja `Pruebas_Funcional_2026-09-30.html`; el anterior, `a505fa2` | banco de Marco con la hoja y los exportes |
 
 ## Verificacion en escritorio
 
