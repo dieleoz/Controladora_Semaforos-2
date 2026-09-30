@@ -140,7 +140,7 @@ button#btnPdf{
     <li>Mire el Poste 1 los primeros 30 s tras volver la luz. Si puede, grábelo con la hora visible.</li>
     <li>Conéctese al Poste 1: debe salir el aviso de que se quedó sin luz (ver prueba 3).</li>
   </ol>
-  <div class="espera">Se espera: el Poste 1 vuelve SOLO al Degradado, sin mandarle nada, y alterna en fase con el Poste 2: nunca los dos en verde, siempre 30 s los dos en rojo entre verdes, y los cambios a las mismas horas que antes. <strong>Si queda en ámbar, anote la hora</strong>: es lo que falló el 30/09 y este paquete lo corrige.</div>
+  <div class="espera">Se espera: el Poste 1 vuelve SOLO al Degradado, sin mandarle nada, y alterna en fase con el Poste 2: nunca los dos en verde, siempre 30 s los dos en rojo entre verdes, y los cambios a las mismas horas que antes. El 30/09 el Poste 1 quedó en ámbar: la causa aún no se conoce y esta prueba es para encontrarla. <strong>No mande ninguna orden durante el primer minuto tras volver la luz.</strong> En la pestaña Tramas anote qué sale y a qué hora: MODO:MENU al volver, luego HORA_ESP32_SEMBRADA y luego MODO:DEGRADADO es lo correcto; MODO:AMBAR nada más volver, o una alarma SIN_HORA_DEL_ESP32 o J17_MUDO, es el fallo. Mire también si la tarjeta del controlador tiene pila de botón (CR2032) puesta.</div>
   <div class="horas">
     <label class="campo">Hora de un cambio antes del corte <input type="text" id="h1a" class="hora"></label>
     <label class="campo">Hora del corte <input type="text" id="h1b" class="hora"></label>
@@ -182,7 +182,7 @@ button#btnPdf{
     <li>Mire los dos postes y conéctese al Poste 1 con la app.</li>
     <li>Ponga otra vez el Poste 1 en Automático y repita cortando solo el <strong>Poste 2</strong>.</li>
   </ol>
-  <div class="espera">Se espera: al volver la luz, <strong>los dos postes en ámbar intermitente</strong> (fuera de servicio), no en rojo, hasta que usted dé una orden; la pluma arriba. Al conectarse, la app muestra un aviso visible de que ese poste se quedó sin luz, con el poste y el modo en que quedó. Si en Eventos sale una línea vacía "Equipo [FIRMWARE]:", anótelo.</div>
+  <div class="espera">Se espera: <strong>corte del Poste 1</strong>: al volver la luz, los dos postes en ámbar intermitente (fuera de servicio), no en rojo, hasta que usted dé una orden; la pluma arriba. El Poste 2 puede tardar hasta 25 s en pasar a ámbar. <strong>Corte solo del Poste 2</strong>: el Poste 1 lo recupera solo y los dos siguen en Automático. Al conectarse, la app muestra un aviso visible de que ese poste se quedó sin luz, con el poste y el modo en que quedó. Si en Eventos sale una línea vacía "Equipo [FIRMWARE]:", anótelo.</div>
   <div class="horas">
     <label class="campo">Poste 1: hora del corte <input type="text" id="h3a" class="hora"></label>
     <label class="campo">Poste 1: hora de la vuelta <input type="text" id="h3b" class="hora"></label>
