@@ -46,6 +46,15 @@ void modo_ambar_fijarMotivoDelEsclavo() {
 
 bool modo_ambar_origenEsclavo() { return origenEsclavo; }
 
+// D-40: el literal es la marca; se compara el PUNTERO, que es lo que se guarda.
+static const char AMBAR_ARRANQUE_L1[] = "Arranque tras corte";
+void modo_ambar_fijarMotivoDeArranque() {
+  ambarL1 = AMBAR_ARRANQUE_L1;
+  ambarL2 = "fuera de servicio";
+  origenEsclavo = false;   // N-152: declara su origen, como los otros dos
+}
+bool modo_ambar_esDeArranque() { return ambarL1 == AMBAR_ARRANQUE_L1; }
+
 void modo_ambar_setup() {
   // Ciclo detenido y orden de rojo al Esclavo mientras el radio aun sirva. Despues el
   // Maestro calla -main.cpp no llama al coordinador en este modo-, y el Esclavo pasa

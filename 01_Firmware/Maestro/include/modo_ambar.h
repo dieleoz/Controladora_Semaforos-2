@@ -76,3 +76,12 @@ void modo_ambar_fijarMotivoDelEsclavo();
 // antes de atender la cancelacion, y NO se consulta fuera de MODO_AMBAR: su valor solo
 // tiene sentido acompanado del modo.
 bool modo_ambar_origenEsclavo();
+
+// D-40 (SPEC_1 12, hueco 9): EL AMBAR DE ARRANQUE. Tras un corte o un reinicio el equipo
+// arranca en MODO_AMBAR con este motivo y sale con una orden del operario. Mismo molde que
+// el origen del Esclavo: el motivo ES la marca, y cualquier otro camino al ambar fija el
+// suyo y deja de serlo. modo_ambar_esDeArranque() solo tiene sentido dentro de MODO_AMBAR:
+// la lee modo_degradado.cpp para no aplicarle el veto R-4 del testigo, que es para el
+// ambar de emergencia que pidio una persona.
+void modo_ambar_fijarMotivoDeArranque();
+bool modo_ambar_esDeArranque();

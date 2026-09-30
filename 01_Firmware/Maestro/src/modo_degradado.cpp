@@ -833,8 +833,8 @@ MotivoTestigo modo_degradado_evaluarEntradaTestigo(uint32_t ahora, uint32_t inic
   if (d > TOLERANCIA_TESTIGO_S || d < -TOLERANCIA_TESTIGO_S) return MDT_AHORA_DESFASADO;
   if (despeje < TESTIGO_DESPEJE_MIN || despeje > TESTIGO_DESPEJE_MAX) return MDT_DESPEJE_RANGO;
   if ((inicio + 86400UL - reloj) % 86400UL > TESTIGO_INICIO_MAX_S) return MDT_INICIO_VENCIDO;
-  // R-4 en esta punta: el ambar de emergencia del Maestro es MODO_AMBAR (no hay latch).
-  if (modoActual_get() == MODO_AMBAR) return MDT_AMBAR_VIGENTE;
+  // R-4 en esta punta: el ambar de emergencia es MODO_AMBAR; el de arranque (D-40) no lo es.
+  if (modoActual_get() == MODO_AMBAR && !modo_ambar_esDeArranque()) return MDT_AMBAR_VIGENTE;
   return MDT_OK;
 }
 

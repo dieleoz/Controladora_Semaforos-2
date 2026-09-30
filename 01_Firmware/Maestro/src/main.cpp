@@ -39,6 +39,15 @@
 
 static ModoSistema modoAnterior;
 
+// D-40: el arranque espera en el menu mientras la reanudacion del Degradado siga pendiente
+// (D-29); si se decide en contra y nadie ha elegido modo, pasa al ambar de arranque.
+static bool esperaReanudacion = false;
+
+static void entrarAmbarDeArranque() {
+  modo_ambar_fijarMotivoDeArranque();
+  modoActual_set(MODO_AMBAR);
+}
+
 void setup() {
   botones_setup();
   coordinador_setup();
@@ -113,12 +122,22 @@ void setup() {
     modoActual_set(MODO_DEGRADADO);
     modo_degradado_setup();
     modoAnterior = MODO_DEGRADADO;
-  } else {
-    // Eliminamos el bloqueo inicial por Handshake.
-    // Arrancamos directamente en el menú.
+  } else if (respaldo_degradadoActivo()) {
+    // D-29: la decision sigue PENDIENTE de la siembra del ESP32 -si se hubiera tomado en
+    // contra, el indicador ya estaria borrado-. Mientras, el menu (rojo fijo con enlace),
+    // como hasta ahora: ambar aqui seria el riesgo n.2 de SFTY-21 de arriba. Si la
+    // decision cae en contra, el bucle pasa al ambar de arranque (esperaReanudacion).
     modoActual_set(MENU);
     menu_setup();
     modoAnterior = MENU;
+    esperaReanudacion = true;
+  } else {
+    // D-40 (SPEC_1 12, hueco 9): tras un corte o un reinicio, AMBAR INTERMITENTE
+    // -fuera de servicio- hasta una orden del operario, no el menu. Es MODO_AMBAR
+    // entero: modo_ambar_setup() manda el todo-rojo y CMD_GO_AMBAR al Esclavo.
+    entrarAmbarDeArranque();
+    modo_ambar_setup();
+    modoAnterior = MODO_AMBAR;
   }
 }
 
@@ -202,6 +221,13 @@ void loop() {
   // modo_degradado_setup(): una segunda via seria una segunda puerta.
   if (modo_degradado_reanudarTrasCorte()) {
     modoActual_set(MODO_DEGRADADO);
+  }
+  // D-40: la espera acaba al salir del menu (reanudo, o alguien eligio modo) o cuando la
+  // decision borra el indicador; en ese caso, si sigue en el menu, ambar de arranque. Va
+  // aqui por lo mismo que la reanudacion: el switch de abajo lo arranca en esta vuelta.
+  if (esperaReanudacion && (modoActual_get() != MENU || !respaldo_degradadoActivo())) {
+    esperaReanudacion = false;
+    if (modoActual_get() == MENU) entrarAmbarDeArranque();
   }
   // A-15: cuenta y entrada del Degradado automatico, y PRESENTE en Degradado. Antes de
   // leer 'modo', por lo mismo que la reanudacion de arriba.
