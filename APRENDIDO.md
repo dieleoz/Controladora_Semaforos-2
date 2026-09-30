@@ -63,3 +63,34 @@ sin su visto bueno.
 - **Leccion:** dos recetas y un solo script: el que empaqueta para el funcional tiene que ser un instrumento.
 - **Que hacer en el siguiente:** un modo `--funcional` del empaquetador, sin que ningun fichero de >500 crezca.
 - **Destino:** SE QUEDA.
+
+## L-08 — Un binario sin pruebas lleva defectos que las pruebas de despues cazan; el nombre tiene que decirlo (30/09)
+- **Paso:** por decision del responsable salio `a0d605b` (Degradado automatico) sin pruebas ni compuerta, `SIN_BANCO`.
+  El runbook `N-167` cazo despues 5 defectos en ese codigo: 180 s de verde contra ambar con corte de un sentido,
+  reentrada tras rendicion y tras salida manual, `$ALARM` fuera de cota con checksum bueno y un aviso que no saltaba.
+- **Leccion:** `SIN_BANCO` avisa de que falta la tarjeta, no de que falten SPEC y pruebas; quien lo recibe no distingue.
+- **Que hacer en el siguiente:** un paquete sin pruebas propias lo dice en el nombre y en el mensaje al funcional, y se
+  retira en cuanto sale el validado.
+- **Destino:** SE QUEDA.
+
+## L-09 — El rojo heredado se mide antes de tocar (30/09)
+- **Paso:** tras `a0d605b` el banco tenia 7 packs en rojo; seis venian de ese commit y se mezclaron con el rojo del
+  cambio siguiente (`93bce43` reapunto cinco a la forma nueva; `917ef1e` cerro `esp32_07`, defecto real).
+- **Leccion:** sin el total de partida no se sabe que rompio cada cambio.
+- **Que hacer en el siguiente:** compuerta antes de la primera linea y su acta como base del encargo.
+- **Destino:** SE QUEDA.
+
+## L-10 — Un permiso bloqueado a un agente no se sortea desde el orquestador (30/09)
+- **Paso:** a un agente se le bloqueo retirar la salvaguarda de 31 dias y editar dos packs; no se reintento por otra via
+  y se devolvio al responsable (la retirada la confirmo el; el control negativo de `app_01`/`app_08` sigue pendiente).
+- **Leccion:** que un permiso impida retirar una barrera es informacion: se reporta y decide el responsable.
+- **Que hacer en el siguiente:** todo encargo dice "si el permiso lo impide, para y reporta".
+- **Destino:** SUBE a metodo (regla de encargos a subagentes).
+
+## L-11 — Lo que enlaza un arnes se actualiza en el mismo commit (30/09)
+- **Paso:** el simulador del puente aborto dos veces: faltaban dobles de funciones nuevas (`49580cf`) y el aviso de
+  paleteros bloqueaba AUTOMATICO al conectar porque preguntaba sin saber la opcion (`7173d3b`).
+- **Leccion:** una funcion nueva del firmware o una guarda nueva de la app rompe el arnes que las ejerce, y la compuerta
+  solo dice ABORTADO.
+- **Que hacer en el siguiente:** grep de los dobles y del arnes afectado en el mismo commit que la funcion o la guarda.
+- **Destino:** SE QUEDA.
