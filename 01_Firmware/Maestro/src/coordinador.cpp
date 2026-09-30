@@ -1540,6 +1540,10 @@ bool coordinador_rojoEsclavoConfirmado() {
 // estan en ambar y ademas se sabe.
 const char* coordinador_estadoEsclavo() {
   if (modoActual_get() == MODO_AMBAR) return "AMBAR";
+  // Cinta IOTVIAL_4D2007 (29/09): en Degradado main.cpp no llama al coordinador y nadie
+  // lee la radio -ni con enlace vivo-; el GO_RED de entrada es una orden sin acuse. Lo
+  // que quedara en quienVerde es el ultimo valor, no una medida: se publica "?".
+  if (modoActual_get() == MODO_DEGRADADO) return "?";
   if (estadoC == C_FALLO) return "?";
   // N-162 (cinta del Sisga, 10/09, 12:20:54-12:21:10): quienVerde se queda en QV_ESCLAVO
   // hasta que el Maestro llega a VERDE, pero el Esclavo YA esta en rojo desde que llego

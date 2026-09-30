@@ -1013,7 +1013,7 @@ int main() {
               std::to_string(g_ticksVerdeMaestro) + " instantes y el Esclavo en " +
               std::to_string(g_ticksVerdeEsclavo) + ". Los dos ciclan por su propio "
               "reloj: sin esto, un cero de solapes no diria nada");
-
+    comprobar(MAESTRO.orden("esc_desconocido") == 1, "B3b (cinta 4D2007, 29/09): en Degradado sin radio ESC: publica '?', no el ultimo color");
     comprobar(g_verdeSimultaneo == 0,
               "B4: con los dos relojes iguales, en los " + std::to_string(g_instantes) +
               " instantes observados NO hubo ni uno con verde en las dos puntas");

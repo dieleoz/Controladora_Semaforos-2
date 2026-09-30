@@ -443,7 +443,6 @@ PUNTA_API long punta_mando(const char* que, long arg) {
   // El veredicto del firmware, en crudo: el orquestador lo imprime, no lo interpreta.
   if (!strcmp(que, "estado_cristal"))     return (long)reloj_estadoCristal();
   if (!strcmp(que, "eventos_salto_rojo")) return (long)g_eventosSaltoRojo;
-
   // --- SFTY-23: el intercambio horario REAL, encolado por el coordinador ----
   if (!strcmp(que, "sincronizar_hora"))   return coordinador_sincronizarHora() ? 1 : 0;
   if (!strcmp(que, "medir_desfase"))      return coordinador_medirDesfase() ? 1 : 0;
@@ -455,6 +454,7 @@ PUNTA_API long punta_mando(const char* que, long arg) {
   if (!strcmp(que, "listo_para_contar"))  return coordinador_listoParaContar() ? 1 : 0;
   if (!strcmp(que, "comunicacion_perdida")) return coordinador_comunicacionPerdida() ? 1 : 0;
   if (!strcmp(que, "forzar_rojo_total"))  { coordinador_forzarRojoTotal(); return 1; }
+  if (!strcmp(que, "esc_desconocido"))    return strcmp(coordinador_estadoEsclavo(), "?") == 0 ? 1 : 0;
 
   // --- La puerta y el modo -------------------------------------------------
   // "deg_evaluar" devuelve el MotivoDegradado real: 0 = MDG_OK. No se toca nada.
