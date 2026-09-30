@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Pruebas en campo</title>
+<title>Pruebas en banco</title>
 <style>
 :root{
   --papel:#f6f5f2; --tarjeta:#ffffff; --tinta:#17191c; --tinta-2:#55555a;
@@ -54,6 +54,11 @@ li{margin-bottom:6px;}
   background:#fdf3e3; border:1px solid var(--acento); border-radius:10px;
   padding:14px; margin-bottom:16px; font-size:16px;
 }
+.alto{
+  background:#fbe9e8; border:2px solid var(--alto); border-radius:10px;
+  padding:14px; margin-bottom:16px; font-size:16px;
+}
+.horas label.campo{font-weight:400;}
 footer{position:sticky; bottom:0; background:var(--papel); padding-top:10px;}
 button#btnPdf{
   width:100%; font-size:18px; padding:14px; border:none; border-radius:8px;
@@ -63,7 +68,7 @@ button#btnPdf{
 #estado{font-size:13px; color:var(--tinta-2); text-align:center;}
 @media print{
   button#btnPdf, .nota-impresion, #estado{display:none;}
-  .resultado, textarea{display:none;}
+  .resultado, textarea, .horas{display:none;}
   .print-only{display:block; border:1px solid var(--linea); border-radius:6px; padding:8px; margin-top:8px; font-size:15px; background:#fafafa;}
   section.prueba{break-inside:avoid; page-break-inside:avoid; border:1px solid #999;}
 }
@@ -72,133 +77,238 @@ button#btnPdf{
 <body>
 
 <header class="datos">
-  <h1>Pruebas en campo</h1>
+  <h1>Pruebas en banco</h1>
   <label class="campo">Fecha
     <input type="date" id="fecha">
   </label>
   <label class="campo">Nombre de quien prueba
     <input type="text" id="nombre">
   </label>
-  <label class="campo">Serie del Maestro
+  <label class="campo">Nombre del paquete (.zip)
+    <input type="text" id="paquete">
+  </label>
+  <label class="campo">Serie del Poste 1 (Maestro)
     <input type="text" id="serieM">
   </label>
-  <label class="campo">Serie del Esclavo
+  <label class="campo">Serie del Poste 2 (Esclavo)
     <input type="text" id="serieE">
-  </label>
-  <label class="campo">Versión de firmware del Maestro (menú "Consultar versión del firmware")
-    <input type="text" id="hashM">
-  </label>
-  <label class="campo">Versión de firmware del Esclavo (menú "Consultar versión del firmware")
-    <input type="text" id="hashE">
   </label>
 </header>
 
 <main>
 
+<div class="alto">
+  <strong>Avise de inmediato, sin esperar a terminar:</strong> cualquier momento en que un poste esté en
+  <strong>VERDE</strong> y el otro en <strong>ÁMBAR o VERDE</strong>. Anote la hora, apague el equipo,
+  exporte el diario de los dos postes y mande los archivos.
+</div>
+
 <section class="prueba" id="p0">
-  <h2>0. Versión del firmware</h2>
+  <h2>0. Antes de empezar</h2>
   <ol>
-    <li>En el Maestro, pida "Consultar versión del firmware" y anote lo que contesta arriba.</li>
-    <li>Haga lo mismo en el Esclavo.</li>
+    <li>Desinstale la app vieja del celular e instale la APK nueva del paquete.</li>
+    <li>En el PC, abra la web de la carpeta <strong>04_App/web</strong> del paquete.</li>
+    <li>Compruebe que la app ya no tiene el botón "Solicitar Paso" ni el botón de Degradado normal:
+      en la pestaña Técnico solo quedan "Degradado con testigo" y la tarjeta nueva
+      "Degradado automático (sin radio)". Si ve los botones viejos, la app instalada es la anterior.</li>
+    <li>Conéctese al Poste 1. Pestaña Técnico: pulse <strong>"Consultar version del firmware"</strong>.
+      Vaya a <strong>Eventos</strong> y copie las dos líneas que salen abajo.</li>
+    <li>Haga lo mismo en el Poste 2.</li>
   </ol>
-  <div class="espera">Se espera: las dos tarjetas contestan el mismo código, el del nombre del paquete.
-    Anótelo tal cual sale. Si no coinciden, no siga: avise.</div>
+  <div class="espera">Se espera, en Eventos de cada poste, dos líneas:<br>
+    "Version cargada - Controlador MAESTRO: FW ..." (en el Poste 2 dice ESCLAVO) y
+    "Version cargada - Puente (ESP32): FW ...".<br>
+    El código del controlador es el mismo en los dos postes y coincide con el del nombre del paquete.
+    Si no coincide, no siga: avise.</div>
+  <div class="horas">
+    <label class="campo">Poste 1 - Controlador: FW <input type="text" id="h0a" class="hora"></label>
+    <label class="campo">Poste 1 - Puente (ESP32): FW <input type="text" id="h0b" class="hora"></label>
+    <label class="campo">Poste 2 - Controlador: FW <input type="text" id="h0c" class="hora"></label>
+    <label class="campo">Poste 2 - Puente (ESP32): FW <input type="text" id="h0d" class="hora"></label>
+  </div>
   <div class="resultado">
     <label><input type="radio" name="r0" value="Funcionó" data-txt="Funcionó"> Funcionó</label>
     <label><input type="radio" name="r0" value="No funcionó" data-txt="No funcionó"> No funcionó</label>
     <label><input type="radio" name="r0" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
   </div>
-  <textarea id="v0" placeholder="Texto exacto de cada tarjeta"></textarea>
+  <textarea id="v0" placeholder="Lo que vio distinto"></textarea>
   <div class="print-only" id="pr0"></div>
 </section>
 
 <section class="prueba" id="p1">
-  <h2>1. Pérdida de comunicación en Automático</h2>
+  <h2>1. El testigo ya no deja una respuesta suelta</h2>
   <ol>
-    <li>Ponga el equipo en Automático y espere a que el Esclavo esté en verde.</li>
-    <li>Quite el cable que une el Maestro con el Esclavo y arranque el cronómetro.</li>
-    <li>Anote a los cuántos segundos cambia cada poste y a qué luz pasa.</li>
-    <li>Vuelva a conectar el cable. Anote qué hacen los dos y cuánto tardan en volver a funcionar juntos.</li>
+    <li>Quite el cable entre postes y espere a que los dos queden en ámbar.</li>
+    <li>Poste 1: "Degradado con testigo · POSTE 1" con 2 minutos de traslado.
+      Poste 2: "Enviar testigo" antes de la hora de inicio.</li>
+    <li>En cada poste, pestaña <strong>Tramas</strong> &rarr; <strong>Diario de órdenes</strong>: busque la
+      orden del testigo.</li>
+    <li>Al terminar, pulse "VOLVER AL MENÚ" en el Poste 1 y vuelva a conectar el cable.</li>
   </ol>
-  <div class="espera">Se espera: ámbar intermitente en los dos a unos 25 s. Al reconectar, vuelven
-    solos a Automático, pasando por rojo.</div>
+  <div class="espera">Se espera: la respuesta del equipo aparece pegada a su orden. No debe salir
+    ninguna "respuesta suelta" ni el texto "puede venir de otro teléfono".</div>
   <div class="resultado">
     <label><input type="radio" name="r1" value="Funcionó" data-txt="Funcionó"> Funcionó</label>
     <label><input type="radio" name="r1" value="No funcionó" data-txt="No funcionó"> No funcionó</label>
     <label><input type="radio" name="r1" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
   </div>
-  <textarea id="v1" placeholder="Segundos y luces de cada poste"></textarea>
+  <textarea id="v1" placeholder="Qué sale junto a la orden del testigo"></textarea>
   <div class="print-only" id="pr1"></div>
 </section>
 
 <section class="prueba" id="p2">
-  <h2>2. Degradado con testigo, sin comunicación</h2>
+  <h2>2. En degradado, el Poste 1 no inventa el color del Poste 2</h2>
   <ol>
-    <li>Quite el cable entre los postes y espere a que los dos queden en ámbar.</li>
-    <li>Conéctese al Maestro. En la tarjeta "Degradado con testigo", pulse enviar. Anote la hora de
-      inicio que muestra la app.</li>
-    <li>Conéctese al Esclavo y pulse "Enviar testigo" antes de esa hora.</li>
-    <li>Mire los dos postes hasta la hora de inicio y 10 minutos más. Anote cuánto dura cada verde
-      y cada todo-rojo.</li>
+    <li>Durante la prueba 1, con los dos en degradado, mire en el Poste 1 la pestaña Tráfico.</li>
   </ol>
-  <div class="espera">Se espera: los dos en rojo fijo hasta la hora de inicio; después alternan solos,
-    primero el Maestro. Nunca los dos en verde a la vez. Si pasa, apague el equipo y avise.</div>
+  <div class="espera">Se espera: el semáforo del Poste 2 sale como "SIN DATO DEL POSTE 2 · el POSTE 1 no
+    lo sabe", no con un color. Si sale un color, anote cuál.</div>
   <div class="resultado">
     <label><input type="radio" name="r2" value="Funcionó" data-txt="Funcionó"> Funcionó</label>
     <label><input type="radio" name="r2" value="No funcionó" data-txt="No funcionó"> No funcionó</label>
     <label><input type="radio" name="r2" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
   </div>
-  <textarea id="v2" placeholder="Hora de inicio, mensajes de la app y tiempos"></textarea>
+  <textarea id="v2" placeholder="Texto exacto que sale para el Poste 2"></textarea>
   <div class="print-only" id="pr2"></div>
 </section>
 
+<div class="recordatorio">
+  <strong>Pruebas 3 a 7: Degradado automático.</strong> Una persona en cada poste, cada una con cronómetro
+  o con la hora del celular, mirando las luces a la vez. Antes de cada caso: cable conectado, los dos en
+  Automático. La opción se activa y desactiva en la tarjeta "Degradado automático (sin radio)" de la pestaña
+  Técnico, con PIN, y <strong>solo con el cable conectado</strong>: el otro poste tiene que enterarse.
+  Mientras el otro poste no contesta, el botón dice "esperando al otro poste".<br>
+  <strong>No cambie el modo del Poste 1 con el cable quitado</strong> (ni Manual, ni Menú, ni Ámbar) salvo que
+  el caso lo diga.
+</div>
+
 <section class="prueba" id="p3">
-  <h2>3. Testigo que llega tarde</h2>
+  <h2>3. Activado en los dos y se quita el cable</h2>
   <ol>
-    <li>Repita el paso 2 de la prueba anterior en el Maestro, con 1 minuto de traslado.</li>
-    <li>Espere a que pase la hora de inicio y entonces intente "Enviar testigo" en el Esclavo.</li>
+    <li>Pulse "Activar" en el Poste 1 y en el Poste 2. Espere a que en los dos la tarjeta diga
+      "Este poste: ON", "Otro poste: ON" y "Listo para entrar solo: SI".</li>
+    <li>Quite el cable y anote la hora.</li>
+    <li>Anote cuándo pasa cada poste a ámbar y cuándo a rojo fijo.</li>
+    <li>En Eventos saldrá "rojo hasta HH:MM". Anote esa hora en los dos postes.</li>
+    <li>Mire hasta 10 minutos después de esa hora. Anote quién da verde primero y cuánto dura cada verde
+      y cada todo-rojo.</li>
   </ol>
-  <div class="espera">Se espera: la app no lo envía y le dice que repita en el Maestro. Copie el
-    mensaje exacto.</div>
+  <div class="espera">Se espera: ámbar en los dos a unos 25 s. A unos 5 min de quitar el cable, rojo fijo
+    en los dos. El rojo dura al menos 7 minutos y termina en una hora redonda de 5 en 5 min
+    (por ejemplo 10:35). Después alternan solos: verde 3 min en uno, todo-rojo, verde en el otro.
+    Nunca verde contra ámbar ni dos verdes.</div>
+  <div class="horas">
+    <label class="campo">Hora en que quitó el cable <input type="text" id="h3a" class="hora"></label>
+    <label class="campo">Poste 1 a rojo fijo (hora) <input type="text" id="h3b" class="hora"></label>
+    <label class="campo">Poste 2 a rojo fijo (hora) <input type="text" id="h3c" class="hora"></label>
+    <label class="campo">"Rojo hasta" en Poste 1 / Poste 2 <input type="text" id="h3d" class="hora"></label>
+    <label class="campo">Primer verde: qué poste y a qué hora <input type="text" id="h3e" class="hora"></label>
+  </div>
   <div class="resultado">
     <label><input type="radio" name="r3" value="Funcionó" data-txt="Funcionó"> Funcionó</label>
     <label><input type="radio" name="r3" value="No funcionó" data-txt="No funcionó"> No funcionó</label>
     <label><input type="radio" name="r3" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
   </div>
-  <textarea id="v3" placeholder="Mensaje exacto de la app"></textarea>
+  <textarea id="v3" placeholder="Tiempos de verde y todo-rojo, mensajes de la app"></textarea>
   <div class="print-only" id="pr3"></div>
 </section>
 
 <section class="prueba" id="p4">
-  <h2>4. Corte de luz con el testigo puesto</h2>
+  <h2>4. Vuelve el cable con los dos en degradado</h2>
   <ol>
-    <li>Con los dos postes alternando por la prueba 2 y el cable quitado, apague los dos 1 minuto.</li>
-    <li>Enciéndalos y mire 10 minutos sin tocar la app.</li>
+    <li>Siguiendo la prueba 3, con los dos ya alternando, vuelva a conectar el cable y anote la hora.</li>
+    <li>Mire 3 minutos sin tocar nada.</li>
+    <li>Pulse "VOLVER AL MENÚ" en el Poste 1 y anote qué hace cada poste.</li>
   </ol>
-  <div class="espera">Se espera: vuelven a alternar solos, pasando antes por rojo, y siguen en fase.</div>
+  <div class="espera">Se espera: en Eventos de cada poste, antes de 1 minuto, "La radio volvió. Sigue en
+    degradado". Los dos siguen alternando igual que antes, no vuelven solos al ciclo. Con
+    "VOLVER AL MENÚ" en el Poste 1 salen los dos, pasando por todo-rojo.</div>
+  <div class="horas">
+    <label class="campo">Hora en que conectó el cable <input type="text" id="h4a" class="hora"></label>
+    <label class="campo">Aviso "La radio volvió": hora en Poste 1 / Poste 2 <input type="text" id="h4b" class="hora"></label>
+    <label class="campo">Hora de "VOLVER AL MENÚ" <input type="text" id="h4c" class="hora"></label>
+  </div>
   <div class="resultado">
     <label><input type="radio" name="r4" value="Funcionó" data-txt="Funcionó"> Funcionó</label>
     <label><input type="radio" name="r4" value="No funcionó" data-txt="No funcionó"> No funcionó</label>
     <label><input type="radio" name="r4" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
   </div>
-  <textarea id="v4" placeholder="Qué hizo cada poste al encender"></textarea>
+  <textarea id="v4" placeholder="Qué hizo cada poste al conectar y al salir"></textarea>
   <div class="print-only" id="pr4"></div>
 </section>
 
 <section class="prueba" id="p5">
-  <h2>5. Vuelve la comunicación con el testigo puesto</h2>
+  <h2>5. Activado en un solo poste</h2>
   <ol>
-    <li>Con los dos postes alternando por el testigo, vuelva a conectar el cable.</li>
-    <li>Mire 5 minutos y anote qué hace cada poste.</li>
+    <li>Con el cable conectado, deje el Poste 1 en "Activar" y pulse "Desactivar" en el Poste 2.
+      Anote qué dice "Listo para entrar solo" en cada uno.</li>
+    <li>Quite el cable, anote la hora y espere 15 minutos.</li>
   </ol>
-  <div class="espera">Se espera: describa lo que ve, no lo que cree que debería pasar.</div>
+  <div class="espera">Se espera: "Listo para entrar solo: NO" en los dos. Sin cable, ámbar en los dos a
+    unos 25 s y siguen en ámbar los 15 minutos. Ninguno pasa a rojo fijo ni da verde.</div>
+  <div class="horas">
+    <label class="campo">Hora en que quitó el cable <input type="text" id="h5a" class="hora"></label>
+    <label class="campo">Luz de cada poste a los 15 min <input type="text" id="h5b" class="hora"></label>
+  </div>
   <div class="resultado">
     <label><input type="radio" name="r5" value="Funcionó" data-txt="Funcionó"> Funcionó</label>
     <label><input type="radio" name="r5" value="No funcionó" data-txt="No funcionó"> No funcionó</label>
     <label><input type="radio" name="r5" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
   </div>
-  <textarea id="v5" placeholder="Qué hizo cada poste"></textarea>
+  <textarea id="v5" placeholder="Qué dice la tarjeta y qué hizo cada poste"></textarea>
   <div class="print-only" id="pr5"></div>
+</section>
+
+<section class="prueba" id="p6">
+  <h2>6. Poste 1 en Manual al quitar el cable</h2>
+  <ol>
+    <li>Con el cable conectado, active la opción en los dos. Ponga el Poste 1 en "Modo Manual" y espere
+      30 s. Anote qué dice "Listo para entrar solo" en cada uno.</li>
+    <li>Quite el cable, anote la hora y espere 15 minutos sin tocar la app.</li>
+  </ol>
+  <div class="espera">Se espera: ninguno entra en degradado. En ningún poste sale "rojo hasta" en
+    Eventos. Anote qué luz tiene cada poste a los 15 minutos.</div>
+  <div class="horas">
+    <label class="campo">Hora en que quitó el cable <input type="text" id="h6a" class="hora"></label>
+    <label class="campo">Luz de cada poste a los 15 min <input type="text" id="h6b" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r6" value="Funcionó" data-txt="Funcionó"> Funcionó</label>
+    <label><input type="radio" name="r6" value="No funcionó" data-txt="No funcionó"> No funcionó</label>
+    <label><input type="radio" name="r6" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v6" placeholder="Qué dice la tarjeta y qué hizo cada poste"></textarea>
+  <div class="print-only" id="pr6"></div>
+</section>
+
+<section class="prueba" id="p7">
+  <h2>7. Corte en un solo sentido (si se puede)</h2>
+  <p>Solo si puede soltar <strong>únicamente el cable de transmisión</strong> de un poste y dejar el
+    resto conectado. Hágalo dos veces: una soltando el de transmisión del Poste 1 y otra el del Poste 2.</p>
+  <ol>
+    <li>Active la opción en los dos (tarjeta "Listo para entrar solo: SI").</li>
+    <li>Suelte el cable de transmisión de un poste y anote la hora y cuál soltó.</li>
+    <li>Anote cuándo pasa cada poste a rojo fijo, la hora "rojo hasta" de cada uno y quién da verde
+      primero.</li>
+    <li>Al terminar: "VOLVER AL MENÚ" en el Poste 1 y vuelva a conectar.</li>
+  </ol>
+  <div class="espera">Se espera: los dos pasan a rojo fijo y los dos están en rojo antes del primer verde
+    de cualquiera. Uno de ellos puede pasar la espera en rojo en vez de en ámbar. Nunca verde contra
+    ámbar ni dos verdes.</div>
+  <div class="horas">
+    <label class="campo">Cable soltado (poste) y hora <input type="text" id="h7a" class="hora"></label>
+    <label class="campo">Rojo fijo: hora en Poste 1 / Poste 2 <input type="text" id="h7b" class="hora"></label>
+    <label class="campo">Primer verde: qué poste y a qué hora <input type="text" id="h7c" class="hora"></label>
+    <label class="campo">Segunda vez: cable soltado y hora <input type="text" id="h7d" class="hora"></label>
+    <label class="campo">Segunda vez: rojo fijo P1 / P2 y primer verde <input type="text" id="h7e" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r7" value="Funcionó" data-txt="Funcionó"> Funcionó</label>
+    <label><input type="radio" name="r7" value="No funcionó" data-txt="No funcionó"> No funcionó</label>
+    <label><input type="radio" name="r7" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v7" placeholder="Qué hizo cada poste"></textarea>
+  <div class="print-only" id="pr7"></div>
 </section>
 
 <section class="prueba" id="pF">
@@ -208,8 +318,14 @@ button#btnPdf{
 </section>
 
 <div class="recordatorio">
-  <strong>Después de cada prueba:</strong> exporte desde la app la cinta de tramas y el diario de órdenes
-  de las DOS tarjetas, como archivo, e indique de qué tarjeta es cada uno.
+  <strong>Al terminar cada caso, en CADA poste:</strong> pestaña <strong>Tramas</strong> &rarr;
+  <strong>Diario de órdenes</strong> &rarr; <strong>"Exportar todo como archivo"</strong>. Ponga en el nombre
+  el número de prueba y el poste (por ejemplo "prueba3_poste1") y envíe todos los archivos junto con este PDF.
+</div>
+
+<div class="alto">
+  <strong>Recuerde:</strong> verde en un poste con ámbar o verde en el otro se avisa en el momento, con la
+  hora, aunque dure un segundo.
 </div>
 
 </main>
@@ -227,7 +343,7 @@ button#btnPdf{
   var camposTexto = document.querySelectorAll('input[type=text], input[type=date], textarea');
   var camposRadio = document.querySelectorAll('input[type=radio]');
 
-  function clave(id) { return 'pf29_' + id; }
+  function clave(id) { return 'pf29b_' + id; }
 
   try {
     camposTexto.forEach(function (el) {
@@ -272,8 +388,8 @@ button#btnPdf{
 
   // Para cada prueba, arma en el recuadro de impresión el resultado elegido y lo
   // escrito, en texto llano. Así, al imprimir, se ve la respuesta aunque el
-  // teléfono no dibuje los controles marcados.
-  var ids = ['0', '1', '2', '3', '4', '5'];
+  // teléfono no dibuje los controles marcados. Las horas anotadas van también.
+  var ids = ['0', '1', '2', '3', '4', '5', '6', '7'];
   function refrescarImpresion() {
     ids.forEach(function (n) {
       var pr = document.getElementById('pr' + n);
@@ -282,7 +398,12 @@ button#btnPdf{
       var resultado = marcado ? marcado.getAttribute('data-txt') : 'sin responder';
       var texto = document.getElementById('v' + n);
       var vio = (texto && texto.value.trim()) ? texto.value : '(sin escribir)';
-      pr.textContent = 'Resultado: ' + resultado + '. Qué vio: ' + vio;
+      var horas = '';
+      document.querySelectorAll('#p' + n + ' input.hora').forEach(function (h) {
+        var rot = h.parentNode.firstChild.textContent.trim();
+        horas += rot + ': ' + (h.value.trim() || '(vacío)') + '. ';
+      });
+      pr.textContent = horas + 'Resultado: ' + resultado + '. Qué vio: ' + vio;
     });
     var libre = document.getElementById('vF');
     var prF = document.getElementById('prF');
