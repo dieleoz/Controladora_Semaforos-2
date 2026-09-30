@@ -152,7 +152,7 @@ def _acciones(cuerpo, codigo=None):
         if _PIN.match(etiqueta) or re.search(r"\baccion\s*=", bloque):
             continue
         accion = etiqueta[4:] if etiqueta.startswith("CMD:") else etiqueta
-        accion = accion.rstrip(":")
+        accion = re.sub(r"^PIN:\d{4}:", "", accion.rstrip(":"))  # "CMD:PIN:1234:X" es X (a0d605b)
         if not accion:
             continue
         fuera[accion] = fuera.get(accion, "") + bloque + _ack_diferido(accion, bloque, codigo)

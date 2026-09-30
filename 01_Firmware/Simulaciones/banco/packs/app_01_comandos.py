@@ -34,6 +34,10 @@ PUNTAS = ("Maestro", "Esclavo")
 APP_JS = ("05_Funcional", "App_Semaforo", "app.js")
 # D-35: el Degradado con testigo sale al cable desde js/testigo.js, no desde app.js.
 TESTIGO_JS = ("05_Funcional", "App_Semaforo", "js", "testigo.js")
+# A-15 (29/09): SET_DEG_AUTO y CONSULTA_DEG_AUTO salen desde js/deg_auto.js; el aviso de
+# paleteros (js/aviso_degradado.js) se lee por si un dia manda algo por su cuenta.
+DEG_AUTO_JS = ("05_Funcional", "App_Semaforo", "js", "deg_auto.js")
+AVISO_DEG_JS = ("05_Funcional", "App_Semaforo", "js", "aviso_degradado.js")
 APP_HTML = ("05_Funcional", "App_Semaforo", "index.html")
 
 # EL TERCER DESPACHADOR, Y NO ESTABA (A-9, 05/09).
@@ -90,6 +94,9 @@ def _atiende(fw, punta):
     # orden que nadie revisa. El filtro del PIN tiene la misma forma y no es una orden.
     sin_pin |= {c for c in re.findall(r'strncmp\s*\(\s*cmd\s*,\s*"CMD:([A-Z0-9_]+):"',
                                       codigo) if c != "PIN"}
+    # 29/09 (a0d605b): el Esclavo compara la linea ENTERA con y sin PIN -"CMD:X" y
+    # "CMD:PIN:1234:X"-. La segunda es la MISMA orden X, no una orden "PIN:1234:X".
+    sin_pin = {re.sub(r"^PIN:\d{4}:", "", c) for c in sin_pin}
     return exactos | prefijos | sin_pin
 
 
@@ -126,14 +133,26 @@ def _envia(fw):
     "sin interfaz" un FORZAR_ROJO y un TEST_LEDS que la app manda desde hace meses
     -por openPinModal(), que guarda el comando y lo ejecuta al validar el PIN-.
     Es la regla del instrumento: descartar al buscador antes de acusar."""
-    return _envia_de(fw.texto_repo(*APP_JS) + "\n" + fw.texto_repo(*TESTIGO_JS),
+    return _envia_de([fw.texto_repo(*r) for r in (APP_JS, TESTIGO_JS, DEG_AUTO_JS, AVISO_DEG_JS)],
                      fw.texto_repo(*APP_HTML))
+
+
+def _por_constante(modulo):
+    """enviarComandoFirmware(this.X[, arg]) con X: 'LITERAL' definido en el MISMO modulo
+    (js/deg_auto.js: ORDEN y CONSULTA). Por modulo y no sobre el texto pegado: testigo.js
+    tambien tiene un ORDEN, con otro literal. Una X que no resuelve no cuenta."""
+    consts = dict(re.findall(r"^\s*([A-Z_]+):\s*'([A-Z][A-Z0-9_:]*)'\s*,", modulo, re.M))
+    usadas = re.findall(r"enviarComandoFirmware\(\s*this\.([A-Z_]+)\s*[,)]", modulo)
+    return {consts[x] for x in usadas if x in consts}
 
 
 def _envia_de(js, html):
     """El cuerpo de _envia(), sobre textos: asi el control negativo de la 2.bis pasa por
-    el MISMO lector que la app de verdad."""
-    literales = set(re.findall(r"executeCommand\(\s*'([^']+)'", js))
+    el MISMO lector que la app de verdad. `js` es un texto o la lista de modulos."""
+    modulos = list(js) if isinstance(js, (list, tuple)) else [js]
+    js = "\n".join(modulos)
+    literales = set().union(*(_por_constante(m) for m in modulos))
+    literales |= set(re.findall(r"executeCommand\(\s*'([^']+)'", js))
     literales |= set(re.findall(r"openPinModal\(\s*'([^']+)'", js))
     # N-75: la puerta de salida se renombro a enviarComandoFirmware() en el rewrite de
     # la interfaz de 2 roles, y este censo se quedo a CERO comandos sin decirlo: acuso
