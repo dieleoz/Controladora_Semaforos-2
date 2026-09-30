@@ -415,6 +415,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // de campo el operario ya no teclea una clave: contesta una pregunta sobre la via.
     // El motivo esta en 4.bis y no es de comodidad: un PIN demuestra QUIEN eres y no
     // demuestra que hayas MIRADO, que es lo unico que el equipo no puede saber.
+    // 29/09: en Degradado, cambiar el modo de UN poste pide paleteros (js/aviso_degradado.js).
+    if (!AvisoDegradado.permite(orden, state, addEvent)) return false;
     if (!SIN_PIN.includes(comando) && !state.pinVerificado &&
         !viaConfirmadaVigente(orden)) {
       // EL AVISO TIENE QUE NOMBRAR LA BARRERA QUE FALTO, Y HASTA HOY NOMBRABA LA OTRA.
@@ -424,10 +426,6 @@ document.addEventListener('DOMContentLoaded', () => {
       // les falta una clave: les falta que alguien mire la calzada. Un aviso que nombra
       // la barrera equivocada manda al operario a teclear cuatro digitos que nadie le
       // va a pedir, delante de un cruce parado.
-      //
-      // El censo del texto se hizo antes de tocarlo -grep "falta autorizacion" sobre
-      // app.js, js/, index.html, los dos arneses y banco/packs: UN solo sitio, este-,
-      // asi que no hay una segunda copia que quede diciendo lo viejo.
       //
       // Cual toca lo decide VIA_MANIOBRA, que es la misma tabla con la que confirmarVia()
       // redacta la pregunta: si una orden esta ahi, su puerta es la via.

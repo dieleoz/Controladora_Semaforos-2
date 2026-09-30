@@ -760,6 +760,7 @@
           <h3>⏱️ Degradado con testigo (radio caída semanas)</h3>
           <span class="badge badge-degradado">PELIGROSO</span>
         </div>
+        <p class="card-sub"><strong>Con los dos postes en degradado sin radio, no cambie el modo de uno solo sin paleteros en los dos extremos.</strong></p>
         <p class="card-sub">Una orden por poste: <strong>primero el POSTE 1, después el POSTE 2</strong>, con el mismo testigo que este teléfono guarda. Los dos quedan en <strong>ROJO fijo hasta la hora de inicio</strong> y después alternan solos, sin radio.</p>
         <p class="card-sub">Necesita un firmware que ya lleve esta orden: si el equipo la rechaza como desconocida, no la lleva. El testigo sale solo cuando el poste acusa la hora del teléfono.</p>
         <label class="degradado-check">
@@ -792,6 +793,7 @@
           <h3>📡 Degradado automático (sin radio)</h3>
           <span class="badge badge-degradado">PELIGROSO</span>
         </div>
+        <p class="card-sub"><strong>Con los dos postes en degradado sin radio, no cambie el modo de uno solo sin paleteros en los dos extremos.</strong></p>
         <p class="card-sub">Hay que activarlo <strong>en los dos postes</strong>: en uno solo no hace nada. Con los dos activados, si la radio cae 5 min, <strong>los dos pasan a ROJO</strong> y después arrancan solos a una hora fija, alternando por reloj, sin nadie mirando.</p>
         <p class="card-sub">Cuando la radio vuelve <strong>siguen en degradado</strong> hasta que el técnico los saque (Volver al menú en el POSTE 1).</p>
         <p class="card-sub">Este poste: <strong id="degauto-este">sin conectar</strong><br>
@@ -1123,6 +1125,26 @@
     </div>
   </div>
 
+  <!-- Aviso de PALETEROS (29/09): logica y motivo en js/aviso_degradado.js. -->
+  <div class="modal-overlay" id="aviso-deg-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h4>⚠️ Cuidado: el otro poste sigue en degradado</h4>
+        <button class="modal-close" id="modal-aviso-deg-close">✕</button>
+      </div>
+      <p class="modal-desc">Sin radio, el otro poste no se entera de este cambio y seguirá dando verdes por su reloj. Si este poste da paso, puede haber <strong>verde contra verde</strong>. Haga este cambio solo con <strong>PALETEROS en los dos extremos</strong>, o cambie los dos postes.</p>
+      <p class="modal-desc" id="aviso-deg-orden"></p>
+      <label class="degradado-check">
+        <input type="checkbox" id="chk-aviso-deg">
+        <span>Hay paleteros en los dos extremos.</span>
+      </label>
+      <div class="degradado-acciones">
+        <button class="btn-secondary-bt" id="btn-aviso-deg-cancelar">Cancelar</button>
+        <button class="btn-degradado" id="btn-aviso-deg-confirmar" disabled>Cambiar este poste</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification -->
   <div class="toast" id="toast-msg">✓ Notificación del Sistema</div>
 
@@ -1143,6 +1165,7 @@
   <script src="js/telefono.js"></script>
   <script src="js/testigo.js"></script>
   <script src="js/deg_auto.js"></script>
+  <script src="js/aviso_degradado.js"></script>
   <script src="js/serial_pc.js"></script>
   <script src="app.js"></script>
 </body>
