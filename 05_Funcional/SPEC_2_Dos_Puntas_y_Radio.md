@@ -393,9 +393,8 @@ conoce. El Maestro en Degradado hoy no lee la radio (`main.cpp` no llama al coor
 `coordinador_escucharEnAmbar()`, que consume y descarta todo salvo `CMD_PRESENTE`. **Oída por una punta NO degradada:**
 `$ALARM DEGRADADO,OTRO_POSTE_EN_DEGRADADO,...,ACCION:REVISE_EL_OTRO_POSTE`, sin tocar la luz.
 
-**(d) Vencimiento a los 31 días — 🟡 FUERA DE LA PRIMERA VERSIÓN (29/09, orquestador: 24 h de rojo fijo no se meten sin
-que las vea el responsable; va a `roadmap.md`). En esta versión rige el vencimiento de `D-35` tal cual. Propuesta, en
-dos pasos:** Vale para todo Degradado con testigo
+**(d) Vencimiento a los 31 días — en un instante de pared común, en dos pasos (entra en esta
+versión, 29/09).** Vale para todo Degradado con testigo
 (manual o automático). No se ejecuta en la marca propia —las dos marcas difieren y una punta se iría a ámbar con la
 otra en verde—, sino **a las 00:00:00 de pared**, donde la guarda de medianoche de `ciclo_degradado_fase()` pone
 despeje en las dos. **Primer paso:** la primera 00:00:00 con edad ≥ 31 días, ROJO FIJO (`$ALARM DEGRADADO,LIMITE_31D,
