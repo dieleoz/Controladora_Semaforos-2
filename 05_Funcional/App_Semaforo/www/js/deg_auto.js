@@ -49,11 +49,16 @@ const DegAuto = {
 
   // Motivos de la puerta del testigo (MDT_* del Maestro, DEG_RECHAZO_T_* del Esclavo).
   MOTIVO: {
-    'FALTA_HORA': 'reloj sin poner en hora',
-    'AHORA_DESFASADO': 'la hora del poste no cuadra',
-    'DESPEJE_RANGO': 'despeje fuera de rango',
-    'INICIO_VENCIDO': 'la hora de arranque ya habia pasado',
-    'AMBAR_VIGENTE': 'hay un ambar de emergencia puesto',
+    'FALTA_HORA': 'reloj sin poner en hora; pongalo en hora y entre con testigo',
+    'SIN_HORA': 'reloj sin poner en hora; pongalo en hora y entre con testigo',
+    'AHORA_DESFASADO': 'la hora del poste no cuadra; ponga en hora los dos postes',
+    'DESPEJE_RANGO': 'despeje fuera de rango (30-255); avise a mantenimiento',
+    'INICIO_VENCIDO': 'la hora de arranque ya habia pasado; entre con testigo a mano',
+    'AMBAR_VIGENTE': 'hay un ambar de emergencia puesto; quitelo antes',
+    'EN_VERDE': 'estaba en verde y el testigo solo se guarda en rojo; entre con testigo en rojo',
+    'NO_GUARDADO': 'no se pudo guardar el testigo; repita y, si vuelve, avise a mantenimiento',
+    // MDT_OK: nombreMotivo() lo da por defecto, p.ej. si entrarTestigo() devuelve MDT_RENOVADO.
+    'OK': 'respuesta inesperada del poste; mire el modo y avise a mantenimiento',
   },
 
   RENOVAR: { tono: 'red', toast: 'Renueve el testigo en los dos postes',

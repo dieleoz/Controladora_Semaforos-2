@@ -96,7 +96,7 @@ module.exports = async function pruebaDegAuto(montarAppLimpia, assert) {
     `DegAuto: $EVENT ENLACE_DISPONIBLE dice que sigue en degradado: "${ultimo().slice(0, 160)}"`);
   const alarmas = [
     ['MAESTRO', 'AUTO_RECHAZADA_MDT_FALTA_HORA', 'RF:97%,RTT:70ms,SINRESP:0', 'SIGUE_EN_AMBAR',
-     /No pudo entrar solo: reloj sin poner en hora\. Sigue en ambar/],
+     /No pudo entrar solo: reloj sin poner en hora.*\. Sigue en ambar/],
     ['MAESTRO', 'AUTO_RECHAZADA_MDT_INICIO_VENCIDO', 'RF:97%,RTT:70ms,SINRESP:0', 'SIGUE_EN_AMBAR',
      /No pudo entrar solo: la hora de arranque ya habia pasado/],
     ['ESCLAVO', 'AUTO_RECHAZADA_DEG_RECHAZO_T_AHORA_DESFASADO', 'RX:10,OK:9,RUIDO:1', 'SIGUE_EN_AMBAR',
@@ -120,4 +120,25 @@ module.exports = async function pruebaDegAuto(montarAppLimpia, assert) {
     `DegAuto: la tarjeta del testigo NO dice que vence a 31 dias: "${(tarjeta.match(vence31) || [''])[0]}"`);
   assert(/renovar/.test(renovar) && !vence31.test(renovar),
     `DegAuto: el aviso RENOVAR_TESTIGO pide renovar y no dice que venza: "${renovar.slice(0, 160)}"`);
+
+  // (5b) Todo motivo que puede llegar en CAUSA:AUTO_RECHAZADA_<nombre> se traduce: censo de
+  // nombreMotivo() (Maestro/src/deg_auto.cpp) y nombreRechazo() (Esclavo/src/deg_auto.cpp).
+  // MDT_OK es su default: sale si modo_degradado_entrarTestigo() devuelve MDT_RENOVADO.
+  const motivos = [
+    ['MAESTRO', 'MDT_FALTA_HORA'], ['MAESTRO', 'MDT_AHORA_DESFASADO'], ['MAESTRO', 'MDT_DESPEJE_RANGO'],
+    ['MAESTRO', 'MDT_INICIO_VENCIDO'], ['MAESTRO', 'MDT_AMBAR_VIGENTE'], ['MAESTRO', 'MDT_EN_VERDE'],
+    ['MAESTRO', 'MDT_NO_GUARDADO'], ['MAESTRO', 'MDT_OK'],
+    ['ESCLAVO', 'DEG_RECHAZO_T_SIN_HORA'], ['ESCLAVO', 'DEG_RECHAZO_T_AHORA_DESFASADO'],
+    ['ESCLAVO', 'DEG_RECHAZO_T_INICIO_VENCIDO'], ['ESCLAVO', 'DEG_RECHAZO_T_DESPEJE_RANGO'],
+    ['ESCLAVO', 'DEG_RECHAZO_T_AMBAR_VIGENTE'], ['ESCLAVO', 'DEG_RECHAZO_T_EN_VERDE'],
+    ['ESCLAVO', 'DEG_RECHAZO_T_NO_GUARDADO'],
+  ];
+  for (const [nodo, nombre] of motivos) {
+    entra(`ALARM,NODE:${nodo},EVENTO:DEGRADADO,CAUSA:AUTO_RECHAZADA_${nombre},RF:97%,RTT:70ms,SINRESP:0,` +
+          'ACCION:SIGUE_EN_AMBAR,HORA:14:37:00');
+    const crudo = nombre.replace(/^MDT_/, '').replace(/^DEG_RECHAZO_T_/, '');
+    const t = ultimo().replace(/^[\s\S]*?(No pudo entrar solo: )/, '$1');  // la Caja Negra repite la CAUSA cruda
+    assert(/No pudo entrar solo: /.test(t) && t.indexOf(crudo) < 0 && t.indexOf('sin motivo') < 0,
+      `DegAuto: AUTO_RECHAZADA_${nombre} se traduce y no sale "${crudo}" en crudo: "${t.slice(0, 160)}"`);
+  }
 };
