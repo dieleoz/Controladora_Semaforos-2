@@ -7,3 +7,8 @@ bool respaldo_testigoActivo() { return false; }
 bool testigoFlash_leer(TestigoFlash*) { return false; }
 bool testigoFlash_escribir(const TestigoFlash*, uint32_t* us) { if (us) *us = 0; return false; }
 
+// A-15 (1a78873, 917ef1e): respaldo.cpp y reloj.cpp del Esclavo no se compilan aqui. La
+// rendicion no se guarda (sin memoria, como el testigo) y el reloj de arnes no tiene fecha
+// que anclar: fecharDesdeEsp32 devuelve false, como reloj_guardarFechaEsp32 de testigo2.
+void respaldo_guardarRendido(bool) {}
+bool reloj_fecharDesdeEsp32(const char*) { return false; }
