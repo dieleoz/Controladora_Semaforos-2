@@ -92,6 +92,8 @@
 #include "modo_degradado.h"
 #include "stm32f1xx_hal.h"   // para volcar el dominio de respaldo real
 #include "rtc_periferico.h"  // D-21 (1): el HSI, la linea del ESP32 y la siembra en frontera
+// A-15 (29/09): pasoPrincipal() -la transcripcion de main.cpp::loop()- y el bloque H. Ver alli.
+#include "adaptador_maestro_deg_auto.inc"
 
 // ---------------------------------------------------------------------------
 // EL RELOJ SIMULADO Y LOS PINES OBSERVADOS. Esta DLL tiene los SUYOS.
@@ -149,6 +151,7 @@ void bluetooth_reportarAlarma(const char* evento, const char* causa, const char*
   (void)accion;
   snprintf(g_ultimaAlarmaEvento, sizeof(g_ultimaAlarmaEvento), "%s", evento);
   g_alarmasEmitidas++;
+  arnesDegAuto_notar(evento, causa);   // A-15: bloque H
   if (!strcmp(evento, "HORA_ESP32") && !strcmp(causa, "CADUCADA")) g_alarmasCaducada++;
   if (!strcmp(evento, "DEGRADADO")) {
     g_alarmasDegradado++;
@@ -158,6 +161,7 @@ void bluetooth_reportarAlarma(const char* evento, const char* causa, const char*
   }
 }
 void bluetooth_reportarEvento(const char* origen, const char* detalle) {
+  arnesDegAuto_notar(origen, detalle);   // A-15: bloque H
   if (!strcmp(origen, "DEGRADADO") && !strcmp(detalle, "SALTO_DE_HORA_POR_ROJO")) {
     g_eventosSaltoRojo++;
   }
@@ -194,7 +198,9 @@ void menu_setup() {}
 // sin el diario. Si la rama cambia, esto se queda viejo: lo compara reloj_04.
 // ---------------------------------------------------------------------------
 static int ramaHoraEsp32(const char* iso) {
+  iso = arnesDegAuto_fecha(iso);   // bloque H: la misma cadena salvo que adelante la fecha
   if (reloj_sembrarDesdeIso(iso)) {
+    reloj_guardarFechaEsp32(iso);  // D-35: la rama real guarda el dia (bluetooth.cpp)
     coordinador_sincronizarHora();
     return 1;
   }
@@ -240,66 +246,6 @@ void protocolo_enviarPaquete(uint8_t cmd, uint8_t param) {
 
 bool protocolo_hayPaqueteDisponible(RF_Packet* destino) {
   return g_rx.sacar(destino);
-}
-
-// ---------------------------------------------------------------------------
-// UN TICK DE main.cpp, EN EL ORDEN REAL Y CON SUS DOS REGLAS DE FONDO.
-//
-// Transcripcion literal de Maestro/src/main.cpp::loop() acotada a los modos que esta
-// DLL compila. Las dos lineas que NO son despacho y si son comportamiento se
-// conservan tal cual, porque las dos deciden luz:
-//
-//   1. semaforo_actualizar() SIEMPRE, en todos los modos. El comentario de main.cpp
-//      explica que sin esto el cabezal se quedaba a oscuras.
-//   2. El coordinador queda FUERA en MODO_DEGRADADO y MODO_AMBAR: en esos dos modos el
-//      Maestro CALLA en la radio a proposito. Quitarlo aqui convertiria el Degradado en
-//      "modo normal con otra pantalla" y el arnes no mediria nada de lo que viene a
-//      medir.
-//   3. Al SALIR del Degradado por cualquier via se borra el indicador de la pila (N-20).
-//      Ese punto es el unico por el que pasan todos los caminos de salida.
-// ---------------------------------------------------------------------------
-static ModoSistema modoAnterior = MENU;
-
-static void pasoPrincipal() {
-  // main.cpp la llama la primera de la vuelta, detras del perro. Con el modelo del RTC era
-  // un cuerpo vacio y se omitia; con el reloj.cpp real es la que mantiene el cerrojo de la
-  // caducidad de D-21 (1), asi que entra en su sitio.
-  reloj_actualizar();
-  botones_actualizar();
-  semaforo_actualizar();
-
-  // D-29 / 1.49(b): LA REANUDACION QUE main.cpp VUELVE A PREGUNTAR EN CADA VUELTA, transcrita
-  // en su sitio -antes de leer 'modo'-. Faltaba aqui: el arranque la preguntaba una vez en
-  // punta_arrancar() y la vuelta no, asi que la mitad diferida de D-29 no la ejecutaba este
-  // arnes -medido el 15/09 en la copia de 1.49: sin ella el Maestro no reanudaba nunca con la
-  // siembra llegando despues del setup()-. Si main.cpp la mueve, esto se queda viejo.
-  if (modo_degradado_reanudarTrasCorte()) {
-    modoActual_set(MODO_DEGRADADO);
-  }
-
-  ModoSistema modo = modoActual_get();
-  if (modo != MODO_AUTOMATICO && modo != MODO_DEGRADADO && modo != MODO_AMBAR) {
-    coordinador_actualizar_background();
-  }
-
-  if (modo != modoAnterior) {
-    if (modoAnterior == MODO_DEGRADADO) {
-      respaldo_guardarDegradado(false);
-    }
-    switch (modo) {
-      case MODO_DEGRADADO:   modo_degradado_setup();  break;
-      case MODO_AMBAR:       modo_ambar_setup();      break;
-      case MENU:             menu_setup();            break;
-      default: break;
-    }
-    modoAnterior = modo;
-  }
-
-  switch (modo) {
-    case MODO_DEGRADADO:  modo_degradado_loop();  break;
-    case MODO_AMBAR:      modo_ambar_loop();      break;
-    default: break;   // MENU: menu_loop() es pantalla y no se compila
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -382,6 +328,7 @@ PUNTA_API void punta_pulsar(int boton) {
 }
 
 PUNTA_API long punta_mando(const char* que, long arg) {
+  { const long r = arnesDegAuto_mando(que, arg); if (r != PUNTA_DESCONOCIDO) return r; }  // A-15
   // --- El reloj de pared de esta punta -------------------------------------
   // arg empaquetado como d*1000000 + h*10000 + m*100 + s. Entra por reloj_ajustar(),
   // que es la MISMA puerta que usa la pantalla AJUSTAR HORA del equipo real.

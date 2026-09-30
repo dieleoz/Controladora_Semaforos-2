@@ -101,9 +101,7 @@
 //     todo-rojo de entrada; es de segundo orden frente a la del ciclo, que sale del
 //     RTC, pero no esta medido aqui.
 //   - y nada de esto sustituye la prueba de banco.
-
 #include <windows.h>
-
 #include <cstdio>
 #include <cstdint>
 #include <cstdlib>
@@ -113,7 +111,6 @@
 #include <fstream>
 #include <sstream>
 #include <regex>
-
 // El orquestador NO incluye ninguna cabecera del firmware: si lo hiciera volveria a
 // tener nombres de las dos puntas en su propia tabla de simbolos, que es el problema
 // que la DLL resuelve.
@@ -121,7 +118,6 @@
 #define LOW 0
 #include "comun/pines.h"
 #include "punta_api.h"
-
 // ---------------------------------------------------------------------------
 // EL CONTADOR. [bloque literal de orquestador.cpp]
 // ---------------------------------------------------------------------------
@@ -309,7 +305,7 @@ struct EnVuelo {
 };
 
 static std::vector<EnVuelo> g_aire;
-static bool g_enlace = true;
+static bool g_enlace = true, g_cortaME = false, g_cortaEM = false;   // bloque H: corte por sentido
 static unsigned long g_latenciaMs = 50;
 static unsigned long g_tramasEntregadas = 0;
 // El instante del banco en que el Esclavo recibio su ultima trama: su main.cpp REAL llama a
@@ -386,6 +382,7 @@ static unsigned long g_solapeMax = 0;
 // El detector, aislado para que el control negativo pueda ejercerlo con valores
 // sinteticos. Un detector que solo se prueba cuando nada falla es un adorno.
 static bool hayVerdeSimultaneo(bool verdeA, bool verdeB) { return verdeA && verdeB; }
+static void vigilarH(bool vM, bool vE);   // bloque H (orquestador_deg_auto.inc): verde/verde y verde/ambar
 
 static void reiniciarObservacion() {
   g_instantes = 0;
@@ -405,6 +402,7 @@ static void vigilar() {
   const bool vE = ESCLAVO.verde();
   if (vM) g_ticksVerdeMaestro++;
   if (vE) g_ticksVerdeEsclavo++;
+  vigilarH(vM, vE);
 
   if (hayVerdeSimultaneo(vM, vE)) {
     g_verdeSimultaneo++;
@@ -501,13 +499,13 @@ static void unTick() {
 
   unsigned char b[4];
   while (MAESTRO.tx(b)) {
-    if (g_enlace) {
+    if (g_enlace && !g_cortaME) {
       EnVuelo e; memcpy(e.trama, b, 4); e.tEntrega = g_t + g_latenciaMs; e.destino = 1;
       g_aire.push_back(e);
     }
   }
   while (ESCLAVO.tx(b)) {
-    if (g_enlace) {
+    if (g_enlace && !g_cortaEM) {
       EnVuelo e; memcpy(e.trama, b, 4); e.tEntrega = g_t + g_latenciaMs; e.destino = 0;
       g_aire.push_back(e);
     }
@@ -804,6 +802,7 @@ static Borde probarBorde(bool esMaestro, long J, unsigned long esperaMaxMs) {
   return b;
 }
 
+#include "orquestador_deg_auto.inc"   // BLOQUE H: A-15, el Degradado automatico (SPEC_2 7.ter)
 // ---------------------------------------------------------------------------
 int main() {
   std::printf("==============================================================\n");
@@ -2155,6 +2154,7 @@ int main() {
                     "). Un cristal que nunca arranco no es 'reloj sin contar': es la radio");
     }
   }
+  bloqueH();
   // =========================================================================
   std::printf("\n==============================================================\n");
   std::printf(" RESULTADO: %d/%d comprobaciones OK\n", total - fallos, total);

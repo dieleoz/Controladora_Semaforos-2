@@ -147,45 +147,7 @@ void menu_setup() {}
 void menu_loop() { g_lcdRedibujos++; }
 
 #ifdef ARNES_RELOJ_REAL
-// ---------------------------------------------------------------------------
-// BLUETOOTH SIMULADO (arnes del Degradado). bluetooth.cpp no se compila aqui -arrastra
-// el puerto serie entero y lo que este arnes mide es la FASE, no el despachador del
-// telefono-, pero bluetooth_ambarEmergencia() NO puede ser un false fijo: es una de las
-// DOS guardas que vetan un CMD_GO_GREEN en el despachador real (N-83). El orquestador la
-// mueve, de modo que la rama vetada se recorre.
-// ---------------------------------------------------------------------------
-static bool g_ambarEmergencia = false;
-static char g_ultimaAlarmaEvento[48] = "";
-static char g_ultimaAlarmaCausa[48] = "";
-static int  g_alarmasEmitidas = 0;
-// D-21 (1): la alarma de la hora caducada, por su causa; y el $EVENT del salto que pasa por
-// rojo (D-26 (4)), por su detalle. Ver el mismo par en adaptador_maestro_deg.cpp.
-static int  g_alarmasCaducada = 0;
-static int  g_eventosSaltoRojo = 0;
-
-void bluetooth_setup() {}
-void bluetooth_loop() {}
-bool bluetooth_ambarEmergencia() { return g_ambarEmergencia; }
-bool bluetooth_testLedsActivo() { return false; }
-void bluetooth_reportarAlarma(const char* evento, const char* causa, const char* accion) {
-  (void)accion;
-  snprintf(g_ultimaAlarmaEvento, sizeof(g_ultimaAlarmaEvento), "%s", evento);
-  snprintf(g_ultimaAlarmaCausa, sizeof(g_ultimaAlarmaCausa), "%s", causa);
-  g_alarmasEmitidas++;
-  if (!strcmp(evento, "HORA_ESP32") && !strcmp(causa, "CADUCADA")) g_alarmasCaducada++;
-}
-void bluetooth_reportarEvento(const char* origen, const char* detalle) {
-  if (!strcmp(origen, "DEGRADADO") && !strcmp(detalle, "SALTO_DE_HORA_POR_ROJO")) {
-    g_eventosSaltoRojo++;
-  }
-}
-// D-31: main.cpp del Esclavo la llama al recibir CMD_ACK_AVISO_AMBAR, y en ESTA variante
-// bluetooth.cpp no se compila. Vacia a proposito: lo que la funcion hace -recordar que el
-// Poste 1 acuso- vive dentro del despachador real, y este arnes mide la FASE, no el
-// acuse. Quien lo ejerce es el arnes de las dos puntas, que si compila bluetooth.cpp.
-// Un stub que contase llamadas aqui seria un contador que nadie lee (N-73 al reves).
-void bluetooth_avisoAmbarAcusado() {}
-
+#include "adaptador_esclavo_deg_auto.inc"  // bluetooth simulado y A-15 (bloque H): ver alli
 #else   // !ARNES_RELOJ_REAL
 // ---------------------------------------------------------------------------
 // 🔴 EL BLUETOOTH ES EL REAL (11/09, N-142 / §3.16-A). bluetooth.cpp del Esclavo SE
@@ -362,7 +324,7 @@ bool reloj_sembrarDesdeIso(const char* str) {
 // siembra, si hay que conservar la fase, en la frontera de segundo: por eso van separadas.
 // Si la rama cambia, esto se queda viejo: lo compara reloj_04.
 // ---------------------------------------------------------------------------
-static int sembrarDirecto(const char* iso) { return reloj_sembrarDesdeIso(iso) ? 1 : 0; }
+static int sembrarDirecto(const char* iso) { return arnesDegAuto_sembrar(iso); }  // +fecha: ver .inc
 
 static int ramaHoraEsp32(const char* iso) {
   if (reloj_radioManda()) return 2;          // HE_IGNORADA: manda la radio
@@ -589,6 +551,7 @@ PUNTA_API void punta_pulsar(int boton) {
 
 PUNTA_API long punta_mando(const char* que, long arg) {
 #ifdef ARNES_RELOJ_REAL
+  { const long r = arnesDegAuto_mando(que, arg); if (r != PUNTA_DESCONOCIDO) return r; }  // A-15
   // Con el reloj.cpp real no hay doble que cuente las llamadas a reloj_notarRadio(): se le
   // pregunta a reloj_radioManda() REAL, que es lo que esas llamadas alimentan (bloque E0).
   if (!strcmp(que, "radio_manda"))         return reloj_radioManda() ? 1 : 0;

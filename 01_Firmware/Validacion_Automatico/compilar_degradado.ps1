@@ -76,6 +76,10 @@ $fuentesMaestro = @(
     (Join-Path $MAESTRO 'src\respaldo.cpp'),
     (Join-Path $MAESTRO 'src\reloj.cpp'),
     (Join-Path $MAESTRO 'src\deg_auto.cpp'),     # A-15: lo llama coordinador.cpp
+    # A-15 (29/09, bloque H): el APTO del Maestro exige AUTOMATICO o INTELIGENTE y cae en
+    # MANUAL. Sin estos dos .cpp la opcion no se vuelve APTO por el camino real.
+    (Join-Path $MAESTRO 'src\modo_automatico.cpp'),
+    (Join-Path $MAESTRO 'src\modo_manual.cpp'),
     (Join-Path $RR 'rtc_periferico.cpp'),
     (Join-Path $DP 'adaptador_maestro_deg.cpp')
 )

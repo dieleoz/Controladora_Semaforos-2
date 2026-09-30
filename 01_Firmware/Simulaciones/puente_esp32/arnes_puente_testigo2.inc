@@ -4,3 +4,4 @@
 bool reloj_guardarFechaEsp32(const char*) { return false; }
 uint32_t reloj_segundosDesde2000() { return 0; }
 
+#include "arnes_puente_deg_auto.inc"  // A-15: dobles del Degradado automatico, las dos puntas
