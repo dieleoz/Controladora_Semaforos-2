@@ -42,15 +42,11 @@
 #   - y lo de las dos ramas: sin PIN, sin acuse, sin renovar las 48 h, con el prefijo
 #     contado bien.
 #
-# LO QUE ESTE PACK NO MIDE, ESCRITO PARA QUE NADIE LO LEA COMO PERMISO. Es un pack de
-# TEXTO: nadie EJECUTA reloj.cpp en el PC -ningun arnes lo enlaza, porque incluye
-# <STM32RTC.h> y <stm32f1xx_hal.h>-, asi que un defecto del TIEMPO o de un bucle aqui no se
-# ve: se ve la FORMA de la decision. La mitad ESP32 -que el puente componga la linea con la
-# hora RELEIDA y la tire si viene del telefono- es del otro firmware y la miden los esp32_*.
+# LO QUE NO MIDE: es de TEXTO -ve la FORMA de la decision, no el TIEMPO-. reloj.cpp lo EJECUTA
+# el arnes del Degradado (compilar_degradado.ps1); la mitad ESP32 la miden los esp32_*.
 #
-# SIN ETIQUETA SFTY, Y ES DELIBERADO: roza SFTY-23 (la hora comun de las dos puntas) pero no
-# la EJERCE -no mide un desfase ni una sincronizacion-. Una fila cubierta por una prueba que
-# no la ejerce es peor que una vacia.
+# SIN ETIQUETA SFTY, Y ES DELIBERADO: roza SFTY-23 pero no la EJERCE. Una fila cubierta por
+# una prueba que no la ejerce es peor que una vacia.
 
 import re
 
@@ -520,20 +516,24 @@ def correr(b, fw):
             m_orf is not None, alarma_rf))
 
     # ---- 9. QUIEN AVISA DE QUE LA RADIO LLEGA: main.cpp, con CADA trama ---------------
+    # 29/09 (A-15): admite `&& !degAuto_alRecibir(&pkt)` SOLO si su unico `return true` es el de PRESENTE.
     srcs_e = {f: fw.codigo("Esclavo", "src", f) for f in fw.fuentes_de("Esclavo", "src", ".cpp")}
     ll_notar = _llamadas(srcs_e, NOTAR)
-    m_pkt = re.search(r"if\s*\(\s*protocolo_hayPaqueteDisponible\s*\(\s*&\s*pkt\s*\)\s*\)\s*\{",
-                      main_e)
+    m_pkt = re.search(r"if\s*\(\s*protocolo_hayPaqueteDisponible\s*\(\s*&\s*pkt\s*\)(\s*&&\s*!\s*"
+                      r"degAuto_alRecibir\s*\(\s*&\s*pkt\s*\))?\s*\)\s*\{", main_e)
+    filtro = _cuerpo(_sin_comentarios(srcs_e.get("deg_auto.cpp", "")), "degAuto_alRecibir") or ""
+    solo_presente = re.fullmatch(r"[^{}]*?if\s*\(\s*pkt->command\s*==\s*CMD_PRESENTE\s*\)\s*\{[^{}]*"
+                                 r"return\s+true\s*;\s*\}.*", filtro, re.S) and filtro.count("return true") == 1
     primero = ""
-    if m_pkt:
+    if m_pkt and (not m_pkt.group(1) or solo_presente):
         primero = (_bloque(main_e, m_pkt.end() - 1) or "").strip().split(";")[0]
     cuerpo_notar = _cuerpo(rl["Esclavo"], NOTAR) or ""
     b.verificar(
         ll_notar == [("main.cpp", "loop")] and re.fullmatch(r"%s\s*\(\s*\)" % NOTAR, primero)
         and not re.search(r"\b%s\b" % BANDERA, cuerpo_notar),
-        "Esclavo: %s() tiene UN llamador -loop() de main.cpp- y es lo PRIMERO del bloque de "
-        "cada trama valida de la radio, antes de mirar el comando; y no toca la fuente de la "
-        "hora" % NOTAR,
+        "Esclavo: %s() tiene UN llamador -loop() de main.cpp- y es lo PRIMERO del bloque de cada "
+        "trama valida de la radio (salvo PRESENTE, lo unico que come el filtro), antes de mirar "
+        "el comando; y no toca la fuente de la hora" % NOTAR,
         "Esclavo: %s() se llama desde %s, y lo primero del bloque de la trama es %r. Si "
         "no avisa con CADA trama, 'sin radio' se da con la radio sana y la hora del ESP32 pisa "
         "la del Maestro; si avisa desde otro sitio, el silencio que mide ya no es el de la radio"

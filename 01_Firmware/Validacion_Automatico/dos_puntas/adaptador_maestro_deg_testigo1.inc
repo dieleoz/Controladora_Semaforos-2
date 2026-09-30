@@ -15,6 +15,7 @@ bool testigoFlash_leer(TestigoFlash* t) {
   return true;
 }
 bool testigoFlash_escribir(const TestigoFlash* t, uint32_t* usBorrado) {
+  if (g_daFlashFalla) return false;   // bloque H: el borrado que falla (NO_GUARDADO)
   g_testigoFlash = *t;
   g_testigoFlashLleno = true;
   if (usBorrado) *usBorrado = 0;

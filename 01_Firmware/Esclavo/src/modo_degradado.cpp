@@ -74,7 +74,7 @@ static const int      TESTIGO_DESPEJE_MIN    = 30;
 static const int      TESTIGO_DESPEJE_MAX    = 255;
 static const uint8_t  TESTIGO_VERDE_SEG      = 180;
 static const uint32_t TESTIGO_INICIO_MAX_S   = 43200UL;           // 12 h: mas es "ya paso"
-static const uint32_t TESTIGO_VIGENCIA_S     = 31UL * 86400UL;    // 31 dias: ambar
+// 29/09 (responsable, H9): el testigo YA NO VENCE -se retiro TESTIGO_VIGENCIA_S-. Queda el aviso.
 static const uint32_t TESTIGO_AVISO_S        = 28UL * 86400UL;    // 28 dias: solo aviso
 
 // true desde que entra un testigo hasta que el modo vuelve a DEG_INACTIVO o DEG_RENDIDO:
@@ -92,7 +92,7 @@ static int32_t difCircular(uint32_t a, uint32_t b) {
   return d > 43200L ? d - 86400L : d;
 }
 
-// Antiguedad del testigo; 0xFFFFFFFF si no se puede fechar. Ante la duda, vencido.
+// Antiguedad del testigo; 0xFFFFFFFF si no se puede fechar. Ante la duda, se avisa.
 static uint32_t edadTestigoS() {
   const uint32_t ahora = reloj_segundosDesde2000();
   if (ahora == 0 || ahora < testigoMarcaS) return 0xFFFFFFFFUL;
@@ -362,10 +362,10 @@ unsigned long degradado_msDesdeSync() {
   return msDesdeSyncEfectivo();
 }
 
-// D-35: con testigo en curso, los dos publican la cuenta del testigo (28 aviso, 31 vence),
+// D-35: con testigo en curso, los dos publican la cuenta del testigo (28 aviso; no vence, H9),
 // que es la que manda en este modo; el $EVENT es el mismo, sin texto nuevo (SPEC_4 3.ter).
 bool degradado_syncVencida() {
-  if (testigo && degradado_gobiernaLuz()) return edadTestigoS() >= TESTIGO_VIGENCIA_S;
+  if (testigo && degradado_gobiernaLuz()) return false;   // 29/09 (H9): el testigo no vence
   return syncVencidaLatch;
 }
 
@@ -509,8 +509,8 @@ static void entrarTestigoPorRojo(uint32_t marcaS, uint32_t inicioS, uint8_t desp
   reanudacionPorDecidir = false;   // D-29: una entrada cierra la reanudacion pendiente
 }
 
-// Tras un corte: vigente si hay registro integro, fecha del DS3231, hora fiable y menos de
-// 31 dias. Si el reinicio cayo antes de inicio, DEG_ENTRANDO lo deja en rojo hasta esa hora.
+// Tras un corte: vigente si hay registro integro, fecha del DS3231 no anterior a la marca y
+// hora fiable, sin tope de edad (H9). Si el reinicio cayo antes de inicio, DEG_ENTRANDO lo deja en rojo hasta esa hora.
 static bool reanudarTestigo() {
   TestigoFlash t;
   const bool hayRegistro = testigoFlash_leer(&t);
@@ -518,7 +518,7 @@ static bool reanudarTestigo() {
   if (hayRegistro && ahora == 0 && millis() < VENTANA_REANUDACION_MS) return false;
   reanudacionPorDecidir = false;
   const bool vigente = hayRegistro && ahora != 0 && reloj_horaFiable() &&
-                       ahora >= t.marcaS && (ahora - t.marcaS) < TESTIGO_VIGENCIA_S;
+                       ahora >= t.marcaS;
   if (!vigente) {
     respaldo_guardarDegradado(false);
     return false;
@@ -629,7 +629,7 @@ bool degradado_reanudarTrasCorte() {
   if (estado != DEG_INACTIVO) { reanudacionPorDecidir = false; return false; }
 
   // D-35 - UN TESTIGO SE REANUDA CON SU PROPIA PUERTA (el porque, en el gemelo del Maestro):
-  // 31 dias con la fecha del DS3231, sin CNT ni la sync de radio. Se espera la fecha de la
+  // la fecha del DS3231, sin tope de edad (H9), sin CNT ni la sync de radio. Se espera la fecha de la
   // siembra dentro de la ventana de D-29, sin borrar nada.
   if (respaldo_testigoActivo()) return reanudarTestigo();
 
@@ -771,7 +771,7 @@ void degradado_actualizar() {
   }
 
   // D-35: EL CERROJO DE 48 h NO ACTUA EN MODO TESTIGO -mide la sync de radio, que este modo
-  // existe para no necesitar-; manda el tope del testigo, 31 dias con la fecha del DS3231.
+  // existe para no necesitar-; y desde el 29/09 (H9) el testigo no tiene tope: solo el aviso.
   if (!testigo && syncVencidaLatch && (estado == DEG_ENTRANDO || estado == DEG_ACTIVO)) {
     rendidoPorHora = false;
     iniciarSalida(true);
@@ -779,13 +779,6 @@ void degradado_actualizar() {
   }
   if (testigo && (estado == DEG_ENTRANDO || estado == DEG_ACTIVO)) {
     avisarRenovacion();   // 29/09: a los 28 dias y despues una vez al dia
-  }
-  if (testigo && (estado == DEG_ENTRANDO || estado == DEG_ACTIVO) &&
-      edadTestigoS() >= TESTIGO_VIGENCIA_S) {
-    bluetooth_reportarAlarma("DEGRADADO", "LIMITE_31D", "CAMBIO_A_AMBAR");
-    rendidoPorHora = false;
-    iniciarSalida(true);
-    return;
   }
 
   // D-26 (4): ANTES de decidir la luz. Un salto mayor que el margen devuelve a
@@ -835,6 +828,7 @@ void degradado_actualizar() {
           // esta caida es otro y no debe depender de que ese temporizador este en el
           // valor adecuado.
           estado = DEG_RENDIDO;
+          respaldo_guardarRendido(true);   // arquitecto 29/09: sin reentrada automatica hasta un PING
           semaforo_iniciarFallo();
           protocolo_resetReplayProtection();
         } else {

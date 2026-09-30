@@ -32,7 +32,7 @@ static uint32_t segBaseDelDia = 0;
 static uint8_t diaBase = 1;
 // D-35: dias desde la epoca del DS3231 (su anio 00) del instante base, sacados de la FECHA que trae
 // CMD:HORA_ESP32 (el DS3231). 0 = esta base no tiene fecha. Solo lo lee
-// reloj_segundosDesde2000(), para los 31 dias del Degradado con testigo.
+// reloj_segundosDesde2000(), para la edad del Degradado con testigo (aviso de 28 dias).
 static uint16_t diaAbsBase = 0;
 
 static uint16_t diasDesde2000(int anio, int mes, int dia) {
@@ -554,7 +554,7 @@ bool reloj_sembrarDesdeIso(const char* str) {
   return reloj_ajustarConAcuse(h, m, s, dia);
 }
 
-// D-35: guarda el dia absoluto que trae la siembra del ESP32, para los 31 dias del testigo.
+// D-35: guarda el dia absoluto que trae la siembra del ESP32, para la edad del testigo (aviso de 28 dias).
 // La llama la rama CMD:HORA_ESP32 de bluetooth.cpp SOLO si reloj_sembrarDesdeIso() devolvio
 // true, con la misma cadena: la base recien sembrada es la de esa hora. Declarada en
 // modo_degradado.h (reloj.h del Maestro no puede crecer).

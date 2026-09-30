@@ -14,6 +14,8 @@ static long g_daEntradas = 0, g_daRechazos = 0, g_daEnlace = 0, g_daOtroPoste = 
 static long g_daLimite31 = 0, g_daRenovar = 0;
 static long g_daInicioS = -1;   // el inicio que publico AUTO_ENTRADA_INICIO_HH:MM:SS
 static char g_daUltRechazo[64] = "";   // la causa del ultimo AUTO_RECHAZADA_, literal
+static char g_daUltAccion[32] = "";    // la ACCION del ultimo AUTO_RECHAZADA_, literal (la app la traduce)
+static bool g_daFlashFalla = false;    // la pagina del testigo no se deja escribir (testigo1.inc)
 
 static void arnesDegAuto_notar(const char* origen, const char* detalle) {
   if (strcmp(origen, "DEGRADADO") != 0 || detalle == nullptr) return;
@@ -53,7 +55,8 @@ void bluetooth_loop() {}
 bool bluetooth_ambarEmergencia() { return g_ambarEmergencia; }
 bool bluetooth_testLedsActivo() { return false; }
 void bluetooth_reportarAlarma(const char* evento, const char* causa, const char* accion) {
-  (void)accion;
+  if (accion && !strncmp(causa, "AUTO_RECHAZADA_", 15))
+    snprintf(g_daUltAccion, sizeof(g_daUltAccion), "%s", accion);
   snprintf(g_ultimaAlarmaEvento, sizeof(g_ultimaAlarmaEvento), "%s", evento);
   snprintf(g_ultimaAlarmaCausa, sizeof(g_ultimaAlarmaCausa), "%s", causa);
   g_alarmasEmitidas++;
@@ -97,6 +100,15 @@ static const char* arnesDegAuto_fecha(const char* iso) {
   return buf;
 }
 
+// La rama con la radio mandando: bluetooth.cpp guarda SOLO la fecha (reloj_fecharDesdeEsp32).
+// En eco (iso nulo) el ESP32 trae la misma hora y el dia del mes que la radio.
+static int arnesDegAuto_ignorada(const char* iso) {
+  char buf[24];
+  if (iso == nullptr) { arnes_iso(buf, sizeof(buf), reloj_dia(), (long)reloj_segundosDelDia()); iso = buf; }
+  reloj_fecharDesdeEsp32(arnesDegAuto_fecha(iso));
+  return 2;
+}
+
 static int arnesDegAuto_sembrar(const char* iso) {
   iso = arnesDegAuto_fecha(iso);
   if (!reloj_sembrarDesdeIso(iso)) return 0;
@@ -133,5 +145,15 @@ static long arnesDegAuto_mando(const char* que, long arg) {
   if (!strcmp(que, "da_limite31"))    return g_daLimite31;
   if (!strcmp(que, "da_renovar"))     return g_daRenovar;
   if (!strcmp(que, "da_en_degradado")) return degradado_gobiernaLuz() ? 1 : 0;
+  // Bloque H, 29/09: rendicion y su pila, el ambar por ESTADO (el pin del intermitente se
+  // apaga la mitad del tiempo), la entrada a mano por testigo y la ACCION literal.
+  if (!strcmp(que, "da_rendido"))     return degradado_estado() == DEG_RENDIDO ? 1 : 0;
+  if (!strcmp(que, "da_rendido_pila")) return respaldo_rendido() ? 1 : 0;
+  if (!strcmp(que, "da_en_fallo"))    return semaforo_estado() == S_FALLO ? 1 : 0;
+  if (!strcmp(que, "da_s2000"))       return (long)reloj_segundosDesde2000();
+  if (!strcmp(que, "da_flash_falla")) { g_daFlashFalla = (arg != 0); return 1; }
+  if (!strcmp(que, "da_testigo"))
+    return degradado_entrarTestigo(reloj_segundosDelDia(), (uint32_t)arg, DEG_AUTO_DESPEJE_S) == DEG_T_ACEPTADO;
+  if (!strncmp(que, "da_accion_es:", 13)) return strcmp(g_daUltAccion, que + 13) == 0 ? 1 : 0;
   return PUNTA_DESCONOCIDO;
 }

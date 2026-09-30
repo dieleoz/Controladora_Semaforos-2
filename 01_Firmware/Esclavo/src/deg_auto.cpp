@@ -7,10 +7,29 @@
 #include "respaldo.h"
 #include <stdio.h>
 
-// (a) APTO del Esclavo: opcion propia, hora fiable y sin ambar de emergencia. No exige sync
-// propia: la del par la trae el APTO del Maestro.
+// La entrada: la primera marca de DEG_AUTO_MARCA_S que deja DEG_AUTO_ROJO_MIN_S de rojo o mas.
+static uint32_t inicioAuto(uint32_t ahora) {
+  return ((ahora + DEG_AUTO_ROJO_MIN_S + DEG_AUTO_MARCA_S - 1UL) / DEG_AUTO_MARCA_S *
+          DEG_AUTO_MARCA_S) % 86400UL;
+}
+
+// Lo que la puerta automatica pide ademas del testigo: la opcion, ninguna rendicion en la
+// pila sin intercambio sano despues (arquitecto, 29/09) y el modo quieto -en DEG_RENDIDO no se
+// vuelve a entrar: ese ambar es el final del Degradado-.
+static bool salioSinIntercambio = false;   // salio del Degradado y no ha oido PING ni GO_GREEN
+static bool puertaAbierta() {
+  return respaldo_degAuto() && !respaldo_rendido() && !salioSinIntercambio &&
+         degradado_estado() == DEG_INACTIVO;
+}
+
+// (a) APTO del Esclavo = "mi puerta automatica me aceptaria AHORA" (responsable, 29/09, H4):
+// puertaAbierta() y la MISMA comprobacion que hace degradado_entrarTestigo() -hora fiable con
+// fecha, ambar de emergencia-, con el inicio que usaria entrar(). No exige sync propia: la
+// del par la trae el APTO del Maestro.
 bool degAuto_aptoPropio() {
-  return respaldo_degAuto() && reloj_horaFiable() && !bluetooth_ambarEmergencia();
+  if (!puertaAbierta()) return false;
+  const uint32_t ahora = reloj_segundosDelDia();
+  return degradado_comprobarTestigo(ahora, inicioAuto(ahora), DEG_AUTO_DESPEJE_S) == DEG_T_ACEPTADO;
 }
 
 // --- El $ACK diferido de SET_DEG_AUTO ------------------------------------------
@@ -36,6 +55,7 @@ static bool huboGobierno = false;
 static unsigned long tGobierno = 0;
 static unsigned long tCuenta = 0;   // 0 = desde el arranque
 static bool intentoHecho = false;   // un intento por corte: lo rearma un PING o GO_GREEN
+static bool enDegradado = false;    // la vuelta anterior gobernaba el Degradado (H11)
 
 DegAutoOrden degAuto_orden(bool activar) {
   if (degradado_estado() != DEG_INACTIVO) return DAO_EN_DEGRADADO;
@@ -83,9 +103,14 @@ bool degAuto_alRecibir(const RF_Packet* pkt) {
     tGobierno = millis();
     // CMD_GO_RED no cuenta: el Maestro en C_FALLO solo emite eso, y con la subida E->M muerta
     // esta punta empezaria a contar 300 s tarde (SPEC_2 7.ter (b)).
-    if (pkt->command != CMD_GO_RED) tCuenta = millis();
+    if (pkt->command != CMD_GO_RED) {
+      tCuenta = millis();
+      respaldo_guardarRendido(false);   // el intercambio sano que levanta la rendicion
+      salioSinIntercambio = false;      // y la salida a mano (H11)
+    }
     respaldo_guardarOtroApto((pkt->param & DEG_AUTO_APTO) != 0);
     const bool eco = (pkt->param & DEG_AUTO_ECO) != 0;
+    respaldo_guardarAptoDado(eco);   // el Maestro me oyo APTO (o no): lo que el cree de mi
     if (ordenPendiente && enviadoTrasOrden && eco == aptoEnviado) {
       ordenPendiente = false;
       veredicto = !ordenValor ? DAV_OFF : (respaldo_otroApto() ? DAV_ON_EFECTIVO : DAV_ON_FALTA);
@@ -110,9 +135,7 @@ static const char* nombreRechazo(RechazoTestigo r) {
 
 static void entrar() {
   const uint32_t ahora = reloj_segundosDelDia();
-  // La primera marca de DEG_AUTO_MARCA_S que deja DEG_AUTO_ROJO_MIN_S de rojo o mas.
-  const uint32_t inicio = ((ahora + DEG_AUTO_ROJO_MIN_S + DEG_AUTO_MARCA_S - 1UL) /
-                           DEG_AUTO_MARCA_S * DEG_AUTO_MARCA_S) % 86400UL;
+  const uint32_t inicio = inicioAuto(ahora);
   const RechazoTestigo r = degradado_entrarTestigo(ahora, inicio, DEG_AUTO_DESPEJE_S);
   if (r == DEG_T_ACEPTADO) {
     char det[sizeof("AUTO_ENTRADA_INICIO_HH:MM:SS")];
@@ -123,6 +146,8 @@ static void entrar() {
   } else {
     char causa[sizeof("AUTO_RECHAZADA_DEG_RECHAZO_T_AHORA_DESFASADO")];
     snprintf(causa, sizeof(causa), "AUTO_RECHAZADA_%s", nombreRechazo(r));
+    // SIGUE_EN_AMBAR tambien con NO_GUARDADO: el rojo que fuerza la puerta dura una vuelta, y la
+    // orfandad de main.cpp lo devuelve a S_FALLO (medido 29/09, H12 del arnes del Degradado).
     bluetooth_reportarAlarma("DEGRADADO", causa, "SIGUE_EN_AMBAR");
   }
 }
@@ -136,6 +161,7 @@ void degAuto_loop() {
   }
 
   if (degradado_gobiernaLuz()) {
+    enDegradado = true;
     // Esclavo en s % 10 == 5, Maestro en s % 10 == 0: medio duplex sin choque.
     const uint32_t s = reloj_segundosDelDia();
     if (reloj_enHora() && s % PRESENTE_S == 5 && s != segPresente) {
@@ -145,16 +171,22 @@ void degAuto_loop() {
     return;
   }
 
+  // Salir del Degradado -a mano, por la radio o rindiendose- cierra la puerta hasta el siguiente
+  // PING o GO_GREEN (arquitecto, 29/09, H11). La cuenta sola no la reabre.
+  if (enDegradado) {
+    enDegradado = false;
+    salioSinIntercambio = true;
+  }
   // Desde el ultimo PING o GO_GREEN; sin ninguno, desde el arranque. No depende de S_FALLO:
   // con la subida muerta esta punta pasa la cuenta en rojo y cuenta igual.
   if (millis() - tCuenta < DEG_AUTO_ESPERA_MS) {
     intentoHecho = false;
     return;
   }
-  // Opcion EFECTIVA -la propia Y el ultimo APTO oido del Maestro- y APTO propio ahora. En
-  // DEG_RENDIDO no se vuelve a entrar: ese ambar es el final del Degradado.
-  if (intentoHecho || degradado_estado() != DEG_INACTIVO || !respaldo_otroApto() ||
-      !degAuto_aptoPropio()) return;
+  // Opcion EFECTIVA -la propia Y el ultimo APTO oido del Maestro-, el ECO del Maestro en 1 -me
+  // oyo APTO; si no, el no entra y esta daria verde sola- y la puerta abierta. La
+  // comprobacion del testigo la hace entrar(): si rechaza, lo publica una vez.
+  if (intentoHecho || !respaldo_otroApto() || !respaldo_aptoDado() || !puertaAbierta()) return;
   intentoHecho = true;
   entrar();
 }

@@ -160,14 +160,15 @@ static const unsigned long ROJO_TRANSICION_MS = (unsigned long)DEG_DESPEJE_SEG *
 // que SALTO_SIN_ROJO_MAX_S (derivado de 30) queda del lado seguro con cualquier despeje
 // admitido. El verde viaja fijo en 180 (DEG_VERDE_SEG): lo rechaza el despachador por formato.
 //
-// LA VIGENCIA SE CUENTA CON LA FECHA DEL DS3231 (reloj_segundosDesde2000()), no con el
+// LA EDAD SE CUENTA CON LA FECHA DEL DS3231 (reloj_segundosDesde2000()), no con el
 // contador del RTC: sin Y2 ese contador no cuenta, y HAL_RTC_GetTime puede reescribirlo.
 // ---------------------------------------------------------------------------
 static const int32_t  TOLERANCIA_TESTIGO_S   = 3;
 static const int      TESTIGO_DESPEJE_MIN    = 30;
 static const int      TESTIGO_DESPEJE_MAX    = 255;
 static const uint32_t TESTIGO_INICIO_MAX_S   = 43200UL;           // 12 h: mas es "ya paso"
-static const uint32_t TESTIGO_VIGENCIA_S     = 31UL * 86400UL;    // 31 dias: ambar
+// 29/09 (responsable, H9): el testigo YA NO VENCE -se retiro TESTIGO_VIGENCIA_S, los 31 dias
+// a ambar-. Queda el aviso: a los 28 dias y despues una vez al dia, sin tocar luz ni modo.
 static const uint32_t TESTIGO_AVISO_S        = 28UL * 86400UL;    // 28 dias: solo aviso
 
 static bool testigo = false;            // el Degradado en curso es de testigo
@@ -192,7 +193,7 @@ static int32_t difCircular(uint32_t a, uint32_t b) {
 }
 
 // Antiguedad del testigo en segundos; 0xFFFFFFFF si no se puede fechar (sin fecha del
-// DS3231, o el reloj retrocedio por debajo de la marca). Ante la duda, vencido.
+// DS3231, o el reloj retrocedio por debajo de la marca). Ante la duda, se avisa.
 static uint32_t edadTestigoS() {
   const uint32_t ahora = reloj_segundosDesde2000();
   if (ahora == 0 || ahora < testigoMarcaS) return 0xFFFFFFFFUL;
@@ -551,7 +552,7 @@ bool modo_degradado_avisoLimite() {
 // opinion paralela. Si contestara false sin fecha, la trama diria "no vencido" del mismo
 // equipo que esta a punto de irse a ambar por esta causa.
 bool modo_degradado_syncVencida() {
-  if (testigoEnCurso()) return edadTestigoS() >= TESTIGO_VIGENCIA_S;   // D-35: el borde del bucle
+  if (testigoEnCurso()) return false;   // 29/09 (H9): el testigo no vence; el bucle no cae por edad
   return msDesdeSyncEfectivo() >= LIMITE_DURO_MS;
 }
 
@@ -595,9 +596,10 @@ bool modo_degradado_reanudarTrasCorte() {
     return false;
   }
 
-  // D-35 - UN DEGRADADO DE TESTIGO SE REANUDA CON SU PROPIA PUERTA: el limite es el de 31
-  // dias con la fecha del DS3231, no LIMITE_DURO_H ni el ciclo de la pila, que es el de
-  // D-18. Si el reinicio cayo antes de inicio, setup() lo deja en rojo hasta esa hora: la
+  // D-35 - UN DEGRADADO DE TESTIGO SE REANUDA CON SU PROPIA PUERTA: registro integro, fecha
+  // del DS3231 no anterior a la marca y hora fiable -sin tope de edad desde el 29/09 (H9)-, no
+  // LIMITE_DURO_H ni el ciclo de la pila, que es el de D-18.
+  // Si el reinicio cayo antes de inicio, setup() lo deja en rojo hasta esa hora: la
   // reanudacion no enciende nada que la entrada no hubiera encendido ya. La fecha la trae
   // la siembra del ESP32 despues del arranque, asi que se espera dentro de la ventana de
   // D-29 sin borrar nada.
@@ -607,7 +609,7 @@ bool modo_degradado_reanudarTrasCorte() {
     const uint32_t ahora = reloj_segundosDesde2000();
     if (hayRegistro && ahora == 0 && millis() < VENTANA_REANUDACION_MS) return false;
     const bool vigente = hayRegistro && ahora != 0 && reloj_horaFiable() &&
-                         ahora >= t.marcaS && (ahora - t.marcaS) < TESTIGO_VIGENCIA_S;
+                         ahora >= t.marcaS;
     reanudacionPorDecidir = false;
     if (!vigente) {
       respaldo_guardarDegradado(false);
@@ -710,6 +712,7 @@ static void irAAmbar(const char* l1, const char* l2) {
   // bucle de un equipo que reintenta la reanudacion en cada reinicio para volver a
   // caer al ambar a los pocos segundos.
   respaldo_guardarDegradado(false);
+  respaldo_guardarRendido(true);   // arquitecto 29/09: sin reentrada automatica hasta un PONG
 
   // Se pasa por rojo antes del ambar: nunca se salta de verde a otra cosa sin cerrar
   // el paso primero. El ambar se enciende un par de segundos despues, ya en DEG_AMBAR.
@@ -1030,16 +1033,10 @@ void modo_degradado_loop() {
   // pila tambien lo devuelve con mas de 48 h bien fechadas, y alli el rotulo "48h" es cierto.
   // Se publica UNA vez: irAAmbar() deja el modo en DEG_AMBAR y de ahi no se vuelve aqui. Los
   // rotulos no nombran ninguna pieza, por lo mismo que N-45 quito "Es Y2: toca hardware".
-  // D-35: CON TESTIGO EL TOPE ES EL SUYO, 31 dias desde el ultimo testigo con la fecha del
-  // DS3231. El de 48 h mide la sync de radio, que este modo existe para no necesitar. Sin
-  // fecha, o con el reloj por debajo de la marca, se da por vencido.
+  // D-35: CON TESTIGO NO HAY TOPE DE 48 h: mide la sync de radio, que este modo existe para no
+  // necesitar. Y desde el 29/09 (responsable, H9) tampoco el de 31 dias: solo el aviso.
   if (testigo) {
     avisarRenovacion();   // 29/09: a los 28 dias y despues una vez al dia
-    if (edadTestigoS() >= TESTIGO_VIGENCIA_S) {
-      bluetooth_reportarAlarma("DEGRADADO", "LIMITE_31D", "CAMBIO_A_AMBAR");
-      irAAmbar("Testigo vencido", "Repita el testigo");
-      return;
-    }
   } else {
   unsigned long desdeSync = msDesdeSyncEfectivo();
   if (desdeSync >= LIMITE_DURO_MS) {

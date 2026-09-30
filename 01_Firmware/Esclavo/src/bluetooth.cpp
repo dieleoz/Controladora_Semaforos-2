@@ -840,6 +840,7 @@ static void procesarComando(const char* cmd) {
   // acto y despues la repite horaEsp32Vigilar() mientras dure.
   if (strncmp(cmd, "CMD:HORA_ESP32:", 15) == 0) {
     if (reloj_radioManda()) {
+      reloj_fecharDesdeEsp32(cmd + 15);   // A-15 (H4): la fecha si, la hora no (D-26 (3))
       horaEsp32Rechazada = false;
       horaEsp32Llego = true;
       if (horaEsp32Estado != HE_IGNORADA) {
@@ -847,7 +848,7 @@ static void procesarComando(const char* cmd) {
         bluetooth_reportarEvento("ESP32", "HORA_ESP32_IGNORADA_MANDA_RADIO");
       }
     } else if (reloj_sembrarDesdeIso(cmd + 15)) {
-      // D-35: y el dia que trae, para los 31 dias del testigo. Sin el, el testigo no entra
+      // D-35: y el dia que trae, para la edad del testigo (aviso de 28 dias). Sin el, el testigo no entra
       // (Falta: reloj sin poner en hora) y uno en curso sigue con el dia que ya llevaba.
       reloj_guardarFechaEsp32(cmd + 15);
       horaEsp32Rechazada = false;

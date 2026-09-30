@@ -110,6 +110,12 @@ void respaldo_guardarDegAuto(bool activo);
 bool respaldo_degAuto();
 void respaldo_guardarOtroApto(bool apto);
 bool respaldo_otroApto();
+// Arquitecto (29/09): la rendicion en Degradado (bit6), hasta el siguiente intercambio sano.
+void respaldo_guardarRendido(bool rendido);
+bool respaldo_rendido();
+// A-15 (29/09): el ultimo ECO oido del otro (bit7): si el otro oyo APTO a esta punta.
+void respaldo_guardarAptoDado(bool apto);
+bool respaldo_aptoDado();
 
 // Borra todo. Deja el respaldo como en un equipo nuevo.
 void respaldo_borrar();

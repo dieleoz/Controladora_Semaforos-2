@@ -92,6 +92,11 @@ static const uint16_t FLAG_TESTIGO   = 0x0008;
 // sin tocar la firma. respaldo_borrar() los pone a 0, que es la opcion apagada.
 static const uint16_t FLAG_DEG_AUTO  = 0x0010;
 static const uint16_t FLAG_OTRO_APTO = 0x0020;
+// Arquitecto (29/09): esta punta se RINDIO en Degradado y no ha habido intercambio sano por radio
+// despues. Bloquea la reentrada automatica tambien tras un reinicio. Mismo molde.
+static const uint16_t FLAG_RENDIDO   = 0x0040;
+// A-15 (29/09): el ECO del otro -si me oyo APTO-. Solo entra sola si el otro la oyo apta.
+static const uint16_t FLAG_APTO_DADO = 0x0080;
 
 static bool contenidoValido = false;
 
@@ -355,3 +360,7 @@ void respaldo_guardarDegAuto(bool activo) { ponerFlag(FLAG_DEG_AUTO, activo); }
 bool respaldo_degAuto() { return contenidoValido && (leerReg(REG_FLAGS) & FLAG_DEG_AUTO) != 0; }
 void respaldo_guardarOtroApto(bool apto) { ponerFlag(FLAG_OTRO_APTO, apto); }
 bool respaldo_otroApto() { return contenidoValido && (leerReg(REG_FLAGS) & FLAG_OTRO_APTO) != 0; }
+void respaldo_guardarRendido(bool rendido) { ponerFlag(FLAG_RENDIDO, rendido); }
+bool respaldo_rendido() { return contenidoValido && (leerReg(REG_FLAGS) & FLAG_RENDIDO) != 0; }
+void respaldo_guardarAptoDado(bool apto) { ponerFlag(FLAG_APTO_DADO, apto); }
+bool respaldo_aptoDado() { return contenidoValido && (leerReg(REG_FLAGS) & FLAG_APTO_DADO) != 0; }

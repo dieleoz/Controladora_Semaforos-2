@@ -28,9 +28,13 @@
 static unsigned long g_hVV = 0, g_hVA = 0, g_hPrimera = 0;
 static std::string g_hQue;
 
+// El ambar por PIN o por ESTADO del semaforo: el intermitente apaga su pin la mitad del tiempo, y
+// esa mitad tambien es "el otro poste esta en ambar" para quien viene con verde (arquitecto, E).
+static bool ambarH(Punta& p) { return p.ambar() || p.orden("da_en_fallo") == 1; }
+
 static void vigilarH(bool vM, bool vE) {
   const bool vv = vM && vE;
-  const bool va = (vM && ESCLAVO.ambar()) || (vE && MAESTRO.ambar());
+  const bool va = (vM && ambarH(ESCLAVO)) || (vE && ambarH(MAESTRO));
   if (vv) g_hVV++;
   if (va) g_hVA++;
   if ((vv || va) && g_hPrimera == 0) {
@@ -89,6 +93,7 @@ struct CfgH {
   bool cortaME = true, cortaEM = true;
   int modoM = -1;                 // -1 = AUTOMATICO
   long reinicioEsclavoMs = -1;    // tras el corte; -1 = sin reinicio
+  bool esp32E = true;             // false: el J17 del Esclavo mudo desde el montaje (H14c)
 };
 
 // Monta: sync real por radio, opcion en cada poste, Maestro en AUTOMATICO -y en MANUAL si se
@@ -102,6 +107,7 @@ static std::string montarH(const CfgH& c, bool& apOk) {
   // del Maestro salia a los 542,8 s de su entrada con 420 y con 60. A las 08:05 la entrada cae a
   // las 08:12:57: con 60 el inicio es 08:15:00 y el verde, a los ~243 s; con 420, a los ~663 s.
   prepararSincronizadas(15, 8, 5, 0);
+  g_esp32Vivo[1] = c.esp32E;
   MAESTRO.orden("da_opcion", c.opM ? 1 : 0);
   ESCLAVO.orden("da_opcion", c.opE ? 1 : 0);
   MAESTRO.orden("set_modo", MODO_AUTOMATICO_V);
@@ -231,6 +237,8 @@ static void asevera_no_entran(const char* id, const char* titulo, const ObsH& o,
   comprobar(ok, std::string(id) + "t " + titulo + ": en cada tick, ni verde contra verde ni verde contra ambar: " + t);
 }
 
+#include "orquestador_deg_auto2.inc"   // H10..H14 (29/09): este fichero no pasa de 500 lineas
+
 static void bloqueH() {
   std::printf("\n--- BLOQUE H: A-15, EL DEGRADADO AUTOMATICO (SPEC_2 7.ter) --------\n");
   const std::string SPEC2 = RAIZ + "/../05_Funcional/SPEC_2_Dos_Puntas_y_Radio.md";
@@ -278,7 +286,7 @@ static void bloqueH() {
 
     // H9 (responsable, 29/09, SPEC_2 7.ter (d)): el testigo NO vence. La fecha salta 31 dias en
     // los dos postes -la siembra de su ESP32 con la hora del dia intacta- y tienen que seguir
-    // alternando. HOY el codigo sale a ambar (LIMITE_31D): esta fila DEBE salir en rojo.
+    // alternando. Vista en rojo sobre 38ad119 (LIMITE_31D M 1 / E 1).
     ceroH();
     reiniciarObservacion();
     MAESTRO.orden("da_dias_extra", 31);
@@ -313,11 +321,10 @@ static void bloqueH() {
   }
 
   // H3/H4: el corte de un solo sentido (una antena o un TX muertos). SPEC_2 7.ter (h)2.
-  // MEDIDO 29/09 sobre a0d605b: H4 FALLA. Con M->E viva el Esclavo sigue oyendo GO_RED, la radio
-  // "manda" (reloj_radioManda) y su ESP32 se IGNORA -rama CMD:HORA_ESP32 de bluetooth.cpp-, asi
-  // que no guarda nunca la fecha del DS3231: degradado_entrarTestigo() rechaza por
-  // DEG_RECHAZO_T_SIN_HORA y el Maestro da verde contra su ambar. Con la fecha sembrada antes
-  // del corte (diagnostico, no queda en el arnes) H4 pasa entero: la unica causa es la fecha.
+  // MEDIDO 29/09 sobre a0d605b: H4 FALLABA. Con M->E viva la radio "mandaba" y el ESP32 del Esclavo
+  // se ignoraba: sin fecha, su puerta rechazaba SIN_HORA con su APTO en 1 y el Maestro daba 180 s
+  // de verde contra su ambar. Arreglo: la radio no manda sobre una base sin fecha (reloj.cpp) y el
+  // APTO es la puerta misma (deg_auto.cpp de las dos puntas).
   {
     CfgH c;
     c.cortaEM = false;
@@ -386,6 +393,7 @@ static void bloqueH() {
     comprobar(ok, "H7t en cada tick, ni verde contra verde ni verde contra ambar: " + t);
   }
 
+  bloqueH2(VENTANA, SIN_ENTRADA);
   g_enlace = true;
   g_cortaME = g_cortaEM = false;
 }

@@ -523,7 +523,7 @@ bool reloj_sembrarDesdeIso(const char* str) {
   return puesta;
 }
 
-// D-35: guarda el dia absoluto que trae la siembra del ESP32, para los 31 dias del testigo.
+// D-35: guarda el dia absoluto que trae la siembra del ESP32, para la edad del testigo (aviso de 28 dias).
 // La llama la rama CMD:HORA_ESP32 de bluetooth.cpp SOLO si reloj_sembrarDesdeIso() devolvio
 // true, con la misma cadena: la base recien sembrada es la de esa hora. Declarada en
 // modo_degradado.h (reloj.h del Maestro no puede crecer).
@@ -534,6 +534,27 @@ bool reloj_guardarFechaEsp32(const char* str) {
   const uint16_t d = diasDesde2000(anio, mes, dia);
   if (d == 0) return false;
   diaAbsBase = d;
+  return true;
+}
+
+// A-15 (29/09, H4) - LA FECHA DEL ESP32 CUANDO MANDA LA RADIO: solo el dia, no la hora (D-26 (3)
+// intacta). Por radio viaja el dia del MES (CMD_HORA_D); la fecha que exige la puerta del
+// testigo solo la trae el ESP32, y con la radio mandando desde el arranque el Esclavo no la
+// guardaba nunca: su puerta rechazaba SIN_HORA. El dia se ancla a la base de radio por el
+// camino corto; si el DS3231 discrepa de esa base en mas de FECHA_TOLERANCIA_S, no se toca.
+static const int32_t FECHA_TOLERANCIA_S = 3600;
+bool reloj_fecharDesdeEsp32(const char* str) {
+  if (str == nullptr || !isoBienFormado(str) || !horaValida || tBaseMillis == 0) return false;
+  int anio = 0, mes = 0, dia = 0, h = 0, m = 0, s = 0;
+  if (sscanf(str, "%d-%d-%d,%d:%d:%d", &anio, &mes, &dia, &h, &m, &s) != 6) return false;
+  const uint16_t d = diasDesde2000(anio, mes, dia);
+  if (d == 0 || h > 23 || m > 59 || s > 59) return false;
+  const int64_t esp = (int64_t)(d - 1U) * 86400 + h * 3600L + m * 60L + s;
+  const int64_t t = (int64_t)segBaseDelDia + (millis() - tBaseMillis) / 1000UL;
+  const int64_t k = (esp - t + 43200) / 86400;   // el dia de la base por el camino corto
+  const int64_t resto = esp - (k * 86400 + t);
+  if (k < 0 || k > 65534 || resto > FECHA_TOLERANCIA_S || resto < -FECHA_TOLERANCIA_S) return false;
+  diaAbsBase = (uint16_t)(k + 1);
   return true;
 }
 

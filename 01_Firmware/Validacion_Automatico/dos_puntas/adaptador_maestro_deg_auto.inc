@@ -25,6 +25,8 @@ static long g_daEntradas = 0, g_daRechazos = 0, g_daEnlace = 0, g_daOtroPoste = 
 static long g_daLimite31 = 0, g_daRenovar = 0;
 static long g_daInicioS = -1;   // el inicio que publico AUTO_ENTRADA_INICIO_HH:MM:SS
 static char g_daUltRechazo[64] = "";   // la causa del ultimo AUTO_RECHAZADA_, literal
+static char g_daUltAccion[32] = "";    // la ACCION del ultimo AUTO_RECHAZADA_, literal (la app la traduce)
+static bool g_daFlashFalla = false;    // la pagina del testigo no se deja escribir (testigo1.inc)
 
 static void arnesDegAuto_notar(const char* origen, const char* detalle) {
   if (strcmp(origen, "DEGRADADO") != 0 || detalle == nullptr) return;
@@ -147,5 +149,12 @@ static long arnesDegAuto_mando(const char* que, long arg) {
   if (!strcmp(que, "da_renovar"))     return g_daRenovar;
   if (!strcmp(que, "da_en_degradado")) return modoActual_get() == MODO_DEGRADADO ? 1 : 0;
   if (!strcmp(que, "da_ms_desde_respuesta")) return (long)coordinador_msDesdeRespuesta();
+  // Bloque H, 29/09: lo mismo que pide a la otra punta (ver adaptador_esclavo_deg_auto.inc).
+  if (!strcmp(que, "da_rendido_pila")) return respaldo_rendido() ? 1 : 0;
+  if (!strcmp(que, "da_en_fallo"))    return semaforo_estado() == S_FALLO ? 1 : 0;
+  if (!strcmp(que, "da_flash_falla")) { g_daFlashFalla = (arg != 0); return 1; }
+  if (!strcmp(que, "da_testigo"))
+    return modo_degradado_entrarTestigo(reloj_segundosDelDia(), (uint32_t)arg, DEG_AUTO_DESPEJE_S) == MDT_OK;
+  if (!strncmp(que, "da_accion_es:", 13)) return strcmp(g_daUltAccion, que + 13) == 0 ? 1 : 0;
   return PUNTA_DESCONOCIDO;
 }

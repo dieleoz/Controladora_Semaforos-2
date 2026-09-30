@@ -162,7 +162,7 @@ bool modo_degradado_pedirSalida();
 // coincide con el del telefono en el instante de la orden (`ahora`, tolerancia
 // TOLERANCIA_TESTIGO_S). Aceptada, ROJO fijo hasta `inicio` por la misma DEG_ENTRADA_ROJO,
 // y despues la fase de siempre (ciclo_degradado_fase) con verde 180 y el despeje pedido.
-// Vence a los 31 dias del ultimo testigo, contados con la fecha del DS3231; avisa a los 28.
+// No vence (responsable, 29/09): avisa a los 28 dias del ultimo testigo (fecha del DS3231).
 enum MotivoTestigo {
   MDT_OK,               // entro: rojo fijo hasta inicio
   MDT_RENOVADO,         // ya alternaba con este mismo ciclo: renueva la cuenta y sigue

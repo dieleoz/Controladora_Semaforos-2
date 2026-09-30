@@ -153,8 +153,8 @@ uint32_t degradado_segundosParaCambio();
 // Segunda puerta, PARALELA a degradado_comprobar()/degradado_entrar(), que no se tocan.
 // Misma orden que en el Maestro y su propia tabla de rechazo, en el orden de la spec.
 // Aceptada, ROJO fijo hasta inicio por la misma DEG_ENTRANDO; despues la fase de siempre
-// con verde 180 y el despeje pedido. Vence a los 31 dias del ultimo testigo (fecha del
-// DS3231), avisa a los 28. El cerrojo de 48 h (syncVencidaLatch) no actua en este modo.
+// con verde 180 y el despeje pedido. No vence (29/09): avisa a los 28 dias del ultimo testigo
+// (fecha del DS3231). El cerrojo de 48 h (syncVencidaLatch) no actua en este modo.
 enum RechazoTestigo {
   DEG_T_ACEPTADO,                 // entro: rojo fijo hasta inicio
   DEG_T_RENOVADO,                 // ya alternaba con este ciclo: renueva la cuenta y sigue
@@ -179,6 +179,8 @@ uint32_t reloj_segundosDesde2000();
 // Definida en reloj.cpp (D-35): guarda el dia que trae CMD:HORA_ESP32. La llama bluetooth.cpp
 // solo tras un reloj_sembrarDesdeIso() que devolvio true, con la misma cadena.
 bool reloj_guardarFechaEsp32(const char* str);
+// A-15 (29/09, H4): con la radio mandando, SOLO la fecha de la linea del ESP32 (reloj.cpp).
+bool reloj_fecharDesdeEsp32(const char* str);
 
 const char* degradado_textoEstado();
 const char* degradado_textoFase();

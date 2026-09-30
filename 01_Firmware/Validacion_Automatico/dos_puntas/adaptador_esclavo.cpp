@@ -327,7 +327,7 @@ bool reloj_sembrarDesdeIso(const char* str) {
 static int sembrarDirecto(const char* iso) { return arnesDegAuto_sembrar(iso); }  // +fecha: ver .inc
 
 static int ramaHoraEsp32(const char* iso) {
-  if (reloj_radioManda()) return 2;          // HE_IGNORADA: manda la radio
+  if (reloj_radioManda()) return arnesDegAuto_ignorada(iso);   // HE_IGNORADA: la fecha si (A-15)
   return sembrarDirecto(iso);                // 1 sembrada, 0 rechazada
 }
 #else
@@ -582,7 +582,7 @@ PUNTA_API long punta_mando(const char* que, long arg) {
   }
   // El eco: la guarda de la radio se pregunta AHORA, la siembra se entrega en la frontera.
   if (!strcmp(que, "siembra_esp32_eco")) {
-    if (reloj_radioManda()) return 2;
+    if (reloj_radioManda()) return arnesDegAuto_ignorada(nullptr);   // la fecha si (A-15)
     return (long)arnes_sembrar_en_frontera(0, sembrarDirecto);
   }
   if (!strcmp(que, "alarmas_caducada"))    return (long)g_alarmasCaducada;
