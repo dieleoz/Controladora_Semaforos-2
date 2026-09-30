@@ -85,7 +85,8 @@ sin su visto bueno.
   y se devolvio al responsable (la retirada la confirmo el; el control negativo de `app_01`/`app_08` sigue pendiente).
 - **Leccion:** que un permiso impida retirar una barrera es informacion: se reporta y decide el responsable.
 - **Que hacer en el siguiente:** todo encargo dice "si el permiso lo impide, para y reporta".
-- **Destino:** SUBE a metodo (regla de encargos a subagentes).
+- **Destino:** SUBE a metodo (regla de encargos a subagentes). Aprobado 30/09: el responsable delega en el
+  arquitecto del orquestador, que la propuso.
 
 ## L-11 — Lo que enlaza un arnes se actualiza en el mismo commit (30/09)
 - **Paso:** el simulador del puente aborto dos veces: faltaban dobles de funciones nuevas (`49580cf`) y el aviso de

@@ -449,7 +449,7 @@ saca al Esclavo con su latido, §7).
 6. **Una punta pierde la hora fiable y se rinde a ÁMBAR; la otra sigue alternando por reloj** (hallazgo 1 del
    arquitecto; `Maestro/src/modo_degradado.cpp` y `Esclavo/src/modo_degradado.cpp`, rendición por hora no fiable). Sale
    la alarma de hora caducada. Incluye que el APTO del Maestro caiga por tiempo durante la cuenta (hora no fiable,
-   `SYNC_FRESCA_MS`); la sync se renueva cada hora, así que es raro. Mitigación posible, **pendiente del responsable**:
+   `SYNC_FRESCA_MS`); la sync se renueva cada hora, así que es raro. **DECIDIDO 30/09 (`D-38`), sin construir:**
    rendirse a ROJO fijo en vez de ámbar cuando la causa es la hora (peor caso verde contra rojo; ese sentido queda
    cerrado hasta que llegue alguien).
 

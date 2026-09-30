@@ -7,8 +7,8 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 
 1. **Marco prueba en banco `a505fa2`** (Degradado automatico, `N-167`) con `Pruebas_Funcional_2026-09-29.html`, casos
    0-8, y exporta los dos postes por caso. Se leen ENTEROS y contando (`CLAUDE.md` §7) antes de tocar nada.
-2. **Dos decisiones del responsable:** riesgo (f).6 (un poste pierde la hora: rojo fijo o ambar; recomendado rojo) y
-   el control negativo de `app_01`/`app_08` que el permiso bloqueo a un agente.
+2. **`N-168` (`D-38`, decidido 30/09):** en Degradado, la punta que pierde la hora pasa a ROJO fijo. Sin construir;
+   antes, cargar la norma de senalizacion con la skill `norma`.
 3. **Fase 5, lo duplicado Maestro/Esclavo a `lib/`**: solo despues de que la candidata pase banco.
 
 ## Frentes abiertos (tres como maximo)
