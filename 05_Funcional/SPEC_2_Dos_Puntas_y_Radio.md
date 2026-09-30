@@ -446,6 +446,12 @@ saca al Esclavo con su latido, §7).
 3. **La flash del testigo falla** (`MDT_NO_GUARDADO`): esa punta no entra (el Maestro va a `MENU`); la otra, sí.
 4. **El Esclavo se reinicia en la cuenta con la pila inválida** (sin la opción) o sin hora fiable en 420 s.
 5. **`SET_MODO:MENU` en el Maestro sin radio** deja al Esclavo en Degradado: como hoy con `D-18` y `D-35`.
+6. **Una punta pierde la hora fiable y se rinde a ÁMBAR; la otra sigue alternando por reloj** (hallazgo 1 del
+   arquitecto; `Maestro/src/modo_degradado.cpp` y `Esclavo/src/modo_degradado.cpp`, rendición por hora no fiable). Sale
+   la alarma de hora caducada. Incluye que el APTO del Maestro caiga por tiempo durante la cuenta (hora no fiable,
+   `SYNC_FRESCA_MS`); la sync se renueva cada hora, así que es raro. Mitigación posible, **pendiente del responsable**:
+   rendirse a ROJO fijo en vez de ámbar cuando la causa es la hora (peor caso verde contra rojo; ese sentido queda
+   cerrado hasta que llegue alguien).
 
 **(g) Ficheros e interfaces.** La lógica nueva va en un **módulo pareado** `{Maestro,Esclavo}/{src,include}/
 deg_auto.cpp,.h` (los ficheros que tocaría pasan de 500 líneas): `degAuto_loop()` (cuenta, entrada, emisión de
@@ -472,7 +478,7 @@ automática al volver la radio (el funcional pide que no), los interruptores de 
    condición de `APTO` falsa por turnos en cada punta, y ninguna entra.
 5. Radio de vuelta con los dos en Degradado: `ENLACE_DISPONIBLE` en la app de cada poste, siguen en Degradado; `MENU`
    en el Maestro saca a los dos. `PRESENTE` con un poste no degradado: alarma, la luz no cambia.
-6. Entrada a las 23:55 (el `inicio` cruza la medianoche) y vencimiento con el reloj adelantado a 31 días: dos pasos.
+6. Entrada a las 23:55 (el `inicio` cruza la medianoche). Y testigo de más de 31 días: sigue alternando (no vence).
 
 **Arnés de PC** (antes del banco, visto en rojo con un defecto inyectado en el `.cpp` real): bloque `H` nuevo en
 `Validacion_Automatico/dos_puntas/orquestador_degradado.cpp` (fila 19), con un corte de radio por SENTIDO en el propio
