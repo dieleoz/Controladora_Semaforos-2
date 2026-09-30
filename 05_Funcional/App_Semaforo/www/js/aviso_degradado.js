@@ -13,6 +13,13 @@
 // Confirmar deja un vale de un solo uso para ESA orden, que caduca a los 30 s.
 //
 // Modal propio del DOM, nunca confirm(): el nativo bloquea el hilo (N75-4).
+//
+// SEGUNDO CASO (riesgo (f).1 de SPEC_2 7.ter): el poste aun NO esta en Degradado, pero su
+// opcion de Degradado automatico esta activa (lo que sabe js/deg_auto.js por la consulta)
+// y no hay radio: el otro poste puede entrar solo a los 300 s y dar verdes por su reloj
+// mientras este cambia de modo. No saber no es estar a salvo: solo se deja pasar si la
+// opcion consta APAGADA, o si el Maestro dice en ESTE $STATUS que la radio va (ESC: con
+// valor y RF: medido > 0). El Esclavo publica RF:-- y no emite ESC:, asi que no lo sabe.
 
 const AvisoDegradado = {
   VIGENCIA_MS: 30000,
@@ -28,8 +35,25 @@ const AvisoDegradado = {
   },
 
   // true: se puede enviar ya. false: se abrio el aviso (o no hay DOM) y NO sale nada.
+  TEXTO_AUTO: 'Sin radio y con el degradado automatico activado, el otro poste puede entrar solo ' +
+    'en degradado y dar verdes por su reloj mientras este cambia de modo. Haga este cambio solo ' +
+    'con PALETEROS en los dos extremos.',
+
+  // true si no se puede descartar el caso del automatico: opcion no APAGADA y radio no OK.
+  riesgoAuto(state) {
+    const da = typeof DegAuto !== 'undefined' ? DegAuto : null;
+    const e = da && da._estado;
+    if (da && (da._sinOpcion || (e && !e.este))) return false;
+    const l = state.rfLectura;
+    const radio = state.node === 'MAESTRO' && !!state.esc && state.esc !== '?' &&
+                  !!l && l.medido === true && l.pct > 0;
+    return !radio;
+  },
+
   permite(orden, state, addEvent) {
-    if (!state || state.modo !== 'DEGRADADO' || !this.aplica(orden, state.node)) return true;
+    if (!state || !this.aplica(orden, state.node)) return true;
+    const auto = state.modo !== 'DEGRADADO';
+    if (auto && !this.riesgoAuto(state)) return true;
     const v = this._vale;
     if (v && v.orden === orden && Date.now() - v.ms <= this.VIGENCIA_MS) {
       this._vale = null;
@@ -40,6 +64,8 @@ const AvisoDegradado = {
     this._pendiente = { orden, boton: this._boton, addEvent };
     el.chk.checked = false;
     el.ok.disabled = true;
+    if (el.titulo) el.titulo.textContent = auto ? 'Cuidado: sin radio y con degradado automatico' : el.tituloDeg;
+    if (el.cuerpo) el.cuerpo.textContent = auto ? this.TEXTO_AUTO : el.cuerpoDeg;
     if (el.orden) el.orden.textContent = 'Orden: ' + orden + '.';
     el.modal.classList.add('active');
     return false;
@@ -50,8 +76,11 @@ const AvisoDegradado = {
     if (typeof document === 'undefined') return null;
     const $ = id => document.getElementById(id);
     const el = { modal: $('aviso-deg-modal'), chk: $('chk-aviso-deg'), ok: $('btn-aviso-deg-confirmar'),
-                 no: $('btn-aviso-deg-cancelar'), x: $('modal-aviso-deg-close'), orden: $('aviso-deg-orden') };
+                 no: $('btn-aviso-deg-cancelar'), x: $('modal-aviso-deg-close'), orden: $('aviso-deg-orden'),
+                 titulo: $('aviso-deg-titulo'), cuerpo: $('aviso-deg-cuerpo') };
     if (!el.modal || !el.chk || !el.ok) return null;
+    el.tituloDeg = el.titulo ? el.titulo.textContent : '';
+    el.cuerpoDeg = el.cuerpo ? el.cuerpo.textContent : '';
     el.chk.addEventListener('change', () => { el.ok.disabled = !el.chk.checked; });
     el.ok.addEventListener('click', () => this._confirmar());
     [el.no, el.x].forEach(b => b && b.addEventListener('click', () => this._cancelar()));

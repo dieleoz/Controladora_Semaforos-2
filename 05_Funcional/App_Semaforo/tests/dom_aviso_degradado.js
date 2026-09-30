@@ -11,7 +11,9 @@ module.exports = async function pruebaAvisoDegradado(montarAppLimpia, assert) {
   const d = a.d;
   a.w.clearTimeout(a.w.DegAuto._timerConsulta);   // la consulta automatica no cuenta aqui
   const entra = (carga) => a.w._btSubscribeCb(`$${carga}*${xor(carga)}\n`);
-  const modo = (m) => entra(`STATUS,NODE:MAESTRO,SERIE:SEM-M-01,MODO:${m},ESTADO:R1_R2,T:31,RF:0,RTT:0,BAT:12.9,HORA:14:31:00`);
+  const modo = (m, rf = 'RF:0', esc = '') =>
+    entra(`STATUS,NODE:MAESTRO,SERIE:SEM-M-01,MODO:${m},ESTADO:R1_R2,T:31,${rf},RTT:0,BAT:12.9,HORA:14:31:00${esc}`);
+  const opcion = (v) => entra(`ACK,CMD:CONSULTA_DEG_AUTO,RESULT:ESTE_${v}_OTRO_ON_APTO_SI`);
   const modal = d.getElementById('aviso-deg-modal');
   const chk = d.getElementById('chk-aviso-deg');
   const ok = d.getElementById('btn-aviso-deg-confirmar');
@@ -67,10 +69,31 @@ module.exports = async function pruebaAvisoDegradado(montarAppLimpia, assert) {
   assert(!modal.classList.contains('active') && a.tramas.length === 1 && a.tramas[0] === 'CMD:FORZAR_ROJO\r\n',
     `Aviso: FORZAR_ROJO sale sin preguntar en Degradado: ${a.tramas.join(' | ')}`);
 
-  // (6) Sin Degradado no pregunta.
+  // (6) Sin Degradado y con la opcion automatica APAGADA (acuse) no pregunta.
+  opcion('OFF');
   modo('AUTO');
   a.tramas.length = 0;
   manual.click();
   assert(!modal.classList.contains('active') && a.tramas.length === 1 && a.tramas[0] === MANUAL,
     `Aviso: con MODO:AUTO, SET_MODO:MANUAL sale sin aviso: ${a.tramas.join(' | ')}`);
+
+  // (7) Riesgo (f).1 de SPEC_2 7.ter: opcion ON por acuse, sin radio (ESC:? y RF:0), MODO no
+  // DEGRADADO. El otro poste puede entrar solo a los 300 s: pregunta igual, y no sale nada.
+  opcion('ON');
+  modo('AUTO', 'RF:0', ',ESC:?');
+  a.tramas.length = 0;
+  manual.click();
+  const cuerpo = d.getElementById('aviso-deg-cuerpo');
+  assert(modal.classList.contains('active') && a.tramas.length === 0 &&
+         /degradado automatico activado/.test(cuerpo ? cuerpo.textContent : ''),
+    `Aviso: opcion ON y sin radio, SET_MODO:MANUAL abre el aviso del automatico y NO sale nada: ` +
+    `[${a.tramas.join(' | ')}] "${cuerpo ? cuerpo.textContent.slice(0, 60) : 'sin #aviso-deg-cuerpo'}"`);
+  d.getElementById('btn-aviso-deg-cancelar').click();
+
+  // (8) La misma opcion ON CON radio (ESC:ROJO, RF:95) no pregunta.
+  modo('AUTO', 'RF:95', ',ESC:ROJO');
+  a.tramas.length = 0;
+  manual.click();
+  assert(!modal.classList.contains('active') && a.tramas.length === 1 && a.tramas[0] === MANUAL,
+    `Aviso: opcion ON con radio, SET_MODO:MANUAL sale sin aviso: ${a.tramas.join(' | ')}`);
 };

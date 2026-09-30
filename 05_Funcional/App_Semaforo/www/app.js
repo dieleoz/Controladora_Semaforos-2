@@ -4073,7 +4073,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // hubiera medido nada. "No lo se" y "va fatal" son cosas distintas y esa linea
       // las juntaba. Ahora se pregunta SIEMPRE, aunque el campo no venga: es
       // pintarEnlace() quien decide, y sabe declarar la ausencia.
-      const lectura = lecturaDeEnlace(data);
+      const lectura = state.rfLectura = lecturaDeEnlace(data);  // la de ESTE $STATUS (aviso_degradado.js)
       pintarEnlace(lectura);
       // Mismo dato, misma trama: se pinta ademas en la caja de la Prueba de Alcance si
       // el equipo esta en ese modo (28/09). state.modo ya viene actualizado de arriba.

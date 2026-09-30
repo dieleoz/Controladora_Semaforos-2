@@ -165,7 +165,7 @@ assert(typeof window._btSubscribeCb === 'function', 'Callback de suscripción se
 // calculador la haria pasar igual, y no quedaria ni una linea que compare el XOR de la
 // app contra un numero escrito por una persona.
 const sampleTelemetry = '$STATUS,NODE:ESCLAVO,SERIE:SEM-E-01,MODO:AUTO,ESTADO:R1_V2,T:28,RF:95,RTT:75,BAT:12.8,HORA:14:30:00*04\n';
-window._btSubscribeCb(sampleTelemetry);
+window._btSubscribeCb(sampleTelemetry); window.DegAuto._estado = {este: false};  // opcion auto APAGADA
 
 const nodeNameEl = document.getElementById('node-name');
 const cdNumEl = document.getElementById('cd-num');
@@ -494,7 +494,7 @@ function xorNmea(payload) {
 }
 function conectarComo(node, resto) {
   const payload = `STATUS,NODE:${node},${resto}`;
-  window._btSubscribeCb(`$${payload}*${xorNmea(payload)}\n`);
+  window._btSubscribeCb(`$${payload}*${xorNmea(payload)}\n`); window.DegAuto._estado = {este: false};
 }
 
 conectarComo('MAESTRO', 'SERIE:SEM-M-01,MODO:AUTO,ESTADO:V1_R2,T:31,RF:97,RTT:70,BAT:12.9,HORA:14:31:00');
@@ -768,7 +768,7 @@ function montarAppLimpia() {
   w.document.getElementById('btnDevice').click();
   w.document.querySelector('.bt-device-item').click();
   const carga = 'STATUS,NODE:MAESTRO,SERIE:SEM-M-01,MODO:AUTO,ESTADO:V1_R2,T:31,RF:97,RTT:70,BAT:12.9,HORA:14:31:00';
-  w._btSubscribeCb(`$${carga}*${xorNmea(carga)}\n`);
+  w._btSubscribeCb(`$${carga}*${xorNmea(carga)}\n`); w.DegAuto._estado = {este: false};  // opcion auto APAGADA
   // La ventana se devuelve tambien: el escenario de 1.50 necesita adelantar su
   // reloj y leer su DiarioOrdenes. Los llamadores de antes desestructuran lo que
   // usaban y no se enteran.
