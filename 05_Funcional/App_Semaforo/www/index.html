@@ -71,6 +71,13 @@
       <p class="camara-pluma-accion" id="camara-pluma-accion"></p>
       <small class="camara-pluma-limite" id="camara-pluma-limite"></small>
     </div>
+    <!-- N-170: parte de arranque del puente por subida de tension. Texto en js/aviso_corte.js. -->
+    <div class="card card-camara-pluma" id="aviso-corte" hidden>
+      <strong class="camara-pluma-titulo" id="aviso-corte-titulo"></strong>
+      <p class="camara-pluma-medida" id="aviso-corte-cuando"></p>
+      <p class="camara-pluma-accion" id="aviso-corte-accion"></p>
+      <button type="button" class="btn-top" id="btn-aviso-corte-ok">Entendido</button>
+    </div>
 
     <!-- ===================================================================
          TAB 1: OPERACIÓN PRINCIPAL (LA VISTA QUE USA EL OPERARIO EN CAMPO)
@@ -1158,6 +1165,7 @@
   <script src="js/depuracion.js"></script>
   <script src="js/avisos_equipo.js"></script>
   <script src="js/aviso_camara_pluma.js"></script>
+  <script src="js/aviso_corte.js"></script>
   <script src="js/bluetooth_driver.js"></script>
   <script src="js/diario_vista.js"></script>
   <script src="js/lista_equipos.js"></script>

@@ -199,6 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const camPlumaMedidaEl = document.getElementById('camara-pluma-medida');
   const camPlumaAccionEl = document.getElementById('camara-pluma-accion');
   const camPlumaLimiteEl = document.getElementById('camara-pluma-limite');
+  const cortEl = document.getElementById('aviso-corte');   // N-170, js/aviso_corte.js
   const padTituloEl = document.getElementById('pad-titulo');
   const btnIrAlMaestro = document.getElementById('btn-ir-al-maestro');
   const btnIrAlEsclavo = document.getElementById('btn-ir-al-esclavo');
@@ -2856,6 +2857,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (camPlumaLimiteEl) camPlumaLimiteEl.textContent = v.limite;
   }
 
+  // N-170: poste y modo del $STATUS de ESTA conexion (olvidarEnlace() borra state.node).
+  function renderAvisoCorte() {
+    const c = (cortEl && typeof AvisoCorte !== 'undefined') ? AvisoCorte.cartel(
+      state.node ? (state.node === 'ESCLAVO' ? 'POSTE 2 (ESCLAVO)' : 'POSTE 1 (MAESTRO)') : null,
+      state.node && state.modo ? (MODOS[state.modo] ? MODOS[state.modo].texto : state.modo) : null) : null;
+    if (!cortEl || (cortEl.hidden = !c)) return;   // sin cartel: oculto y fuera
+    ['titulo', 'cuando', 'accion'].forEach(k => {
+      document.getElementById('aviso-corte-' + k).textContent = (k === 'titulo' ? '⚠️ ' : '') + c[k]; });
+  }
+  const btnCorteOk = document.getElementById('btn-aviso-corte-ok');
+  if (btnCorteOk) btnCorteOk.addEventListener('click', () => { AvisoCorte.cerrar(); renderAvisoCorte(); });
+
   // VOLVER AL MENU: la salida de cualquier modo, sin PIN (ver SIN_PIN arriba).
   //
   // Ni aqui ni en ningun otro sitio se pinta "ya esta en el menu": desde el Degradado
@@ -3983,6 +3996,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (data.ESTADO !== undefined) {
         state.estadoLuces = data.ESTADO;
       }
+      renderAvisoCorte();
       // N-149: EL ESTADO DEL OTRO POSTE, Y SE ASIGNA SIEMPRE -TAMBIEN CUANDO NO VIENE-.
       //
       // Los dos `if` de arriba solo escriben si el campo llego, y ahi es correcto: MODO
@@ -4269,42 +4283,27 @@ document.addEventListener('DOMContentLoaded', () => {
       // app misma habia hecho: una bitacora que no sabe nada de lo que pasa en el poste.
       const data = _camposNmea(parts);
 
-      // D-23 - EL DIAGNOSTICO PERIODICO DE LA RADIO NO ES UNA LINEA DE BITACORA.
-      //
-      // Este $EVENT llega cada 30 s -2/min-; addEvent() recorta state.events a 30, asi
-      // que dejandolo seguir por el camino de abajo se come la bitacora entera en QUINCE
-      // MINUTOS, y la ventana del POSTE 2 -que ensena slice(0, 12)- en SEIS. Los $ALARM
-      // que el tecnico vino a leer los desaloja el propio dato que venia a ayudarle. El
-      // porque de que su sitio sea un recuadro y no una lista -y por que tampoco
-      // RegistroEnlace- esta medido y escrito en js/diagnostico_enlace.js.
-      //
-      // SOLO SE DESVIA EL PERIODICO. Con este mismo ORIGEN viajan la vuelta del enlace
-      // del Esclavo y los cambios de estado del Maestro, que son SUCESOS y siguen su
-      // camino de siempre hasta la bitacora: esas hay que verlas. Quien distingue es el
-      // patron anclado de DiagnosticoEnlace, no este if.
-      //
-      // 🔴 Y ESTO ES UN else, NO UN return CON LA RAMA CORTA ARRIBA. Detras de toda esta
-      // cadena de cabeceras hay dos repintados que corren PARA CADA TRAMA ACEPTADA
-      // -renderDepuracion() y renderDiario()-. Un return aqui se los saltaria, y el que
-      // se pierde es el de la CINTA DE TRAMAS EN CRUDO: la trama ya quedo anotada por
-      // RegistroCrudo.anotar() al entrar, o sea que el dato estaria guardado y la
-      // pantalla lo ensenaria tarde -al llegar la trama siguiente-. Justo en la
-      // herramienta que se usa para perseguir tramas que van y vienen, una cinta que se
-      // repinta con retraso es una cinta que miente sobre CUANDO llego cada cosa.
-      // LA BARRERA RETENIDA POR LA CAMARA VA ANTES QUE NADA, y por el mismo motivo por
-      // el que el diagnostico de radio se desvia: el firmware REPITE este aviso mientras
-      // dure la retencion, asi que por el camino de abajo cada repeticion gastaria una
-      // de las 30 lineas y acabaria desalojandose a si misma. Aqui la cadencia refresca
-      // el cartel y solo las TRANSICIONES -empieza, se suelta- escriben en la bitacora.
-      //
-      // Y NO ES UN return: igual que el de abajo, esta rama tiene que caer al final de
-      // la cadena para que renderDepuracion() y renderDiario() repinten la cinta de
-      // tramas en crudo con esta trama ya dentro.
-      const vistoCam = (typeof AvisoCamaraPluma !== 'undefined')
+      // D-23: el diagnostico periodico de radio (cada 30 s) se desvia a su recuadro, o
+      // se comeria las 30 lineas de la bitacora; sus transiciones si van. El cartel de la
+      // camara, igual: la cadencia refresca, solo empieza/se suelta escriben. Y son else,
+      // no return: renderDepuracion() y renderDiario() tienen que repintar con esta trama.
+      // N-170: el parte de arranque del puente (sin ORIGEN/DETALLE) va antes que nadie.
+      const vistoCorte = (typeof AvisoCorte !== 'undefined') ? AvisoCorte.ver(data) : null;
+      const vistoCam = (!vistoCorte && typeof AvisoCamaraPluma !== 'undefined')
         ? AvisoCamaraPluma.ver(data) : null;
-      const esDiagRadio = typeof DiagnosticoEnlace !== 'undefined' &&
+      const esDiagRadio = !vistoCorte && typeof DiagnosticoEnlace !== 'undefined' &&
                           DiagnosticoEnlace.esPeriodico(data);
-      if (vistoCam) {
+      if (vistoCorte) {
+        if (!vistoCorte.repetido) {
+          const textoCorte = 'Equipo [PUENTE]: EVT:ARRANQUE CAUSA:' + (data.CAUSA || '') +
+                             ' ARRANQUES:' + (data.ARRANQUES || '') + ' -> ' + vistoCorte.texto;
+          addEvent(vistoCorte.tono, textoCorte);
+          if (vistoCorte.toast) showToast(vistoCorte.toast, 6000);
+          RegistroEnlace.anotar('EVENTO', enlaceDeAhora(), textoCorte);
+          renderRegistroEnlace();
+          renderAvisoCorte();
+        }
+      } else if (vistoCam) {
         renderAvisoCamaraPluma();
         if (vistoCam.linea) {
           // El literal del equipo va DELANTE y la traduccion detras, que es el molde de
@@ -4680,6 +4679,7 @@ document.addEventListener('DOMContentLoaded', () => {
       AvisoCamaraPluma.olvidar();
       renderAvisoCamaraPluma();
     }
+    if (typeof AvisoCorte !== 'undefined') { AvisoCorte.olvidar(); renderAvisoCorte(); }
     if (btnDevice) btnDevice.className = 'btn-top btn-device';
     if (btStatusDot) btStatusDot.className = 'status-dot';
     // "Sin equipo" y "Sin enlace" NO son lo mismo, y la diferencia es la que decide si
