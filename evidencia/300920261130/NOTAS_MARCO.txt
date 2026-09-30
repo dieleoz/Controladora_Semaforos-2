@@ -1,0 +1,44 @@
+Notas de campo del funcional (Marco), 30/09/2026, banco de a505fa2 (Maestro 4D2007, Esclavo 38EB53).
+Pegadas por Diego tal cual; las horas son del reloj de Marco, no del RTC.
+
+Prueba Modo Degradado (5min)
+
+Se cae la comunicación entre maestro y esclavo, quedan los dos semaforos en ámbar intermitente
+
+En el modo degradado con testigo se configura un traslado de cinco minutos
+
+A las 9:18 se da la orden de modo degradado para el semáforo Maestro, este poste pasa a rojo
+
+El poste dos, esclavo semáforo encuentra en ámbar intermitente
+
+A las 9:20 se llega a la ubicación del poste esclavo, donde se da la orden mediante la aplicación de modo degradado con testigo, confirmando la acción
+
+De manera inmediata el poste dos, esclavo queda en rojo
+
+Al cumplirse los cinco minutos, es decir a las 9:23 los dos semáforos continúan en rojo
+
+Al pasar adicionalmente 20 segundos aproximadamente el poste dos es decir el semáforo Esclavo pasa a verde
+
+Empieza el ciclo de tres minutos verde, veinte segundos de seguridad y tres minutos en rojo, así sucesivamente
+Ahora realizaré una prueba con dos minutos de traslado y simulando que no se alcanzo a llegar a el poste dos Esclavo, antes de esos dos minutos para dar la orden de modo degradado a el semaforo esclavo
+Si se recupera la comunicación, es necesario dar en la opción de la botonera de campo volver al menú, para que el sistema salga del modo degradado y continúe con el modo inteligente o manual o en su defecto la última orden enviada antes de el corte de comunicación, esto para los dos semaforos maestro y esclavo, si no se hace los semaforos continuarán trabajando en modo degradado
+Prueba Modo degradado (dos minutos) NO LLEGA EL OPERARIO
+
+Se pierde la comunicación entre los semaforos maestro y esclavo, por tanto los dos postes pasan a ámbar intermitente
+
+Ingreso desde la aplicación a el semáforo uno de Maestro en el traslado de tiempo pongo dos minutos, doy la orden de degradado con testigo siendo las 9:43
+
+Se cumplen los dos minutos a las 9:45 y no alcancé a llegar a el punto donde se encuentra el poste dos de esclavo
+
+El esclavo se encuentra en ámbar sin comunicación
+
+Llegue a el punto a las 9:47, es decir dos minutos más de el tiempo que había establecido para desplazarme de un punto a otro
+
+En cuanto se cumplieron los dos minutos pasaron los 20 segundos de tiempo de seguridad y Maestro continuo en rojo
+
+Cómo llegue aproximadamente dos minutos después del tiempo establecido, voy a activar el modo degradado por testigo, confirmando enviar testigo y me sale un mensaje que me indica que el tiempo establecido para el traslado ya paso, y el poste dos de esclavo continuará en ámbar intermitente
+
+Tras pasar ter minutos de la hora de traslado establecida, es decir a las 9:48 el poste uno de maestro empieza el ciclo individual de cambios entre tres minutos de verde, tres minutos en rojo y veinte segundos de tiempo de seguridad
+Maestro
+Esclavo
+Enfocado en las pruebas específicas de el modo degradado, sin embargo se hicieron todas las pruebas de todos y cada uno de los modos de uso del los semaforos, tanto para los postes de Maestro como Esclavo, evidenciado en las tramas de datos y logs generados y compartidos
