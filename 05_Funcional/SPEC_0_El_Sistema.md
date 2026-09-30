@@ -133,7 +133,9 @@ configuracion** (`SPEC_6` HUECO 3), y si no se hizo el sintoma no dira «radio m
 - **Cabezal** — las tres luces de un poste. Sus **dos caras van siempre juntas**: un poste tiene **un** color, no dos (`SPEC_1` §1).
 - **Pluma / talanquera** — la barrera que baja sobre el carril. **REFUERZA la senal, no la sustituye**: quien regula es la lampara (`SPEC_1` §2).
 - **Despeje** — el **todo-rojo entre los dos verdes**, que vacia el tramo. Es la **unica proteccion del que se quedo dentro** (`SPEC_1` §5).
-- **Degradado (Modo)** — sin radio, cada punta decide su luz **por su reloj**: el unico que da verde sin confirmar con la otra. Entrada **siempre manual** (`SPEC_2` §7).
+- **Degradado (Modo)** — sin radio, cada punta decide su luz **por su reloj**: el unico que da verde sin confirmar con
+  la otra. Entrada **manual**, o **automatica** tras 5 min sin radio si un tecnico dejo la opcion activada con PIN en
+  los dos postes (`SPEC_2` §7, §7.ter; `A-15`).
 - **Orfandad** — que a una punta deje de llegarle nada de la otra durante `SFTY6_SILENCIO_MS`; se responde con **ambar intermitente** (SFTY-6, `SPEC_2` §4).
 - **Siembra** — el envio periodico de la hora del ESP32 a su STM32 por el cable `J17` (`SPEC_3` §2).
 - **Vale de via despejada** — lo que la app pregunta antes de una orden que **abre paso**: un PIN demuestra QUIEN eres, no que hayas MIRADO (`SPEC_4` §4).
@@ -162,8 +164,10 @@ configuracion** (`SPEC_6` HUECO 3), y si no se hizo el sintoma no dira «radio m
 6. **NO HAY AVISO REMOTO: si no hay nadie conectado, nadie se entera.** Ni red, ni SMS, ni servidor: `$ALARM` sale **en el
    instante** y **solo lo ve quien esta conectado entonces** (`SPEC_6` PARTE C). Lo mismo el aviso previo al limite duro
    del Degradado: **las dos puntas lo publican** por evento, pero solo lo lee quien este conectado (`SPEC_7` §5).
-7. **NO ENTRA EN DEGRADADO SOLO, Y LA APP INVENTA LA CAUSA.** La entrada es siempre de una persona; el equipo publica `MODO:`
-   y `ESTADO:` y **nunca la causa**: los textos de causa que el operario lee estan escritos en `app.js` (`SPEC_7` §6, H-2).
+7. **SOLO ENTRA EN DEGRADADO SOLO SI UN TECNICO LO DEJO ACTIVADO ANTES, Y FUERA DE ESO LA APP INVENTA LA CAUSA.** Con la
+   opcion automatica activada con PIN en los dos postes, entra tras 5 min sin radio y lo anuncia (`AUTO_ENTRADA`);
+   sin ella la entrada es de una persona (`SPEC_2` §7.ter, `A-15`, 🔴 sin construir). En los demas casos el equipo
+   publica `MODO:` y `ESTADO:` y **nunca la causa**: los textos de causa estan escritos en `app.js` (`SPEC_7` §6, H-2).
 8. **NO SE DIAGNOSTICA A SI MISMO EL COBRE NI LA RADIO.** Ningun instrumento lee la configuracion de una radio (`SPEC_6`
    HUECO 3); la pluma **no tiene realimentacion** —sabe «ordene abrir», nunca «esta abierta» (`SPEC_1` §2)—; y **una camara
    muerta desde la instalacion no la avisa nadie** (`SPEC_8` §4).

@@ -38,6 +38,7 @@ identificador, comando, **un solo byte** de parámetro y CRC, y cada envío sale
 | `CMD_CANCELA_AMBAR_ESCLAVO` | E→M | el Poste 2 lo retira. **No se acusa, y es la regla** (§6) |
 | `CMD_DEMANDA` / `CMD_ACK_DEMANDA` · `CMD_HORA_*` | E→M / M→E | la demanda de cámara y su respuesta, que dice si se atiende · y la hora, que **no toca luz** (SPEC 3) |
 | `CMD_CONFIG_*`, `CMD_DELTA*` | M→E | 🔴 **NO son «servicio»: son el ACUERDO que autoriza el Degradado** (§8) |
+| `CMD_PRESENTE` | M↔E | 🔴 NO CONSTRUIDO (§7.ter). «Estoy en Degradado y te oigo»; no toca luz, modo ni silencio |
 
 Del Poste 2 salen por iniciativa propia **tres** —la demanda, el aviso de ámbar y su cancelación—; el resto, respuesta.
 
@@ -175,7 +176,8 @@ todo-rojo**. *(Literales, SPEC 4 §3.2; el campo, SPEC 6.)*
 
 **Sin radio, la luz la decide el reloj** (`SFTY-21`).
 
-> 🔴 **ENTRAR POR PRIMERA VEZ ES MANUAL. REANUDAR TRAS UN CORTE NO LO ES — Y NADIE SE LO AVISA AL OPERARIO.**
+> 🔴 **ENTRAR POR PRIMERA VEZ ES MANUAL** (salvo la opción automática de §7.ter, que un técnico activa antes).
+> **REANUDAR TRAS UN CORTE NO LO ES — Y NADIE SE LO AVISA AL OPERARIO.**
 > - **La primera entrada sí la pide una persona:** Poste 2, la app (`D-18`) por su puerta única de entrada; Poste 1,
 >   `SET_MODO:DEGRADADO` o el `A.B.A.B` del mando.
 > - **La reanudación la decide la máquina**, en cada arranque y **sin pulsación ninguna** (`D-29`): cada punta tiene su
@@ -203,9 +205,10 @@ estado rendido no se sale solo.
 
 ## 7.bis EL DEGRADADO CON TESTIGO — segunda puerta, para cuando la radio no vuelve en semanas (`D-35`)
 
-> 🔴 **HUECO ENTERO: NADA DE ESTE APARTADO EXISTE EN EL FUENTE.** Se especifica lo que hay que construir. No toca
-> `modo_degradado_evaluarEntrada()` ni `degradado_entrar()` (`D-18`), que siguen exactamente como están — es una
-> puerta NUEVA y PARALELA, para el caso en que el repuesto del radio tarda semanas y las condiciones de §8 —sync
+> 🟢 **CONSTRUIDO en las dos puntas (`990c278`) y en la app (`11b57b3`); probado en banco por el funcional
+> (`4a2c73c`).** No toca `modo_degradado_evaluarEntrada()` ni `degradado_entrar()` (`D-18`), que siguen exactamente
+> como están — es una puerta NUEVA y PARALELA, para el caso en que el repuesto del radio tarda semanas y las condiciones
+> de §8 —sync
 > confirmada, desfase medido, ciclo acusado por radio— no se pueden cumplir porque no hay radio que las produzca.
 
 **El comando, en las DOS puntas:** `SET_MODO:DEG_T:ahora,inicio,verde,despeje`
@@ -255,10 +258,11 @@ persistido es de testigo, la puerta que comprueba es el **límite de 31 días**,
 reinicio cayó ANTES de `inicio`, sigue en rojo fijo hasta esa hora — la reanudación no enciende nada que la entrada
 no hubiera encendido ya.
 
-**Vencimiento (31 días, aviso a los 28).** Al llegar el aviso o el límite, misma salida que hoy: ámbar intermitente,
-sin marcha atrás (§7 arriba). Repetir el testigo —una vez al mes— reinicia la cuenta. **La deriva entre los DOS
-DS3231**, que es lo único que corre sin radio y sin la vigilancia de §8, es del orden de **10 s/mes** (`DECISIONES.md`
-D-26, motivo: ±2 ppm cada uno) — **cifra de decisión, no medida en tarjeta** — contra el suelo de **30 s** del
+**Vencimiento (31 días, aviso a los 28).** 🔴 Hoy cada punta sale a ámbar en SU marca: dos testigos puestos con
+el traslado de por medio dan verde contra ámbar ese traslado. Lo sustituye la regla de medianoche de §7.ter (d).
+Repetir el testigo —una vez al mes— reinicia la cuenta. **La deriva entre los DOS DS3231**, que es lo único que
+corre sin radio y sin la vigilancia de §8, es del orden de **10 s/mes** (`DECISIONES.md` D-26, motivo: ±2 ppm cada uno)
+— **cifra de decisión, no medida en tarjeta** — contra el suelo de **30 s** del
 despeje de esta orden: el margen que queda es del orden de 20 s, y **nadie lo ha medido en un banco**.
 
 **Lo que NO cambia, y se dice explícito (`D-35`):** la vuelta de la radio sigue exactamente como hoy —`SFTY-21`,
@@ -272,13 +276,13 @@ las dos hasta `inicio`, y que al llegar `inicio` alternen sin solaparse (oscilos
 reales) igual que en §8(e). Repetir cortando la alimentación de una tarjeta mientras espera `inicio`, y otra vez ya
 alternando, y comprobar que reanuda sin encender un verde que no le tocaba.
 
-**Ficheros e interfaces que se tocarían — nada construido:** `Maestro/{src,include}/modo_degradado.cpp,.h` y su
+**Ficheros e interfaces que toca:** `Maestro/{src,include}/modo_degradado.cpp,.h` y su
 gemelo en `Esclavo/` (puerta nueva, enum nuevo, `TOLERANCIA_TESTIGO_S`) · `{Maestro,Esclavo}/src/bluetooth.cpp`
 (rama `SET_MODO:DEG_T`, parsea las DOS horas) · `{Maestro,Esclavo}/{src,include}/respaldo.cpp,.h` (registro
 nuevo). **No toca el ESP32** —ni `despachador.cpp` ni `siembra.cpp`— ni `reloj.cpp/.h`: la comparación usa
 `reloj_segundosDelDia()`, que ya existe. `ciclo_degradado.h` NO se toca: la fase la calcula la MISMA función.
 
-**El testigo con el poste YA en Degradado** (la visita mensual, o un Degradado de `D-18` activo). 🔴 NO CONSTRUIDO.
+**El testigo con el poste YA en Degradado** (la visita mensual, o un Degradado de `D-18` activo).
 Pasa las mismas comprobaciones (`ahora`, `inicio`, rangos). Si `verde` y `despeje` son los que el poste ya aplica,
 **renueva la cuenta de 31 días y la hora, y sigue alternando**: no vuelve a rojo ni espera `inicio`, porque la fase
 es la de pared y no cambia. Si el ciclo es distinto, vuelve a ROJO fijo hasta `inicio` como una entrada nueva.
@@ -288,7 +292,7 @@ respaldo del F103 están ocupados y el registro mínimo (45 bits) no cabe sin re
 reserva en `platformio.ini` (`board_upload.maximum_size`) para que el enlazador no pueda poner código encima; se
 escribe una vez por testigo, con el poste en ROJO, y lleva su propia suma. `respaldo.cpp` no cambia de formato.
 
-**Reglas para construir** (medidas sobre el fuente; 🔴 NO CONSTRUIDO):
+**Reglas de construcción** (medidas sobre el fuente):
 - **DR6/DR7:** la librería STM32duino RTC los reserva para la fecha (`RTC_BKP_DATE`) y `respaldo.cpp` los usa para
   la sync. Hallazgo SIN MEDIR en tarjeta, fuera de este apartado.
 - **Los 31 días se cuentan con la fecha del DS3231** que trae `CMD:HORA_ESP32`, no con `reloj_contadorSegundos()`:
@@ -308,6 +312,143 @@ escribe una vez por testigo, con el poste en ROJO, y lleva su propia suma. `resp
 `camara_02_j16.py` · `costura_06_reanudacion.py` · `esclavo_01_latch_ambar.py` · `esclavo_06_no_abre_paso.py` ·
 `maestro_03_puerta_degradado.py` · `reloj_04_hora_que_caduca.py`. **Ninguno se toca ni se clona**: el simulador está
 congelado (§4), y la verificación de esta puerta es de banco, no de pack.
+
+## 7.ter EL DEGRADADO AUTOMÁTICO — entra solo tras 5 min sin radio, si el técnico lo dejó activado (`A-15`)
+
+> 🔴 **SPEC DEL 29/09: NADA DE ESTE APARTADO EXISTE EN EL FUENTE** (`grep -rn "DEG_AUTO\|PRESENTE" 01_Firmware/{Maestro,
+> Esclavo}` da cero). **Deroga, por decisión del responsable:** SPEC 0 §5.7 «no entra en Degradado solo», la frase de
+> `D-18` «la llave la tiene la app» y la de `D-21` «ni si vuelve a él». **Sigue decidiendo una persona, pero ANTES:**
+> el técnico activa la opción con PIN en cada poste. **Con la opción apagada en cualquiera de los dos, el equipo hace
+> exactamente lo de hoy** (§4 y §7: ámbar a los 25 s y vuelta sola al ciclo cuando vuelve la radio).
+
+| símbolo | valor | por qué |
+|---|---|---|
+| `DEG_AUTO_ESPERA_MS` | 300000 (N = 5 min) | `A-15`, el responsable |
+| `DEG_AUTO_MARCA_S` | 300 | la marca de inicio, múltiplo de 5 min del día de pared (`A-15`) |
+| `DEG_AUTO_ROJO_MIN_S` | 420 | rojo fijo mínimo antes de `inicio`, (b) |
+| verde / despeje | 180 / 30 | los del testigo: `DEG_VERDE_SEG`/`TESTIGO_VERDE_SEG` y `TESTIGO_DESPEJE_MIN` |
+| `CMD_PRESENTE` | `0x17` | primer código libre de la cabecera de protocolo (la última es `CMD_ACK_AVISO_AMBAR` `0x16`) |
+| `DEG_AUTO_APTO` / `DEG_AUTO_ECO` | `0x02` / `0x04` del param | `0x01` es `PONG_VERDE_SOLTADO` (`D-34`) |
+| `FLAG_DEG_AUTO` / `FLAG_OTRO_APTO` | bit4 / bit5 de `REG_FLAGS` | libres; bit3 es `FLAG_TESTIGO` |
+| `PRESENTE_S` | 10 | Maestro en `s % 10 == 0`, Esclavo en `s % 10 == 5` (segundo de pared propio) |
+| `DEG_AUTO_ACUSE_MS` | 10000 | tres latidos (`LATIDO_MS`) y margen |
+
+**(a) La opción y el acuerdo por radio.** Cada punta publica, mientras hay enlace, si ELLA entraría: el bit `APTO`.
+- **`APTO` del Maestro** = `FLAG_DEG_AUTO` · modo `AUTOMATICO` o `INTELIGENTE` · `reloj_horaFiable()` ·
+  `msDesdeSyncEfectivo() < SYNC_FRESCA_MS` (la sync del PAR: el Esclavo la acusó). Viaja en el param de **toda**
+  `CMD_PING`, `CMD_GO_GREEN` y `CMD_GO_RED`. En `MENU`, `MANUAL`, `AMBAR`, `ALCANCE` u `HORA` vale 0: hay una persona.
+- **`APTO` del Esclavo** = `FLAG_DEG_AUTO` · `reloj_horaFiable()` · `!bluetooth_ambarEmergencia()`. Viaja en el
+  `CMD_PONG`, junto a `PONG_VERDE_SOLTADO`. 🔴 **El coordinador compara hoy `pkt.param == PONG_VERDE_SOLTADO`**: pasa a
+  máscara (`& PONG_VERDE_SOLTADO`) en el mismo cambio, o un Esclavo apto apagaría la reanudación de `D-34`. No exige
+  sync propia: la del par la trae el `APTO` del Maestro, y tras un reinicio del Esclavo su sync sólo la fecha la pila.
+- **Cada punta guarda el último `APTO` que OYÓ del otro** en `FLAG_OTRO_APTO` (Maestro: de cada `PONG`; Esclavo: de
+  cada `PING`/`GO_*`), escribiendo la pila sólo si cambia, y lo devuelve como `ECO` en las mismas tramas. Sin haberlo
+  oído nunca, 0. **La opción EFECTIVA de una punta es su `FLAG_DEG_AUTO` Y su `FLAG_OTRO_APTO`**: con la opción en un
+  solo poste, ése daría verde por reloj contra el ámbar del otro.
+- **Pila:** los dos bits van en `REG_FLAGS`, dentro de la suma y sin cambiar `FIRMA` (el molde de `FLAG_TESTIGO`).
+  Medido: `respaldo_guardarCiclo`, `respaldo_marcarSync` y `respaldo_guardarTestigo` escriben con OR y
+  `respaldo_guardarDegradado` limpia sólo bit2 y bit3, así que los preservan; `respaldo_borrar()` los pone a 0 y sólo
+  corre con contenido inválido (pila agotada, suma rota), donde 0 = OFF es lo correcto; `REINICIAR_RELOJ` del Maestro
+  reinicia el dominio y también apaga. Funciones nuevas, **`respaldo.cpp` idéntico en las dos puntas**:
+  `respaldo_guardarDegAuto(bool)` · `respaldo_degAuto()` · `respaldo_guardarOtroApto(bool)` · `respaldo_otroApto()`.
+- **`SET_DEG_AUTO:1` / `SET_DEG_AUTO:0`, con PIN, en las dos puntas.** Se rechaza sin enlace (Maestro:
+  `tieneComunicacion`; Esclavo: una orden de gobierno en los últimos `SFTY6_SILENCIO_MS`) y en `MODO_DEGRADADO`: la
+  otra punta tiene que enterarse, o creería apta a ésta. Aceptada, cambia `FLAG_DEG_AUTO` y **el `$ACK` sale diferido,
+  cuando llega el `ECO` que la refleja** (el molde diferido es `REINICIAR_RELOJ`, SPEC 4 §3.1). Literales en SPEC 4.
+
+**(b) La cuenta y la entrada.** Las dos puntas cuentan desde el último intercambio sano, no desde su ámbar:
+- **Maestro:** `millis() − tUltimaRespuestaEsclavo ≥ DEG_AUTO_ESPERA_MS` (el ancla de §4; sin respuesta desde el
+  arranque, desde el arranque). **No se mira `C_FALLO`**: también llega por reintentos agotados con enlace (§3).
+- **Esclavo:** desde el último `CMD_PING` o `CMD_GO_GREEN` recibido (sin ninguno, desde el arranque). **`CMD_GO_RED` no
+  cuenta:** el Maestro en `C_FALLO` sólo emite eso (§2.2); si reiniciara la cuenta, con la subida E→M muerta el
+  Esclavo empezaría a contar cuando el Maestro ya calló, 300 s tarde. **No depende de `S_FALLO`**: en ese mismo corte
+  el Esclavo está en rojo, no en ámbar, y cuenta igual.
+- **Con la cuenta cumplida, opción EFECTIVA y `APTO` propio cierto en ese instante**, entra por la puerta del testigo
+  (`modo_degradado_entrarTestigo()` / `degradado_entrarTestigo()`, §7.bis) sin teléfono: `ahora =
+  reloj_segundosDelDia()`, `inicio` = la primera marca múltiplo de `DEG_AUTO_MARCA_S` con `(inicio − ahora) mod 86400 ≥
+  DEG_AUTO_ROJO_MIN_S`, verde 180, despeje 30. Un rechazo de la puerta (`MDT_*`/`DEG_RECHAZO_T_*`) no entra y lo publica
+  (`$ALARM DEGRADADO,AUTO_RECHAZADA_<nombre del enum>`); sigue en ámbar como hoy. Aceptada: `$EVENT ORIGEN:DEGRADADO
+  DETALLE:AUTO_ENTRADA_INICIO_HH:MM:SS`. **Reinicio en pleno Degradado:** reanuda como el testigo (`FLAG_TESTIGO`
+  y flash).
+- **Por qué 420 s, con cifras del fuente.** Es seguro si cada punta está ya en Degradado (rojo) antes del primer verde
+  de la otra. (1) Desfase entre las dos cuentas ≤ **28 s**: el Maestro sólo emite `PING`/`GO_GREEN` con su última
+  respuesta a menos de `SFTY6_SILENCIO_MS` (25 s), más un `LATIDO_MS` (3 s); en el otro sentido la última respuesta
+  contesta a una orden que el Esclavo oyó. (2) Una punta que se reinicia durante su cuenta vuelve a contar desde el
+  arranque: **+300 s**; la hora fiable llega en paralelo (`HORA_ESP32_CADENCIA_MS` = 120 s del Esclavo). (3) Un
+  despeje, **30 s**, para que el rojo del otro dure un todo-rojo entero. (4) El desfase de relojes que el cruce
+  aguanta, **29 s** (`compilar_degradado.ps1`, fila D1). Suma **387 s**; 420 deja 33 s para el arranque del micro.
+- **Los dos `inicio` pueden caer en marcas distintas** (cuentas desfasadas o una entrada a cada lado de una marca, o
+  de la medianoche) **y es seguro**: la fase la da `ciclo_degradado_fase()` sobre la hora de pared, y la punta que
+  arranca una marca más tarde pasa esos 300 s en rojo. Lo único que se exige es la condición de arriba.
+
+**(c) La radio en Degradado: saber que volvió, sin salir.** Trama nueva `CMD_PRESENTE`, param 0, que emite cada punta
+en Degradado cada `PRESENTE_S` en su segundo desfasado (medio dúplex). Al oírla en Degradado: `$EVENT ORIGEN:DEGRADADO
+DETALLE:ENLACE_DISPONIBLE`, una vez por recuperación (se rearma tras 3 × `PRESENTE_S` sin oírla). **No sale del modo:**
+la salida sigue siendo el operario (Maestro: `SET_MODO:MENU`; Esclavo: las tramas de gobierno del Maestro ya fuera de
+Degradado, §7). **`CMD_PRESENTE` no llama a `reloj_notarRadio()`** (dejaría la hora del Esclavo esperando a la radio
+en vez de a su ESP32), **ni refresca `tUltimoComando` ni `tUltimaRespuestaEsclavo`, ni pone `handshakeOk`, ni cuenta
+para (b), ni saca del Degradado**: en el Esclavo se filtra ANTES de `reloj_notarRadio()`; en el Maestro, al principio
+de la rama `if (llego)` de `coordinador_actualizar()`, que hoy da `handshakeOk = true` a cualquier comando que no
+conoce. El Maestro en Degradado hoy no lee la radio (`main.cpp` no llama al coordinador): gana un lector propio, como
+`coordinador_escucharEnAmbar()`, que consume y descarta todo salvo `CMD_PRESENTE`. **Oída por una punta NO degradada:**
+`$ALARM DEGRADADO,OTRO_POSTE_EN_DEGRADADO,...,ACCION:REVISE_EL_OTRO_POSTE`, sin tocar la luz.
+
+**(d) Vencimiento a los 31 días — 🟡 FUERA DE LA PRIMERA VERSIÓN (29/09, orquestador: 24 h de rojo fijo no se meten sin
+que las vea el responsable; va a `roadmap.md`). En esta versión rige el vencimiento de `D-35` tal cual. Propuesta, en
+dos pasos:** Vale para todo Degradado con testigo
+(manual o automático). No se ejecuta en la marca propia —las dos marcas difieren y una punta se iría a ámbar con la
+otra en verde—, sino **a las 00:00:00 de pared**, donde la guarda de medianoche de `ciclo_degradado_fase()` pone
+despeje en las dos. **Primer paso:** la primera 00:00:00 con edad ≥ 31 días, ROJO FIJO (`$ALARM DEGRADADO,LIMITE_31D,
+CAMBIO_A_ROJO`). **Segundo paso:** la 00:00:00 siguiente, ámbar. Un solo paso no basta: si las dos marcas quedan a
+cada lado de una medianoche, las puntas vencen en noches distintas. Con las marcas a menos de 24 h (en la automática
+siempre: es el mismo corte), cuando una pasa a ámbar la otra ya está en rojo. **Cuesta 24 h de rojo fijo.** El aviso
+de los 28 días no cambia.
+
+**(e) Lo que publica.** El `$STATUS` del Maestro en `MODO_DEGRADADO` lleva **`ESC:?`**: `coordinador_estadoEsclavo()`
+pregunta el modo antes que `quienVerde`, que hoy sigue publicando lo último conocido. `CONSULTA_DEG_AUTO`, sin PIN,
+contesta el estado de la tarjeta de la app (SPEC 4 §3.ter.bis).
+
+**(f) RIESGOS RESIDUALES — no se cierran por radio y los decide el responsable.** En todos, una punta da verde por
+reloj contra el ámbar de la otra hasta que alguien llega o vuelve la radio (entonces el Maestro fuera de Degradado
+saca al Esclavo con su latido, §7).
+1. **Durante el corte, el técnico pone el Maestro en `MANUAL`, `AMBAR` o `MENU`**, o el Esclavo en ámbar de emergencia:
+   el otro conserva el último `APTO` oído (1) y entra.
+2. **Se va la luz del Maestro durante la cuenta:** arranca en `MENU` y no entra; el Esclavo sí.
+3. **La flash del testigo falla** (`MDT_NO_GUARDADO`): esa punta no entra (el Maestro va a `MENU`); la otra, sí.
+4. **El Esclavo se reinicia en la cuenta con la pila inválida** (sin la opción) o sin hora fiable en 420 s.
+5. **`SET_MODO:MENU` en el Maestro sin radio** deja al Esclavo en Degradado: como hoy con `D-18` y `D-35`.
+
+**(g) Ficheros e interfaces.** La lógica nueva va en un **módulo pareado** `{Maestro,Esclavo}/{src,include}/
+deg_auto.cpp,.h` (los ficheros que tocaría pasan de 500 líneas): `degAuto_setup()` · `degAuto_loop()` (cuenta,
+entrada, emisión de `PRESENTE`, `$ACK` diferido) · `degAuto_paramSaliente(cmd)` (bits `APTO|ECO`) ·
+`degAuto_alRecibir(const RF_Packet*)` (copia, cuenta del Esclavo; devuelve true si consumió un `PRESENTE`) ·
+`degAuto_orden(const char*)` y `degAuto_consulta()` (Bluetooth). Ganchos de una línea: `coordinador.cpp` (param de
+`PING`/`GO_*`, máscara del `PONG`, filtro de `PRESENTE`, `ESC:?`, acceso a `tUltimaRespuestaEsclavo`), `Esclavo/src/
+main.cpp` (param del `PONG`, filtro antes de `reloj_notarRadio()`), `Maestro/src/main.cpp` (lector en Degradado),
+`{Maestro,Esclavo}/src/bluetooth.cpp`, `respaldo.cpp/.h`, `modo_degradado.cpp` de las dos (vencimiento de (d)) y
+`protocolo.h` de las dos (`CMD_PRESENTE`, dos bits: la cabecera sigue idéntica). **Queda fuera:** la salida
+automática al volver la radio (el funcional pide que no), los interruptores de cámara y barrera (SPEC 8 §6) y el ESP32.
+
+**(h) Verificación de extremo a extremo (banco, dos tarjetas, luces reales cronometradas en las dos).** En todas:
+**nunca verde contra ámbar ni verde contra verde**.
+1. Opción ON en los dos, ciclo en `AUTOMATICO`, radio cortada: ámbar a ~25 s, a los 5 min rojo fijo en los dos,
+   alternan desde la marca; con la opción ON en uno solo, ámbar indefinido como hoy.
+2. Corte sólo M→E y corte sólo E→M (una antena o un TX desconectado): entran las dos y cada una antes del primer verde
+   de la otra; en E→M el Esclavo pasa la cuenta en rojo.
+3. Reinicio del Esclavo en pleno corte (antes de entrar y ya dentro). Maestro en `MANUAL` durante el corte: es el
+   riesgo (f).1, la única fila donde se ESPERA verde contra ámbar; se mide y se anota cuánto dura.
+4. `SET_DEG_AUTO:0` sin radio: rechazado. Con radio: `$ACK` sólo tras el `ECO`. Datos asimétricos por bit: cada
+   condición de `APTO` falsa por turnos en cada punta, y ninguna entra.
+5. Radio de vuelta con los dos en Degradado: `ENLACE_DISPONIBLE` en la app de cada poste, siguen en Degradado; `MENU`
+   en el Maestro saca a los dos. `PRESENTE` con un poste no degradado: alarma, la luz no cambia.
+6. Entrada a las 23:55 (el `inicio` cruza la medianoche) y vencimiento con el reloj adelantado a 31 días: dos pasos.
+
+**Arnés de PC** (antes del banco, visto en rojo con un defecto inyectado en el `.cpp` real): bloque `H` nuevo en
+`Validacion_Automatico/dos_puntas/orquestador_degradado.cpp` (fila 19), con un corte de radio por SENTIDO en el propio
+orquestador y mandos nuevos en los adaptadores (`punta_mando("deg_auto", 0|1)`, `punta_mando("deg_auto_apto", 0)`).
+Asevera en cada milisegundo de los escenarios 1–4 que no hay verde contra ámbar ni verde contra verde (el detector
+`hayVerdeSimultaneo()` y su gemelo verde/ámbar); controles negativos: `DEG_AUTO_ROJO_MIN_S` a 0 y el `APTO` del
+Esclavo forzado a 1 deben dar FALLA. El simulador sigue congelado: no hay pack nuevo (`CLAUDE.md` §4).
 
 ## 8. CÓMO SE PONEN DE ACUERDO LAS DOS PUNTAS SIN RADIO
 
@@ -440,7 +581,8 @@ pendientes**: apuntan al fichero de protocolo y al coordinador fuera del ciclo �
    hay `static_assert`, las dos constantes viven en proyectos distintos, y el pack que sí las lee **reproduce la
    separación y la publica como residual: mide el hueco, no lo tapa. Es el hueco más grande del acuerdo de §8**, porque
    lo que falla no es la radio: es la puerta.
-8. 🔴 **EL DEGRADADO CON TESTIGO (§7.bis, `D-35`) NO EXISTE: CERO CÓDIGO.**
-   `grep -rn "DEG_T\|MDT_\|RechazoTestigo\|TOLERANCIA_TESTIGO_S" {Maestro,Esclavo}/{src,include}` da cero. La
-   puerta, la comparación de `ahora` contra `reloj_segundosDelDia()` y el registro de vigencia de 31 días son
-   propuestas de esta spec, sin construir y sin banco.
+8. 🟢 ~~**EL DEGRADADO CON TESTIGO (§7.bis, `D-35`) NO EXISTE: CERO CÓDIGO.**~~ → construido (`990c278`) y probado en
+   banco (`4a2c73c`). 🔴 **Queda su vencimiento:** cada punta sale a ámbar a los 31 días de SU marca, y las dos marcas
+   difieren en el traslado: verde contra ámbar ese rato. La regla nueva es §7.ter (d).
+9. 🔴 **EL DEGRADADO AUTOMÁTICO (§7.ter, `A-15`) ES CERO CÓDIGO.** `grep -rn "DEG_AUTO\|CMD_PRESENTE"
+   {Maestro,Esclavo}/{src,include}` da cero. Sus riesgos residuales, §7.ter (f), son decisión del responsable.

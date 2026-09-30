@@ -570,23 +570,26 @@ saltó; queda anotado aquí en vez de arreglarse en silencio.**
 
 ---
 
-## A-15 · Degradado AUTOMATICO ante perdida de radio, a eleccion del operador (29/09)
+## A-15 · Degradado AUTOMATICO ante perdida de radio — DECIDIDA 29/09, en construccion
 
-**Acordado en principio** por el responsable y el funcional (WhatsApp, 29/09); **sin construir**. Hoy, sin
-radio, los dos postes reintentan ~25 s, quedan en ambar intermitente y retoman solos al volver el enlace
-(confirmado por el funcional en banco sobre `8974932`). Se anaden dos cosas:
+**Decidida por el responsable el 29/09; sin construir.** La spec es `SPEC_2` §7.ter (app, `SPEC_4` §3.ter.bis).
+Entrada automatica en Degradado, activada de antemano por el tecnico con PIN en cada poste; con la opcion apagada en
+cualquiera de los dos, nada cambia respecto a hoy (ambar a los 25 s y vuelta sola al ciclo). **Deroga en esa frase:**
+`SPEC_0` §5.7 «no entra en Degradado solo», `D-18` «la llave la tiene la app» y `D-21` «ni si vuelve a el».
 
-1. **Dos opciones ante la perdida de radio:** MANUAL (la de hoy: ambar y alguien va al sitio) y AUTOMATICA,
-   que activa el operador aceptando el riesgo: tras N min sin radio los dos pasan solos a rojo fijo y
-   arrancan en la siguiente marca fija del reloj, alternando por hora con `ciclo_degradado_fase()` (el
-   mismo mecanismo que `D-35`, sin telefono).
-2. **En Degradado, la app avisa de que el enlace volvio sin cambiar de modo**; hoy el Maestro calla en la
-   radio a proposito y nadie se entera.
+**Parametros:** N = 5 min sin intercambio sano, contados en las dos puntas (Maestro: ultima respuesta del Esclavo;
+Esclavo: ultimo `PING`/`GO_GREEN`) · entrada por la puerta del testigo (`D-35`), verde 180, despeje 30 · `inicio` en
+la primera marca de 5 min del dia de pared con al menos **420 s** de rojo fijo · acuerdo por radio: bit `APTO` en el
+param de `PING`/`GO_*` (Maestro) y `PONG` (Esclavo), mas su `ECO`; cada punta persiste la opcion (`REG_FLAGS` bit4) y
+el ultimo `APTO` oido del otro (bit5) · `SET_DEG_AUTO:1|0` con PIN, solo con enlace, `$ACK` al llegar el `ECO` ·
+`CMD_PRESENTE` (0x17) cada 10 s en Degradado: la app avisa de que el enlace volvio, **sin salir del modo** ·
+vencimiento a 31 dias en dos pasos a las 00:00:00 de pared (rojo fijo; ambar la noche siguiente).
 
-**Falta decidir:** N · el intervalo de la marca (propuesta 5 min) · quien activa la opcion y donde · como se
-oye la radio sin obedecerla (trama nueva). **Riesgo que crea:** corte en un solo sentido, un poste por
-reloj y el otro en su ciclo o en ambar; revision del arquitecto antes de construir (`CLAUDE.md` §11.7).
-**Bloqueado por:** el banco de `D-35` manual. **Coste:** sin medir; protocolo de radio, las dos puntas y app.
+**Riesgos que acepta el responsable al construirla** (`SPEC_2` §7.ter (f)): el tecnico cambia el Maestro a
+`MANUAL`/`AMBAR`/`MENU` durante el corte · corte de luz del Maestro durante la cuenta · flash del testigo fallida ·
+Esclavo reiniciado con la pila invalida · salida del Maestro al menu sin radio. En todos, verde por reloj contra
+ambar hasta que alguien llega o vuelve la radio. **Pendiente de su visto bueno:** las 24 h de rojo fijo del
+vencimiento. **Revision del arquitecto antes de construir** (`CLAUDE.md` §11.7).
 
 ## Cómo se cambia una fila
 
