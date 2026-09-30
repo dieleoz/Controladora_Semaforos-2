@@ -403,7 +403,9 @@ sin tocar luz ni modo. Riesgo aceptado: la deriva de los dos relojes (~10 s/mes,
 pregunta el modo antes que `quienVerde`, que hoy sigue publicando lo último conocido. `CONSULTA_DEG_AUTO`, sin PIN,
 contesta el estado de la tarjeta de la app (SPEC 4 §3.ter.bis).
 
-**(f) RIESGOS RESIDUALES — no se cierran por radio y los decide el responsable.** En todos, una punta da verde por
+**(f) RIESGOS RESIDUALES — no se cierran por radio y los decide el responsable.** **Regla del responsable (29/09):
+cambiar el modo de un poste en Degradado sin radio se hace con PALETEROS en los dos extremos, y la app lo avisa con una
+confirmacion antes de enviar la orden (SPEC_4 §3.ter.bis).** En todos, una punta da verde por
 reloj contra el ámbar de la otra hasta que alguien llega o vuelve la radio (entonces el Maestro fuera de Degradado
 saca al Esclavo con su latido, §7).
 1. **Durante el corte, el técnico pone el Maestro en `MANUAL`, `AMBAR` o `MENU`**, o el Esclavo en ámbar de emergencia:
