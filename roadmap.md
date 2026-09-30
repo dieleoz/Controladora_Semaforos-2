@@ -94,6 +94,23 @@ python 01_Firmware/Simulaciones/banco/correr.py   # solo los packs. Sirve para i
 | 7 | **`N-166` Colision de nombre:** `A-15` ya existia (fila «UNA HORA» del 08/09) antes del Degradado automatico | orquestador | renombrar una | -- |
 | 8 | **30/09, paquete validado de `a0d605b`:** quitar el vencimiento de 31 dias (decidido, no construido), dobles del simulador del puente (no enlaza), pruebas del automatico vistas en rojo y arnes de dos puntas, arquitecto, QA, compuerta limpia y logs de Marco; `SET_DEG_AUTO` no se acusa con el Maestro en MENU | orquestador | .zip validado | logs de Marco |
 
+### `N-167` El paquete validado de `a0d605b` (30/09): el runbook entero, en orden y sin saltos
+
+El 29/09 salio `a0d605b` `SIN_BANCO` sin pruebas propias ni compuerta, por decision del responsable, para que el
+funcional lo pruebe en banco. Este es el camino para que salga validado. **Un rojo en cualquier paso para el paquete.**
+
+| paso | que | quien | sale cuando |
+|---|---|---|---|
+| 0 | Leer ENTEROS los exportes de Marco de cada caso de la guia, contando tramas por poste y hora (`CLAUDE.md` §7) | orquestador | acta `evidencia/2026-09-30_campo_deg_auto/` |
+| 1 | SPEC al dia con lo construido: los desvios del agente (`#define protocolo_enviarPaquete`, un intento por corte, `ACCION` de `$ALARM`, sin acuse con el Maestro en MENU) se deciden y se escriben; lo que diga el log de Marco manda | orquestador + responsable | `SPEC_2` §7.ter y `SPEC_4` sin frases falsas |
+| 2 | Pruebas PRIMERO, vistas en rojo: arnes de dos puntas del automatico (fichero nuevo del arnes de Degradado) con los escenarios de §7.ter (h) y la asercion "nunca verde contra ambar ni verde contra verde" con inyeccion de defecto; pruebas jsdom de la tarjeta y del aviso de paleteros; `app_01` lee `js/deg_auto.js`; dobles del simulador del puente | subagente | linea roja copiada de cada una |
+| 3 | Arquitecto (`orquestador:arquitecto-iot`) sobre SPEC y pruebas | subagente | APTO |
+| 4 | Codigo: quitar el vencimiento de 31 dias en las dos puntas (decidido 29/09, no construido), lo que caiga en el paso 2, y lo que pida el arquitecto | subagente en worktree | pruebas en verde |
+| 5 | Compuerta completa dos veces con el arbol quieto; flash por objeto en `firmware.map`; cifras al acta | orquestador | dos pasadas iguales, solo `D-22` en rojo |
+| 6 | QA (`orquestador:qa-istqb`) sobre el binario y la APK que se entregan | subagente | APTO |
+| 7 | Guia de campo `.html` al dia; los manuales NO (`CLAUDE.md` §15) | subagente | revisada contra lo entregado |
+| 8 | Paquete con la skill `entregar`, sha256, `ESTADO.md` y commit + push | orquestador | `.zip` en `entregas/` |
+
 Fases de organizacion del repo: 0 paquetes a `entregas/` · 1 inventarios · 2 `CLAUDE.md` a 200 y `HISTORIA.md` ·
 3 `orquestador@diego`, pre-commit y skills a `.claude/particularidades/` · 4 poda B y trinquete en el pre-commit ·
 5 `lib/`, despues de banco. De 0 a 4, hechas.
