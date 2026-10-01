@@ -80,13 +80,18 @@ DegAutoVeredicto degAuto_veredicto() {
 static bool presenteOido = false;
 static unsigned long tPresente = 0;
 
+static unsigned long tAvisoEnlace = 0;
+
 static void oirPresente() {
-  // Una vez por recuperacion: se rearma tras 3 x PRESENTE_S sin oirla.
+  // Una vez por recuperacion: se rearma tras 3 x PRESENTE_S sin oirla. En Degradado se repite
+  // cada ENLACE_AVISO_REPETIR_MS mientras se siga oyendo (gemela del Maestro). No sale del modo.
   const bool nueva = !presenteOido || millis() - tPresente > 3UL * PRESENTE_S * 1000UL;
   presenteOido = true;
   tPresente = millis();
-  if (!nueva) return;
-  if (degradado_gobiernaLuz()) {
+  const bool enDeg = degradado_gobiernaLuz();
+  if (!nueva && !(enDeg && millis() - tAvisoEnlace >= ENLACE_AVISO_REPETIR_MS)) return;
+  tAvisoEnlace = millis();
+  if (enDeg) {
     bluetooth_reportarEvento("DEGRADADO", "ENLACE_DISPONIBLE");
   } else {
     bluetooth_reportarAlarma("DEGRADADO", "OTRO_EN_DEGRADADO", "REVISE_OTRO");

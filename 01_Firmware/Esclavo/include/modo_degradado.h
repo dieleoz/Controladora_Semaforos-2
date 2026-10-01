@@ -32,7 +32,8 @@ enum EstadoDegradado {
   DEG_ENTRANDO,   // todo-rojo obligatorio ANTES del primer verde por reloj
   DEG_ACTIVO,     // la luz la decide el reloj
   DEG_SALIENDO,   // todo-rojo obligatorio al devolver el mando
-  DEG_RENDIDO     // ambar intermitente: 48 h sin sincronizar, o la hora caducada (D-21 (1))
+  DEG_RENDIDO,    // ambar intermitente: 48 h sin sincronizar
+  DEG_ROJO_SIN_HORA  // D-38: la hora dejo de ser fiable; rojo fijo y gobierna la luz
 };
 
 // Por que cada rechazo es un valor distinto y no un simple "no": el operario esta

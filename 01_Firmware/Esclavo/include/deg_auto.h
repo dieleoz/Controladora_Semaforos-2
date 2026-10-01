@@ -17,6 +17,7 @@ static const uint32_t DEG_AUTO_MARCA_S = 300;               // inicio: multiplo 
 static const uint32_t DEG_AUTO_ROJO_MIN_S = 420;            // rojo fijo minimo antes de inicio
 static const int DEG_AUTO_DESPEJE_S = 30;                   // el suelo del testigo
 static const uint32_t PRESENTE_S = 10;                      // cadencia de CMD_PRESENTE
+static const unsigned long ENLACE_AVISO_REPETIR_MS = 60000UL; // ENLACE_DISPONIBLE mientras se oiga
 static const unsigned long DEG_AUTO_ACUSE_MS = 10000UL;     // tres latidos y margen
 
 enum DegAutoOrden { DAO_ACEPTADA, DAO_SIN_ENLACE, DAO_EN_DEGRADADO };

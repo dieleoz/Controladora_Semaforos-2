@@ -143,17 +143,9 @@ static EstadoDegradado estado = DEG_INACTIVO;
 static unsigned long tCambioEstado = 0;
 static bool rendicionEnCurso = false;
 
-// POR QUE ESTO ES UNA BANDERA APARTE Y NO SE DEDUCE DE syncVencidaLatch.
-//
-// rendicionEnCurso contesta "esta salida termina en ambar"; ESTA contesta "por que se
-// rindio", que es otra pregunta (CLAUDE.md 8: una variable que contesta a dos preguntas
-// no contesta bien a ninguna). Deducirlo del latch seria justo eso: el latch dice "hoy
-// hace mas de 48 h de la ultima sync", no "fue eso lo que tumbo el modo" -y despues de
-// una rendicion por hora caducada el latch puede levantarse solo con el equipo ya
-// rendido, con lo que el rotulo cambiaria de motivo sin que pasara nada.
-//
-// Se pone en los DOS caminos que rinden, pegada a su guarda, para que anadir un tercero
-// obligue a decidir que rotulo lleva.
+// "Por que cayo el modo la ultima vez": la hora (D-38, rojo fijo) o el limite de 48 h. Es otra
+// pregunta que rendicionEnCurso y que syncVencidaLatch (CLAUDE.md 8). Desde D-38 la hora ya
+// no rinde a ambar, asi que en DEG_RENDIDO vale siempre false.
 static bool rendidoPorHora = false;
 
 // Ultima orden de luz que ESTE modulo dio. Se actua solo en los flancos, nunca en
@@ -339,6 +331,24 @@ static void iniciarSalida(bool rendicion) {
   respaldo_guardarDegradado(false);
 }
 
+// D-38 (N-168): gemela de la del Maestro. GOBIERNA la luz (degradado_gobiernaLuz) para que la
+// orfandad de main.cpp no la lleve a ambar; se sale por degradado_salir() -tramas de gobierno
+// del Maestro o AMBAR_EMERGENCIA- con su todo-rojo. La pila, como la rendicion.
+static const unsigned long AVISO_ROJO_SIN_HORA_MS = 60000UL;   // repite la $ALARM
+static unsigned long tAvisoRojo = 0;
+static void irARojoSinHora() {
+  semaforo_forzarRojo();
+  verdeAplicado = false;
+  rendicionEnCurso = false;
+  rendidoPorHora = true;   // el motivo de la ultima caida, para quien lo pregunte
+  respaldo_guardarDegradado(false);
+  respaldo_guardarRendido(true);
+  bluetooth_reportarAlarma("DEGRADADO", "ROJO_SIN_HORA", "ROJO_FIJO");
+  tAvisoRojo = millis();
+  estado = DEG_ROJO_SIN_HORA;
+  tCambioEstado = millis();
+}
+
 // ---------------------------------------------------------------------------
 
 void degradado_registrarSync() {
@@ -347,11 +357,8 @@ void degradado_registrarSync() {
   syncVencidaLatch = false;
   syncDesdePila = false;   // 1.49(b1): desde aqui la RAM es una medida propia
 
-  // Una sincronizacion nueva rehabilita el modo tras una rendicion, y lo hace sin
-  // preguntar POR CUAL de las dos se rindio: si fue el limite duro, la deriva
-  // desconocida acaba de medirse; si fue la hora no fiable (D-21 (1)), esta terna la
-  // repone. Por eso el DEG_RENDIDO -> DEG_INACTIVO de abajo no mira rendidoPorHora.
-  // No se vuelve a entrar solo, eso sigue siendo decision del operario.
+  // Una sincronizacion nueva rehabilita el modo tras la rendicion de 48 h: la deriva
+  // desconocida acaba de medirse. No se vuelve a entrar solo: lo decide el operario.
   if (estado == DEG_RENDIDO) estado = DEG_INACTIVO;
 }
 
@@ -483,8 +490,8 @@ void degradado_salir() {
   // Desde RENDIDO no hay nada que apagar: ya esta en ambar. Solo se limpia el
   // cartel para que la pantalla deje de anunciar un modo que termino.
   if (estado == DEG_RENDIDO) { estado = DEG_INACTIVO; return; }
-  if (estado != DEG_ENTRANDO && estado != DEG_ACTIVO) return;
-  iniciarSalida(false);
+  if (estado != DEG_ENTRANDO && estado != DEG_ACTIVO && estado != DEG_ROJO_SIN_HORA) return;
+  iniciarSalida(false);   // D-38: desde el rojo fijo tambien, con el todo-rojo entero
 }
 
 // ---------------------------------------------------------------------------
@@ -751,22 +758,18 @@ void degradado_actualizar() {
     syncVencidaLatch = true;
   }
 
-  // D-21: Si la hora deja de ser fiable en marcha (pila agotada o reloj invalido),
-  // se responde con ambar intermitente (rendicion) en vez de seguir dando verdes con hora falsa.
-  //
+  // D-21: Si la hora deja de ser fiable en marcha (pila agotada o reloj invalido), no se
+  // siguen dando verdes con hora falsa. D-38 (30/09): ROJO FIJO, no ambar (irARojoSinHora).
   // D-21 (1), 11/09: HASTA HOY INALCANZABLE -en esta punta horaValida solo baja en
   // reloj_setup()-. Ahora pregunta si la hora puede decidir una luz (reloj_horaFiable(),
   // reloj.h). La alarma, con el molde de las de HORA_ESP32, solo para la caducidad -detras
   // de reloj_enHora(), igual que en el Maestro, donde la hora si se puede borrar en marcha-.
-  // El camino es el que ya habia: rendicion, todo-rojo el despeje entero y despues
-  // DEG_RENDIDO con el ambar de semaforo.cpp. Una siembra fresca NO devuelve el modo: de
-  // DEG_RENDIDO se sale por una orden (D-21).
+  // Una siembra fresca NO devuelve el modo: de DEG_ROJO_SIN_HORA se sale por una orden (D-21).
   if (!reloj_horaFiable() && (estado == DEG_ENTRANDO || estado == DEG_ACTIVO)) {
     if (reloj_enHora()) {
-      bluetooth_reportarAlarma("HORA_ESP32", "CADUCADA", "CAMBIO_A_AMBAR");
+      bluetooth_reportarAlarma("HORA_ESP32", "CADUCADA", "CAMBIO_A_ROJO");
     }
-    rendidoPorHora = true;   // el rotulo de la pantalla dice el motivo, no "48h"
-    iniciarSalida(true);
+    irARojoSinHora();
     return;
   }
 
@@ -816,17 +819,19 @@ void degradado_actualizar() {
       aplicarLuz(calcularFase() == FD_VERDE_ESCLAVO);
       break;
 
+    case DEG_ROJO_SIN_HORA:   // D-38: rojo sostenido y el aviso cada minuto
+      if (semaforo_estado() != S_ROJO) semaforo_forzarRojo();
+      if (ahora - tAvisoRojo >= AVISO_ROJO_SIN_HORA_MS) {
+        tAvisoRojo = ahora;
+        bluetooth_reportarAlarma("DEGRADADO", "ROJO_SIN_HORA", "ROJO_FIJO");
+      }
+      break;
+
     case DEG_SALIENDO:
       if ((ahora - tCambioEstado) >= rojoObligatorioMs()) {
         if (rendicionEnCurso) {
-          // Rendicion -por CUALQUIERA de sus dos causas, que aqui ya no se
-          // distinguen-: ambar intermitente, el mismo estado al que lleva la perdida
-          // de radio. Este tramo es comun a las dos guardas de arriba, la del limite
-          // duro y la de la hora no fiable; cual fue lo dice rendidoPorHora, y solo
-          // lo necesita el rotulo. Se enciende aqui explicitamente en vez de esperar
-          // a que main.cpp lo deduzca de su temporizador de 12 s, porque el motivo de
-          // esta caida es otro y no debe depender de que ese temporizador este en el
-          // valor adecuado.
+          // Rendicion por el limite de 48 h (la hora va a rojo fijo desde D-38): ambar
+          // intermitente, encendido aqui y no por el temporizador de 12 s de main.cpp.
           estado = DEG_RENDIDO;
           respaldo_guardarRendido(true);   // arquitecto 29/09: sin reentrada automatica hasta un PING
           semaforo_iniciarFallo();
@@ -845,17 +850,16 @@ void degradado_actualizar() {
 }
 
 bool degradado_gobiernaLuz() {
-  return estado == DEG_ENTRANDO || estado == DEG_ACTIVO || estado == DEG_SALIENDO;
+  return estado == DEG_ENTRANDO || estado == DEG_ACTIVO || estado == DEG_SALIENDO ||
+         estado == DEG_ROJO_SIN_HORA;
 }
 
 EstadoDegradado degradado_estado() { return estado; }
 
 // R-2. El porque completo esta en modo_degradado.h: DEG_SALIENDO no distingue la salida
 // normal -termina en rojo- de la rendicion -termina en ambar-, y el despachador de
-// Bluetooth necesita esa diferencia para contestar la verdad. Contesta "esta salida
-// acaba en ambar" y NO por que: vale igual para las dos causas -limite duro y hora no
-// fiable-, porque las dos pasan por el mismo iniciarSalida(true). Quien necesite el
-// motivo pregunta a degradado_rendidoPorHora(), que es otra bandera a proposito.
+// Bluetooth necesita esa diferencia para contestar la verdad: "esta salida acaba en
+// ambar". Desde D-38 solo la pide el limite de 48 h; la hora va a DEG_ROJO_SIN_HORA.
 bool degradado_rendicionEnCurso() { return rendicionEnCurso; }
 
 // D-21 (1). El porque de que sea una bandera propia esta arriba, donde se declara.
@@ -870,15 +874,9 @@ uint32_t degradado_segundosParaCambio() {
                                   cicloDespeje());
 }
 
-// EL ROTULO DICE EL MOTIVO DE LA RENDICION, Y HAY DOS.
-//
-// "RENDIDO 48h" a secas MENTIA desde D-21 (1): la punta tambien se rinde cuando la hora
-// deja de ser fiable, y entonces el plazo de 48 h no se ha agotado ni tiene nada que
-// ver. Quien lea "48h" sale a revisar el radio; la hora caducada se arregla mirando el
-// J17 y la siembra del ESP32, que es otra averia y otro viaje.
-//
-// Los dos caben en la linea: 19 y 18 caracteres contra los 20 que la 6x10 admite desde
-// x=2 dejando una celda libre -el criterio de arnes_esclavo.cpp, que mide esta linea-.
+// EL ROTULO DICE EL MOTIVO. Desde D-38 "RENDIDO HORA" no se alcanza (la hora va a rojo
+// fijo); se deja hasta que arnes_esclavo.cpp, que mide esta linea, se revise. Todos caben en
+// los 20 caracteres que la 6x10 admite desde x=2 dejando una celda libre.
 const char* degradado_textoEstado() {
   switch (estado) {
     case DEG_INACTIVO: return "INACTIVO";
@@ -887,6 +885,7 @@ const char* degradado_textoEstado() {
     case DEG_SALIENDO: return "SALIENDO: TODO ROJO";
     case DEG_RENDIDO:  return rendidoPorHora ? "RENDIDO HORA: AMBAR"
                                              : "RENDIDO 48h: AMBAR";
+    case DEG_ROJO_SIN_HORA: return "ROJO FIJO: SIN HORA";
   }
   return "";
 }

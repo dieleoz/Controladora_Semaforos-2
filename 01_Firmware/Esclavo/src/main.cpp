@@ -245,14 +245,13 @@ void setup() {
   // apagadas y sin nada que la rescatase. Armado antes, ese fallo se convierte en
   // un reinicio visible y diagnosticable en vez de un cuelgue mudo.
   //
-  // Un semaforo no puede depender de un cristal de reloj para encender.
-  //
-  // Aqui el argumento pesa aun mas que en el Maestro: el Esclavo no tiene pantalla
-  // en la que se vea que algo va mal. Colgado, seria un poste apagado en mitad de
-  // la obra sin nadie delante que lo note.
+  // Un semaforo no puede depender de un cristal de reloj para encender. Aqui pesa aun mas
+  // que en el Maestro: el Esclavo no tiene pantalla en la que se vea que algo va mal.
+  // Colgado, seria un poste apagado en mitad de la obra sin nadie delante que lo note.
   //
   // PENDIENTE DE BANCO (N-17): probar el arranque con Y2 desconectado y comprobar
   // que el equipo bootea igual, con reloj_enHora() en false.
+  respaldo_capturarAntesDelReloj();   // la libreria del RTC reescribe DR6/DR7 (respaldo.cpp)
   reloj_setup();
 
   // N-20: memoria que sobrevive al corte. VA DESPUES DE reloj_setup() a proposito:

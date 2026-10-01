@@ -285,9 +285,12 @@ enum EstadoDeg {
   DEG_RECHAZO,       // no se cumplian las condiciones: se dice cual falta y se vuelve
   DEG_ENTRADA_ROJO,  // todo-rojo obligatorio antes del primer verde
   DEG_ACTIVO,        // ciclando por reloj
-  DEG_AMBAR,         // limite duro agotado o reloj perdido
-  DEG_SALIDA_ROJO    // todo-rojo obligatorio antes de devolver el mando al menu
+  DEG_AMBAR,         // limite duro agotado o reloj sin contar
+  DEG_SALIDA_ROJO,   // todo-rojo obligatorio antes de devolver el mando al menu
+  DEG_ROJO_SIN_HORA  // D-38: la hora dejo de ser fiable; rojo fijo hasta el operario
 };
+static const unsigned long AVISO_ROJO_SIN_HORA_MS = 60000UL;   // D-38: repite la $ALARM
+static unsigned long tAvisoRojo = 0;
 
 static EstadoDeg estado = DEG_RECHAZO;
 static MotivoDegradado motivo = MDG_OK;
@@ -728,6 +731,19 @@ static void irAAmbar(const char* l1, const char* l2) {
   tEstado = millis();
 }
 
+// D-38 (N-168): sin radio la otra punta sigue alternando por reloj; ambar aqui seria verde
+// contra ambar. Rojo fijo, y la pila igual que irAAmbar(): ni se reanuda tras un corte ni
+// reentra sola. Se sale por pedirSalida() (boton 4 o SET_MODO:MENU), por su todo-rojo.
+static void irARojoSinHora() {
+  respaldo_guardarDegradado(false);
+  respaldo_guardarRendido(true);
+  semaforo_forzarRojo();
+  bluetooth_reportarAlarma("DEGRADADO", "ROJO_SIN_HORA", "ROJO_FIJO");
+  tAvisoRojo = millis();
+  estado = DEG_ROJO_SIN_HORA;
+  tEstado = millis();
+}
+
 void modo_degradado_setup() {
   // N-20: la reanudacion se consume aqui, de una sola vez.
   const bool reanudando = reanudacionPendiente;
@@ -968,6 +984,14 @@ void modo_degradado_loop() {
       }
       return;
 
+    case DEG_ROJO_SIN_HORA:   // D-38: rojo cada vuelta y el aviso cada minuto; sale el operario
+      semaforo_forzarRojo();
+      if (millis() - tAvisoRojo >= AVISO_ROJO_SIN_HORA_MS) {
+        tAvisoRojo = millis();
+        bluetooth_reportarAlarma("DEGRADADO", "ROJO_SIN_HORA", "ROJO_FIJO");
+      }
+      return;
+
     default:
       break;
   }
@@ -976,8 +1000,7 @@ void modo_degradado_loop() {
 
   // D-21: El reloj puede dejar de ser fiable en marcha (pila agotada). Sin hora no hay fase
   // que calcular, y seguir dando verdes con la ultima que se recuerde seria inventar.
-  // Pasa a ambar intermitente en la punta que pierde la fiabilidad.
-  //
+  // D-38 (30/09): la punta que pierde la fiabilidad pasa a ROJO FIJO, no a ambar.
   // D-21 (1), 11/09: HASTA HOY ESTA GUARDA SOLO VEIA UNA HORA BORRADA. Preguntaba
   // reloj_enHora(), y horaValida solo baja en reloj_setup() y en
   // reloj_reiniciarDominioRespaldo() -esta si puede correr en este modo: la pide
@@ -992,14 +1015,13 @@ void modo_degradado_loop() {
   // HORA_ESP32 porque es su consecuencia: la hora del ESP32 dejo de llegar y esta punta se
   // rinde.
   //
-  // EL CAMINO ES EL QUE YA HABIA: irAAmbar(), rojo y luego el ambar de semaforo.cpp. NO SE
-  // REANUDA SOLO al volver una siembra: DEG_AMBAR solo se abandona por la salida del
-  // operario (D-21: el equipo no decide solo si sale del modo, ni si vuelve a el).
+  // D-38: irARojoSinHora(). NO SE REANUDA SOLO al volver una siembra: DEG_ROJO_SIN_HORA solo
+  // se abandona por la salida del operario (D-21: el equipo no decide solo si sale del modo).
   if (!reloj_horaFiable()) {
     if (reloj_enHora()) {
-      bluetooth_reportarAlarma("HORA_ESP32", "CADUCADA", "CAMBIO_A_AMBAR");
+      bluetooth_reportarAlarma("HORA_ESP32", "CADUCADA", "CAMBIO_A_ROJO");
     }
-    irAAmbar("Reloj no fiable", "Degradado detenido");
+    irARojoSinHora();
     return;
   }
 
@@ -1104,33 +1126,9 @@ void modo_degradado_loop() {
 
   // --- Pantalla: RETIRADA POR D-32 (1) el 13/09 ------------------------------
   //
-  // Aqui terminaba el bucle componiendo la fase ("VERDE"/"ROJO"), el detalle
-  // ("Paso por el maestro", "Despeje total"...), la cuenta atras de
-  // ciclo_degradado_restante() y el aviso del limite de 48 h, y lo volcaba con
-  // lcd_dibujarDegradado(). Todo eso era PANTALLA: no decidia ninguna luz -la luz se
-  // decide en el bloque de arriba, en la unica linea del firmware que da verde sin
-  // confirmacion del otro extremo- y se va entero.
-  //
-  // 🔴 AQUI PONIA "NO SE PIERDE EL AVISO DE LAS 48 h", Y ERA FALSO. Se corrige en vez de
-  // matizarlo abajo (CLAUDE.md 7.4). Lo que aquella frase demostraba es que el LIMITE se
-  // sigue aplicando -cierto: lo aplican la puerta de entrada y el `>= LIMITE_DURO_MS` de
-  // unas lineas mas arriba-, y de ahi concluia que el AVISO tampoco se perdia. Son dos
-  // cosas distintas: el limite es lo que PASA, y el aviso es lo que se ve VENIR. El
-  // recuadro que se fue era el unico lector de AVISO_LIMITE_MS, asi que durante unas
-  // horas del 13/09 esta punta se iba a ambar al vencer sin haber avisado nunca -y
-  // irAAmbar() no emite $EVENT ni $ALARM, o sea que la caida era muda-.
-  //
-  // REPARADO EL MISMO DIA, y por el cable en vez de por la pantalla: los cuatro getters de
-  // arriba lo exponen y bluetooth.cpp lo publica en el $EVENT ORIGEN:DEGRADADO, por flanco
-  // y repetido mientras el aviso sigue armado. Mismo plazo de siempre -AVISO_LIMITE_MS-,
-  // que no se reinvento: la comparacion no salio de este fichero.
-  //
-  // LO QUE SI SE PIERDE, dicho con su nombre: ya nadie llama a
-  // ciclo_degradado_restante(), asi que la CUENTA ATRAS del Degradado no se publica en
-  // ningun sitio. ~~En el Esclavo si -degradado_segundosParaCambio()-~~ -> FALSO,
-  // medido el 14/09: en el Esclavo esa funcion tiene definicion, cabecera y un
-  // comentario que dice "hoy solo lo usa la pantalla del menu"... y el menu se fue con
-  // el LCD. CERO llamadores en las DOS puntas. Se corrige aqui porque un comentario que
-  // dice que algo se publica cuando no se publica es peor que el hueco: quien lo lea no
-  // ira a construirlo.
+  // Aqui se pintaba la fase y la cuenta atras en el LCD; no decidia ninguna luz y se fue
+  // entero (cronica en HISTORIA/git). El aviso de las 48 h lo publica bluetooth.cpp en el
+  // $EVENT ORIGEN:DEGRADADO con AVISO_LIMITE_MS, que se compara en este fichero. LO QUE SI
+  // SE PIERDE: ciclo_degradado_restante() y degradado_segundosParaCambio() del Esclavo no
+  // tienen llamador, asi que la cuenta atras del Degradado no se publica en ninguna punta.
 }
