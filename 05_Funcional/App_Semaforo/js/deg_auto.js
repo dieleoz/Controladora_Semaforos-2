@@ -99,11 +99,7 @@ const DegAuto = {
     // El aviso de limite que ya publica el firmware (SYNC:.. AVISO:SI VENCIDA:..): con
     // testigo sale a los 28 dias. El testigo ya no vence (29/09): solo pide renovarlo.
     if (/(^| )AVISO:SI( |$)/.test(d)) return this.RENOVAR;
-    if (d === 'ENLACE_DISPONIBLE') {
-      return { tono: 'red', toast: 'La radio volvio: sigue en degradado',
-        texto: 'La radio volvio. Sigue en degradado: para volver al ciclo, Volver al menu ' +
-               'en el Poste 1.' };
-    }
+    // ENLACE_DISPONIBLE (repetido cada 60 s) no va aqui: es un cartel, js/carteles_equipo.js.
     return null;
   },
 

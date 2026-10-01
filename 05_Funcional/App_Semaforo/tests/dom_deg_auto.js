@@ -92,7 +92,7 @@ module.exports = async function pruebaDegAuto(montarAppLimpia, assert) {
   assert(/rojo hasta 14:40/.test(ultimo()) && /rojo hasta 14:40/.test(txt('toast-msg')),
     `DegAuto: $EVENT AUTO_ENTRADA_INICIO_14:40:00 dice "rojo hasta 14:40": "${ultimo().slice(0, 160)}"`);
   entra('EVENT,NODE:ESCLAVO,ORIGEN:DEGRADADO,DETALLE:ENLACE_DISPONIBLE,HORA:14:50:00');
-  assert(/La radio volvio\. Sigue en degradado/.test(ultimo()),
+  assert(/LA RADIO VOLVIO entre los dos postes\. Siguen en Degradado/.test(ultimo()),
     `DegAuto: $EVENT ENLACE_DISPONIBLE dice que sigue en degradado: "${ultimo().slice(0, 160)}"`);
   const alarmas = [
     ['MAESTRO', 'AUTO_NO_HORA', 'RF:97%,RTT:70ms,SINRESP:0', 'SIGUE_AMBAR',

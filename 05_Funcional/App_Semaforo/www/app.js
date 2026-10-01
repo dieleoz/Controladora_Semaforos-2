@@ -2868,6 +2868,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   const btnCorteOk = document.getElementById('btn-aviso-corte-ok');
   if (btnCorteOk) btnCorteOk.addEventListener('click', () => { AvisoCorte.cerrar(); renderAvisoCorte(); });
+  function renderCarteles() { CartelesEquipo.pintar(document.getElementById('carteles-equipo'), renderCarteles); }   // js/carteles_equipo.js
 
   // VOLVER AL MENU: la salida de cualquier modo, sin PIN (ver SIN_PIN arriba).
   //
@@ -3949,7 +3950,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     const parts = veredicto.partes;
     const header = veredicto.tipo;
-    if (Exportar.anotarVersion(state.firmware, header, _camposNmea(parts))) addEvent('green', Exportar.lineaVersion(_camposNmea(parts))); // antes de la cadena
+    const esSello = Exportar.anotarVersion(state.firmware, header, _camposNmea(parts)); if (esSello) addEvent('green', Exportar.lineaVersion(_camposNmea(parts))); // antes de la cadena
 
     if (header === '$STATUS') {
       const data = _camposNmea(parts);
@@ -3996,7 +3997,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (data.ESTADO !== undefined) {
         state.estadoLuces = data.ESTADO;
       }
-      renderAvisoCorte();
+      CartelesEquipo.alStatus(data.MODO); renderAvisoCorte(); renderCarteles();
       // N-149: EL ESTADO DEL OTRO POSTE, Y SE ASIGNA SIEMPRE -TAMBIEN CUANDO NO VIENE-.
       //
       // Los dos `if` de arriba solo escriben si el campo llego, y ahi es correcto: MODO
@@ -4290,7 +4291,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // N-170: el parte de arranque del puente (sin ORIGEN/DETALLE) va antes que nadie.
       const vistoCorte = (typeof AvisoCorte !== 'undefined') ? AvisoCorte.ver(data) : null;
       const vistoCam = (!vistoCorte && typeof AvisoCamaraPluma !== 'undefined')
-        ? AvisoCamaraPluma.ver(data) : null;
+        ? AvisoCamaraPluma.ver(data) : null; let vistoCartel = null;
       const esDiagRadio = !vistoCorte && typeof DiagnosticoEnlace !== 'undefined' &&
                           DiagnosticoEnlace.esPeriodico(data);
       if (vistoCorte) {
@@ -4308,9 +4309,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (vistoCam.linea) {
           // El literal del equipo va DELANTE y la traduccion detras, que es el molde de
           // esta app: quien reporta necesita el DETALLE tal y como vino.
-          const textoCam = 'Equipo [' + (data.ORIGEN || 'FIRMWARE') + ']: ' +
-                           (data.DETALLE || '') + (data.HORA ? ' - ' + data.HORA : '') +
-                           ' -> ' + vistoCam.linea.texto;
+          const textoCam = AvisosEquipo.cabezaEvento(data) + ' -> ' + vistoCam.linea.texto;
           addEvent(vistoCam.linea.tono, textoCam);
           RegistroEnlace.anotar('EVENTO', enlaceDeAhora(), textoCam);
           renderRegistroEnlace();
@@ -4331,19 +4330,19 @@ document.addEventListener('DOMContentLoaded', () => {
           });
           renderRegistroEnlace();
         }
-      } else {
+      } else if ((vistoCartel = CartelesEquipo.ver(data))) {   // js/carteles_equipo.js
+        const textoCartel = vistoCartel.repetido ? null : AvisosEquipo.cabezaEvento(data) + ' -> ' + vistoCartel.texto;
+        if (textoCartel) { addEvent(vistoCartel.tono, textoCartel); showToast(vistoCartel.toast, 6000); RegistroEnlace.anotar('EVENTO', enlaceDeAhora(), textoCartel); }
+        renderCarteles(); renderRegistroEnlace();
+      } else if (!esSello) {   // el sello EVT:VERSION ya salio en su linea "Version cargada"
       // D-26: tres lineas del diario que el tecnico tiene que entender -la siembra que
       // vuelve, la que se ignora porque manda la radio, y el salto de hora que pasa por
       // rojo-. Mismo molde que el $ALARM de arriba: crudo primero, traduccion detras, y
       // lo que la tabla no nombra en crudo y en cyan como siempre.
       const aviso = DegAuto.evento(data) || AvisosEquipo.traducirEvento(data);
-      const textoEvento = 'Equipo [' + (data.ORIGEN || 'FIRMWARE') + ']: ' +
-                          (data.DETALLE || '') + (data.HORA ? ' - ' + data.HORA : '') +
-                          (aviso ? ' -> ' + aviso.texto : '');
-      addEvent(aviso && aviso.tono ? aviso.tono : 'cyan', textoEvento);
-      if (aviso && aviso.toast) showToast(aviso.toast);
-      RegistroEnlace.anotar('EVENTO', enlaceDeAhora(), textoEvento);
-      renderRegistroEnlace();
+      const textoEvento = AvisosEquipo.cabezaEvento(data) + (aviso ? ' -> ' + aviso.texto : '');
+      addEvent(aviso && aviso.tono ? aviso.tono : 'cyan', textoEvento); if (aviso && aviso.toast) showToast(aviso.toast);
+      RegistroEnlace.anotar('EVENTO', enlaceDeAhora(), textoEvento); renderRegistroEnlace();
       }
     } else if (header === '$ERR') {
       const data = _camposNmea(parts);
@@ -4679,7 +4678,7 @@ document.addEventListener('DOMContentLoaded', () => {
       AvisoCamaraPluma.olvidar();
       renderAvisoCamaraPluma();
     }
-    if (typeof AvisoCorte !== 'undefined') { AvisoCorte.olvidar(); renderAvisoCorte(); }
+    if (typeof AvisoCorte !== 'undefined') { AvisoCorte.olvidar(); renderAvisoCorte(); } CartelesEquipo.olvidar(); renderCarteles();
     if (btnDevice) btnDevice.className = 'btn-top btn-device';
     if (btStatusDot) btStatusDot.className = 'status-dot';
     // "Sin equipo" y "Sin enlace" NO son lo mismo, y la diferencia es la que decide si

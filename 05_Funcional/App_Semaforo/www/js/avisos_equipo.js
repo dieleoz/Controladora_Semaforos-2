@@ -228,6 +228,17 @@ const AvisosEquipo = {
     return typeof entrada === 'function' ? entrada(data) : entrada;
   },
 
+  // Cabeza de la linea de Eventos de un $EVENT: 'Equipo [ORIGEN]: DETALLE - HORA'. Sin
+  // DETALLE van los campos crudos de la trama: "Equipo [FIRMWARE]: " vacio no dice nada
+  // (salio asi en campo con EVT:VERSION y EVT:ARRANQUE del puente, que no traen DETALLE).
+  cabezaEvento(data) {
+    const d = data || {};
+    const crudo = Object.keys(d).filter(k => k !== 'ORIGEN' && k !== 'HORA' && k !== 'DETALLE')
+      .map(k => k + ':' + d[k]).join(' ');
+    return 'Equipo [' + (d.ORIGEN || 'FIRMWARE') + ']: ' +
+           (d.DETALLE || crudo || '(trama sin campos)') + (d.HORA ? ' - ' + d.HORA : '');
+  },
+
   traducirEvento(data) {
     if (!data) return null;
     const entrada = this.EVENTO[(data.ORIGEN || '') + '|' + (data.DETALLE || '')];

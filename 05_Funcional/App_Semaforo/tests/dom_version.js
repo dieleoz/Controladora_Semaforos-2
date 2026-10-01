@@ -16,4 +16,22 @@ module.exports = async function pruebaVersionVisible(montarAppLimpia, assert) {
   meter('EVENT,NODE:PUENTE,EVT:VERSION,FW:def5678');
   assert(/def5678/.test(eventos()),
     'Version: el hash del PUENTE (FW del $EVENT) sale escrito en Eventos');
+
+  // LA LINEA VACIA DE CAMPO: la trama EXACTA de la cinta (evidencia/011020260934/IOTVIAL_*.txt,
+  // *7F) pintaba ademas "Equipo [FIRMWARE]: " sin nada detras (Log_Semaforos_*.csv).
+  const SELLO = 'EVENT,NODE:PUENTE,EVT:VERSION,FW:6bd1e4f';
+  assert(xor(SELLO) === '7F', `Version: la trama de prueba es la de campo (*7F): *${xor(SELLO)}`);
+  const b = montarAppLimpia();
+  const meterB = (carga) => b.w._btSubscribeCb(`$${carga}*${xor(carga)}\n`);
+  const lineasB = () => Array.from(b.d.querySelectorAll('#event-feed .event-item'))
+                             .map(n => n.textContent.replace(/\s+/g, ' ').trim());
+  const vacia = /Equipo \[[^\]]*\]:\s*(-|->|$)/;
+  meterB(SELLO);
+  assert(lineasB().some(t => /Version cargada - Puente \(ESP32\): FW 6bd1e4f/.test(t)) &&
+         !lineasB().some(t => vacia.test(t)),
+    `Version: el sello del puente sale UNA vez y sin linea "Equipo [..]: " vacia: ${JSON.stringify(lineasB().slice(0, 3))}`);
+  // Ninguna rama generica pinta "Equipo [X]: " vacio: sin DETALLE, los campos crudos.
+  meterB('EVENT,NODE:ESCLAVO,EVT:NUEVO_SIN_TRADUCIR,CUENTA:7');
+  assert(!vacia.test(lineasB()[0]) && /EVT:NUEVO_SIN_TRADUCIR/.test(lineasB()[0]) && /CUENTA:7/.test(lineasB()[0]),
+    `Version: un $EVENT sin DETALLE sale con sus campos crudos: "${lineasB()[0]}"`);
 };
