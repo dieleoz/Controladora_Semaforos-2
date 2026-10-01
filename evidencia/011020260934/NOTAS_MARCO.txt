@@ -1,0 +1,10 @@
+Notas del funcional (Marco), 01/10/2026, banco de 6bd1e4f (Maestro 4D2007, Esclavo 38EB53). Pegadas por Diego.
+
+Prueba: se retoma la comunicacion con los dos postes en modo degradado.
+El sistema sigue en modo degradado; no hay manera de saber si se restablecio la comunicacion.
+Paso a seguir con comunicacion: entrar desde la app a los dos postes, forzar la salida del degradado y dar
+una nueva orden (manual, automatico o inteligente).
+
+Camaras: alarma mantenida 5 s (de fabrica); sensibilidad hoy al 50 %; lo unico a cambiar es incluir peatones.
+En campo hay que configurar los puntos de vision y reajustar enfoques.
+Plan: el lunes primera sesion en campo con los semaforos en todos los modos; despues talanqueras e integracion.
