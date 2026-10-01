@@ -38,7 +38,7 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 | Maestro `179DB0` (El Sisga) | `7ff7d12` `SIN_BANCO`, probado despues `b354fe9` | cinta y diario en `evidencia/` |
 | Esclavo del Sisga | sin medir | su cinta no se ha traido |
 | Maestro `4D2007` y Esclavo `38EB53` (Marco, banco) | `a505fa2` en controlador y puente, medido: `$ACK,CMD:VERSION` el 30/09 | `evidencia/300920261130/` |
-| paquete para Marco | `6bd1e4f` `SIN_BANCO` (`Paquete_Funcional_2026-09-30`), sin runbook por decision del responsable: `D-40` en el Maestro (el Esclavo no cambia), aviso de corte `N-170`, hoja `Pruebas_Funcional_2026-09-30.html`; el anterior, `a505fa2` | banco de Marco con la hoja y los exportes |
+| paquete para Marco | `Paquete_Funcional_2026-10-01` `SIN_BANCO`, sin runbook por decision del responsable: `D-40` (Maestro), `D-38` rojo fijo sin hora (`N-168`), aviso de radio cada 60 s, reposicion de DR6/DR7 (`N-172` H-D), app con carteles de corte y radio; hoja `Pruebas_Funcional_2026-10-01.html`. En banco desde el 01/10: `6bd1e4f` | banco de Marco con la hoja y los exportes |
 
 ## Verificacion en escritorio
 
