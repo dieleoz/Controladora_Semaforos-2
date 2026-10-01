@@ -109,21 +109,30 @@ const AvisosEquipo = {
              'el ESP32 de este poste no esta mandando la hora: revise que firmware lleva.',
       toast: 'Este poste no recibe hora de su ESP32 - pongasela desde el telefono (Tecnico > Sincronizar)'
     }),
-    // D-21 (1): en Degradado la hora de esta punta llevo demasiado sin sembrarse y dejo de
-    // poder decidir una luz: la punta se rinde a ambar. NO vuelve sola (D-21: el equipo no
-    // decide solo si vuelve al modo), asi que el texto dice que hace falta alguien. Sin
-    // cifras del plazo: la app no puede recalcularlo (CLAUDE.md 14).
+    // D-38 (30/09): en Degradado la hora de esta punta llevo demasiado sin sembrarse y dejo
+    // de poder decidir una luz: la punta queda en ROJO FIJO (antes ambar, D-21). NO vuelve
+    // sola, asi que el texto dice que hace falta alguien. Sin cifras del plazo: la app no
+    // puede recalcularlo (CLAUDE.md 14).
     'HORA_ESP32|CADUCADA': (data) => ({
       tono: 'red',
-      texto: 'ESTE POSTE' + _cual(data) + ' HA DEJADO EL MODO DEGRADADO Y ESTA EN AMBAR ' +
-             'INTERMITENTE: su hora llevaba demasiado tiempo sin llegarle de su modulo ESP32 ' +
+      texto: 'ESTE POSTE' + _cual(data) + ' HA DEJADO DE ALTERNAR Y ESTA EN ROJO FIJO: ' +
+             'su hora llevaba demasiado tiempo sin llegarle de su modulo ESP32 ' +
              'y ya no es fiable para decidir los verdes. Casi siempre es el circuito ' +
              'ESP32-STM32 de este poste (la misma placa, cable interno J17): reviselo, y ' +
              'ponga la hora desde el telefono en este gabinete (pestana Tecnico, boton ' +
              'Sincronizar). NO vuelve a dar paso solo: cuando la hora vuelva a llegar, hay ' +
              'que sacarlo del Modo Degradado y volver a entrar. Ojo: el otro poste puede ' +
              'seguir en Degradado dando verdes por su reloj.',
-      toast: 'Degradado detenido: la hora de este poste caduco - en AMBAR hasta que alguien lo atienda'
+      toast: 'Degradado detenido: la hora de este poste caduco - en ROJO FIJO hasta que alguien lo atienda'
+    }),
+    // D-38: la misma rendicion, con su propia alarma, que se repite cada 60 s mientras dure.
+    'DEGRADADO|ROJO_SIN_HORA': (data) => ({
+      tono: 'red',
+      texto: 'ESTE POSTE' + _cual(data) + ' ESTA EN ROJO FIJO: perdio la hora en Degradado y ya ' +
+             'no puede decidir los verdes. El otro poste puede seguir alternando. Revise el ' +
+             'cable interno J17 y ponga la hora (pestana Tecnico, Sincronizar); para salir: ' +
+             'VOLVER AL MENU en el Poste 1 y repetir el testigo en los dos postes.',
+      toast: 'ROJO FIJO: este poste perdio la hora en Degradado'
     }),
     // D-26 (5): la otra averia. No es nueva -la emiten las dos puntas desde antes-, pero
     // D-26 le puso lo que hay que hacer, y hasta hoy salia en crudo. La causa NO se
