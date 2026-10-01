@@ -8,7 +8,7 @@ Va, y solo esto:
   -- sin `Simulaciones/`, sin `Validacion_*`, sin el `README.md` de cada carpeta.
 - **La APK** compilada (ver seccion 3).
 - **La guia/formulario `.html` de pruebas vigente** de `05_Funcional/` -- el que Diego este usando
-  en la sesion en curso, el que genera un PDF al rellenarlo (hoy: `Pruebas_Funcional_2026-09-30.html`;
+  en la sesion en curso, el que genera un PDF al rellenarlo (hoy: `Pruebas_Funcional_2026-10-01.html`;
   el nombre lleva fecha y caduca solo -- si hay mas de uno con fecha reciente, se confirma con Diego
   cual toca antes de mandarlo. `Guia_Cableado_y_Pruebas_Banco.html` es de banco, no de campo: no se
   manda salvo que se pida).
