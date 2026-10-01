@@ -5,30 +5,30 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 
 ## Por donde se retoma, en este orden
 
-1. **Marco prueba en banco `a505fa2`** (Degradado automatico, `N-167`) con `Pruebas_Funcional_2026-09-29.html`, casos
-   0-8, y exporta los dos postes por caso. Se leen ENTEROS y contando (`CLAUDE.md` §7) antes de tocar nada.
-   Acordado con el funcional el 30/09: en carretera el automatico va APAGADO (de fabrica) y sin radio se usa el
-   testigo manual, con el traslado real (15-20 min) en su campo de la app.
-2. **`N-168` (`D-38`, decidido 30/09):** en Degradado, la punta que pierde la hora pasa a ROJO fijo. Sin construir;
-   antes, cargar la norma de senalizacion con la skill `norma`.
-3. **Fase 5, lo duplicado Maestro/Esclavo a `lib/`**: solo despues de que la candidata pase banco.
+1. **Marco prueba `Paquete_Funcional_2026-10-01_d3606be_SIN_BANCO`** con `Pruebas_Funcional_2026-10-01.html`
+   (casos 0-7) y manda PDF, diarios por prueba y log. Se leen ENTEROS y contando (`CLAUDE.md` §7). La prueba 1
+   (corte del Maestro en Degradado) dice si la reposicion de DR6/DR7 cierra `N-172`; la 4, si `D-38` da rojo fijo.
+2. **Lunes 05/10, primera sesion en campo** (semaforos en todos los modos; talanqueras despues). Antes: respaldar
+   con md5 el firmware del Sisga, tapar `J16` p1. Va `SIN_BANCO` (decision del responsable): sin Degradado
+   desatendido hasta medir `N-172`.
+3. **Deuda del paquete sin runbook:** invertir los arneses que celebran el ambar por hora (`orquestador_degradado`
+   F2.2-F2.4/F3.2-F3.3, `reloj_04`, revisar H8 de `orquestador_deg_auto`), compuerta completa 2x, arquitecto y QA
+   sobre `d3606be`; SPEC_2 §7.ter (c) y (f).6 al comportamiento nuevo.
+4. **Decisiones abiertas del responsable:** un poste en rojo fijo sin hora que sufre un corte arranca en ambar
+   (`D-40`) contra el otro alternando; el Degradado `D-18` sin testigo sigue sin reanudar tras >24 h (CNT plegado).
+5. **Fase 5, lo duplicado Maestro/Esclavo a `lib/`**: solo despues de que la candidata pase banco.
 
 ## Frentes abiertos (tres como maximo)
 
-- **Degradado (`A-15`, `D-35`)**: `a505fa2` con arquitecto y QA atendidos, compuerta 2x solo `D-22`; testigo probado
-  en banco el 29/09 y ya no vence. Riesgos (f).1 (Manual en el corte: 528 s verde contra ambar) y (f).6 (`D-38`).
-- **Sin medir en tarjeta**: DR6/DR7 de la pila los escribe tambien la libreria RTC; CNT podria no ser monotono.
+- **Degradado tras un corte (`N-172`)**: el Maestro no reanudo el 30/09; causa candidata H-D (la libreria RTC pisa
+  DR6/DR7) arreglada sin medir en `d3606be`; H-A pila VBAT, H-B DS3231, H-C orden en la ventana siguen abiertas.
+- **Paquete `d3606be` sin runbook**: `D-38`, `D-40`, aviso de radio cada 60 s, carteles en la app.
+- **Campo del lunes**: camaras con peatones (`D-39`, sensibilidad 50 %), centralita de talanquera (pulso o contacto).
 
-## Organizacion del repo por fases (acordada con el arquitecto de plataforma)
+## Organizacion del repo por fases (con el arquitecto de plataforma)
 
-| fase | que | estado |
-|---|---|---|
-| 0 | paquetes a `entregas/` del repo, ignorada por git (viejos en `entregas/RETIRADOS/`); nada fuera | hecha; lo externo, el responsable |
-| 1 | inventario de instrumentos por requisito de SPEC | hecha; opcion B |
-| 2 | `CLAUDE.md` a 200 lineas sin renumerar; cronica a `HISTORIA.md` | hecha |
-| 3 | plugin `orquestador@diego`, pre-commit del metodo, skills a `.claude/particularidades/` | hecha |
-| 4 | poda B (70 packs), trinquete 1,665 en el pre-commit, `CLAUDE.md` §16.3 retirada | hecha |
-| 5 | lo duplicado Maestro/Esclavo a `lib/` | despues de banco |
+Fases 0-4 hechas (paquetes a `entregas/`, inventario, `CLAUDE.md` a 200, plugin y pre-commit, poda B con
+trinquete 1,665); la 5, lo duplicado a `lib/`, despues de banco.
 
 ## Que firmware hay en cada equipo (`CLAUDE.md` §0.2)
 
@@ -37,7 +37,7 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 | instalacion certificada | V8.4, `e303485` | la ultima que paso banco |
 | Maestro `179DB0` (El Sisga) | `7ff7d12` `SIN_BANCO`, probado despues `b354fe9` | cinta y diario en `evidencia/` |
 | Esclavo del Sisga | sin medir | su cinta no se ha traido |
-| Maestro `4D2007` y Esclavo `38EB53` (Marco, banco) | `a505fa2` en controlador y puente, medido: `$ACK,CMD:VERSION` el 30/09 | `evidencia/300920261130/` |
+| Maestro `4D2007` y Esclavo `38EB53` (Marco, banco) | `6bd1e4f` en controlador y puente, medido: `$ACK,CMD:VERSION` el 01/10 | `evidencia/011020260934/` |
 | paquete para Marco | `Paquete_Funcional_2026-10-01` `SIN_BANCO`, sin runbook por decision del responsable: `D-40` (Maestro), `D-38` rojo fijo sin hora (`N-168`), aviso de radio cada 60 s, reposicion de DR6/DR7 (`N-172` H-D), app con carteles de corte y radio; hoja `Pruebas_Funcional_2026-10-01.html`. En banco desde el 01/10: `6bd1e4f` | banco de Marco con la hoja y los exportes |
 
 ## Verificacion en escritorio

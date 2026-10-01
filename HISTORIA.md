@@ -3154,3 +3154,26 @@ es lo mismo que "3.7 existe".
 | **retirar codigo** | ¿que bandera deja de armarse? ¿que guarda deja de poder ser falsa? (3.ter y 3.septies) |
 | **algo del cobre, un conector o una compra** | **abre `05_Funcional/17_...` ANTES.** Gana a `CLAUDE.md` y a este fichero |
 | **cualquier cosa, antes de comitear** | `python 01_Firmware/compuerta.py` **completo**. `correr.py` es para iterar, no para autorizar |
+
+## 10. Sesion del 30/09-01/10/2026: banco de Marco, decisiones de campo y dos paquetes sin runbook
+
+- **30/09, banco de `a505fa2`** (`evidencia/300920261130/`): 111 ordenes, ninguna fallida; el Degradado con testigo
+  cuadro al segundo con `ciclo_degradado_fase()` (fase por hora del dia modulo 420 s). La prueba de 2 min sin
+  operario dio el verde del Maestro contra el ambar del Esclavo: es la ventana aceptada, ratificada como `D-41`.
+- **Decisiones del responsable con el funcional:** `D-39` (camaras vehiculo y persona; sensibilidad 50 %),
+  `D-40` (arranque en ambar tras corte o watchdog; en Degradado reanuda por reloj), `D-41`, `D-42` (la espera de la
+  pluma la da la alarma de 5 s de la camara; el retardo sigue en 3 s porque 6 s no compila sin subir
+  `DESPEJE_SEG_MIN`).
+- **Campo 30/09 12:29:** el Maestro en Degradado no reanudo tras un corte (`N-172`). El agente no encontro defecto
+  propio; si uno latente: la libreria STM32duino RTC guarda su fecha en DR6/DR7 = `REG_SYNC_BAJA`/`REG_SUMA_BAJA`.
+- **Paquete `6bd1e4f`** (30/09, sin runbook por decision del responsable): `D-40` solo en el Maestro (el agente
+  rechazo el Esclavo con razon: reiniciado solo daria ambar contra el verde del Maestro) y `N-170`, aviso de corte
+  (la trama `EVT:ARRANQUE` del puente se pintaba vacia).
+- **01/10, banco de `6bd1e4f`** (`evidencia/011020260934/`): el testigo entra desde el ambar de arranque; fase al
+  segundo; `ENLACE_DISPONIBLE` salio una sola vez y el funcional no se entero; ESP32 del Esclavo con ultimo arranque
+  por watchdog (`OTRO_PERRO`). Para salir del Degradado basta el Poste 1 (el funcional fue a los dos).
+- **Paquete `d3606be`** (01/10, sin runbook): `D-38` rojo fijo sin hora (`N-168`), `ENLACE_DISPONIBLE` cada 60 s,
+  reposicion de DR6/DR7 en `respaldo_setup()`, carteles de radio y de rojo fijo en la app, sin linea vacia.
+- **Lo que se concluyo mal y se corrigio en la sesion:** que la pluma «baja 3 s despues de la senal de la camara»
+  (cuenta desde el rojo: `escribirPines()`); y la frase de la hoja del 30/09 «este paquete lo corrige» sobre
+  `N-172`, que no lo corregia.
