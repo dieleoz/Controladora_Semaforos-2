@@ -127,6 +127,10 @@ esperar lo que digan las cintas de campo (D).
 | D7 | ESP32 del Esclavo con ultimo arranque por watchdog (`OTRO_PERRO`, 01/10): ¿se repite? (`N-116`) | cualquier cinta |
 | D8 | Lo viejo de Marco: los 17 s del Esclavo, focos con el Maestro solo (1.54); `N-164`/`N-165` en banco | -- |
 
+**F. Repo ordenado** (pedido el 02/10): F1 inventario de historia/legacy, grafo y `.map` contra lo que piden las
+skills, con quien lee cada fichero por ruta (agente de solo lectura, en curso); F2 mover/archivar en commits
+pequenos, rutas y compuerta en el MISMO commit (`CLAUDE.md` §5), SOLO despues de A6 y con el arbol quieto.
+
 **E. Despues de banco pasado:** fase 5, lo duplicado Maestro/Esclavo a `lib/`.
 
 ### `N-167` El paquete validado de `a0d605b`: el runbook entero — ✅ HECHO el 29-30/09, sale `a505fa2` `SIN_BANCO`
