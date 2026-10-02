@@ -85,9 +85,12 @@ python 01_Firmware/Simulaciones/banco/correr.py   # solo los packs. Sirve para i
 
 Reordenado el 02/10. Se cierra por fases: ninguna empieza sin cerrar la anterior. **Orden de ejecucion acordado
 con el responsable el 02/10: A (con H antes de A3) -> paquete validado -> I -> G -> F.** Al acabar solo quedan C
-(decisiones) y D (cintas de campo). Aplicado por recomendacion, el 02/10, con el «ok» del responsable: `FORZAR_ROJO`
-tambien pasa por amarillo (`D-45`, la norma dice «en ningun caso»); la tanda 2 de G retira `SOLICITAR_PASO`,
-`SET_MODO:DEGRADADO`, la entrada `J14`/PB0 y la franja SFTY-20, y conserva los pines de peaton y zumbador (`D-46`).
+(decisiones) y D (cintas de campo).
+Contestado pieza a pieza por el responsable el 02/10: `FORZAR_ROJO` tambien pasa por amarillo (`D-45`); la
+tanda 2 de G retira `SOLICITAR_PASO` y `SET_MODO:DEGRADADO`; `J14`, SFTY-20 y los pines de peaton se quedan (`D-46`).
+Todo cambio de firmware respeta las E/S y pines que fijan las guias de campo `.html` entregadas a Marco.
+**`N-175` Modo nocturno (SFTY-20, diseno en `OPTIMIZACIONES.md`):** se construira; antes, decidir que hace en un
+paso alterno de un carril (ambar en los dos extremos = nadie gobierna el tramo).
 
 **A. `N-173` Runbook de la candidata `d3606be`** (se salto para mandar a Marco; ahora entero, para dejar `main` ok)
 
