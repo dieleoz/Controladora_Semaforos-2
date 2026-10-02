@@ -1,0 +1,51 @@
+INVENTARIO DEL REPO (fase F1), 02/10/2026, sobre HEAD 2c07f90, arbol limpio. Agente de solo lectura.
+Se ejecuta en F2, DESPUES de A6 y con el arbol quieto (CLAUDE.md §5: ruta y movimiento en el mismo commit).
+
+REGLAS (con cita)
+- Grafo: el metodo no lo define (Arquitec_Orquestador/ROADMAP.md:18-20, pendiente generalizar mapa_grafo.py).
+  Hoy vive FUERA del repo: D:\@Proyect\Entregas_Semaforos\grafo\ (foto del 28/09 sobre 925c71e). roadmap.md cita
+  entregas/grafo/, que no existe. Choca con CLAUDE.md «nada fuera del repo».
+- ARQUITECTURA.map: lo rehace un subagente segun pluginMetodo/skills/cerrar-sesion/SKILL.md:87-98 (Mermaid graph TD
+  sobre git ls-files, nodos por NODOS_MAPA con archivo:linea, sin fechas ni estado, devuelve lint). Hoy 292 lineas;
+  8 fechas y cita como vigente el acta 2026-09-28 (la ultima es 2026-09-30).
+- Topes: pre-commit del metodo :14-15 (README 1000, ROADMAP 1000 -clave sensible a mayusculas: roadmap.md no la
+  tiene-, CLAUDE 200, RETOMAR 150, ESTADO 70). Proyecto §16: base <=1000 lineas. INCUMPLE 05_Funcional/17_... (1.142).
+- .topes:4 TOPE_DOCS_BYTES comentado: el 400.000 solo avisa. CRUDAS='^(fuentes/|05_Funcional/historico/)' (:16);
+  lo CRUDO no se modifica, si se mueve R100.
+- metodo.md:87-89: 99_Legacy/ fuera de git; un git mv a 99_Legacy sale como D, nunca R.
+
+DOCUMENTOS VIVOS: 1.645.602 B hoy (docs_total() de pre-commit:96-108: todo .md/.map del indice salvo CRUDAS y
+HISTORIA/RETOMAR/ESTADO). Mas pesados: roadmap_hist.md 673.835 · DECISIONES.md 128.829 · 10_Manual_Bluetooth 127.572 ·
+roadmap.md 122.532 · 17_Arquitectura 86.240 · OPTIMIZACIONES 73.205 · SPEC_2 58.408 · SPEC_4 43.135 · README 36.920.
+No se llega a 400.000 moviendo: lo fijo (SPEC 0-8, 10_Manual, DECISIONES, roadmap, 17_, OPTIMIZACIONES) pasa de 900 KB.
+
+CANDIDATOS (LEIDO-POR = un instrumento lo abre por ruta)
+- roadmap_hist.md: solo citado -> CRUDAS en .topes (decide Diego) o git mv a historico/. -673.835 B.
+- LEEME_PRIMERO.md (raiz, encargo del 15/09 caducado): citado -> historico/ (R100) con citas de README.
+- 99_Legacy/LEEME.md: citado -> CRUDAS += 99_Legacy/.
+- 01_Firmware/FIRMWARE.md (V7.6) y {Maestro,Esclavo,Repetidor}/README.md (identicos, LoRa 170 MHz y LCD, caducados):
+  van dentro del paquete -> archivar o una linea que apunte a SPEC.
+- 05_Funcional/17_...: LEIDO-POR generar_entrega:87, decisiones_01_anclas:160-167 -> partir a 17_hist_2 (§16).
+- 10_Manual_Bluetooth: LEIDO-POR documentos_03_trama_status -> DEJAR (simulador congelado).
+- DECISIONES.md: LEIDO-POR decisiones_01_anclas:77,158 -> forma segun fase H.
+- ESTADO.md, README.md: LEIDO-POR documentos_01:267-268, generar_entrega:171 -> dejar.
+- 01_Firmware/Controladora_Semaforos/ (KiCad/Gerber, 4,68 MB): LEIDO-POR 03_Hardware_Tarjeta/indice_netlist.py:3 ->
+  a 03_Hardware_Tarjeta/ con el script en el mismo commit.
+- banco/historico/: LEIDO-POR compuerta.py:134-142, costura_12:180, trinquete.sh:6 -> DEJAR.
+- 04_Manuales/: LEIDO-POR decisiones_01_anclas:160-171 (ABORTADO si falta) -> dejar la carpeta; borrar del disco el
+  kicad .exe ignorado (922 MB).
+- Disco, ignorado: 99_Legacy/ 4,75 GB (decide Diego si sale del repo); __pycache__ raiz; scratch/ scripts y kicad/
+  (comparar antes con el .kicad_pcb versionado); .apk y .zip sueltos en 05_Funcional/ -> entregas/RETIRADOS/.
+- scratch/wt-hw: worktree de hw/esp32-devkit @484b1c5, 6 commits sin fusionar (SPEC_9, D-36): decide Diego.
+- Worktrees de agentes de otras sesiones, ramas ya fusionadas pero con cambios sin commit: agent-a265325 (3),
+  a402ada (4), a4b1c00 (23), a982a12 (23, src del Esclavo), ab610cc (1), abcffe8 (9). Mirar el diff antes de quitar.
+
+ORDEN F2 (commits pequenos, cada uno con su comprobacion)
+0 disco sin commit (pycache, sueltos, kicad .exe) -> git status vacio.
+1 .topes CRUDAS += 99_Legacy/ y _hist (Diego) -> cifra nueva ~962.886, trinquete 1,665.
+2 LEEME_PRIMERO.md a historico/ (R100) -> compuerta --rapido mismo total.
+3 FIRMWARE.md y READMEs de firmware -> --rapido igual y paquete en seco.
+4 Controladora_Semaforos/ a 03_Hardware_Tarjeta/ con indice_netlist.py -> compuerta completa.
+5 partir 17_ -> decisiones_01_anclas PASS con las mismas D-x.
+6 rehacer ARQUITECTURA.map (cerrar-sesion §5) y corregir la cita entregas/grafo/ -> lint sin rotos.
+7 worktrees: diff de cada uno, despues worktree remove.
