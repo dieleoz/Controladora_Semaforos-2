@@ -83,20 +83,51 @@ python 01_Firmware/Simulaciones/banco/correr.py   # solo los packs. Sirve para i
 
 ### Lo siguiente, en orden (el estado de cada punto, en `ESTADO.md`)
 
-| # | tarea | quien | sale | depende de |
+Reordenado el 02/10. Se cierra por fases: ninguna empieza sin cerrar la anterior. Al acabar A y B solo queda
+esperar lo que digan las cintas de campo (D).
+
+**A. `N-173` Runbook de la candidata `d3606be`** (se salto para mandar a Marco; ahora entero, para dejar `main` ok)
+
+| # | paso | quien | sale | estado |
 |---|---|---|---|---|
-| 1 | Documentos a `05_Funcional/historico/` con el grafo de `entregas/grafo/` (hoy aun en la carpeta externa; la mueve el responsable); despues `CRUDAS` en `.topes` y las 10 citas a lo archivado | responsable + orquestador | lista cerrada y citas sin romper | decision del responsable |
-| 2 | Tramas de Marco: los 17 s del Esclavo, focos con el Maestro solo, camara con alguien delante (1.54) | funcional | acta de campo | respuesta de Marco |
-| 3 | Fase 5: lo duplicado Maestro/Esclavo a `lib/` | orquestador | un solo fuente por concepto | candidata pasada por banco |
-| 4 | `Validacion_LCD` se llevo 4 packs sin `banco/historico/` (`D-32`); renombrar toca 42 ficheros | responsable | decision | -- |
-| 5 | **`N-164` Degradado automatico (`SPEC_2` §7.ter, A-15):** construido y validado en PC (`a505fa2`, `N-167`); falta el banco de Marco con la guia y los exportes; decidir el riesgo (f).6 | funcional + responsable | acta de banco | paquete `a505fa2` |
-| 6 | **`N-165`** El Degradado con testigo ya no vence (responsable, 29/09): alarma a los 28 dias para sincronizar desde el celular | orquestador | con `N-164` | -- |
-| 7 | **`N-166` Colision de nombre:** `A-15` ya existia (fila «UNA HORA» del 08/09) antes del Degradado automatico | orquestador | renombrar una | -- |
-| 8 | ~~Paquete validado de `a0d605b`~~ — hecho: `a505fa2` (`N-167`) | -- | -- | -- |
-| 9 | **`N-168` `D-38`: en Degradado la punta que pierde la hora pasa a ROJO FIJO.** Construido el 01/10 sin runbook (paquete de prueba); quedan por invertir `orquestador_degradado` F2.2-F2.4/F3.2-F3.3 y `reloj_04`, que celebran el ambar (§9). Abierto: tras un corte en rojo fijo el poste arranca en ambar (`D-40`) | orquestador | banco y arneses | prueba 4 de Marco |
-| 10 | **`N-169` `D-40`: arranque en AMBAR INTERMITENTE tras corte o watchdog, en las dos puntas.** Runbook completo, como `N-168`, y la misma norma; el Degradado reanuda por reloj (`D-29`), no pasa a ambar | orquestador | paquete nuevo | -- |
-| 11 | **`N-170` Aviso de corte de luz en la app.** El puente ya manda `EVT:ARRANQUE,CAUSA:SUBIDA_DE_TENSION` en cada conexion (`vigilante.cpp`) y la app lo pinta vacio (log de Marco, 30/09, sin medir en la app): pintarlo con poste y modo, y anadir al puente la hora del arranque. Solo ESP32 y app | orquestador | paquete nuevo | -- |
-| 12 | **`N-172` El Maestro en Degradado con testigo no reanudo tras un corte (campo 30/09, 12:29).** Sin causa: hipotesis H-A pila VBAT, H-B DS3231 sin hora, H-C orden en la ventana, y H-D (defecto latente por codigo: la libreria RTC escribe su fecha en DR6/DR7, que son `REG_SYNC_BAJA`/`REG_SUMA_BAJA` de `respaldo.cpp`, al plegar CNT tras 24 h: borra el permiso en las dos puntas). Se separan con la prueba 1 de la hoja del 30/09 | orquestador | causa medida | exportes de Marco |
+| A1 | SPEC_1/2/3/4/6 al comportamiento construido: `D-38` (`N-168`), `D-40` (`N-169`, solo Maestro y por que), aviso de radio cada 60 s, DR6/DR7 (`N-172` H-D), carteles `N-170` | agente SPEC | SPEC al dia | en curso |
+| A2 | Pruebas que celebran lo viejo (§9): `orquestador_degradado` F2/F3, `reloj_04`, H8 de `deg_auto`, `adaptador_maestro_deg` sin `D-40`; inyeccion vista en rojo | agente instrumentos | arneses al dia | en curso |
+| A3 | Compuerta completa 2x en el arbol principal, arbol quieto | orquestador | acta | tras A1+A2 |
+| A4 | Arquitecto sobre SPEC y codigo (opus) | `arquitecto-iot` | veredicto | tras A3 |
+| A5 | QA sobre el binario (opus) | `qa-istqb` | veredicto | tras A4 |
+| A6 | Paquete validado `SIN_BANCO` a `entregas/`; `.docx` de las SPEC tocadas | orquestador | `.zip` | tras A5 |
+
+**B. Lo que se cierra en paralelo a A, con ficheros disjuntos**
+
+| # | tarea | quien | sale |
+|---|---|---|---|
+| B1 | Lista de montaje del lunes 05/10 en `.html` que da PDF: respaldo md5 del firmware del Sisga, grabar, `J16` p1 tapado, `J14`/p5/p8 vacios, radios 2,4 kbps M0/M1 OFF, camaras `D-39`, sin Degradado desatendido | agente campo | `.html` |
+| B2 | `N-166` colision de nombre `A-15` | orquestador | una renombrada |
+| B3 | Metodo atrasado (`4e8e898` -> `cd3c71b`): actualizar plugin y primera linea de `CLAUDE.md` | orquestador | metodo al dia |
+
+**C. Decisiones del responsable** (no las cierra nadie escribiendo)
+
+| # | pregunta | depende de |
+|---|---|---|
+| C1 | Poste en rojo fijo sin hora (`D-38`) que sufre un corte: arranca en ambar (`D-40`) contra el otro alternando. ¿Se persiste el rojo? | -- |
+| C2 | Degradado `D-18` SIN testigo no reanuda tras >24 h (pliegue de CNT). ¿Se arregla o se acepta, si en campo solo se usa testigo? | -- |
+| C3 | `Validacion_LCD` se llevo 4 packs sin `banco/historico/` (`D-32`); renombrar toca 42 ficheros | -- |
+| C4 | Documentos a `05_Funcional/historico/` con el grafo de `entregas/grafo/`; despues `CRUDAS` en `.topes` | el responsable mueve la carpeta |
+
+**D. A la espera de las cintas de campo** (se leen enteras y contando, `CLAUDE.md` §7)
+
+| # | que dira la cinta | prueba de la hoja `2026-10-01` |
+|---|---|---|
+| D1 | `N-172`: si el Maestro reanuda el Degradado tras un corte (cierra H-D o abre H-A/H-B/H-C) | 1 y 2 |
+| D2 | `D-40` en tarjeta: corte en Automatico -> ambar; Esclavo solo -> lo recupera el Maestro | 3 |
+| D3 | `D-38` en tarjeta: J17 fuera -> rojo fijo y alarma cada 60 s | 4 |
+| D4 | Aviso de radio en Degradado y salida solo desde el Poste 1 | 5 |
+| D5 | Camaras con peatones: retraso de la alarma, veto con carro y con persona | 6 |
+| D6 | Centralita de la talanquera: contacto mantenido o pulso | 7 |
+| D7 | ESP32 del Esclavo con ultimo arranque por watchdog (`OTRO_PERRO`, 01/10): ¿se repite? (`N-116`) | cualquier cinta |
+| D8 | Lo viejo de Marco: los 17 s del Esclavo, focos con el Maestro solo (1.54); `N-164`/`N-165` en banco | -- |
+
+**E. Despues de banco pasado:** fase 5, lo duplicado Maestro/Esclavo a `lib/`.
 
 ### `N-167` El paquete validado de `a0d605b`: el runbook entero — ✅ HECHO el 29-30/09, sale `a505fa2` `SIN_BANCO`
 
