@@ -78,3 +78,16 @@ una segunda pasada del arbol quieto; si no coinciden, manda la segunda.
 `Get-FileHash`, `Compress-Archive`: el `PSModulePath` de la sesion del IDE mezcla modulos de PS7 con
 los de la extension y rompe el autocargado de PS 5.1. Se usa Python (`hashlib`, `zipfile`) en su
 lugar, no se persigue el cmdlet.
+
+## 8. Antes de la compuerta completa, la copia de la app en Android
+
+`documentos_03_trama_status` compara `www/` con `android/app/src/main/assets/public/` (ignorada por git): tras tocar la
+app, `npx.cmd cap sync android` y `git checkout --` de `capacitor.build.gradle` y `capacitor.settings.gradle` (solo
+cambian fin de linea). Y la compuerta converge en 3-4 pasadas cuando cambian las cifras: se copian del acta a
+`README`/`ESTADO` y se repite hasta que dos pasadas den lo mismo (02/10: pasadas 3 y 4).
+
+## 9. La APK desde Git Bash
+
+`gradlew.bat` no arranca por el espacio de la ruta: `"$JAVA_HOME/bin/java.exe" -cp gradle/wrapper/gradle-wrapper.jar
+org.gradle.wrapper.GradleWrapperMain assembleDebug -q` desde `android/`, con `JAVA_HOME` al jdk-17 de
+`D:\@Proyect\Baliza\7 sw apk\`. Se verifica por md5 que `assets/public/` de la APK es `www/`.
