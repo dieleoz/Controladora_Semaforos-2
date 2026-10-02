@@ -65,7 +65,7 @@ Medido sobre las funciones de entrada y rechazo de cada punta. **MAESTRO — sei
 > Esclavo rechaza. ⚠️ **Y de que las dos listas sean distintas sale lo peor: UNA PUNTA PUEDE ENTRAR Y LA OTRA NO**,
 > que es peor que ninguna — **si la segunda rechaza, se saca a la primera** (A.4) antes de arreglar el motivo.
 
-## A.1.bis EL TESTIGO — para cuando la radio no vuelve en semanas, no en minutos 🔴 SIN CONSTRUIR (`D-35`)
+## A.1.bis EL TESTIGO — para cuando la radio no vuelve en semanas, no en minutos (construido, `990c278`; `D-35`)
 
 **Cuando se usa:** el enlace entre postes está muerto y **no hay repuesto a la vista** —el de A.1 es para un corte
 que se resuelve pronto—. **Una orden por poste**, `SET_MODO:DEG_T:ahora,inicio,verde,despeje` —la app manda
@@ -79,7 +79,7 @@ app en el primero, no uno nuevo, pero LEE `ahora` otra vez al enviarlo—.
 | `RESULT:OK` | entró. Queda en **ROJO fijo hasta `inicio`**, después alterna sola: no repita |
 | `$ERR ... DESC:<motivo>` | rechazado. Lea el motivo — A.2.bis dice cuál falta |
 
-## A.2.bis LOS MOTIVOS DEL TESTIGO, Y CUÁL SE PAGA CAMINANDO 🔴 SIN CONSTRUIR
+## A.2.bis LOS MOTIVOS DEL TESTIGO, Y CUÁL SE PAGA CAMINANDO (construido, `990c278`)
 
 **MAESTRO — cinco motivos:**
 

@@ -328,7 +328,7 @@ void loop() {
   if (modo != modoAnterior) {
     // N-20: SALIR del Degradado por CUALQUIER via borra el indicador de la pila, y por
     // eso se hace aqui y no dentro de cada destino. Del Degradado se sale por al menos
-    // cuatro caminos -boton 4, A.A.A a Automatico, B.B.B a Ambar, y el limite de 48 h-,
+    // varios caminos -SET_MODO de la app a cualquier modo, el ambar y el limite de 48 h-,
     // y basta olvidar uno para que el equipo reanude despues un modo del que ya habia
     // salido. Este punto es el unico por el que pasan todos: si el modo cambio, el
     // Degradado se acabo. Un borrado de mas solo cuesta una escritura de 16 bits; un

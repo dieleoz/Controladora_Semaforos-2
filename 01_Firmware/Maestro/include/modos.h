@@ -23,7 +23,7 @@ enum ModoSistema {
   MODO_DEGRADADO,  // SFTY-21: operacion por reloj, sin radio. Activacion MANUAL.
 
   // SFTY-21: ambar intermitente pedido a proposito, no por fallo.
-  // Es el destino de la secuencia B.B.B del mando de reles y el estado al que cae
+  // Es el destino de SET_MODO:AMBAR (app), del ambar de arranque (D-40) y el estado al que cae
   // solo el Modo Degradado al agotarse el limite de 48 h. No aparece en el menu: no
   // es un modo que se "elija" desde la pantalla, es una salida de emergencia.
   MODO_AMBAR

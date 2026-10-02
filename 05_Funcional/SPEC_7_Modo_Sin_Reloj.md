@@ -148,7 +148,7 @@ decidio **no cruzar** el 13/09.
 
 | pieza | estado |
 |---|---|
-| pedir el modo en el poste 2 | 🟢 **existe**: `SET_MODO:DEGRADADO` por la app (`D-18`), con un `$ERR` por cada motivo de rechazo |
+| pedir el modo en el poste 2 | por el testigo, `SET_MODO:DEG_T` (`D-35`); `SET_MODO:DEGRADADO` salio con `D-46` |
 | la hora del propio poste sin radio | 🟢 **existe**: `D-26` (3), `reloj_radioManda()` |
 | ponerle la hora con el telefono en el gabinete | 🟢 **existe**: `SET_RTC` -> `DS3231` -> `siembra_ahora()` |
 | que la hora que miente no de verdes | 🟢 **existe**: `reloj_horaFiable()` en la PUERTA y en el BUCLE, las dos puntas |
