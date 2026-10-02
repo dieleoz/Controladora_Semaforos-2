@@ -98,8 +98,8 @@ CONTRARIOS**, asi que lo que se compara contra el aguante es siempre la separaci
 > 🔴 **LA CUENTA DEL STM32 SOLO, QUE ES LA QUE MATA EL MODO: el aguante del cruce entre dos HSI
 > corriendo libres se agota en menos de diez minutos.** El firmware no llega ni a eso: a
 > `HORA_CADUCA_MS` de la ultima siembra buena, `reloj_horaFiable()` cae, la punta publica
-> `$ALARM HORA_ESP32 / CADUCADA / CAMBIO_A_AMBAR` y **se va a ambar intermitente sin volver
-> sola** (`D-21` (1)). **Un modo que pidiera al operador volver a esa cadencia no es un modo: es
+> `$ALARM HORA_ESP32 / CADUCADA / CAMBIO_A_ROJO` y **pasa a ROJO FIJO sin volver
+> sola** (`D-38`, SPEC 3 §5). **Un modo que pidiera al operador volver a esa cadencia no es un modo: es
 > una averia con horario.**
 
 > ⚠️ **LA CIFRA DE DIAS DEL CASO (c) NO SE ESCRIBE AQUI, Y NO ES PUDOR: ES §14.** Sale de dividir
@@ -241,7 +241,7 @@ meta el cruce en Degradado solo. Asi que «por que esta en Degradado» son **tre
 |---|---|---|
 | **por que lo pusieron** (la radio se cayo) | `$ALARM FALLO_RF` con su causa, y el `$EVENT ENLACE_RF` | 🟢 **sale**, pero como **evento pasado**: el tecnico que llega DESPUES depende de la bitacora |
 | **por que NO puede entrar** | `MDG_FALTA_HORA`, `MDG_NUNCA_SYNC`, `MDG_SYNC_VIEJA`, `MDG_SIN_DESFASE`, `MDG_DESFASE_ALTO`, `MDG_SIN_CONFIG` (Maestro) · `DEG_RECHAZO_SIN_HORA`, `SIN_CONFIG`, `CICLO_NULO`, `SIN_SYNC`, `SYNC_VENCIDA`, `AMBAR_VIGENTE` (Esclavo) | 🟡 **solo como `$ERR` a quien mando la orden**. Quien se conecta despues no lo ve |
-| **por que se SALIO** (ambar) | `irAAmbar("Reloj no fiable")` · el limite del Maestro, en tres ramas · la rendicion del Esclavo | 🟡 el `$ALARM HORA_ESP32/CADUCADA` si sale; ~~el vencimiento del tope no publica causa propia~~ → **en el Maestro si, desde 1.49 (b): `$ALARM DEGRADADO` con su causa**, como instante y no en el diario. **El Esclavo sigue sin publicarla** |
+| **por que se SALIO** (rojo fijo o ambar) | `irARojoSinHora()` en las dos puntas (rojo fijo) · el limite del Maestro, en tres ramas · la rendicion del Esclavo (ambar) | 🟡 el `$ALARM HORA_ESP32/CADUCADA` y el `$ALARM DEGRADADO/ROJO_SIN_HORA`, repetido, si salen; ~~el vencimiento del tope no publica causa propia~~ → **en el Maestro si, desde 1.49 (b): `$ALARM DEGRADADO` con su causa**, como instante y no en el diario. **El Esclavo sigue sin publicarla** |
 
 ⚠️ **Y LO QUE LA APP HACE HOY ES PEOR QUE UN HUECO: AFIRMA LA CAUSA SIN QUE NADIE SE LA MANDE.**
 Medido sobre `app.js`: el badge de `DEGRADADO` dice *«SIN ENLACE ENTRE POSTES»* y el de `RENDIDO`
@@ -279,8 +279,8 @@ relojes que se creen el uno al otro sin hablarse.** Las tres perdidas:
    (`coordinador_medirDesfase`). Sin ella, que las dos puntas sigan en fase es una
    **suposicion**, y lo unico que la acota es el tope de §5.
 2. **La asimetria no tiene cura tecnica.** Si una punta pierde la hora fiable y la otra no, **una
-   se va a ambar y la otra sigue dando verdes**: sin radio **no se puede ordenar «ambar en las
-   dos»**. Es el `Riesgo 2`, **aceptado desde el 01/08** (`D-21`).
+   pasa a rojo fijo y la otra sigue dando verdes**: sin radio **no se puede ordenar nada a la
+   otra**. Peor caso, verde contra rojo (`D-38`; antes ambar, `D-21`).
 3. **Lo que difieran los dos `DS3231` no lo vigila nadie.** La alarma por discrepancia esta
    **propuesta y sin construir** (`roadmap.md` §2.8). **Hoy el cruce no sabe que sus dos relojes
    se han separado: solo lo sabe quien visite los dos postes y compare con `CMD:LEER_RTC`**

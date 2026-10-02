@@ -128,19 +128,25 @@ modo son **propios del modo: no heredan lo de Automatico.**
 
 ## A.5 Lo que pasa SIN que nadie lo pida — y como se ve
 
-Tres cosas que el equipo hace solo, y solo se ven en **`MODO:`** del `$STATUS` (`DEGRADADO`·`RENDIDO`·`SUBORDINADO`):
+Lo que el equipo hace solo; las tres primeras solo se ven en **`MODO:`** del `$STATUS`
+(`DEGRADADO`·`RENDIDO`·`SUBORDINADO`):
 
 1. **Vuelve la radio ➜ sale del modo.** Solo con tramas de gobierno; las de servicio no sacan.
 2. **Se agota el limite duro ➜ se rinde sola a ambar**, y **el firmware no deja reentrar**: contesta el rechazo de
    sync caducada. **Hay que arreglar la radio, no reactivar el modo.** El Poste 1, ademas, lo dice en el instante
    con `$ALARM DEGRADADO` y su causa (PARTE C); el Poste 2, no.
 3. **Corte de energia ➜ PUEDE REANUDAR SOLA**, en todo-rojo, si al volver siguen vigentes hora, ciclo en la pila y
-   sincronizacion fechable (`D-29`). **Nadie se lo avisa al operario.** 🔴 **Tras cualquier corte, verifique A.3 en las
+   sincronizacion fechable (`D-29`). **Ningun evento dice que reanudo**; si el corte apago tambien el ESP32, la app
+   abre al conectar el cartel «ESTE POSTE SE QUEDO SIN LUZ» (SPEC 4 §6). Si no reanuda, el Poste 1 arranca en
+   **ambar intermitente** hasta una orden (`D-40`, SPEC 1 §4.1). 🔴 **Tras cualquier corte, verifique A.3 en las
    dos puntas aunque el equipo no se lo pida**: si una reanudo y la otra no, puede dar verdes sin que nadie mire.
+4. **Hora perdida en Degradado ➜ ROJO FIJO en esa punta** (`D-38`), con `$ALARM DEGRADADO,CAUSA:ROJO_SIN_HORA`
+   repetida (PARTE C); `MODO:` sigue diciendo `DEGRADADO`. No vuelve sola, y la otra punta sigue alternando. 🔴 **Si
+   ademas sufre un corte, arranca en ambar** (`D-40`): verde contra ambar; riesgo abierto, lo decide el responsable.
 
 ## A.6 🔴 LA COMPROBACION DE LA HORA QUE SIGUE HACIENDO FALTA, Y POR QUE
 
-**Que una hora que deja de ser fiable en marcha mande la punta a ambar YA ESTA CONSTRUIDO** (`D-21` (1)), pero la pieza
+**Que una hora que deja de ser fiable en marcha mande la punta a ROJO FIJO YA ESTA CONSTRUIDO** (`D-38`), pero la pieza
 que llevaria al STM32 el aviso de que el oscilador del reloj de calendario se paro **sigue sin construir** (la medida
 es SPEC 3, H-2), asi que **el unico detector de una hora que MIENTE es el tecnico** y estos dos pasos siguen vivos:
 **antes de autorizar un Degradado, lea la hora de las DOS puntas** con la consulta de reloj —`LEER_RTC`, que **lee y no
@@ -240,7 +246,8 @@ mas**: medido, el puente ESP32 **no origina ninguna** —solo retransmite— y e
 | `FALLO_RF` | `REINTENTOS_AGOTADOS` | `CAMBIO_A_ROJO` | **solo Maestro** | se agotaron los reintentos de un cambio de luz **con el enlace vivo**: la luz va a **rojo** por la vuelta del enlace, no a ambar (`D-34`, 15/09). ~~sale tambien con la radio MUERTA y antes que la de silencio~~ → refutado el 15/09 en el arnes de dos puntas: con la radio muerta el silencio vence antes y cambia el estado | **lo normal es que el enlace EXISTA y se degrade** —lluvia, distancia, interferencia—: eso es **cobertura y antena** (B.5), no configuracion. 🔴 **Si despues sale tambien `SILENCIO_<n>ms`, el enlace estaba CORTADO.** ~~entre las dos alarmas hubo un tramo con la otra punta pudiendo seguir en verde~~ → cerrado en el fuente por `D-34` (SPEC 2 §4), **sin banco**. **No se vaya sin mirar la otra punta** |
 | `AVISO_RF` | `SIN_CONFIRMAR` | `AVISE_POSTE_1` | **solo Esclavo** | se puso el ambar de emergencia aqui y **el Poste 1 no acuso** el aviso **ni tras agotar los reintentos**. El acuse se construyo el 13/09 y su numero de reintentos lo fijo el responsable; la espera total es **(1 + reintentos) x el plazo de un viaje de radio** (`D-31`, `D-32` (3)). ⚠️ **NO ES INMEDIATA: espere a que salga antes de irse** | **haga lo que dice la accion**: cierre el paso aqui o **avise al Poste 1 antes de irse**. 🔴 **Dice «no he podido confirmarlo», NUNCA «el otro poste no se entero»**: una trama perdida por lluvia se ve igual que un transmisor muerto |
 | `HORA_ESP32` | `J17_MUDO` · `SIN_HORA_DEL_ESP32` · `RECHAZADA_FORMATO` | `SIGUE_SU_HORA` | las dos | la hora del ESP32 **no llega, o llega y no sirve** | **es de la MISMA placa**: el ESP32, su reloj de calendario y el cable `J17`. Las tres causas mandan a sitios distintos: **SPEC 3 §7** |
-| `HORA_ESP32` | `CADUCADA` | `CAMBIO_A_AMBAR` | las dos | la hora caduco **con el Degradado en marcha** (`D-21` (1)) | esa punta ya esta en ambar. Poner la hora antes de reintentar el modo (A.2, A.6) |
+| `HORA_ESP32` | `CADUCADA` | `CAMBIO_A_ROJO` | las dos | la hora caduco **con el Degradado en marcha** (`D-38`) | esa punta ya esta en **ROJO FIJO** y no vuelve sola (A.5). Revisar `J17`, poner la hora y sacarla del modo antes de reintentarlo (A.2, A.6) |
+| `DEGRADADO` | `ROJO_SIN_HORA` | `ROJO_FIJO` | las dos | la hora dejo de ser fiable en Degradado (`D-38`, SPEC 3 §5); se **repite** cada `AVISO_ROJO_SIN_HORA_MS` mientras dure | **el otro poste puede seguir alternando**. Salir: `SET_MODO:MENU` en el Poste 1 (al Poste 2 lo saca el Maestro por radio, o `AMBAR_EMERGENCIA` alli); poner la hora y repetir el modo |
 | `DEGRADADO` | `LIMITE_48H` | `CAMBIO_A_AMBAR` | **solo Maestro** | vencio el limite duro sin sincronizar con la otra punta, y el equipo SI sabia fecharlo —en RAM o en la pila— (1.49 (b)) | **es la radio**: sin ella nadie renueva el limite. Parte B por orden. **No reactive el Degradado**: rechaza por sincronizacion (A.5), y poner la hora con el telefono **no renueva el tope** (`SPEC_7` §5) |
 | `DEGRADADO` | `SYNC_SIN_FECHA` | `CAMBIO_A_AMBAR` | **solo Maestro** | el contador del reloj cuenta, pero la marca de la ultima sincronizacion **no se puede fechar** —reloj movido hacia atras, dominio de respaldo borrado— y no hay medida en RAM | **no se sabe cuanto hace**, y el equipo lo trata como vencido. **Lo que lo levanta es una sincronizacion nueva entre las dos puntas, y esa solo viaja por radio**: la hora del telefono no la renueva (`SPEC_7` §5). Compruebe el enlace (Parte B) y que la puerta de A.2 acepte antes de reintentar el modo |
 | `DEGRADADO` | `RELOJ_NO_CUENTA` | `CAMBIO_A_AMBAR` | **solo Maestro** | vencio el limite **y el contador del reloj de la tarjeta no cuenta** en ese instante. El rotulo dice «No es la radio» | 🔴 **NO SE FIE DEL ROTULO: mire LAS DOS COSAS.** Con el contador parado la marca de la pila no se puede fechar, y eso es del reloj (SPEC 3, H-1). Los bits los publica `REINICIAR_RELOJ` cuando rechaza (SPEC 4 §3.1), **que ademas BORRA la hora, el ciclo acordado y la autorizacion del Degradado**: no se pulsa para mirar; **pero en una tarjeta cuyo cristal no arranca esta causa sale SIEMPRE, tambien cuando el plazo lo cumplio de verdad una radio caida** —el hueco de SPEC 3 H-1—. Revise la radio (Parte B) igual que con `LIMITE_48H` |
@@ -254,10 +261,11 @@ mas**: medido, el puente ESP32 **no origina ninguna** —solo retransmite— y e
 > y eso no se ve en esta alarma sino en el aviso de barrera retenida. **Atiendala mirando tambien si la
 > pluma bajo.**
 
-> ⚠️ **LAS TRES `DEGRADADO` SALEN SOLO DEL POSTE 1, Y UNA SOLA VEZ** —al contrario que las de hora, no se
-> repiten—: quien se conecte despues ve el ambar en `MODO:` y no la causa. El Poste 2 se rinde por su limite **sin `$ALARM`**: lo unico que
-> deja es el parte periodico de sincronizacion diciendo que vencio (HUECO 2). **Y la app todavia no las traduce**:
-> llegan en crudo (SPEC 4 §7, hueco 11). Con cualquiera de las tres, **mire tambien el Poste 2**.
+> ⚠️ **LAS TRES `DEGRADADO` DEL LIMITE SALEN SOLO DEL POSTE 1, Y UNA SOLA VEZ** —al contrario que las de hora y
+> que `ROJO_SIN_HORA`, no se repiten—: quien se conecte despues ve el ambar en `MODO:` y no la causa. El Poste 2
+> se rinde por su limite **sin `$ALARM`**: lo unico que deja es el parte periodico de sincronizacion diciendo que
+> vencio (HUECO 2). **Y la app todavia no las traduce**: llegan en crudo (SPEC 4 §7, hueco 11).
+> Con cualquiera de las tres, **mire tambien el Poste 2**.
 
 **Cuando se apaga una alarma.** Las de camara **se cierran solas por su prueba contraria** y lo dicen con un
 `$EVENT` de camara recuperada: una que no se cierra nunca deja al operario sin saber si aquello se arreglo.

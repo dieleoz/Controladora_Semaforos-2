@@ -216,8 +216,10 @@ riesgo: sin radio, los dos postes pasan solos a rojo y despues alternan por relo
 
 **Eventos y alarmas que traduce, a texto de operario:**
 - `DEGRADADO` / `AUTO_ENTRADA_INICIO_HH:MM:SS` — «Sin radio 5 min: modo degradado automatico, rojo hasta HH:MM».
-- `DEGRADADO` / `ENLACE_DISPONIBLE` — «La radio volvio. Sigue en degradado: para volver al ciclo, Volver al menu en
-  el Poste 1».
+- `DEGRADADO` / `ENLACE_DISPONIBLE` — un **cartel fijo** (`js/carteles_equipo.js`, §6): «LA RADIO VOLVIO entre los
+  dos postes. Siguen en Degradado.» y, para volver al ciclo, Volver al menu en el Poste 1. El firmware lo repite
+  mientras oiga al otro (SPEC 2 §7.ter (c)): toast y linea solo la primera vez por conexion; despues se refresca la
+  hora del ultimo aviso. Lo quitan Entendido, soltar el enlace o un `$STATUS` con otro `MODO`.
 - `$ALARM DEGRADADO,CAUSA:AUTO_NO_<codigo>` (codigos en SPEC 2 §7.ter (b); tabla `DegAuto.MOTIVO`) — «No pudo
   entrar solo: <motivo>.» y lo que dice la `ACCION`: con `SIGUE_AMBAR`, «Sigue en ambar»; con `QUEDA_ROJO` (solo el
   Maestro con `GUARDADO`), «Queda en ROJO FIJO en este poste, no en ambar: avise a mantenimiento».
@@ -322,6 +324,20 @@ un mal apunte (`D-12`), asi que publica la medida y el juicio queda en quien est
 `PLUMA:ABAJO` del `$STATUS` le cambia el titulo —el cartel **no se retira solo**, porque lo que la dejo arriba sigue
 sin revisarse— y el enlace caido lo borra, que es de un poste.
 
+🟢 **DOS CARTELES MAS, CON EL MISMO MOLDE** (fuera de la bitacora, con Entendido; soltar el enlace los borra):
+- **Corte de luz** (`js/aviso_corte.js`). El puente manda al conectar su parte de arranque
+  (`$EVENT,NODE:PUENTE,EVT:ARRANQUE,CAUSA:...`); con la causa de subida de tension la app abre «ESTE POSTE SE QUEDO
+  SIN LUZ», dice que **no se sabe cuando** —la trama no trae hora y sale en cada conexion, tambien tras el primer
+  encendido— y pide revisar el modo, con el poste y el `MODO:` del `$STATUS` de esta conexion. Las demas causas van
+  a una linea traducida, sin cartel. Un reinicio del STM32 solo no lo abre: es el arranque del ESP32.
+- **Radio de vuelta en Degradado** (`js/carteles_equipo.js`, §3.ter.bis): una tabla de `ORIGEN|DETALLE`; hoy una
+  fila, `ENLACE_DISPONIBLE`.
+
+**Y el rojo fijo por hora perdida** (`D-38`, SPEC 3 §5) se traduce en `js/avisos_equipo.js`: `ROJO_SIN_HORA` dice
+que ese poste esta en rojo fijo, que el otro puede seguir alternando y como salir; `HORA_ESP32` / `CADUCADA` dice
+que dejo de alternar y **no vuelve solo**. El sello `EVT:VERSION` sale solo en su linea «Version cargada», sin una
+segunda linea vacia en Eventos.
+
 ---
 
 ## 7. HUECOS MEDIDOS
@@ -404,8 +420,9 @@ tenerlo, porque deja un poste degradado sin que nadie lo sepa.
 
 ⚠️ **11 · Lo que 1.49 dejo a medias en esta spec** (medido sobre `622a20b`). **(a)** El Maestro emite
 `$ALARM DEGRADADO` con tres causas al caer por su limite (SPEC 6 PARTE C) y **`js/avisos_equipo.js` no tiene
-ninguna entrada para ese evento**: `traducirAlarma()` devuelve `null` y la alarma se pinta en crudo, justo la que
-dice si mirar la radio o el reloj. **(b)** El acuse diferido de `REINICIAR_RELOJ` (§3.1) **no lo recorre ningun
+entrada para ninguna de las tres** (de ese evento solo traduce `ROJO_SIN_HORA`): `traducirAlarma()` devuelve `null`
+y la alarma se pinta en crudo, justo la que dice si mirar la radio o el reloj.
+**(b)** El acuse diferido de `REINICIAR_RELOJ` (§3.1) **no lo recorre ningun
 arnes en el tiempo**: el doble del arnes del puente acepta la orden que fija el veredicto del cristal, pero
 ningun guion la manda; lo que hay son packs de texto sobre la forma de la rama (`reloj_01`, `app_08`).
 

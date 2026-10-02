@@ -177,7 +177,7 @@ todo-rojo**. *(Literales, SPEC 4 §3.2; el campo, SPEC 6.)*
 **Sin radio, la luz la decide el reloj** (`SFTY-21`).
 
 > 🔴 **ENTRAR POR PRIMERA VEZ ES MANUAL** (salvo la opción automática de §7.ter, que un técnico activa antes).
-> **REANUDAR TRAS UN CORTE NO LO ES — Y NADIE SE LO AVISA AL OPERARIO.**
+> **REANUDAR TRAS UN CORTE NO LO ES — Y AL OPERARIO SE LE AVISA DEL CORTE, NO DE LA REANUDACIÓN.**
 > - **La primera entrada sí la pide una persona:** Poste 2, la app (`D-18`) por su puerta única de entrada; Poste 1,
 >   `SET_MODO:DEGRADADO` o el `A.B.A.B` del mando.
 > - **La reanudación la decide la máquina**, en cada arranque y **sin pulsación ninguna** (`D-29`): cada punta tiene su
@@ -186,7 +186,9 @@ todo-rojo**. *(Literales, SPEC 4 §3.2; el campo, SPEC 6.)*
 >   del operario**; el Maestro se pone en modo y cae en el reparto común. **No es un camino alternativo: es la entrada
 >   de siempre con el permiso recuperado de la pila.**
 > - **Lo que el operario NO ve:** un equipo al que se le fue la luz vuelve solo al único modo que da verde sin
->   confirmar con el otro extremo, y **no hay evento ni literal que lo anuncie** (HUECO 6).
+>   confirmar con el otro extremo, y **ningún evento dice que REANUDÓ** (HUECO 6). Lo que sí sale: si el corte apagó
+>   también el ESP32, la app abre al conectar el cartel de corte (`js/aviso_corte.js`, SPEC 4 §6) con el `MODO:` del
+>   `$STATUS`. Si no reanuda, el Poste 1 arranca en **ámbar** (`D-40`, SPEC 1 §4.1).
 > - **Lo que sí protege:** el permiso se tira si el equipo ya no está quieto donde lo dejó el arranque —una persona
 >   eligió modo, o el modo ya gobierna—, si hay ámbar del mando puesto, o si falló cualquier condición de vigencia. Lo
 >   que se difiere es **el borrado, no el límite duro**; la ventana, en SPEC 3 §6 y H-3. Y **en las dos puntas la
@@ -200,8 +202,8 @@ la fase propia, con el despeje que mandó el Maestro **ya ampliado en el origen*
 se solaparían durante minutos—; **un salto de hora se aplica PASANDO POR ROJO** (`D-26`). **Las cuatro salidas, y
 ninguna admite marcha atrás** (el indicador de la pila se baja **al empezar** la salida): el operario · **el regreso
 de la radio**, sólo con tramas de **gobierno** · **el límite duro** sin sincronización, con su aviso previo · y la
-salida decidida por fila. **Las dos acaban en ámbar y sólo el Esclavo pasa por el despeje** (**SPEC 6 A.4**); del
-estado rendido no se sale solo.
+**la hora no fiable**. **El límite acaba en ámbar y sólo el Esclavo pasa por el despeje** (**SPEC 6 A.4**); **la hora
+no fiable acaba en ROJO FIJO en las dos** (`D-38`, `irARojoSinHora()`; SPEC 3 §5). De ninguno de los dos se sale solo.
 
 ## 7.bis EL DEGRADADO CON TESTIGO — segunda puerta, para cuando la radio no vuelve en semanas (`D-35`)
 
@@ -239,8 +241,9 @@ inicio, despeje)`, motivo nuevo (no confundir con `MotivoDegradado`, `Maestro/in
 `MDT_FALTA_HORA` (`reloj_horaFiable()` falso: sin una hora propia fiable no hay con qué comparar) ·
 `MDT_AHORA_DESFASADO` (`|ahora − reloj_segundosDelDia()| > TOLERANCIA_TESTIGO_S`) · `MDT_DESPEJE_RANGO` (fuera de
 30–255) · `MDT_INICIO_VENCIDO` (`inicio` ya pasó al llegar la orden) · `MDT_AMBAR_VIGENTE` (mismo veto que hoy,
-`R-4`). Aceptada, fuerza rojo y queda esperando `inicio` con la MISMA máquina de estados (`DEG_ENTRANDO`), no una
-nueva: al llegar `inicio` entra por la puerta de siempre, `ciclo_degradado_fase()`.
+`R-4`; **no** lo dispara el ámbar de arranque de `D-40`: `modo_ambar_esDeArranque()`, SPEC 1 §4.1). Aceptada,
+fuerza rojo y queda esperando `inicio` con la MISMA máquina de estados (`DEG_ENTRANDO`), no una nueva: al llegar
+`inicio` entra por la puerta de siempre, `ciclo_degradado_fase()`.
 
 **Esclavo — la MISMA orden, y una tabla de rechazo distinta (como ya pasa con `D-18`, SPEC 6 A.2).** Motivo nuevo
 `RechazoTestigo`: `DEG_RECHAZO_T_SIN_HORA` · `DEG_RECHAZO_T_AHORA_DESFASADO` · `DEG_RECHAZO_T_INICIO_VENCIDO` —
@@ -411,7 +414,9 @@ congelado (§4), y la verificación de esta puerta es de banco, no de pack.
 
 **(c) La radio en Degradado: saber que volvió, sin salir.** Trama nueva `CMD_PRESENTE`, param 0, que emite cada punta
 en Degradado cada `PRESENTE_S` en su segundo desfasado (medio dúplex). Al oírla en Degradado: `$EVENT ORIGEN:DEGRADADO
-DETALLE:ENLACE_DISPONIBLE`, una vez por recuperación (se rearma tras 3 × `PRESENTE_S` sin oírla). **No sale del modo:**
+DETALLE:ENLACE_DISPONIBLE` al recuperarla (se rearma tras 3 × `PRESENTE_S` sin oírla) y, **en Degradado, otra vez cada
+`ENLACE_AVISO_REPETIR_MS` mientras se la oiga** (`oirPresente()` de `deg_auto.cpp`, las dos puntas): quien se conecta
+después también se entera; la app lo junta en un cartel fijo (SPEC 4 §3.ter.bis). **No sale del modo:**
 la salida sigue siendo el operario (Maestro: `SET_MODO:MENU`; Esclavo: las tramas de gobierno del Maestro ya fuera de
 Degradado, §7). **`CMD_PRESENTE` no llama a `reloj_notarRadio()`** (dejaría la hora del Esclavo esperando a la radio
 en vez de a su ESP32), **ni refresca `tUltimoComando` ni `tUltimaRespuestaEsclavo`, ni pone `handshakeOk`, ni cuenta
@@ -442,16 +447,18 @@ saca al Esclavo con su latido, §7).
    arnés, **528 s de verde del Esclavo contra el ámbar del Maestro** (verde contra verde, 0). En campo sigue hasta que
    alguien llega o vuelve la radio. Lo cubre sólo la regla de paleteros: el aviso de la app (`js/aviso_degradado.js`)
    salta con el poste conectado en `MODO:DEGRADADO`, y aquí el Maestro aún no lo está.
-2. **Se va la luz del Maestro durante la cuenta:** arranca en `MENU` y no entra; el Esclavo sí.
+2. **Se va la luz del Maestro durante la cuenta:** arranca en ámbar (`D-40`, SPEC 1 §4.1) y no entra; el Esclavo sí.
 3. **La flash del testigo falla** (`MDT_NO_GUARDADO`): esa punta no entra (el Maestro va a `MENU`); la otra, sí.
 4. **El Esclavo se reinicia en la cuenta con la pila inválida** (sin la opción) o sin hora fiable en 420 s.
 5. **`SET_MODO:MENU` en el Maestro sin radio** deja al Esclavo en Degradado: como hoy con `D-18` y `D-35`.
-6. **Una punta pierde la hora fiable y se rinde a ÁMBAR; la otra sigue alternando por reloj** (hallazgo 1 del
-   arquitecto; `Maestro/src/modo_degradado.cpp` y `Esclavo/src/modo_degradado.cpp`, rendición por hora no fiable). Sale
-   la alarma de hora caducada. Incluye que el APTO del Maestro caiga por tiempo durante la cuenta (hora no fiable,
-   `SYNC_FRESCA_MS`); la sync se renueva cada hora, así que es raro. **DECIDIDO 30/09 (`D-38`), sin construir:**
-   rendirse a ROJO fijo en vez de ámbar cuando la causa es la hora (peor caso verde contra rojo; ese sentido queda
-   cerrado hasta que llegue alguien).
+6. **Una punta pierde la hora fiable y pasa a ROJO FIJO; la otra sigue alternando por reloj** (`D-38`, construido
+   sin banco: `irARojoSinHora()` y `DEG_ROJO_SIN_HORA` en los dos `modo_degradado.cpp`). Peor caso, verde contra rojo:
+   ese sentido queda cerrado hasta que llegue alguien. Sale `$ALARM ...EVENTO:DEGRADADO,CAUSA:ROJO_SIN_HORA,...,
+   ACCION:ROJO_FIJO` cada `AVISO_ROJO_SIN_HORA_MS`, y si la hora caducó, también la de `HORA_ESP32` con
+   `ACCION:CAMBIO_A_ROJO`. Una siembra no lo devuelve: Maestro, `SET_MODO:MENU`; Esclavo, las tramas de gobierno del
+   Maestro fuera de Degradado o `AMBAR_EMERGENCIA`. Incluye que el APTO del Maestro caiga por tiempo durante la cuenta
+   (`SYNC_FRESCA_MS`); la sync se renueva cada hora, así que es raro. 🔴 **Riesgo abierto, lo decide el
+   responsable:** esa punta en rojo fijo ya no reanuda tras un corte y arranca en ámbar (`D-40`): verde contra ámbar.
 
 **(g) Ficheros e interfaces.** La lógica nueva va en un **módulo pareado** `{Maestro,Esclavo}/{src,include}/
 deg_auto.cpp,.h` (los ficheros que tocaría pasan de 500 líneas): `degAuto_loop()` (cuenta, entrada, emisión de
@@ -611,9 +618,11 @@ pendientes**: apuntan al fichero de protocolo y al coordinador fuera del ciclo �
    dos vencimientos~~ → medido en el arnés de dos puntas: hasta 23 s de ámbar del Maestro contra verde del Esclavo, y
    el mecanismo no eran los reintentos sino las anclas (`roadmap` 1.39). Lo que el equipo hace ahora está en **§4**;
    las filas `G12`–`G14` lo vigilan. **Sin banco: sigue sin haberse visto en una tarjeta.**
-6. 🔴 **LA REANUDACIÓN AUTOMÁTICA NO SE ANUNCIA** (§7). El equipo vuelve solo al único modo que da verde sin confirmar
-   con el otro extremo y **el operario no puede enterarse desde el teléfono**: no hay evento ni literal. No es defecto
-   de la decisión que mandó reanudar sino de lo que esa decisión no dijo. **Es decisión vial: del responsable.**
+6. 🟡 **LA REANUDACIÓN AUTOMÁTICA NO SE ANUNCIA; EL CORTE, SÍ, Y SÓLO SI APAGÓ EL ESP32** (§7). La app abre el
+   cartel de corte con el parte de arranque del puente (`js/aviso_corte.js`, causa de subida de tensión) y el
+   `MODO:` del `$STATUS`; **no lo abre** un reinicio del STM32 solo (watchdog), y el parte no trae la hora del corte.
+   Ningún evento dice «reanudó». No es defecto de la decisión que mandó reanudar sino de lo que esa decisión no dijo.
+   **Es decisión vial: del responsable.**
 7. 🔴 **LAS DOS PUNTAS SE AUTORIZAN CON UMBRALES DE SYNC DISTINTOS Y NADIE LOS CIERRA** (§8 (d)). Remedido el 14/09: no
    hay `static_assert`, las dos constantes viven en proyectos distintos, y el pack que sí las lee **reproduce la
    separación y la publica como residual: mide el hueco, no lo tapa. Es el hueco más grande del acuerdo de §8**, porque

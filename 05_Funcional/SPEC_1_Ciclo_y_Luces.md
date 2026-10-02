@@ -110,18 +110,19 @@ su propio fichero, y se lee y escribe con un par de funciones (`modoActual_get()
 
 | modo | qué hace con las luces | cómo se llega hoy |
 |---|---|---|
-| Menú | **rojo fijo** en las dos puntas; ámbar intermitente si no hay enlace | arranque, `SET_MODO:MENU` |
+| Menú | **rojo fijo** en las dos puntas; ámbar intermitente si no hay enlace | `SET_MODO:MENU`; el arranque sólo mientras espera la reanudación del Degradado (§4.1) |
 | Manual | todo-rojo al entrar y **ningún cambio programado**: la fase acaba cuando alguien pulsa | `SET_MODO:MANUAL`; también al cancelarse un ámbar del Poste 2 |
 | Automático | cicla por tiempo | `SET_MODO:AUTO` ~~; secuencia `A.A.A` del mando~~ *(salió el 14/09)* |
 | Inteligente | cicla por tiempo **con suelo y techo**, y las cámaras sólo pueden ALARGAR | `SET_MODO:INTELIGENTE` |
 | Alcance | **no arranca ciclos**: mantiene lo que haya (rojo fijo con enlace) | `SET_MODO:ALCANCE` |
 | Hora | no toca las luces | 🔴 **INALCANZABLE** — ver Huecos |
 | Degradado | todo-rojo de entrada y luego verde/rojo por reloj | `SET_MODO:DEGRADADO`; ~~`A.B.A.B`;~~ reanudación tras corte |
-| Ámbar | **ámbar intermitente pedido a propósito** | `SET_MODO:AMBAR`; ~~`B.B.B`;~~ aviso del Poste 2; salida del Degradado |
+| Ámbar | **ámbar intermitente**, pedido o de arranque | `SET_MODO:AMBAR`; ~~`B.B.B`;~~ aviso del Poste 2; salida del Degradado; **arranque** (§4.1) |
 
 **El modo Ámbar es una salida de emergencia y por eso no tiene condiciones**: funciona desde cualquier modo en
 marcha. El ámbar *dentro* del Degradado, en cambio, es un estado interno de ese modo: comparten la luz y las dos
 líneas de motivo. ⚠️ **Y la reanudación tras un corte NO la pide nadie: la decide la máquina** (`D-29`, SPEC 2 §7).
+
 **Poste 2 (Esclavo) NO tiene modos de operación.** Su luz la ordena el Poste 1 salvo en tres casos locales — **ámbar
 de emergencia con cerrojo** (pedido desde la app), **Modo Degradado** y **ámbar por orfandad** (§9).
 
@@ -134,6 +135,23 @@ de emergencia con cerrojo** (pedido desde la app), **Modo Degradado** y **ámbar
 > ningún veto: sin mando, ese término ya valía siempre lo mismo (SPEC 5 §3). Una regla que ENUMERA sujetos
 > comprueba que cada sujeto EXISTE, y dónde se ejerce (`CLAUDE.md` §2). El detalle y el recuento, **SPEC 2 §2.3**.
 > **La asimetría es el arreglo entero: se guarda lo que ABRE paso, no lo que lo PARA.**
+
+### 4.1 El arranque tras un corte o un watchdog (`D-40`, construido; sin banco)
+
+**Poste 1.** `setup()` de `Maestro/src/main.cpp` elige entre tres salidas, en este orden: **(1)** si
+`modo_degradado_reanudarTrasCorte()` concede, vuelve al Degradado (`D-29`); **(2)** si la decisión sigue
+pendiente (`respaldo_degradadoActivo()`), espera en **Menú** —rojo fijo con enlace— con `esperaReanudacion`
+armada; **(3)** si no, `entrarAmbarDeArranque()`: **MODO_AMBAR entero** con su motivo propio
+(`modo_ambar_fijarMotivoDeArranque()`), o sea todo-rojo, orden de ámbar al Poste 2 y ámbar intermitente: **fuera de
+servicio**. La espera de (2) acaba en el bucle: si reanuda o alguien elige modo, nada más; si la decisión borra el
+indicador y sigue en Menú, pasa al ámbar de arranque. **Se sale con una orden del operario**, como de cualquier
+ámbar. El motivo de arranque **es una marca**: `modo_ambar_esDeArranque()` la lee la puerta del testigo para **no
+aplicarle el veto R-4** (SPEC 2 §7.bis), que es para el ámbar que pidió una persona; cualquier otro camino al ámbar
+fija su motivo y la marca desaparece. El `$STATUS` dice `MODO:AMBAR` en los dos casos: el motivo no se publica.
+
+**Poste 2: NO cambia, y es decisión de diseño** (contra la letra de `D-40`, que nombra a los dos). Reiniciado solo,
+arranca en rojo (`semaforo_forzarRojo()` en su `setup()`) y lo recupera el Poste 1 por radio; sin radio, cae a
+ámbar por orfandad (§9). Arrancarlo en fallo daría **ámbar contra el verde** de un Poste 1 que siguió ciclando.
 
 ## 5. Los tiempos, y de dónde salen
 
@@ -200,7 +218,8 @@ verde del Degradado no lo ordena nadie por radio.
 **El watchdog** (`SFTY-1`) arranca en las dos puntas, se refresca en cada vuelta del bucle y se arma **antes** de
 tocar el reloj, para que un cristal que no arranca sea un reinicio visible y no un cuelgue mudo a oscuras. Por eso
 **nada de lo que ocupa las luces bloquea**: ~~destellos y~~ el test avanza por el reloj de milisegundos. **Arranque:** el
-Poste 2 pone **las luces primero, siempre**; el Poste 1 no — ver Huecos.
+Poste 2 pone **las luces primero, siempre**; el Poste 1 no — ver Huecos. Tras el arranque, el Poste 1 queda en
+**ámbar intermitente** salvo que reanude o espere reanudar el Degradado (§4.1).
 
 ## 10. Lo que ocupa las luces sin ser un modo
 
@@ -278,9 +297,9 @@ Cada uno trae con qué reproducirlo.
    el ámbar de transición y el medio periodo del parpadeo de fallo. No se pueden citar, ni vigilar por
    símbolo, ni releer desde un pack. `grep -n "ahora - tCambio >=" 01_Firmware/Maestro/src/semaforo.cpp`
 5. ⚠️ **El Poste 1 arranca A OSCURAS y el Poste 2 no.** El arranque del coordinador arranca el semáforo —que **apaga
-   las tres luces**— y el primer rojo no llega hasta que el menú fuerza el todo-rojo, tras arrancar reloj, respaldo,
-   ~~mando y~~ Bluetooth, con una espera de dos segundos en medio y el cabezal apagado. ⚠️ **Esa espera ya NO es la
-   bienvenida del LCD**: sobrevive porque su motivo escrito es el watchdog.
+   las tres luces**— y la primera luz no llega hasta el todo-rojo del ámbar de arranque o del menú (§4.1), tras
+   arrancar reloj, respaldo, ~~mando y~~ Bluetooth, con una espera de dos segundos en medio y el cabezal apagado.
+   ⚠️ **Esa espera ya NO es la bienvenida del LCD**: sobrevive porque su motivo escrito es el watchdog.
 6. ⚠️ **El backstop de verde máximo está dimensionado contra un máximo que ya no existe.** Su comentario lo justifica
    *«por encima del máximo configurable (99 min)»* y el máximo real hoy es el del rango vial: protege en la dirección
    segura, pero mucho más laxo de lo que su razón pide — una razón caducada (`CLAUDE.md` §6).
@@ -290,10 +309,11 @@ Cada uno trae con qué reproducirlo.
    `grep -n "bool boton" 01_Firmware/{Maestro,Esclavo}/src/botones.cpp`
 8. ⚠️ **El conmutador de luz** (`semaforo_toggle()`) **no tiene ningún llamador** y **contiene la única
    transición de fallo a verde** del firmware: hoy inerte, saca del ámbar intermitente sin pasar por rojo.
-9. 🔴 **EL ARRANQUE ENTRA EN MENÚ (rojo fijo con enlace) Y DEBE ENTRAR EN ÁMBAR INTERMITENTE (`D-40`, 30/09, sin
-   construir, `N-169`).** Tras un corte de luz o un reinicio por watchdog, las dos puntas en ámbar intermitente hasta
-   una orden del operario, salvo en Degradado, que reanuda por reloj (`D-29`). Medido en campo el 30/09
-   (`evidencia/300920261130/`): hoy quedan en rojo con radio.
+9. 🟡 ~~EL ARRANQUE ENTRA EN MENÚ Y DEBE ENTRAR EN ÁMBAR (`D-40`, `N-169`)~~ → **construido en el Poste 1**
+   (§4.1), **sin banco ni tarjeta**. El Poste 2 no cambia por diseño (§4.1). **Riesgo abierto, decisión pendiente
+   del responsable:** un poste en rojo fijo por hora perdida en Degradado (`D-38`, SPEC 3 §5) que sufre un corte ya no
+   reanuda y arranca en ámbar mientras el otro sigue alternando por reloj: **verde contra ámbar** hasta que llegue
+   alguien.
 
 ## 13. QUIÉN EJERCE CADA BARRERA DE ESTE DOCUMENTO
 

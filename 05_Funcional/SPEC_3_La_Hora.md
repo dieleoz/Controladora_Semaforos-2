@@ -5,7 +5,7 @@ la calcula cada poste por su cuenta, a partir de su hora de pared. Si la hora mi
 pueden dar verde a la vez.** Todo lo que sigue existe por esa frase.
 
 **Alcance.** De donde sale la hora, quien siembra a quien y cada cuanto, que pasa al perder la radio, cuando
-la hora CADUCA, el ambar de la punta que la perdio, la reanudacion tras un corte de energia y las alarmas de
+la hora CADUCA, el rojo fijo de la punta que la perdio, la reanudacion tras un corte de energia y las alarmas de
 reloj. **Fuera:** el ciclo (SPEC 1) · la radio en si (SPEC 2) · la app (SPEC 4) · el cobre (SPEC 5).
 
 > 🔴 **NINGUNA CIFRA VIVE EN ESTE FICHERO.** Se nombra la constante y su consecuencia en palabras.
@@ -103,7 +103,7 @@ STM32 Maestro --CMD_HORA_D/H/M/S--> STM32 Esclavo   [por radio, en cada siembra]
 1. **El caso que MANDA: DOS SIEMBRAS PERDIDAS SEGUIDAS** (`D-28` (2)). Dos perdidas no son dos cadencias
    sino **tres**: se pierde la 1 y la 2, y la que trae hora es la 3.
 2. **Suelo conservado — una siembra NORMAL** debe llegar antes de caducar aun con el oscilador en su
-   extremo rapido, o el Degradado caeria a ambar con el cable de siembra sano en cada cadencia.
+   extremo rapido, o el Degradado caeria a rojo fijo con el cable de siembra sano en cada cadencia.
 3. **Suelo conservado — el relevo de fuente del Esclavo**: dos cadencias mas el silencio de radio.
    **Ya no manda**, y se queda porque es el unico que vigila ese silencio.
 4. **Techo:** que el plazo sea el **MENOR** que cubre el caso peor. Sin el, alguien podria subirlo a mano
@@ -112,7 +112,7 @@ STM32 Maestro --CMD_HORA_D/H/M/S--> STM32 Esclavo   [por radio, en cada siembra]
 De ahi salen la deriva concedida —cuantizada a segundos enteros— y **el plazo de caducidad**
 (`HORA_DERIVA_S`, `HORA_CADUCA_MS`). **El plazo es un CONTRATO DEL CRUCE, no de una punta:** el Maestro
 lleva tambien el termino del relevo, que es del Esclavo, porque con dos plazos distintos una punta se
-rendiria a ambar mientras la otra sigue dando verdes con una hora de la misma edad; el banco exige que
+pasaria a rojo fijo mientras la otra sigue dando verdes con una hora de la misma edad; el banco exige que
 sean iguales. **Lo que cuesta, aceptado por el responsable:** cada segundo de deriva concedido **recorta
 dos** del margen que le queda a la discrepancia entre los dos relojes — sigue siendo positivo, el banco lo
 recalcula en cada corrida, **y el dia que deje de serlo lo dice.**
@@ -133,23 +133,31 @@ en este arranque, **no caduca aqui** — esa no corre sobre el oscilador interno
 Degradado. **Su premisa la rompe un cristal que arranca y no cuenta**: desde `roadmap.md` 1.22 el bucle
 lo mide y, si esa hora solo salia de ese contador, la retira (H-1).
 
-## 5. El ambar de la punta cuya hora caduco
+## 5. El rojo fijo de la punta cuya hora caduco (`D-38`, construido; sin banco)
 
-**La punta que pierde la hora fiable pasa a ambar intermitente, y cada punta decide por su cuenta**
-(`D-21` (1)) — en Degradado no hay radio, asi que no se puede ordenar «ambar en las dos». Que las dos
-coincidan solo pasa si las dos pierden la hora; la asimetria que queda es el `Riesgo 2` del Degradado,
-aceptado desde el 01/08 y **sin solucion tecnica sin radio**.
+**La punta que pierde la hora fiable pasa a ROJO FIJO, y cada punta decide por su cuenta** (`D-38`, que
+sustituye dentro del Degradado al ambar de `D-21` (1)) — en Degradado no hay radio, asi que no se puede
+ordenar nada a la otra: sigue alternando por reloj. **Peor caso, verde contra rojo:** ese sentido queda
+cerrado hasta que llegue alguien; el ambar daba verde contra ambar. Que las dos coincidan solo pasa si
+las dos pierden la hora.
 
 **En la PUERTA de entrada** las dos puntas preguntan si la hora **puede decidir una luz**, no si la hay
 (`reloj_horaFiable()` y no `reloj_enHora()`), y cada una tiene su motivo de rechazo. Con la puerta mirando
 solo «¿hay hora?», un equipo con la siembra caducada entraba, el telefono recibia su acuse y la primera
 vuelta del bucle lo mandaba a ambar: **un «si» a una orden que no se iba a cumplir** (`CLAUDE.md` §2).
 
-**En el BUCLE las dos puntas NO hacen la misma linea** —el Maestro va a ambar directo y en rojo; el Esclavo
-se RINDE por todo-rojo y queda en su estado de rendido—, **y es lo correcto: el motivo entero esta en
-SPEC 2 §7.**
+**En el BUCLE las dos puntas hacen lo mismo:** con `reloj_horaFiable()` falso en la entrada o en marcha,
+`irARojoSinHora()` (en los dos `modo_degradado.cpp`) fuerza el rojo, baja el permiso de la pila y anota la
+rendicion —asi **ni reanuda tras un corte ni reentra sola**— y deja el modo en `DEG_ROJO_SIN_HORA`, que
+sostiene el rojo en cada vuelta. En el Esclavo ese estado **sigue gobernando la luz**, para que la orfandad
+no lo lleve a ambar, y el `$STATUS` dice `MODO:DEGRADADO`. Publica `$ALARM ...EVENTO:DEGRADADO,
+CAUSA:ROJO_SIN_HORA,...,ACCION:ROJO_FIJO` al entrar y cada `AVISO_ROJO_SIN_HORA_MS` mientras dure (§7).
 
-**No se vuelve solo.** De ese ambar se sale **por una orden del operario**: una siembra fresca no devuelve el modo.
+**No se vuelve solo.** Del rojo fijo se sale **por una orden del operario**, por el todo-rojo de la salida:
+el Maestro con `SET_MODO:MENU`; el Esclavo con las tramas de gobierno del Maestro ya fuera de Degradado, o
+con `AMBAR_EMERGENCIA`. Una siembra fresca no devuelve el modo. 🔴 **Riesgo abierto, decision pendiente
+del responsable:** esa punta, si sufre un corte, ya no reanuda: el Maestro arranca en ambar (`D-40`,
+SPEC 1 §4.1) y el Esclavo cae a ambar por orfandad, **verde contra ambar** mientras la otra alterna.
 
 **El salto de hora pasa por ROJO** (`D-26` (4)). Cada siembra mueve la fase de golpe lo que el oscilador
 derivo. El umbral **no se escogio: se deriva del despeje** —es el rojo que separa los dos verdes, menos un
@@ -190,6 +198,17 @@ dos decisiones anteriores que nadie vio. **La reconstruccion difiere el BORRADO 
 - **La marca copiada de la pila no es una medida** (Esclavo): la reanudacion anota `syncDesdePila`, y mientras no
   llegue una sincronizacion de verdad, una pila que ya no puede fechar esa marca cuenta como «nunca sincronizado» y
   no se ignora por «la RAM esta sana». Asi las dos puntas contestan lo mismo con el mismo dato.
+- **La libreria del reloj pisa dos registros de la pila, y se reponen** (`N-172` H-D; construido, sin banco). La
+  libreria STM32duino del RTC guarda su fecha en DR6/DR7, que en `respaldo.cpp` son `REG_SYNC_BAJA`/`REG_SUMA_BAJA`:
+  con el contador por encima de un dia, `reloj_setup()` los reescribe y la suma deja de cuadrar, y la pila —con el
+  permiso de reanudar— se borraba entera. `respaldo_capturarAntesDelReloj()` copia los dos **antes** de
+  `reloj_setup()`, en las dos puntas; `respaldo_setup()` los repone si la suma no cuadra y valida otra vez con la
+  misma expresion; si tampoco cuadra, borra como siempre. **Limite abierto** (lectura del fuente, sin medir): ese
+  mismo arranque pliega el contador al dia, queda por debajo de la marca de la ultima sincronizacion y
+  `respaldo_horasDesdeSync()` contesta CADUCADA, asi que **el Degradado de `D-18`, SIN testigo, no reanuda** tras un
+  corte en una tarjeta con mas de un dia de contador (H-7). El de testigo no mira esa marca (SPEC 2 §7.bis).
+- **Si no reanuda, el Maestro arranca en ambar** (`D-40`, SPEC 1 §4.1); mientras la decision siga pendiente,
+  espera en el menu.
 - **Lo que NO se toca:** el **limite duro** sigue mandando —es la puerta que impide reanudar sobre una
   marca que ya no significa nada—, y **sigue sin haber entrada automatica al Degradado**: la activacion
   es manual (`SFTY-21`) y esto **reanuda** un modo que ya estaba puesto.
@@ -212,9 +231,10 @@ mandarian a mirar lo mismo, y son dos arreglos distintos.
 dure, porque quien la tiene que ver es el tecnico que se conecte **despues**.
 
 **Y una tercera, consecuencia de la segunda:** al caducar la hora dentro del Degradado se publica la misma
-alarma con causa `CADUCADA` y accion de cambio a ambar. **Va detras de la pregunta «¿hay hora?» a proposito:**
+alarma con causa `CADUCADA` y accion `CAMBIO_A_ROJO` (`D-38`). **Va detras de la pregunta «¿hay hora?» a proposito:**
 con la hora borrada a mano, quien la borro ya tiene su acuse, y decirle CADUCADA seria mandarle a mirar el
-cable por algo que hizo el.
+cable por algo que hizo el. **La cuarta, la del rojo fijo** (§5): `$ALARM DEGRADADO` con causa
+`ROJO_SIN_HORA` y accion `ROJO_FIJO`, de las dos puntas, sin esa condicion y repetida mientras dure.
 
 **Y la caida del Degradado del Maestro por su limite** sale como `$ALARM DEGRADADO` con la causa que la produjo —el
 contador del reloj no cuenta, la marca no se puede fechar, o el plazo— (H-1; que hace el tecnico: SPEC 6 PARTE C).
@@ -233,8 +253,9 @@ inundacion (`N-73`). **Cada linea sale de lo que la llamada devolvio**, nunca de
 | **`D-21`** (07/09) | la hora que miente se responde con **ambar intermitente en la punta que la tiene**, y se publica | «sin hora = no entra en Degradado» a secas, que no dice que hacer si la hora **ya estaba dentro** |
 | **`D-28`** (12/09) | **la mas nueva, y manda sobre las otras cuatro en esto:** (1) la cadencia queda fijada **al segundo** —el responsable la cerro para que nadie derivase su propia cifra—; (2) el plazo pasa a derivarse de **dos siembras perdidas** | de `D-26` (2), el «~» que dejaba la cadencia aproximada; **de `D-21` (1), que el plazo se derive del relevo** |
 | **`D-29`** (12/09) | el indicador de la pila no se borra hasta que la primera siembra del arranque haya podido llegar | que `N-20` hubiera muerto en el Esclavo — que era el estado de hecho, sin que nadie lo decidiera |
+| **`D-38`** (30/09) | en Degradado, la punta que pierde la hora fiable pasa a **rojo fijo** (§5) | de `D-21` (1), el ambar, solo dentro del Degradado |
 
-**No hay contradiccion viva entre las cinco.** Las que parecen chocar se resuelven por fecha, y lo dicen
+**No hay contradiccion viva entre las seis.** Las que parecen chocar se resuelven por fecha, y lo dicen
 en su propia fila. Y la del ambar por hora que miente lleva **su propia premisa tumbada** —«tendrian que
 pasar MESES»— marcada como refutada al revisarla en noviembre: con el cable de siembra mudo son minutos.
 
@@ -260,7 +281,7 @@ sincronizar», y tras un reset eso abria la puerta de FRESCURA de la entrada del
   de respaldo** en el Maestro, que es la unica que tiene esa funcion. Nunca la maquina sola.
 - **La hora cae con el SOLO si su unica fuente era ese contador** (sin base de software sembrada): entonces
   se retira la hora valida —y en el Esclavo su fuente pasa a ninguna—, `reloj_horaFiable()` da falso, la puerta
-  del Degradado rechaza por falta de hora y el bucle va a ambar (Maestro) o se rinde (Esclavo). Con base
+  del Degradado rechaza por falta de hora y el bucle pasa a rojo fijo en las dos (`D-38`, §5). Con base
   sembrada la hora sigue intacta y la cubre su propia caducidad (§4).
 - **Ejercido:** el arnes de dos puntas lleva la perilla de congelacion del contador (bloque `F6` de
   `Validacion_Automatico/dos_puntas/orquestador_degradado.cpp`): control negativo, cura y cerrojo en el
@@ -288,8 +309,9 @@ sincronizar», y tras un reset eso abria la puerta de FRESCURA de la entrada del
 
 1. **Casi nadie lo dice.** Fuera de las dos salidas de arriba —el `$ERR` de `REINICIAR_RELOJ` y la alarma del limite
    del Maestro—, ningun evento ni campo del `$STATUS` nombra el cristal parado, y la alarma de hora `CADUCADA` va
-   detras de «¿hay hora?», que en la rama sin base ya es falso. **Un tecnico que se conecta despues**, o un
-   Esclavo, siguen dando el ambar sin su causa. *(Medido por ausencia; ninguna fila lo ordena todavia.)*
+   detras de «¿hay hora?», que en la rama sin base ya es falso. Desde `D-38` las dos puntas publican el rojo fijo
+   (`ROJO_SIN_HORA`, repetido), pero esa alarma dice «perdio la hora», **no** «el cristal no cuenta».
+   *(Medido por ausencia; ninguna fila lo ordena todavia.)*
 2. 🟢 ~~SIN VERIFICAR — `roadmap.md` 1.49 (a) y (b)~~ → **medidos reales y CONSTRUIDOS** (registro 1, arriba). **Lo que
    queda, medido sobre `622a20b`:**
    - 🔴 **`RELOJ_NO_CUENTA` gana aunque el plazo lo midiera la RAM.** La rama pregunta el cristal ANTES que el
@@ -300,8 +322,8 @@ sincronizar», y tras un reset eso abria la puerta de FRESCURA de la entrada del
      marca no se pudo fechar**, como `SYNC_SIN_FECHA`. *(Lectura del fuente; ningun arnes recorre ese caso.)*
    - **La rendicion del Esclavo por su limite sigue MUDA:** baja `rendidoPorHora` y se rinde sin `$ALARM`; lo unico
      que queda es el parte periodico de sincronizacion con su vencido. Las dos puntas no avisan igual de la misma caida.
-   - **La app no traduce `$ALARM DEGRADADO`:** `js/avisos_equipo.js` no tiene ninguna entrada con ese evento, asi que
-     las tres causas se pintan en crudo (SPEC 4 §7, hueco 11).
+   - **La app no traduce las tres causas del limite:** `js/avisos_equipo.js` solo tiene, de `$ALARM DEGRADADO`, la de
+     `ROJO_SIN_HORA`; las otras tres se pintan en crudo (SPEC 4 §7, hueco 11).
    - El contador congelado sigue saliendo como no nulo durante la ventana (`return v == 0 ? 1UL : v;` sigue en el
      fuente); lo que cambio es que quien decide ya no lo lee antes del veredicto.
 3. **Sin banco y sin tarjeta** (H-6). ⚠️ Exigir medida en RAM en la puerta **contradice `D-29`**: no es orden.
@@ -346,7 +368,15 @@ entran: narran por que se bajo, y eso sigue siendo cierto.)*
 
 ### H-6 Nada de esto ha visto una tarjeta
 
-El relevo de fuente y el plazo nuevo estan **fusionados en `main` y SIN BANCO**: lo que hay son packs y
+El relevo de fuente, el plazo nuevo, el rojo fijo de §5 y la reposicion de DR6/DR7 de §6 estan **en `main` y SIN
+BANCO**: lo que hay son packs y
 arneses de PC, y **un verde de la compuerta no dice que el firmware funcione en la tarjeta**
 (`CLAUDE.md` §0.3). La unica medida tomada sobre el aparato real —la cinta del Sisga— es justamente la
 que destapo **H-1**, y su deteccion tampoco ha visto una tarjeta.
+
+### H-7 🔴 El Degradado sin testigo no reanuda en una tarjeta con mas de un dia de contador
+
+Lectura del fuente, sin medir (§6): el arranque pliega el contador del reloj al dia (lo hace la libreria al leer
+la hora dentro de `reloj_setup()`), la marca de la ultima sincronizacion queda por encima y
+`respaldo_horasDesdeSync()` contesta CADUCADA por su regla de retroceso. Reponer DR6/DR7 salva la pila, **no esta
+cuenta**. Lo que hace el equipo hoy: no reanuda y el Maestro arranca en ambar (`D-40`). Que hacer es decision pendiente.
