@@ -435,7 +435,6 @@ uint8_t reloj_segundo() { return 0; }
 uint8_t reloj_dia() { return 0; }
 uint32_t reloj_segundosDelDia() { return 0; }
 uint32_t reloj_contadorSegundos() { return 0; }   // N-49: sin reloj en este arnes
-void reloj_fijarEnero() {}
 
 void respaldo_marcarSync(uint32_t) {}   // N-49: ahora recibe el contador del RTC
 

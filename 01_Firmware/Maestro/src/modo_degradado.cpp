@@ -308,26 +308,15 @@ static bool reanudacionPendiente = false;
 // ---------------------------------------------------------------------------
 // D-29 — LA VENTANA EN LA QUE LA REANUDACION TODAVIA PUEDE DECIDIRSE.
 //
-// Gemela de la del Esclavo, con el mismo porque y el mismo borde, porque el defecto es el
-// mismo en las dos puntas: desde N-162 (11/09) la siembra ya no escribe el RTC hardware,
-// asi que reloj_setup() deja horaValida en false tras CADA corte y la primera condicion
-// de la reanudacion cierra dentro de setup(). La hora la trae el ESP32 por J17 unos
-// segundos DESPUES, y si el permiso de la pila se borra en ese mismo arranque, cuando
-// llega ya no hay nada que reanudar.
+// Gemela de la del Esclavo. reloj_setup() arranca sin hora tras CADA corte (N-162, N-172: la hora
+// solo la da la siembra), y la trae el ESP32 por J17 unos segundos DESPUES: borrar el permiso en
+// ese arranque dejaria sin nada que reanudar cuando llega.
 //
-// EL BORDE, Y POR QUE ES ESTE (CLAUDE.md 7). Es el MISMO instante en el que bluetooth.cpp
-// da por muda la siembra del ESP32 y publica $ALARM EVENTO:HORA_ESP32
-// -HORA_ESP32_ESPERA_MAX_MS, tres cadencias-. El permiso se conserva exactamente mientras
-// el propio firmware considera que la siembra PUEDE llegar, y cuando se tira el tecnico
-// ya tiene la alarma que dice por que. Se cuenta con millis() a secas porque el ESP32 y
-// el STM32 arrancan A LA VEZ y comparten ese origen (contrato.h). Lo que cabe dentro,
-// leido del calendario de siembra.cpp: la primera siembra (~1,5 s) pilla el puerto
-// cerrado -delay(2000) + ESPERA_LSE_MS antes de bluetooth_setup()-, y se pueden oir
-// SIEMBRA_REINTENTO_1_MS (10 s), SIEMBRA_REINTENTO_2_MS (60 s) y la cadencia (180 s y
-// 300 s): cuatro oportunidades.
-//
-// Se DERIVA del simbolo y no se copia el numero, igual que LIMITE_DURO_H se deriva de
-// LIMITE_DURO_MS.
+// EL BORDE (CLAUDE.md 7) es el instante en que bluetooth.cpp da por muda la siembra y publica
+// $ALARM EVENTO:HORA_ESP32 (HORA_ESP32_ESPERA_MAX_MS, tres cadencias): el permiso vive mientras el
+// firmware cree que la siembra PUEDE llegar. millis() a secas: ESP32 y STM32 arrancan A LA VEZ
+// (contrato.h). Caben la primera siembra, SIEMBRA_REINTENTO_1_MS, SIEMBRA_REINTENTO_2_MS y la
+// cadencia: cuatro oportunidades. Se DERIVA del simbolo, como LIMITE_DURO_H de LIMITE_DURO_MS.
 static const unsigned long VENTANA_REANUDACION_MS = HORA_ESP32_ESPERA_MAX_MS;
 
 // D-29 — ¿QUEDA ALGO POR DECIDIR DE LA REANUDACION DE ESTE ARRANQUE?
@@ -819,6 +808,14 @@ bool modo_degradado_pedirSalida() {
   estado = DEG_SALIDA_ROJO;
   tEstado = millis();
   return true;
+}
+
+// El ciclo por reloj reabria el verde tras el amarillo de coordinador_forzarRojoTotal(), y su
+// GO_RED sacaba al Esclavo de su Degradado con esta punta todavia en el.
+uint8_t modo_degradado_forzarRojo() {
+  if (modoActual_get() == MODO_DEGRADADO) return modo_degradado_pedirSalida() ? 1 : 2;
+  coordinador_forzarRojoTotal();
+  return 0;
 }
 
 // ---------------------------------------------------------------------------

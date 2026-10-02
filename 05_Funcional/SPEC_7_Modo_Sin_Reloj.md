@@ -70,7 +70,7 @@ valida**, que es justo lo que la barrera del contenido de `siembra.cpp` existe p
 ### (c) En el STM32 — **AQUI ESTA LA TRAMPA, y esta medida**
 
 El STM32 **no tiene reloj que sirva**: `Y2` esta confirmado muerto (`N-17`, ⚠️ **medido en UNA
-tarjeta**) y su calendario esta anclado por construccion (`reloj_fijarEnero()`). Lo que tiene es
+tarjeta**) y no lleva calendario: del RTC solo usa el contador (`N-172`). Lo que tiene es
 una base de software extrapolada con `millis()`, y **`millis()` corre sobre el HSI**, cuyo peor
 caso de ficha es `HSI_PPM_PEOR` —del orden del **2,5 %**, no de las decenas de ppm de un
 cristal—.

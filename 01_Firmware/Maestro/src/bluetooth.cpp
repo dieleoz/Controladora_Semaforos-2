@@ -566,6 +566,14 @@ static bool horaDelDiaValida(int h, int m, int s) {
   return h >= 0 && h <= 23 && m >= 0 && m <= 59 && s >= 0 && s <= 59;
 }
 
+static void forzarRojo(const char* evento) {   // SPEC_4 3.1: con y sin PIN; en Degradado, la salida
+  const uint8_t r = modo_degradado_forzarRojo();
+  if (r == 1) enviarTramaConCrc("$ACK,CMD:FORZAR_ROJO,RESULT:SALIENDO_TODO_ROJO");
+  else if (r == 2) enviarTramaConCrc("$ACK,CMD:FORZAR_ROJO,RESULT:SALIDA_YA_EN_CURSO");
+  else enviarTramaConCrc("$ACK,CMD:FORZAR_ROJO,RESULT:OK");
+  bluetooth_reportarEvento("APP_BLUETOOTH", evento);
+}
+
 static void procesarComando(const char* cmd) {
   // AB-1 - LA LINEA RESERVADA DEL PUENTE, Y VA LA PRIMERA DE TODAS.
   //
@@ -602,17 +610,11 @@ static void procesarComando(const char* cmd) {
 
   // SFTY - EL ROJO DE EMERGENCIA NO PIDE PIN, Y ES DELIBERADO.
   //
-  // mando.cpp ya lo dejo escrito para el mando de reles: "lo seguro, facil; lo
-  // peligroso, dificil". Detener el trafico es la accion SEGURA -el equipo cae a
-  // todo-rojo-, asi que ponerle una clave delante solo retrasa a quien esta viendo
-  // el incidente. El PIN guarda lo que ABRE paso o mueve luces; no lo que las para.
-  //
-  // Se acepta tambien la forma con PIN mas abajo: la app la envia asi y el manual
-  // la documenta. Las dos entradas hacen lo mismo.
+  // "Lo seguro, facil; lo peligroso, dificil": detener el trafico es la accion SEGURA, y una
+  // clave delante solo retrasa a quien ve el incidente. El PIN guarda lo que ABRE paso.
+  // La forma con PIN, mas abajo, hace lo mismo: la app la envia asi y el manual la documenta.
   if (strcmp(cmd, "CMD:FORZAR_ROJO") == 0) {
-    coordinador_forzarRojoTotal();
-    enviarTramaConCrc("$ACK,CMD:FORZAR_ROJO,RESULT:OK");
-    bluetooth_reportarEvento("APP_BLUETOOTH", "FORZAR_ROJO_SIN_PIN");
+    forzarRojo("FORZAR_ROJO_SIN_PIN");
     return;
   }
 
@@ -876,9 +878,7 @@ static void procesarComando(const char* cmd) {
              degAuto_aptoPropio() ? "SI" : "NO");
     enviarTramaConCrc(p);
   } else if (strcmp(accion, "FORZAR_ROJO") == 0) {
-    coordinador_forzarRojoTotal();
-    enviarTramaConCrc("$ACK,CMD:FORZAR_ROJO,RESULT:OK");
-    bluetooth_reportarEvento("APP_BLUETOOTH", "FORZAR_ROJO_TOTAL");
+    forzarRojo("FORZAR_ROJO_TOTAL");
   } else if (strcmp(accion, "MANUAL:CAMBIAR_TURNO") == 0) {
     // Antes se mandaba OK pasara lo que pasara. coordinador_pedirCambio() abandona en
     // silencio si el coordinador no esta en reposo -esta a mitad de una transicion, que

@@ -10,7 +10,6 @@
 
 #include "Arduino.h"
 #include "reloj.h"           // el de la punta que se compila: -I de su include REAL
-#include "STM32RTC.h"
 #include "stm32f1xx_hal.h"
 
 // --- El silicio ---------------------------------------------------------------------
@@ -21,13 +20,6 @@ bool arnes_rtc_congelado = false;        // 1.22: el tercer estado, ver stm32f1x
 uint32_t arnes_rtc_cnt_congelado = 0;
 ArnesRccRegs arnes_rcc;
 ArnesRtcRegs arnes_rtc_regs;
-
-bool arnes_rtc_configurado = false;      // ver STM32RTC.h: desde N-162 nadie lo escribe
-uint32_t arnes_rtc_cal_base = 0;
-unsigned long arnes_rtc_cal_ancla = 0;
-uint8_t arnes_rtc_dia = 1;
-uint8_t arnes_rtc_mes = 1;
-uint8_t arnes_rtc_anio = 0;
 
 // --- El HSI -----------------------------------------------------------------------------
 static long g_ppm = 0;
@@ -120,34 +112,18 @@ void arnes_rtc_congelar(bool congelado) {
 bool arnes_rtc_esta_congelado() { return arnes_rtc_congelado; }
 
 // --- El dominio de respaldo del RTC -------------------------------------------------------
+// Solo el contador (indice 10). N-172: el calendario de la libreria vive en DR6/DR7 (STM32RTC.h)
+// y no tiene registros propios; los indices 11..13 quedan sin uso.
 long arnes_dominio_leer_rtc(int indice) {
-  switch (indice) {
-    case 10: return (long)arnes_rtc_cnt();
-    case 11: return arnes_rtc_configurado ? 1 : 0;
-    case 12: return (long)((arnes_rtc_cal_base +
-                            (uint32_t)((arnes_millis_valor - arnes_rtc_cal_ancla) / 1000UL)) %
-                           86400UL);
-    case 13: return (long)arnes_rtc_dia;
-    default: return 0;
-  }
+  return indice == 10 ? (long)arnes_rtc_cnt() : 0;
 }
 
 void arnes_dominio_escribir_rtc(int indice, long valor) {
-  switch (indice) {
-    case 10:
-      arnes_rtc_cnt_base = (uint32_t)valor;
-      arnes_rtc_cnt_ancla = arnes_millis_valor;
-      // 1.22: la reposicion tras un microcorte tiene que llegar tambien al valor congelado,
-      // o el corte DESCONGELARIA el cristal por la puerta de atras: la pila mantiene el
-      // contador, no repara el oscilador.
-      if (arnes_rtc_congelado) arnes_rtc_cnt_congelado = (uint32_t)valor;
-      break;
-    case 11:
-      arnes_rtc_configurado = (valor != 0);
-      if (arnes_rtc_configurado) arnes_rtc_anio = 26;   // ANIO_MARCA de reloj.cpp
-      break;
-    case 12: arnes_rtc_cal_base = (uint32_t)valor; arnes_rtc_cal_ancla = arnes_millis_valor; break;
-    case 13: arnes_rtc_dia = (uint8_t)valor; break;
-    default: break;
-  }
+  if (indice != 10) return;
+  arnes_rtc_cnt_base = (uint32_t)valor;
+  arnes_rtc_cnt_ancla = arnes_millis_valor;
+  // 1.22: la reposicion tras un microcorte tiene que llegar tambien al valor congelado,
+  // o el corte DESCONGELARIA el cristal por la puerta de atras: la pila mantiene el
+  // contador, no repara el oscilador.
+  if (arnes_rtc_congelado) arnes_rtc_cnt_congelado = (uint32_t)valor;
 }

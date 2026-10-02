@@ -589,15 +589,8 @@ static const unsigned long VIGILANCIA_RELOJ_MS = 600000UL;  // 10 min
 static void vigilarCambioDeHora() {
   if (millis() - tSegDiaVisto < VIGILANCIA_RELOJ_MS) return;
 
-  // Ancla el calendario propio a enero cada 10 min. El Esclavo ya queda anclado en
-  // cada sincronizacion, pero el mes del Maestro avanzaria solo, y el RTC vuelca de
-  // 31 a 1 SEGUN LA LONGITUD DEL MES: en febrero el Maestro volcaria en 28 mientras
-  // el Esclavo, en enero, sigue en 29. Se separarian hasta la siguiente sync, y un
-  // corte en esa ventana reproduce la asimetria ambar-contra-verde.
-  //
-  // Con las dos puntas en enero, ambas vuelcan en 31 y a la vez. Que el mes sea falso
-  // da igual: nadie lo muestra, solo se restan dias, y lo que importa es restar IGUAL.
-  reloj_fijarEnero();
+  // N-172: aqui se anclaba el calendario del RTC a enero (reloj_fijarEnero). El STM32 ya no
+  // lleva calendario: el dia lo cuenta la base de software de la siembra en las dos puntas.
 
   bool enHora = reloj_enHora();
 
@@ -1161,10 +1154,8 @@ void coordinador_actualizar() {
       // (puedeSostenerVerde()) y el rojo cae donde caia el rojo directo.
       semaforo_forzarRojo();
       quienVerde = QV_NINGUNO;
-      // Llevamos un margen entero sin oir a la otra punta: lo que constara de ella ya no
-      // consta. Ademas es lo que hace que el LATIDO pase a mandar GO_RED en vez de PING
-      // -rojoSinConstar, N-162-, o sea que la otra punta recibe la orden de rojo por el
-      // camino que ya existe, sin anadir aqui un envio.
+      // Un margen entero sin oir a la otra punta: lo que constara ya no consta, y el LATIDO pasa a
+      // mandar GO_RED en vez de PING (rojoSinConstar, N-162) sin anadir aqui un envio.
       rojoEsclavoConfirmado = false;
       // tRef: lo renueva el final del amarillo, arriba (N-147: es cuando empezo el rojo).
       // SE SALE A C_IDLE, Y ESO NO ES PEREZA: ES LA CONDICION QUE DECIDE EL CAMBIO.
@@ -1184,6 +1175,14 @@ void coordinador_actualizar() {
       // falta. El Esclavo oye EXACTAMENTE lo mismo que oiria sin este cambio.
       verdeSoltadoPorMargen = true;
       estadoC = C_IDLE;
+    } else if (!puedeSostenerVerde() && estadoC == C_IDLE && quienVerde == QV_ESCLAVO) {
+      // SPEC_2 s4 (condicion 1): el verde del OTRO poste se suelta en el mismo punto (con la subida
+      // muerta los latidos se lo sostienen); el GO_RED sale ya y su amarillo acaba en el umbral.
+      quienVerde = QV_NINGUNO;
+      rojoEsclavoConfirmado = false;
+      protocolo_enviarPaquete(CMD_GO_RED);
+      tUltimoPing = millis();
+      verdeSoltadoPorMargen = true;
     }
 
     if (!tieneComunicacion) {

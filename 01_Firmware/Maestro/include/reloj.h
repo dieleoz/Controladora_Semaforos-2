@@ -101,8 +101,6 @@ struct RelojDiag {
   bool rtcEn;
   bool cntLeido;     // false si rtcEn=0: no se toco el periferico
   uint32_t cnt;      // contador crudo del RTC, solo si cntLeido
-  bool configurado;  // rtc.isConfigured()
-  uint16_t anio;     // 0 si no se pudo leer
 };
 
 // Rellena la estructura leyendo RCC->BDCR y, solo si el RTC esta habilitado, su
@@ -112,9 +110,9 @@ void reloj_diagnostico(RelojDiag* d);
 // N-49 — El contador crudo del RTC: 32 bits de SEGUNDOS que mantiene la pila.
 //
 // Es la unica medida de tiempo de este equipo que sobrevive al corte Y es monotona.
-// La hora de pared no sirve para fechar: el calendario esta anclado a enero (ver
-// reloj_fijarEnero) y el dia vuelve de 31 a 1, asi que restar dias del mes no
-// distingue "ayer" de "hace un mes y un dia". Este contador no vuelve en 136 anos.
+// La hora de pared no sirve para fechar: el dia vuelve de 31 a 1, asi que restar dias del
+// mes no distingue "ayer" de "hace un mes y un dia". Este contador no vuelve en 136 anos, y
+// desde N-172 nadie lo escribe: el firmware no usa la libreria del RTC, que lo plegaba al dia.
 //
 // Devuelve 0 si el RTC no esta operativo, y ese cero es un valor con significado:
 // respaldo_marcarSync() y respaldo_horasDesdeSync() lo tratan como "no hay reloj" y
@@ -147,21 +145,6 @@ uint8_t reloj_hora();      // 0..23
 uint8_t reloj_minuto();    // 0..59
 uint8_t reloj_segundo();   // 0..59
 
-// Mantiene el calendario anclado a ENERO.
-//
-// El Esclavo queda fijado a enero en cada sincronizacion, pero el mes del Maestro
-// avanzaria solo (ene -> feb -> ...). Y el RTC decide cuando pasa de 31 a 1 SEGUN LA
-// LONGITUD DEL MES: en febrero el Maestro volcaria 28->1 mientras el Esclavo, en
-// enero, sigue en 29. Los dos calendarios volverian a separarse hasta la siguiente
-// sincronizacion, y un corte de energia en esa ventana reproduce la asimetria
-// ambar-contra-verde que CMD_HORA_D vino a cerrar.
-//
-// Anclando las dos puntas a enero, ambas vuelcan en 31 y en el mismo instante. No
-// importa que el mes sea falso: el equipo no muestra la fecha ni la interpreta, solo
-// resta dias. Lo que importa es que resten IGUAL.
-//
-// Se llama periodicamente; es idempotente y no toca la hora.
-void reloj_fijarEnero();
 
 // Dia del mes, 1..31. Devuelve 0 si el reloj no esta en hora.
 //
@@ -426,10 +409,8 @@ static_assert((HORA_DERIVA_S - 1UL) * 1000000UL / HSI_PPM_PEOR * 1000UL <= HORA_
 // siembra (lo mantiene reloj_actualizar() en cada vuelta), para que la vuelta de millis() a
 // los 49,7 dias no la rejuvenezca.
 //
-// EL BORDE, ESCRITO: una hora que vino SOLO del RTC de hardware -sin ninguna siembra en este
-// arranque- NO caduca aqui. Esa no corre sobre el HSI sino sobre el cristal Y2, y la cubre el
-// limite de 48 h del Degradado; desde D-20 no hay quien la escriba, y con Y2 muerto (N-17)
-// ni siquiera nace valida.
+// EL BORDE, ESCRITO: desde N-172 no hay hora que venga solo del RTC de hardware; horaValida
+// solo la sube una siembra, y toda siembra pone la base de software que aqui caduca.
 //
 // NO SUSTITUYE A reloj_enHora(), y son dos preguntas a proposito (CLAUDE.md 8): aquella
 // contesta "hay hora?" y la leen la sincronizacion por radio, la medida de desfase y la

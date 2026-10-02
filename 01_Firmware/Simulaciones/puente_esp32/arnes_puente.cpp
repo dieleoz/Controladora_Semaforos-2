@@ -150,7 +150,6 @@ uint32_t reloj_contadorSegundos() { return rlj_cnt; }
 uint32_t reloj_segundosDelDia() { return rlj_h * 3600UL + rlj_m * 60UL + rlj_s; }
 void reloj_setup() {}
 void reloj_actualizar() {}
-void reloj_fijarEnero() {}
 // D-20 / N-160 - REPLICA DE LA REGLA DE RANGO DEL FIRMWARE, NO UNA VERSION FLOJA.
 //
 // El firmware movio la guarda de reloj_ajustar() a reloj_ajustarConAcuse(), que es la

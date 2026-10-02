@@ -183,6 +183,16 @@ anclas se desfasaban por el otro lado: ~~el Maestro cuenta desde lo último que 
   la cadencia del latido: **premisa escrita junto a la constante, no medida con repetidor**.
 - **Al oír ese aviso con el cruce quieto, el Maestro reanuda por la misma puerta de `N-163`**: rojo, acuse, despeje, y
   su propio verde.
+- **Con la subida Esclavo→Maestro muerta y la bajada viva, la suelta del verde del Poste 2 la hace el Poste 1**
+  (condición 1 del arquitecto, 02/10; construido, sin banco). Los latidos le renuevan el silencio al Esclavo y su
+  propia suelta no actúa. Con el verde en el Poste 2 (`QV_ESCLAVO`, en reposo) y sin respuesta durante
+  `SFTY6_SILENCIO_MS - TIMEOUT_ACK_MS - AMARILLO_MS` (21,5 s) —el mismo punto de `puedeSostenerVerde()`—, el Poste 1
+  **pide su rojo en ese instante** (`CMD_GO_RED` ya; el latido lo repite a su cadencia mientras el rojo no conste),
+  marca la suelta por margen y sale a reposo. **No entra en ámbar hasta que vence la ventana** `TIMEOUT_ACK_MS +
+  AMARILLO_MS` desde esa orden, que por construcción acaba en el umbral: el ámbar sigue a `SFTY6_SILENCIO_MS` y el
+  Poste 2 ya está en rojo. Antes el `GO_RED` salía al entrar en ámbar: un viaje en verde y 3 s de amarillo contra el
+  ámbar. **No cubre** la pérdida de esos `GO_RED`: el Poste 2 sigue en verde hasta su orfandad, contada desde la
+  última trama que le llegó, como antes. Lo ejerce `G1` del arnés de dos puntas, con el amarillo contado como paso.
 
 **Lo que cuesta**: un microcorte que vuelve justo en ese margen da un rojo y un despeje de más, nunca un ámbar; y con
 enlace malo la entrega del verde se retrasa un latido por cada respuesta perdida, sin pasar del umbral de silencio.
@@ -253,6 +263,11 @@ ninguna admite marcha atrás** (el indicador de la pila se baja **al empezar** l
 de la radio**, sólo con tramas de **gobierno** · **el límite duro** sin sincronización, con su aviso previo · y la
 **la hora no fiable**. **El límite acaba en ámbar y sólo el Esclavo pasa por el despeje** (**SPEC 6 A.4**); **la hora
 no fiable acaba en ROJO FIJO en las dos** (`D-38`, `irARojoSinHora()`; SPEC 3 §5). De ninguno de los dos se sale solo.
+**La salida del operario en el Poste 1 es una sola puerta** (condicion 2 del arquitecto, 02/10; construido, sin banco):
+`SET_MODO:MENU` y el rojo de emergencia `FORZAR_ROJO` hacen lo mismo, la salida por su todo-rojo, y lo acusan igual
+(SPEC 4 §3.1). El rojo de emergencia ya no arranca el amarillo dentro del modo ni manda `GO_RED` desde el Degradado: el
+ciclo por reloj volvia a abrir el verde y ese `GO_RED` sacaba al Esclavo de su Degradado con el Maestro todavia en el.
+Al Esclavo lo saca el latido del Maestro ya fuera del modo, si hay radio; sin ella sigue en Degradado (§7.ter, punto 5).
 **Desde `cda33df` (`N-174`, sin banco):** el rojo fijo sobrevive a un corte (`D-47`, `FLAG_ROJO_SIN_HORA`) y
 alcanza también al reloj que se congela en marcha (`D-49`), que antes iba a ámbar; los dos, en SPEC 3 §5.
 **Todo paso de verde a rojo del Degradado lleva su amarillo** (`D-45`), porque todos pasan por
@@ -356,10 +371,10 @@ reserva en `platformio.ini` (`board_upload.maximum_size`) para que el enlazador 
 escribe una vez por testigo, con el poste en ROJO, y lleva su propia suma. `respaldo.cpp` no cambia de formato.
 
 **Reglas de construcción** (medidas sobre el fuente):
-- **DR6/DR7:** la librería STM32duino RTC los reserva para la fecha (`RTC_BKP_DATE`) y `respaldo.cpp` los usa para
-  la sync. Hallazgo SIN MEDIR en tarjeta, fuera de este apartado.
+- **DR6/DR7:** son de `respaldo.cpp` y de nadie más: el firmware ya no usa la librería STM32duino RTC, que guardaba
+  allí su fecha (`N-172`, SPEC 3 §6).
 - **Los 31 días se cuentan con la fecha del DS3231** que trae `CMD:HORA_ESP32`, no con `reloj_contadorSegundos()`:
-  sin `Y2` ese contador no sirve y `HAL_RTC_GetTime` puede reescribir CNT (sin medir). Se permite tocar `reloj.cpp`
+  sin `Y2` ese contador no sirve (desde `N-172` el firmware no lo reescribe nunca). Se permite tocar `reloj.cpp`
   sólo para guardar el día que trae la siembra.
 - **`verde` distinto de 180:** rechazo de formato. **Medianoche:** `inicio` vencido si
   `(inicio − reloj) mod 86400 > 12 h`. **A los 28 días sólo avisa;** el ámbar llega a los 31.
@@ -482,7 +497,8 @@ en Degradado cada `PRESENTE_S` en su segundo desfasado (medio dúplex). Al oírl
 DETALLE:ENLACE_DISPONIBLE` al recuperarla (se rearma tras 3 × `PRESENTE_S` sin oírla) y, **en Degradado, otra vez cada
 `ENLACE_AVISO_REPETIR_MS` mientras se la oiga** (`oirPresente()` de `deg_auto.cpp`, las dos puntas): quien se conecta
 después también se entera; la app lo junta en un cartel fijo (SPEC 4 §3.ter.bis). **No sale del modo:**
-la salida sigue siendo el operario (Maestro: `SET_MODO:MENU`; Esclavo: las tramas de gobierno del Maestro ya fuera de
+la salida sigue siendo el operario (Maestro: `SET_MODO:MENU` o `FORZAR_ROJO`; Esclavo: las tramas de gobierno del
+Maestro ya fuera de
 Degradado, §7). **`CMD_PRESENTE` no llama a `reloj_notarRadio()`** (dejaría la hora del Esclavo esperando a la radio
 en vez de a su ESP32), **ni refresca `tUltimoComando` ni `tUltimaRespuestaEsclavo`, ni pone `handshakeOk`, ni cuenta
 para (b), ni saca del Degradado**: en el Esclavo se filtra ANTES de `reloj_notarRadio()`; en el Maestro, al principio
@@ -733,5 +749,5 @@ pendientes**: apuntan al fichero de protocolo y al coordinador fuera del ciclo �
 10. 🟡 **EL AMARILLO DE CIERRE (`D-45`, `N-174`) ESTÁ CONSTRUIDO EN `cda33df`, SIN BANCO** (§2.2.bis, §4, §7,
    §8 (e.bis)), con el umbral a 28 s (`D-48`) como salida al presupuesto de radio. 🔴 **Abiertos:** el borde de la
    desigualdad (B) (27,3 s contra el rojo de la suelta, 30,3 s contra su arranque; §2.2.bis, §9), `ESC:AMARILLO`
-   sin construir (§2.2.bis) y el arranque del Poste 1 en rojo fijo sin hora (`D-47`), que ningún arnés ejerce
-   (SPEC 1 §4.1). Símbolos e instrumentos, SPEC 1 §12.10.
+   sin construir (§2.2.bis). El arranque en rojo fijo sin hora (`D-47`) lo ejercen `F2.5`, `F2.6` y `F3.5` del
+   arnés del Degradado (SPEC 3 §5). Símbolos e instrumentos, SPEC 1 §12.10.

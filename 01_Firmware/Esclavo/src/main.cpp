@@ -239,7 +239,6 @@ void setup() {
   //
   // PENDIENTE DE BANCO (N-17): probar el arranque con Y2 desconectado y comprobar
   // que el equipo bootea igual, con reloj_enHora() en false.
-  respaldo_capturarAntesDelReloj();   // la libreria del RTC reescribe DR6/DR7 (respaldo.cpp)
   reloj_setup();
 
   // N-20: memoria que sobrevive al corte. VA DESPUES DE reloj_setup() a proposito:

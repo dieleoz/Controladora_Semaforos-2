@@ -952,6 +952,9 @@ static void configurarEsclavo(uint8_t verdeSeg, uint8_t despejeSeg) {
 // mismo carril que esta punta acaba de abrir. El detector va aislado, como el de E4, para
 // que su control negativo lo ejerza con valores sinteticos.
 // ---------------------------------------------------------------------------
+// D-45 (condicion 1 del arquitecto, 02/10): "verde" es PASO, y el amarillo de cierre tambien lo
+// es (SPEC_2 s4: "un amarillo contra el ambar intermitente del otro poste es paso abierto"). La
+// inversion de D-45 lo puso en los contadores de despeje y en el arnes del Degradado, y aqui no.
 static bool hayVerdeFrenteASinRojo(bool verdeA, bool rojoB) { return verdeA && !rojoB; }
 
 static const char* nombreLuz(int e) {
@@ -991,6 +994,7 @@ struct CorridaG {
   unsigned long tCorte = 0;
   bool maestroFallo = false;       // el coordinador llego a C_FALLO en algun instante
   int esclavoAlFallo = -1;         // luz del Esclavo en el primer instante con C_FALLO
+  int esclavoAlUltFallo = -1; bool mFalloAntes = false;   // y en la ULTIMA entrada en C_FALLO
   unsigned long tFallo = 0;
   // N-162 (bloque G, el control de toda inversion -CLAUDE.md 9-): un Maestro que no se
   // abriera NUNCA pasaria la ventana igual de bien que el correcto. Se anota cuando se abre
@@ -1038,20 +1042,25 @@ static void pasoG(CorridaG& c) {
   const bool goRojo = (g_goRojoEntregados != gr0);
   VentanaG& v = c.v;
   const bool vM = MAESTRO.verde(), vE = ESCLAVO.verde();
-  const bool dentro = hayVerdeFrenteASinRojo(vM, ESCLAVO.rojo()) ||
-                      hayVerdeFrenteASinRojo(vE, MAESTRO.rojo());
+  const bool pM = vM || MAESTRO.estado() == S_AMARILLO_V;   // D-45: el amarillo es paso
+  const bool pE = vE || ESCLAVO.estado() == S_AMARILLO_V;
+  const bool dentro = hayVerdeFrenteASinRojo(pM, ESCLAVO.rojo()) ||
+                      hayVerdeFrenteASinRojo(pE, MAESTRO.rojo());
   const std::string foto = fotoG();
   if (dentro) {
     v.instantes++;
     if (vM && vE) v.simultaneo++;
-    if ((vM && ESCLAVO.estado() == S_FALLO_V) || (vE && MAESTRO.estado() == S_FALLO_V))
+    if ((pM && ESCLAVO.estado() == S_FALLO_V) || (pE && MAESTRO.estado() == S_FALLO_V))
       v.frenteAFallo++;
     if (!v.enCurso) { v.enCurso = true; v.largo = 0; v.rachas++; v.empezo = foto; }
     v.largo++;
   } else if (v.enCurso) {
     cerrarRachaG(v, foto + (goRojo ? " [GO_RED entregado al Esclavo en ese instante]" : ""));
   }
-  if (!c.maestroFallo && MAESTRO.orden("comunicacion_perdida") == 1) {
+  const bool cFallo = MAESTRO.orden("comunicacion_perdida") == 1;
+  if (cFallo && !c.mFalloAntes) c.esclavoAlUltFallo = ESCLAVO.estado();
+  c.mFalloAntes = cFallo;
+  if (!c.maestroFallo && cFallo) {
     c.maestroFallo = true;
     c.esclavoAlFallo = ESCLAVO.estado();
     c.tFallo = t;
@@ -2124,19 +2133,9 @@ int main() {
     // hardware. Con D-29 construida las DOS ramas acaban reanudando, asi que como control
     // de "reanuda o no" ya no distingue nada y habria que borrarlo o darle otro sujeto.
     //
-    // SE LE DA OTRO SUJETO, Y NO ES RELLENO. Aqui NO SE ENTREGA NINGUNA SIEMBRA, y aun asi
-    // el equipo reanuda EN setup(). Eso separa las dos causas que D10-D13 podrian estar
-    // confundiendo: alli la reanudacion la trae la siembra dentro de la ventana; aqui la
-    // trae el RTC hardware sin ventana ninguna. Si el diferimiento hubiera roto el camino
-    // que ya funcionaba -por ejemplo dejando la decision pendiente para siempre en vez de
-    // tomarla cuando se puede-, esta linea caeria y las de alla no. Es ademas la mitad de
-    // la divergencia de flotas que D-29 dice cerrar: la tarjeta anterior al 11/09 sigue
-    // haciendo lo de siempre.
-    //
-    // El dominio de la pila llega con el marcador del RTC hardware PUESTO. No es una
-    // puerta de atras al firmware: es el silicio de un equipo cuyo RTC escribio un
-    // firmware ANTERIOR al 11/09 -y con la CR2032 dentro, ese marcador sobrevive incluso a
-    // una recarga por SWD-.
+    // N-172, INVERTIDA: el dominio llega con el marcador del RTC hardware de un equipo anterior al
+    // 11/09 y NO se entrega siembra. Antes reanudaba en setup() con esa hora; el firmware ya no la
+    // lee (sin libreria del RTC), asi que espera la siembra con el permiso puesto (D-29).
     escenarioLimpio(tiempos(1, 1, 15));
     unsigned long sim0 = g_verdeSimultaneo;
     sincronizarEsclavo(10, 8, 0, 0);
@@ -2157,21 +2156,14 @@ int main() {
     avanzar(120000);
     const unsigned long verdesTrasCorte = g_ticksVerdeEsclavo - vE0;
 
-    comprobar(gobernabaAntes && enHora && gobierna && huboSync && respaldoSigue &&
-                  verdesTrasCorte > 0,
-              "D8 (el control de D10-D13 desde el 12/09): con el MISMO escenario, el RTC "
-              "hardware escrito -un equipo anterior al 11/09- y SIN ENTREGAR NI UNA "
-              "SIEMBRA, el Esclavo reanuda el Degradado ya en setup() y vuelve a encender "
-              "verde por su reloj (" + std::to_string(verdesTrasCorte) + " instantes). "
-              "Separa las dos causas: alla reanuda porque la siembra llego dentro de la "
-              "ventana, aqui porque la hora estaba desde el arranque. Y demuestra que el "
-              "diferimiento de D-29 no rompio el camino que ya funcionaba -la mitad de la "
-              "divergencia de flotas que D-29 cierra-");
+    comprobar(gobernabaAntes && !enHora && !gobierna && !huboSync && respaldoSigue &&
+                  verdesTrasCorte == 0,
+              "D8 (N-172, invertida): con el RTC hardware escrito -un equipo anterior al 11/09- "
+              "y SIN SIEMBRA, el Esclavo ya NO reanuda en setup(): sin hora, sin gobernar y " +
+              std::to_string(verdesTrasCorte) + " verdes en 2 min, con el permiso de la pila "
+              "esperando la siembra (D-29)");
     comprobar(g_verdeSimultaneo == sim0,
-              "D9: y en ese caso -el peor de los dos, porque aqui el Esclavo SI vuelve a dar "
-              "verde por su reloj con el Maestro sin enterarse- tampoco coincidio un verde "
-              "en las dos puntas. Sin el conteo de D8 esta linea seria adorno: una ventana "
-              "sin un solo verde del Esclavo la pasaria igual");
+              "D9: y tampoco coincidio un verde en las dos puntas");
   }
 
   // =========================================================================
@@ -2416,7 +2408,9 @@ int main() {
       c.tCorte = g_t;
       correrG(c, POST);
       finG(c);
-      if (!(ok && c.maestroFallo && c.esclavoAlFallo == S_VERDE_V && !ESCLAVO.verde()))
+      // Condicion 1 (SPEC_2 s4), INVERTIDO: antes exigia el Esclavo TODAVIA en verde al C_FALLO; ahora
+      // ROJO al ultimo (en la fase 0 antes hay el C_FALLO de un tick de los reintentos, el de G2).
+      if (!(ok && c.maestroFallo && c.esclavoAlUltFallo == S_ROJO_V && !ESCLAVO.verde()))
         g1Ejercido = false;
       const unsigned long acu = acumuladoMsG(c.v);
       if (acu < g1Min) g1Min = acu;
@@ -2429,14 +2423,14 @@ int main() {
     comprobar(g1Ejercido,
               "G1 (control): en las " + std::to_string(g1Fases) + " fases, el "
               "corte Esclavo->Maestro cayo con el Esclavo en VERDE y el Maestro en rojo, el "
-              "Maestro llego a C_FALLO con el Esclavo TODAVIA en verde, y el Esclavo acabo "
-              "fuera de verde");
+              "Maestro llego a C_FALLO con el Esclavo YA en ROJO (la suelta del Poste 1, "
+              "condicion 1), y el Esclavo acabo fuera de verde");
     comprobar(g1Max <= BORDE_MS,
               "G1: Esclavo->Maestro muerto con el Esclavo en verde. El Maestro cae a S_FALLO "
-              "(ambar intermitente, pluma ARRIBA) por silencio y el Esclavo sigue en verde hasta "
-              "que le llega un GO_RED: ventana " + std::to_string(g1Max) + " ms en la peor fase (" +
+              "(ambar intermitente, pluma ARRIBA) por silencio; su verde o su AMARILLO frente a ese "
+              "ambar es paso abierto (D-45): ventana " + std::to_string(g1Max) + " ms en la peor fase (" +
               std::to_string(g1PeorOff) + " ms); borde " + std::to_string(BORDE_MS) + " ms" +
-              (g1Max <= BORDE_MS ? std::string(": el GO_RED sale AL ENTRAR en C_FALLO")
+              (g1Max <= BORDE_MS ? std::string(": el GO_RED sale en la suelta, antes del umbral")
                                  : std::string(". Por encima del borde el GO_RED espera al LATIDO (") +
                                    std::to_string(LATIDO_MS_V) + " ms) y los PING que siguen "
                                    "llegando le refrescan la orfandad"));
@@ -2926,10 +2920,14 @@ int main() {
               "G8-c (control): el Maestro estaba en verde -rojo del Esclavo acusado-, el Esclavo "
               "se fue a su ambar de emergencia con el aviso perdido y seguia en el al acabar; "
               "DAR PASO devolvio " + std::to_string(g8cAcepto));
-    comprobar(acumuladoMsG(g8c.v) <= BORDE_MS && g8c.tAperturaM < 0 && g8c.mEnFallo,
+    // D-45: el amarillo con que el ROJO TOTAL cierra el verde que YA estaba encendido es la cola
+    // del residual de G8-b (N-142), no una apertura: una racha, como mucho un amarillo.
+    comprobar(g8c.v.rachas <= 1 && acumuladoMsG(g8c.v) <= AMBAR_ESCLAVO_MS_V + BORDE_MS &&
+                  g8c.tAperturaM < 0 && g8c.mEnFallo,
               "G8-c: un rojo acusado ANTES del ROJO TOTAL no abre el DAR PASO de despues: el "
               "Maestro no se abre frente al ambar de emergencia (ventana " +
-              std::to_string(acumuladoMsG(g8c.v)) + " ms, borde " + std::to_string(BORDE_MS) +
+              std::to_string(acumuladoMsG(g8c.v)) + " ms, la del amarillo de cierre; borde " +
+              std::to_string(AMBAR_ESCLAVO_MS_V + BORDE_MS) +
               " ms; apertura " + (g8c.tAperturaM < 0 ? std::string("ninguna")
                                                      : std::to_string(g8c.tAperturaM - (long)g8c.tCorte) + " ms") +
               ") y termina en S_FALLO como el otro lado");
@@ -3474,7 +3472,9 @@ int main() {
             enHueco++;
             reanudHueco += reanud;
             if (tr > (long)peorTR) peorTR = (unsigned long)tr;
-            const bool ok = (reanud == 1 && c.entradasFalloE == 0 && c.entradasFalloM == 0 &&
+            // Condicion 1 (02/10): si el Poste 1 llega antes a su suelta (SPEC_2 s4), reanuda por
+            // la puerta de N-163 y no por el aviso del PONG: cero o una, nunca dos.
+            const bool ok = (reanud <= 1 && c.entradasFalloE == 0 && c.entradasFalloM == 0 &&
                              tr >= 0 && (unsigned long)tr <= BORDE_TR && solto &&
                              acumuladoMsG(c.v) <= g_latenciaMs + PASO_MS);
             if (!ok) {
@@ -3496,7 +3496,7 @@ int main() {
                 "vuelve con el silencio del Esclavo pasado su margen (" +
                 std::to_string(SIL - MARGEN) + " ms) y sin llegar al de nadie (" +
                 std::to_string(SIL) + " ms), el Esclavo solto su verde, NO hubo ambar en "
-                "ninguna punta, el Maestro reanudo UNA vez por corte (" +
+                "ninguna punta, el Maestro reanudo por aviso como mucho UNA vez por corte (" +
                 std::to_string(reanudHueco) + " reanudaciones) y abrio como tarde " +
                 std::to_string(peorTR) + " ms despues de la vuelta; borde " +
                 std::to_string(BORDE_TR) + " ms (despeje + LATIDO_MS + 2 x TIMEOUT_ACK_MS). "

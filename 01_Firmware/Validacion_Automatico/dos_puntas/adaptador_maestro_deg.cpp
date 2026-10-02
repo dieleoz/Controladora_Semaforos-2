@@ -202,9 +202,6 @@ static int ramaHoraEsp32(const char* iso) {
 // equipo, y por eso va directa al sembrador.
 static int sembrarDirecto(const char* iso) { return reloj_sembrarDesdeIso(iso) ? 1 : 0; }
 
-// coordinador.cpp llama a reloj_fijarEnero() -la real, ahora- cada 10 min. Con base de
-// software sembrada no toca el RTC (N-162); el arnes ya no cuenta la llamada.
-
 // ---------------------------------------------------------------------------
 // LA RADIO: DOS COLAS. [bloque literal de adaptador_maestro.cpp]
 // ---------------------------------------------------------------------------
@@ -257,7 +254,6 @@ PUNTA_API void punta_arrancar(void) {
   botones_setup();
   coordinador_setup();
   delay(2000);
-  respaldo_capturarAntesDelReloj();   // N-172 H-D: antes de reloj_setup(), como en main.cpp
   reloj_setup();
   respaldo_setup();
 
@@ -272,6 +268,10 @@ PUNTA_API void punta_arrancar(void) {
     modoActual_set(MENU);
     modoAnterior = MENU;
     esperaReanudacion = true;
+  } else if (respaldo_rojoSinHora()) {       // D-47: el rojo fijo sin hora sobrevive al corte
+    modoActual_set(MODO_DEGRADADO);
+    modo_degradado_arrancarEnRojoSinHora();
+    modoAnterior = MODO_DEGRADADO;
   } else {                                   // ambar de arranque, MODO_AMBAR entero
     entrarAmbarDeArranque();
     modo_ambar_setup();
@@ -381,6 +381,7 @@ PUNTA_API long punta_mando(const char* que, long arg) {
   if (!strcmp(que, "listo_para_contar"))  return coordinador_listoParaContar() ? 1 : 0;
   if (!strcmp(que, "comunicacion_perdida")) return coordinador_comunicacionPerdida() ? 1 : 0;
   if (!strcmp(que, "forzar_rojo_total"))  { coordinador_forzarRojoTotal(); return 1; }
+  if (!strcmp(que, "forzar_rojo_app"))    return (long)modo_degradado_forzarRojo();   // bluetooth.cpp
   if (!strcmp(que, "esc_desconocido"))    return strcmp(coordinador_estadoEsclavo(), "?") == 0 ? 1 : 0;
 
   // --- La puerta y el modo -------------------------------------------------
@@ -396,6 +397,7 @@ PUNTA_API long punta_mando(const char* que, long arg) {
   // --- Lo que sobrevive al corte -------------------------------------------
   if (!strcmp(que, "respaldo_valido"))    return respaldo_valido() ? 1 : 0;
   if (!strcmp(que, "respaldo_degradado")) return respaldo_degradadoActivo() ? 1 : 0;
+  if (!strcmp(que, "respaldo_dos_marcas")) { respaldo_guardarDegradado(true); respaldo_guardarRojoSinHora(); return 1; }
   if (!strcmp(que, "respaldo_hay_ciclo")) return respaldo_hayCiclo() ? 1 : 0;
   if (!strcmp(que, "respaldo_verde"))     return (long)respaldo_verdeSeg();
   if (!strcmp(que, "respaldo_despeje"))   return (long)respaldo_despejeSeg();

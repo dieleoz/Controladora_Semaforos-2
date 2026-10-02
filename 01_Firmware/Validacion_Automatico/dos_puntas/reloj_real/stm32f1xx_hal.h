@@ -83,6 +83,12 @@ inline int arnes_rcc_flag(uint32_t flag) {
 #define __HAL_RCC_LSE_CONFIG(x)        ((void)(x))
 #define __HAL_RCC_BACKUPRESET_FORCE()  ((void)0)
 #define __HAL_RCC_BACKUPRESET_RELEASE() ((void)0)
+// N-172: reloj.cpp configura el RTC por registro. El modelo da RTCSEL = LSE y RTCEN con el
+// cristal listo (ver ArnesRcc), asi que configurarRtc() sale por "ya esta en el LSE".
+#define RCC_RTCCLKSOURCE_LSE           (1UL << 8)
+#define __HAL_RCC_GET_RTC_SOURCE()     ((uint32_t)RCC->BDCR & (3UL << 8))
+#define __HAL_RCC_RTC_CONFIG(x)        ((void)(x))
+#define __HAL_RCC_RTC_ENABLE()         ((void)0)
 
 inline uint32_t HAL_GetTick(void) { return (uint32_t)arnes_millis_valor; }
 
@@ -120,9 +126,21 @@ struct ArnesRegCnt {
     return alta ? (v >> 16) : (v & 0xFFFFUL);
   }
 };
+// RTC->CRL: RTOFF y RSF siempre a 1 (el modelo no tiene ciclos de 32 kHz que esperar); las
+// escrituras no cambian nada. PRLH/PRLL solo se escriben.
+#define RTC_CRL_RSF   (1UL << 3)
+#define RTC_CRL_CNF   (1UL << 4)
+#define RTC_CRL_RTOFF (1UL << 5)
+struct ArnesRegCrl {
+  operator uint32_t() const { return RTC_CRL_RTOFF | RTC_CRL_RSF; }
+  ArnesRegCrl& operator&=(uint32_t) { return *this; }
+  ArnesRegCrl& operator|=(uint32_t) { return *this; }
+};
 struct ArnesRtcRegs {
   ArnesRegCnt CNTH{true};
   ArnesRegCnt CNTL{false};
+  ArnesRegCrl CRL;
+  uint32_t PRLH = 0, PRLL = 0x8000;
 };
 extern ArnesRtcRegs arnes_rtc_regs;
 #define RTC (&arnes_rtc_regs)
