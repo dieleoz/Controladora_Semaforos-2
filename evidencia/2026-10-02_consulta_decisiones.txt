@@ -1,0 +1,35 @@
+CONSULTA AL ARQUITECTO DE PLATAFORMA: QUE HACER CON DECISIONES.md (fase H), 02/10/2026, sobre 8378a84. Solo lectura.
+
+DIAGNOSTICO: 807 lineas, 129.262 B; 105 lineas >120 car (la mayor 4.993); 166 «~~», 206 fechas, 54 hashes.
+Vigentes D-x 71.411 B (mediana 621 B por fila, 11 filas >2.000 B: D-20, D-21, D-26, D-30...). Secciones de A-x casi
+todas resueltas (23.749 B); choques resueltos y tachados; D-13/D-14 desarrollados (14.466 B).
+42 D-x vigentes; D-24 vive solo en prosa (linea 643): ningun instrumento la ve. A-15 DUPLICADO (lineas 31 y 579).
+Abiertas de verdad: A-0 (microSD), A-4 (MENU), A-10 (LED D21, es banco), A-15 del 29/09.
+40 de 41 vigentes ya estan en una SPEC (D-5 SPEC_1 §5, D-19 SPEC_1 §7, D-35 SPEC_2 §7.bis, D-38 SPEC_2 §7.ter,
+D-40 SPEC_1 §12); falta D-39 en cualquier .md.
+
+CAUSA DEL BUCLE (escrita en el arbol): tres ficheros se declaran ganadores: DECISIONES.md:11 «gana esta»,
+roadmap.md:53 «una fila suya gana», CLAUDE.md §15.1 «la SPEC manda». DECISIONES.md:604 y roadmap.md:184 ordenan
+TACHAR. El 14/09 se bajo DECISIONES a andamio (HISTORIA.md:340, :597) pero el fichero nunca se reescribio.
+
+METODO: global «Derogar es borrar, no tachar; un tema, un documento» (CLAUDE-metodo.md:63); TRASPASO.md:16 «se anade
+una fila por decision» (semantica de bitacora); POSTMORTEM-Semaforos.md:258 y :341 ya lo diagnosticaron.
+CLAUDE.md §15: «una fila lleva su respuesta en dos lineas y lo que deroga»: hoy no se cumple.
+
+QUIEN LO LEE POR RUTA: solo decisiones_01_anclas.py (seccion ^## Vigentes$, >=10 filas, tachada = derogada sin
+anclas, cada vigente con ancla en src/include y citada en un .md de 05_Funcional o 04_Manuales, literal DS-2CD...).
+Por grep: D-39, D-41, D-42 (y D-43) sin ancla en firmware; D-39 sin cita en .md -> el pack estara en ROJO. Sin medir.
+
+OPCIONES: A indice de dos lineas (Id, respuesta <=120 car, SPEC §x, lo que deroga, superficie firmware/camara/
+compra/campo) + lo demas literal a DECISIONES_hist.md; B disolver en las SPEC (pierde el «no volver a preguntar»);
+C = A por la via barata: git mv DECISIONES.md DECISIONES_hist.md + DECISIONES.md nuevo desde cero.
+En el pack, con A o C: leer las derogadas de una linea «Derogadas:» y exigir ancla solo a superficie firmware.
+
+RECOMENDACION: C, en un commit: las tres frases de autoridad a «manda la SPEC»; renumerar la A-15 del 29/09; D-39 a
+su SPEC o superficie camara; decisiones_01_anclas en el arbol principal antes y despues. Para que no vuelva, hook:
+rechaza fila >2x120 car, «~~» en el fichero, y commit que toca DECISIONES sin tocar ninguna SPEC_*. Retira:
+DECISIONES.md:604 (tachar), el «gana esta» de :11, y la linea «se tacha» de la memoria un-documento-legacy-no-reabre.
+
+PARA MEJORAS.md DEL ARQUITECTO DE PLATAFORMA (M25, propuesta): DECISIONES.md es un indice, no la spec: una fila = Id +
+respuesta <=2x120 car + seccion de SPEC que la ejecuta + lo que deroga; manda la SPEC; derogar es borrar la fila (su Id
+en una linea «Derogadas»); decidir y editar la SPEC en el mismo commit; hook que lo hace cumplir.
