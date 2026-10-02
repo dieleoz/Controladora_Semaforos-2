@@ -45,8 +45,8 @@ vacia por dentro; una regla nueva abre uno al final. Censo: `grep -rn "CLAUDE.md
 - **`J16` p1 lleva 12 V crudos** a un conector de senal directa al micro: se TAPA en cada equipo (`D-4`, `N-120`).
 - **`J14` es una ENTRADA del micro** (3,3 V, sin opto ni diodo); la salida de talanquera es `J15`. Un rele cableado a
   `J14` se desconecta antes de energizar.
-- **`J16` p5 y p8 quedan vacios y no se cablean:** el firmware los sigue LEYENDO (`botonArriba()`/`botonAbajo()`) y uno
-  anterior a la retirada del mando compone secuencias con un puente. En campo manda lo CARGADO (`SPEC_5` §3).
+- **`J16` p5 y p8 quedan vacios y no se cablean:** desde `D-44` el firmware ya no los lee (`J16_P5_SIN_USO`), pero
+  uno anterior al 14/09 compone secuencias con un puente. En campo manda lo CARGADO (`SPEC_5` §3).
 - **Carga por SWD: `mode=UR` con `-e all`, y no se cambia.** `HOTPLUG` engancha en marcha y, con un firmware que se
   cuelga al arrancar, el watchdog reinicia cada 4 s en mitad del borrado (`failed to erase memory`; delator: `NVM size:
   128 KBytes (default)` en 64 KB). Si `UR` falla se reintenta. Radios: `2.4 kbps` de Air Data Rate, `M0`/`M1` en OFF.
