@@ -5,25 +5,22 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 
 ## Por donde se retoma, en este orden
 
-1. **Marco prueba `Paquete_Funcional_2026-10-01_d3606be_SIN_BANCO`** con `Pruebas_Funcional_2026-10-01.html`
-   (casos 0-7) y manda PDF, diarios por prueba y log. Se leen ENTEROS y contando (`CLAUDE.md` §7). La prueba 1
-   (corte del Maestro en Degradado) dice si la reposicion de DR6/DR7 cierra `N-172`; la 4, si `D-38` da rojo fijo.
-2. **Lunes 05/10, primera sesion en campo** (semaforos en todos los modos; talanqueras despues). Antes: respaldar
-   con md5 el firmware del Sisga, tapar `J16` p1. Va `SIN_BANCO` (decision del responsable): sin Degradado
-   desatendido hasta medir `N-172`.
-3. **Deuda del paquete sin runbook:** invertir los arneses que celebran el ambar por hora (`orquestador_degradado`
-   F2.2-F2.4/F3.2-F3.3, `reloj_04`, revisar H8 de `orquestador_deg_auto`), compuerta completa 2x, arquitecto y QA
-   sobre `d3606be`; SPEC_2 §7.ter (c) y (f).6 al comportamiento nuevo.
-4. **Decisiones abiertas del responsable:** un poste en rojo fijo sin hora que sufre un corte arranca en ambar
-   (`D-40`) contra el otro alternando; el Degradado `D-18` sin testigo sigue sin reanudar tras >24 h (CNT plegado).
-5. **Fase 5, lo duplicado Maestro/Esclavo a `lib/`**: solo despues de que la candidata pase banco.
+1. **Integrar la correccion del NO APTO** (agente, 02/10; acta `evidencia/2026-10-02_arquitecto_7edadb0.txt`):
+   amarillo del Esclavo contra el ambar del Maestro; `FORZAR_ROJO` en Degradado = salida por todo-rojo; prueba de
+   `D-47` en el Maestro; `N-172` de raiz (la libreria RTC pisa DR6/DR7 en marcha). Despues compuerta completa hasta
+   converger, arquitecto otra vez, QA y paquete validado (roadmap A4.bis-A6).
+2. **Fase F en curso** (agente): historicos a `05_Funcional/historico/`, `99_Legacy` fuera de git. Despues: partir
+   `17_...`, rehacer `ARQUITECTURA.map`, planos KiCad a `03_Hardware_Tarjeta/`, worktrees viejos.
+3. **Marco prueba `Paquete_Funcional_2026-10-02_851805c_SIN_BANCO`** con `Pruebas_Funcional_2026-10-02.html`; sus
+   cintas se leen enteras y contando. Lunes 05/10, primera sesion en campo con `Montaje_Campo_2026-10-05.html`.
+4. **Pendiente del responsable:** `N-175` modo nocturno (que hace en un paso alterno de un carril); C3 renombrar
+   `Validacion_LCD`; C4 donde vive el grafo. Fase 5 (`lib/`), despues de banco.
 
 ## Frentes abiertos (tres como maximo)
 
-- **Degradado tras un corte (`N-172`)**: el Maestro no reanudo el 30/09; causa candidata H-D (la libreria RTC pisa
-  DR6/DR7) arreglada sin medir en `d3606be`; H-A pila VBAT, H-B DS3231, H-C orden en la ventana siguen abiertas.
-- **Paquete `d3606be` sin runbook**: `D-38`, `D-40`, aviso de radio cada 60 s, carteles en la app.
-- **Campo del lunes**: camaras con peatones (`D-39`, sensibilidad 50 %), centralita de talanquera (pulso o contacto).
+- **Candidata con I+G** (`851805c`): NO APTO en correccion. Lo nuevo: `D-44..D-49`.
+- **Orden del repo** (fase F, `evidencia/2026-10-02_inventario_repo.txt`).
+- **Campo**: lunes 05/10; `N-172` sin medir en tarjeta.
 
 ## Organizacion del repo por fases (con el arquitecto de plataforma)
 
@@ -38,7 +35,7 @@ trinquete 1,665); la 5, lo duplicado a `lib/`, despues de banco.
 | Maestro `179DB0` (El Sisga) | `7ff7d12` `SIN_BANCO`, probado despues `b354fe9` | cinta y diario en `evidencia/` |
 | Esclavo del Sisga | sin medir | su cinta no se ha traido |
 | Maestro `4D2007` y Esclavo `38EB53` (Marco, banco) | `6bd1e4f` en controlador y puente, medido: `$ACK,CMD:VERSION` el 01/10 | `evidencia/011020260934/` |
-| paquete para Marco | `Paquete_Funcional_2026-10-01` `SIN_BANCO`, sin runbook por decision del responsable: `D-40` (Maestro), `D-38` rojo fijo sin hora (`N-168`), aviso de radio cada 60 s, reposicion de DR6/DR7 (`N-172` H-D), app con carteles de corte y radio; hoja `Pruebas_Funcional_2026-10-01.html`. En banco desde el 01/10: `6bd1e4f` | banco de Marco con la hoja y los exportes |
+| paquete para Marco | `Paquete_Funcional_2026-10-02_851805c_SIN_BANCO` (amarillo de la norma, legacy fuera; arquitecto NO APTO, dos defectos avisados en LEEME y hoja). En banco desde el 02/10: `d3606be` | banco de Marco |
 
 ## Verificacion en escritorio
 
