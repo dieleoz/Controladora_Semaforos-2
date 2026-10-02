@@ -5,11 +5,12 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 
 ## Por donde se retoma, en este orden
 
-1. **Integrar la correccion del NO APTO** (agente, 02/10; acta `evidencia/2026-10-02_arquitecto_7edadb0.txt`):
-   amarillo del Esclavo contra el ambar del Maestro; `FORZAR_ROJO` en Degradado = salida por todo-rojo; prueba de
-   `D-47` en el Maestro; `N-172` de raiz (la libreria RTC pisa DR6/DR7 en marcha). Despues compuerta completa hasta
-   converger, arquitecto otra vez, QA y paquete validado (roadmap A4.bis-A6).
-2. **Fase F en curso** (agente): historicos a `05_Funcional/historico/`, `99_Legacy` fuera de git. Despues: partir
+1. **Retomar la rama `wip/correccion-no-apto`** (`0d35f21`, INTERRUMPIDO): puntos 1-4 del NO APTO hechos segun el
+   agente (suelta del Poste 1 a 21,5 s; `FORZAR_ROJO` en Degradado = salida por todo-rojo; pruebas de `D-47`;
+   `N-172` de raiz quitando la libreria STM32duino RTC). Falta: re-correr arneses y `--rapido`, aplicar
+   `wip/app_js_correccion_no_apto.patch` sin que `app.js` crezca, filas `D-50`/`D-51` (texto en el informe del
+   agente), fusionar a `main`, compuerta hasta converger, arquitecto, QA y paquete validado.
+2. **Fase F** hecha en su primera parte (`1617042`). Queda: partir
    `17_...`, rehacer `ARQUITECTURA.map`, planos KiCad a `03_Hardware_Tarjeta/`, worktrees viejos.
 3. **Marco prueba `Paquete_Funcional_2026-10-02_851805c_SIN_BANCO`** con `Pruebas_Funcional_2026-10-02.html`; sus
    cintas se leen enteras y contando. Lunes 05/10, primera sesion en campo con `Montaje_Campo_2026-10-05.html`.

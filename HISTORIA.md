@@ -3177,3 +3177,18 @@ es lo mismo que "3.7 existe".
 - **Lo que se concluyo mal y se corrigio en la sesion:** que la pluma «baja 3 s despues de la senal de la camara»
   (cuenta desde el rojo: `escribirPines()`); y la frase de la hoja del 30/09 «este paquete lo corrige» sobre
   `N-172`, que no lo corregia.
+
+## 11. Sesion del 02/10/2026: decisiones pieza a pieza, amarillo de la norma, legacy fuera y NO APTO
+
+- **Decisiones del responsable, explicadas una a una:** `D-45` (Rojo-Verde-Amarillo 3 s-Rojo, Manual de
+  Senalizacion 4.4.3, tambien `FORZAR_ROJO`), `D-46` (salen `SOLICITAR_PASO` y `SET_MODO:DEGRADADO`; `J14`, SFTY-20 y
+  peatonales se quedan porque las guias de campo los asignan), `D-47`, `D-48` (radio a 28 s), `D-49`; `N-175` modo
+  nocturno se construira. `DECISIONES.md` paso a indice (el viejo, a `historico/`).
+- **Construido:** I (`cda33df`) y G (`f9cad1f`). Compuerta convergio en 4 pasadas (18 PASS, 1 FALLA = `D-22`).
+- **Arquitecto: NO APTO** (`3d16b39`): amarillo del Esclavo contra el ambar del Maestro (la inversion de `D-45` no
+  llego al detector de ventanas G); `FORZAR_ROJO` en Degradado acusaba y el verde volvia; `D-47` sin prueba; la
+  libreria RTC pisa DR6/DR7 en marcha. DeepSeek y Nemotron coincidieron en lo ultimo: causa probable de `N-172`.
+- **Paquete a Marco sin la correccion:** `851805c` `SIN_BANCO`, con los defectos avisados.
+- **Correccion interrumpida a peticion** en la rama `wip/correccion-no-apto`.
+- **Lo que se concluyo mal:** que la pluma bajaba 3 s tras la senal de la camara (cuenta desde el rojo); que la
+  copia de DR6/DR7 en el arranque cerraba `N-172` (la libreria escribe tambien en marcha).

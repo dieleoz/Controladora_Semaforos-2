@@ -105,7 +105,7 @@ candidata crecio con I (`cda33df`) y G (`f9cad1f`): un solo runbook sobre todo.
 | A2 | Pruebas que celebraban lo viejo (§9), inyeccion vista en rojo | arneses al dia | hecho (`7603afc`) |
 | A3 | Compuerta completa en el arbol principal | acta | hecho: converge en 4 pasadas, 18 PASS y 1 FALLA = `D-22` (pide tarjeta) (`ae9a018`) |
 | A4 | Arquitecto (opus) | veredicto | **NO APTO** (`3d16b39`): amarillo del Esclavo contra el ambar del Maestro; `FORZAR_ROJO` en Degradado acusa y el verde vuelve; `D-47` sin prueba; la libreria RTC pisa DR6/DR7 en marcha (causa probable de `N-172`, coincide con DeepSeek y Nemotron) |
-| A4.bis | Correccion de las cuatro, SPEC -> prueba en rojo -> codigo | candidata nueva | **en curso** (agente) |
+| A4.bis | Correccion de las cuatro, SPEC -> prueba en rojo -> codigo | candidata nueva | **INTERRUMPIDO** en la rama `wip/correccion-no-apto` (`0d35f21`): los cuatro hechos segun el agente; falta re-correr arneses y compuerta; `app.js` va como `wip/app_js_correccion_no_apto.patch` (el fichero no puede crecer: sacar 21 lineas) |
 | A3.bis-A4.ter | Compuerta otra vez y arquitecto otra vez | veredicto | tras A4.bis |
 | A5 | QA sobre el binario (opus) | veredicto | tras APTO |
 | A6 | Paquete validado `SIN_BANCO` a `entregas/`, hoja de pruebas de lo nuevo, `.docx` de las SPEC tocadas | `.zip` | tras A5 |
