@@ -56,8 +56,9 @@ CIERRA, porque el pin cae a reposo. Y **ninguna avería de la pluma detiene el c
 
 | luz | pluma |
 |---|---|
-| Rojo · ámbar de transición · todo-rojo de despeje · ~~destellos y ámbar rápido del mando~~ *(salieron con el mando, 14/09)* | ABAJO |
+| Rojo · ámbar de transición *(hoy, de camino al verde; sale con `D-45`)* · todo-rojo de despeje · ~~destellos y ámbar rápido del mando~~ *(salieron con el mando, 14/09)* | ABAJO |
 | Verde de ciclo | ARRIBA |
+| **Amarillo de cierre** (`D-45`, §3.2; **sin construir**) | **ARRIBA**: el retardo de bajada cuenta desde el ROJO (SPEC 8 §1) |
 | Verde de test de lámparas | **ABAJO** |
 | Fallo (ámbar intermitente) | **ARRIBA** |
 | Equipo sin energía | ABAJO (nivel de reposo del pin) |
@@ -74,7 +75,7 @@ verde y fallo, y no mientras corre la transición.
 | estado | lo que se ve | quién lo pone |
 |---|---|---|
 | Rojo | rojo fijo | forzar rojo · apagar todo (que apaga las tres) |
-| Ámbar | ámbar fijo, **sólo de camino al verde** | el arranque de la transición a verde |
+| Ámbar | ámbar fijo, **sólo de camino al verde** — 🟡 **con `D-45` pasa a ser el amarillo de CIERRE del verde** (§3.2) | el arranque de la transición a verde |
 | Verde | verde fijo | forzar verde · el vencimiento de la transición |
 | Fallo | **ámbar intermitente** | el arranque de fallo (`semaforo_iniciarFallo()`) |
 
@@ -83,8 +84,14 @@ verde y fallo, y no mientras corre la transición.
 cumplirse el plazo. **El fallo parpadea** invirtiendo el ámbar cada medio periodo. Los dos plazos son literales sin
 constante con nombre — ver Huecos. Y **la máquina de luces avanza SIN CONDICIÓN en cada vuelta del bucle principal
 de las dos puntas**: un cabezal que dependiera de que un modo se acordase puede quedarse a oscuras, y pasó.
+🟡 **Esa asimetría es lo que el equipo HACE hoy y la decisión `D-45` la INVIERTE** (§3.2, sin construir): se abre
+directo y se cierra por amarillo.
 
 ### 3.1 🔴 NO HAY ÁMBAR AL TERMINAR EL VERDE — el semáforo salta de VERDE a ROJO
+
+> 🟡 **Registro de lo que el equipo HACE hoy, y es lo que CAMBIA.** Deja de ser un hueco sin decisión: el
+> responsable decidió el 02/10 la secuencia de la norma (`D-45`). Lo que el firmware DEBE hacer está en §3.2 y la
+> cola de construcción en §12.10 (`N-174`). Hasta que se cargue, todo lo de este apartado sigue siendo cierto.
 
 **Forzar rojo pone el estado y aplica el rojo en la MISMA llamada, sin estado intermedio.** No es un camino entre
 varios: **es el único que existe.** **Ninguna de las dos puntas tiene función de transición a rojo** —el `grep` de
@@ -94,7 +101,8 @@ Degradado, radio; ~~mando~~, que salió del firmware el 14/09), varias con el co
 `grep -rn "TransicionARojo" 01_Firmware --include=*.cpp --include=*.h` *(sin filtro salen los índices binarios del editor, no fuente)*
 ⚠️ **NO se confunda con lo que sí está documentado, que es LO CONTRARIO.** Lo que se retiró en su día fue la
 transición **europea rojo+ámbar → verde**, citando el Manual de Señalización de Colombia: eso habla de cómo se
-**ABRE** el verde. **Cerrarlo sin ámbar es otra cosa, y sobre ella no hay decisión, ni optimización, ni manual.** El
+**ABRE** el verde. **Cerrarlo sin ámbar es otra cosa, y sobre ella** ~~no hay decisión~~ → **decidió `D-45`
+(§3.2)**; **ni optimización, ni manual.** El
 único rastro es un comentario del Esclavo que dice que devolver a ámbar un verde ya encendido sería *«contra la
 Resolución (verde→rojo directo)»*: ⚠️ **una AFIRMACIÓN NORMATIVA SIN VERIFICAR** (`CLAUDE.md` §6) que vive en un
 comentario y no en una spec.
@@ -102,6 +110,42 @@ comentario y no en una spec.
 se le retira en seco, y **lo que hay en su lugar no es un aviso, es un margen:** el **todo-rojo de despeje** (§5),
 que retiene a la otra punta mientras el tramo se vacía. El diseño **no avisa: cierra y espera.** Quien ya entró
 queda dentro con el rojo puesto — y de ahí cuelga el hueco de la pluma (§12.1).
+
+### 3.2 🟡 LO QUE DEBE HACER: ROJO – VERDE – AMARILLO – ROJO (`D-45`, `N-174`) — SIN CONSTRUIR
+
+**La norma.** Manual de Señalización Vial 2024, 4.4.3 (pp. 394-395): *«En ningún caso se podrá cambiar de luz verde a
+luz roja, o a rojo intermitente, sin que antes aparezca el amarillo»*. 4.4.2 (p. 394) da «Rojo – Verde – Amarillo –
+Rojo» entre las secuencias vehiculares. La duración sale sólo del rótulo de la Figura 4-9 (p. 394), *«Duración 3
+seg. (velocidad 50 km/h)»*: un mínimo de amarillo en texto **NO CONSTA**. Transcripción y exigibilidad:
+`fuentes/md/Manual_Senalizacion_Vial_semaforos.md` §2 y §5. El ámbar SOLO antes del verde que hace hoy no es
+ninguna de las secuencias de 4.4.2: la que avisa del verde es «Rojo y Amarillo», los dos encendidos.
+
+1. **Abrir: de rojo a verde DIRECTO.** Sale el ámbar fijo de camino al verde, en las dos puntas y en todos los modos,
+   Degradado incluido. El arranque de la transición a verde deja de existir como camino al verde.
+2. **Cerrar: de verde a AMARILLO fijo durante `AMARILLO_SEG` y después a ROJO**, en TODOS los caminos que hoy pasan
+   de verde a rojo: el cambio del Automático y del Inteligente (§6, §7), `DAR PASO` y `MANUAL:CAMBIAR_TURNO` (§8),
+   `FORZAR_ROJO` y `SET_MODO:MENU`, la entrada en un modo con ciclo, la suelta del verde por margen de las dos puntas
+   y el backstop de verde máximo del Poste 2 (§9), la orden de rojo por radio al Poste 2 (SPEC 2 §2.2), y en el
+   Degradado el fin de la fase propia, el salto de hora, la entrada, las salidas, la caída a rojo sin hora (`D-38`) y
+   la caída a ámbar, que hoy pasa por rojo (SPEC 2 §7).
+3. **El amarillo va SOLO en la cara**: ni verde+amarillo ni verde+rojo (4.4.3, pp. 394-395). **Se AÑADE antes del
+   todo-rojo de despeje y no se le resta** (§5). Y **un cierre empezado no se revierte**: del amarillo de cierre sólo
+   se sale a rojo, al vencer, o a ámbar intermitente; ninguna orden de verde lo reabre y una orden de rojo repetida
+   no lo reinicia.
+4. **La barrera vive en el fichero del semáforo** (§2): **ningún camino pasa de verde a rojo sin el amarillo, lo
+   pida quien lo pida**, y no por disciplina de los llamadores. Propuesta para quien construya: forzar rojo sobre un
+   verde arranca el cierre; el rojo inmediato queda para los estados que no son verde (rojo, fallo, apagado).
+5. 🔴 **Consecuencia: el rojo deja de llegar en la misma llamada.** Todo lo que hoy cuenta desde la orden de rojo
+   —el despeje y su instante de inicio en el coordinador, el acuse de rojo del Poste 2, el todo-rojo de entrada del
+   Degradado, el rojo previo a su ámbar— cuenta desde el ROJO ENCENDIDO (estado rojo y estable), no desde la llamada.
+6. **Lo que NO cambia, y por qué.** **(a)** De verde a **ámbar intermitente** (fallo: silencio, orfandad, orden de
+   ámbar, ámbar de emergencia) sigue directo: 4.4.3 regula el paso a rojo y a rojo intermitente, no éste. La
+   entrada en Modo Ámbar del Poste 1 fuerza rojo y arranca el fallo en la misma vuelta: el rojo no se ve y cuenta como
+   este caso; si la construcción lo hiciera visible, lleva amarillo antes. **(b)** El test de lámparas (§10) no
+   abre ni cierra paso. **(c)** Del fallo, del apagado o del arranque a rojo no hay verde que cerrar.
+7. **El estado.** El ámbar fijo de la máquina de luces pasa a ser el amarillo de cierre; el equipo sigue sin ser
+   **estable** mientras dura. El `$STATUS` publica `ESTADO:AMARILLO` al FINAL del verde (SPEC 4 §6).
+8. **La pluma sigue arriba durante el amarillo** y el retardo de bajada cuenta desde el rojo (§2, SPEC 8 §1).
 
 ## 4. Los modos que existen HOY
 
@@ -168,7 +212,17 @@ de rojo y de despeje—. Verde y rojo en **minutos**; el despeje, en **segundos*
   verde. Y **no se cambian con el ciclo en marcha**: acortaría la fase EN CURSO, incluido un todo-rojo ya empezado.
 - **El despeje** (todo-rojo entre sentidos) lo guarda el coordinador y lo fija el modo al configurarse. **Es el único
   de los tres que es seguridad vial pura** —garantiza que el tramo quedó VACÍO antes de abrir el otro lado— y, **a
-  falta de ámbar de cierre (§3.1), es TODA la protección que hay para quien se quedó dentro**.
+  falta de ámbar de cierre (§3.1), es TODA la protección que hay para quien se quedó dentro** *(hoy; con `D-45` el
+  aviso es el amarillo y el despeje sigue siendo el margen)*.
+- 🟡 **DEBE (`D-45`, sin construir): el amarillo de cierre, `AMARILLO_SEG`, es FIJO y NO CONFIGURABLE.** No entra
+  en el fichero de límites ni en `SET_TIEMPOS` ni en el respaldo: lo fija la decisión (3 s, rótulo de la Fig. 4-9 de
+  la norma, §3.2). Vive **una sola vez, en una cabecera que las dos puntas comparten idéntica** —propuesta: la de
+  protocolo, junto al umbral de silencio, porque entra en el presupuesto de radio (SPEC 2 §4)—, con nombre: no como
+  el literal del ámbar de hoy (§12.4).
+- **Cómo suma.** El verde y el rojo configurados y el despeje **no se tocan**; el amarillo va detrás de cada verde y
+  delante de su despeje. Cada cambio de sentido pasa de *verde → despeje → verde* a *verde → amarillo → despeje →
+  verde*, así que **el ciclo completo dura dos `AMARILLO_SEG` más que hoy** (uno por sentido) y el Degradado, igual
+  (SPEC 2 §8 (e)). El rango del despeje y su mínimo no cambian.
 
 ## 6. Modo Automático — el ciclo por tiempo
 
@@ -177,6 +231,9 @@ todo-rojo y su despeje** — una sola puerta, sin arranque alternativo. En cada 
 mide lo transcurrido contra la duración de la fase —el rojo configurado si la luz local está en rojo, el verde si no—
 y al vencer pide el cambio. **La cuenta atrás** que ve el operario se publica **por PISO, nunca por redondeo**, y
 fuera del modo no publica número: un número congelado es peor que un `--`, porque parece que sigue contando.
+🟡 **DEBE (`D-45`):** al vencer el verde, el cambio empieza por el amarillo de la punta que cierra (la propia, o
+la orden de rojo al Poste 2); mientras dura el coordinador no está en reposo y la fase no cuenta. El plazo del verde
+configurado no absorbe el amarillo.
 
 ## 7. Modo Inteligente — el Automático con suelo y techo
 
@@ -193,6 +250,8 @@ degrada al comportamiento conocido, no a uno raro.
   revisa el manual—, así que viaja **POR VALIDAR**.
 - **Las tres entradas de presencia son un OR de tres booleanos** —la cámara de demanda, la presencia del conector
   `J16` y la demanda local—, **leídas UNA vez por vuelta** *(cobre, SPEC 5)*.
+- 🟡 **DEBE (`D-45`):** el suelo y el techo son del VERDE; el amarillo de cierre va después, fuera de los dos, y
+  una cámara no lo alarga ni lo acorta.
 
 ## 8. Modo Manual — DAR PASO
 
@@ -205,6 +264,10 @@ depende de lo que la llamada devolvió** (`CLAUDE.md` §2): `MODO_SIN_CICLO_SALG
 `EN_TRANSICION_REINTENTE` si hay un despeje o una transición en curso, y `OK` sólo si se aceptó. **No se
 fuerza: partir un despeje por la mitad es justo lo que no se puede hacer.** Y **este modo ya NO configura
 tiempos**: conserva el despeje que haya.
+🟡 **DEBE (`D-45`):** `DAR PASO` con un verde encendido lo cierra por su amarillo; durante él `CAMBIAR_TURNO`
+contesta `EN_TRANSICION_REINTENTE`, como en el despeje. Sigue terminando en rojo+verde. El comentario del
+coordinador que reserva el ámbar *«al paso de rojo a verde, de modo que el par termina en rojo contra verde»* es la
+premisa que `D-45` deroga en su primera mitad.
 
 ## 9. El estado seguro
 
@@ -220,6 +283,10 @@ tocar el reloj, para que un cristal que no arranca sea un reinicio visible y no 
 **nada de lo que ocupa las luces bloquea**: ~~destellos y~~ el test avanza por el reloj de milisegundos. **Arranque:** el
 Poste 2 pone **las luces primero, siempre**; el Poste 1 no — ver Huecos. Tras el arranque, el Poste 1 queda en
 **ámbar intermitente** salvo que reanude o espere reanudar el Degradado (§4.1).
+🟡 **DEBE (`D-45`):** el backstop de verde máximo cierra por el amarillo, y mide el VERDE: hoy el Poste 2 arranca
+esa cuenta también en el ámbar, que con `D-45` es cierre y no apertura. La suelta del verde por margen (SPEC 2 §4)
+cierra por el amarillo y **empieza un `AMARILLO_SEG` antes**, para que el ROJO caiga donde hoy cae el rojo directo.
+El paso a ámbar intermitente por silencio u orfandad no lleva amarillo (§3.2 (6)).
 
 ## 10. Lo que ocupa las luces sin ser un modo
 
@@ -252,7 +319,8 @@ regla de la pluma** (`D-33`). La pluma **sigue a la luz para SUBIR**; lo que la 
 bajada**, nunca provocar una subida. La conducta entera, en **SPEC 5 pág. 1 §4**.
 🔴 **DOS CONDUCTAS DE LA PLUMA Y LA LUZ SIN FILA QUE LAS RESPALDE**, y son de las que hieren a alguien: **(a)** que la
 pluma **suba en fallo** (§2), elegido *«por el cliente y el PMT el 27/08/2026»* en una frase que vive sólo en el
-fuente y en SPEC 5 §4; y **(b)** que el verde **cierre sin ámbar** (§3.1). **Son decisiones viales: las decide él, no
+fuente y en SPEC 5 §4; y **(b)** que el verde **cierre sin ámbar** (§3.1) → **(b) ya tiene fila: `D-45` (02/10),
+amarillo de cierre, sin construir (§3.2)**. **Son decisiones viales: las decide él, no
 el firmware ni esta spec.** ⬇️ ~~**(c)** que la pluma baje sin retardo~~ → **ya tiene fila y está construida.** Bajan
 DOS, no tres.
 
@@ -269,6 +337,7 @@ Cada uno trae con qué reproducirlo.
    entró legalmente seguía dentro cuando caía el rojo y la pluma bajaba sobre él—. 🔴 **§3.1 SIGUE ABIERTO:
    el verde sigue cerrando sin ámbar.** Lo que cambia es que ahora hay tres segundos y un veto de cámara entre
    ese coche y el brazo; lo que no cambia es que **el conductor no recibe aviso de que el verde se acaba**.
+   🟡 *(02/10: el aviso está decidido, `D-45`; sin construir, §12.10.)*
    ⚠️ **Y el contador que medía esto cambió de significado con la obra:** ya no dice «habría actuado» —esa
    transición dejó de ocurrir el día que el veto existe— sino **cuántos vetos ACTUARON de verdad**.
 2. 🔴 **LA RETIRADA DE LA INTERFAZ VIEJA (`D-30`): el LCD y el mando YA SALIERON; la lectura de p5/p8 y el menú NO.**
@@ -291,11 +360,14 @@ Cada uno trae con qué reproducirlo.
    números:** el día que el mínimo se mueva, el verde del Degradado no le sigue, y ningún instrumento lo dirá.
    **(b) Las dos puntas ABREN su verde DISTINTO:** el Poste 1 fuerza el verde —**sin ámbar**—, el Poste 2 pasa por la
    transición con ámbar; no es cosmético, porque el Maestro apoya su cuenta de margen en el ámbar con que el Esclavo
-   abre. ⚠️ **No confundir con la asimetría de la SALIDA a ámbar, que sí está razonada.**
+   abre. ⚠️ **No confundir con la asimetría de la SALIDA a ámbar, que sí está razonada.** 🟡 **Con `D-45` esta (b)
+   se cierra sola: las dos abren directo y las dos cierran por amarillo** (SPEC 2 §8 (e)).
    `grep -n "DEG_VERDE_SEG\|forzarVerde" 01_Firmware/{Maestro,Esclavo}/src/modo_degradado.cpp`
 4. ⚠️ **Los dos plazos de la máquina de luces son LITERALES sin nombre**, dentro de la función que la avanza:
    el ámbar de transición y el medio periodo del parpadeo de fallo. No se pueden citar, ni vigilar por
    símbolo, ni releer desde un pack. `grep -n "ahora - tCambio >=" 01_Firmware/Maestro/src/semaforo.cpp`
+   🟡 Con `D-45` el del ámbar sale y entra el del amarillo de cierre, ya con nombre (`AMARILLO_SEG`, §5); el del
+   parpadeo sigue literal.
 5. ⚠️ **El Poste 1 arranca A OSCURAS y el Poste 2 no.** El arranque del coordinador arranca el semáforo —que **apaga
    las tres luces**— y la primera luz no llega hasta el todo-rojo del ámbar de arranque o del menú (§4.1), tras
    arrancar reloj, respaldo, ~~mando y~~ Bluetooth, con una espera de dos segundos en medio y el cabezal apagado.
@@ -314,6 +386,43 @@ Cada uno trae con qué reproducirlo.
    del responsable:** un poste en rojo fijo por hora perdida en Degradado (`D-38`, SPEC 3 §5) que sufre un corte ya no
    reanuda y arranca en ámbar mientras el otro sigue alternando por reloj: **verde contra ámbar** hasta que llegue
    alguien.
+10. 🔴 **EL AMARILLO DE CIERRE (`D-45`, `N-174`): DECIDIDO EL 02/10, SIN CONSTRUIR** *(registro 2, cola del
+   firmware; el comportamiento, §3.2 y SPEC 2 §2.2, §4, §7, §8 (e); la pluma, SPEC 8 §1)*. Censo de 02/10 sobre
+   `0518bfe`, por símbolo:
+   - **Semáforo, las dos puntas** (`semaforo.cpp/.h`): la transición a verde y su literal de ámbar en la función que
+     avanza la máquina (`semaforo_iniciarTransicionAVerde()`, `semaforo_actualizar()`) salen; el cierre es nuevo
+     (propuesta: `semaforo_iniciarTransicionARojo()`, el nombre que el `grep` de §3.1 busca); `semaforo_forzarRojo()`
+     y `semaforo_forzarVerde()` sobre un cierre en curso (§3.2 (3)(4)); `escribirPines()` (la condición
+     `luzPideArriba` gana el amarillo de cierre); `terminarTestLeds()` (su rama de ámbar reanuda la transición a
+     verde); `semaforo_toggle()`, sin llamador.
+   - **Coordinador del Poste 1**: `coordinador_pedirCambio()` (rama `QV_MASTER`, `// Directo a rojo`, y la de
+     `QV_NINGUNO`), los casos `C_INICIAL_ESPERA_ESTATICO` y `C_ESPERA_ESTATICO_TRAS_ESCLAVO` (abren por la
+     transición), `C_MASTER_A_ROJO` (ya espera el rojo estable), `C_ESPERANDO_ACK_RED` y `TIMEOUT_ACK_MS`,
+     `coordinador_forzarMenu()`, `coordinador_forzarRojoTotal()` e `coordinador_iniciarModo()` (el instante de inicio
+     del rojo), el bloque de suelta por margen con `puedeSostenerVerde()` y su `static_assert`,
+     `coordinador_estadoEsclavo()` (`ESC:`). Y `modo_ambar_setup()` (§3.2 (6)).
+   - **Bucle del Poste 2** (`Esclavo/src/main.cpp`): las ramas de `CMD_GO_RED` (`// Directo a rojo`, `ackRojoEnviado`)
+     y de `CMD_GO_GREEN` (su idempotencia mira el ámbar), `SUELTA_VERDE_MS`, `MAX_VERDE_BACKSTOP_MS` y
+     `tInicioVerdeEsclavo`.
+   - **Degradado**: `ciclo_degradado.h` entero (`FaseDegradado`, `ciclo_degradado_fase()`,
+     `ciclo_degradado_restante()`), y en los dos `modo_degradado.cpp` la luz por fase, el salto de hora
+     (`SALTO_SIN_ROJO_MAX_S`), `irAAmbar()`, `irARojoSinHora()`, la salida, y `aplicarLuz()` e `iniciarSalida()` del
+     Poste 2.
+   - **La pluma**: `PLUMA_RETARDO_BAJADA_MS` y su `static_assert` contra `DESPEJE_SEG_MIN` **no cambian** (SPEC 8 §1).
+   - **Instrumentos que hoy CELEBRAN lo que `D-45` deroga** (`CLAUDE.md` §9: se reparten, invierten, conservan o
+     borran uno por uno; el simulador está congelado y no gana packs): `Validacion_Automatico/arnes_automatico.cpp`
+     (bloque A, *«Rojo->Verde pasa SIEMPRE por AMARILLO»*, y el control negativo del despeje a cero) ·
+     `dos_puntas/orquestador.cpp` (F4 exige cero pasos de verde a ámbar en el Poste 2, *«la Resolucion da
+     verde->rojo directo»*; cuenta la apertura del Poste 1 desde el ámbar) · `dos_puntas/orquestador_degradado.cpp`
+     y `adaptador_esclavo.cpp` · `Validacion_Ciclo/arnes_ciclo.cpp` (de verde se pasa a despeje) · los modelos
+     `banco/modelos/esclavo.py` y `costura.py` (leen el literal del ámbar previo al verde) · los packs
+     `costura_12_margen_deriva` (el ámbar que abre el verde del Poste 2 como margen), `maestro_09_test_leds`,
+     `barrera_02_dos_puntas`, `barrera_04_arnes_dos_puntas`, `camara_03_vigilante`, `costura_06_reanudacion`,
+     `esclavo_03_par_config`, `esclavo_06_no_abre_paso`, `app_04_valores_de_status` · y en la app, la frase de la
+     pluma con la luz en ÁMBAR (`App_Semaforo/app.js` y su copia de `www/`; SPEC 4 §6).
+   - **Comentarios del fuente que llevan la premisa derogada** (`CLAUDE.md` §11.7): el de `coordinador_pedirCambio()`
+     (ámbar reservado al paso de rojo a verde), el del Poste 2 *«contra la Resolución (verde→rojo directo)»* y el de
+     `Maestro/src/modo_degradado.cpp` sobre los 4 s de ámbar con que abre el Poste 2.
 
 ## 13. QUIÉN EJERCE CADA BARRERA DE ESTE DOCUMENTO
 
@@ -334,8 +443,11 @@ Cada uno trae con qué reproducirlo.
 | **`DAR PASO` en Manual** (`D-7`, §8) | 🟡 **PARTIDA:** el acuse de `MANUAL:CAMBIAR_TURNO` sí (**fila 18**), pero **el Modo Manual del Maestro no lo compila ningún arnés** — sólo PlatformIO |
 | **Los vetos del ámbar del Poste 2** (`D-8`, §4) | ✅ **fila 18**, que compila el bucle y el Bluetooth del Esclavo REALES. La cuenta, SPEC 2 §2.3 |
 | **El suelo y el techo del Inteligente** (`D-19`, §7) | ✅ **fila 17** (el factor de techo y las tres entradas de presencia) |
+| **El amarillo de cierre** (`D-45`, §3.2) | 🔴 **NADIE: sin construir.** Peor: las filas 17 y 18 hoy EXIGEN lo contrario (§12.10) |
 
-**Cuenta: ~~13 barreras — 8 ejecutadas~~ 12 barreras — 7 ejecutadas, 2 sin nadie, 3 partidas** *(15/09: sale la interceptación)*. Los dos rojos **no son casillas sueltas**: el menú y
+**Cuenta: ~~13 barreras — 8 ejecutadas~~ ~~12 barreras — 7 ejecutadas, 2 sin nadie, 3 partidas~~ 13 barreras — 7
+ejecutadas, 3 sin nadie, 3 partidas** *(15/09: sale la interceptación; 02/10: entra el amarillo de cierre, que
+es rojo por no construido)*. Los otros dos rojos **no son casillas sueltas**: el menú y
 el test de lámparas son **los dos caminos a los pines de luz que ningún arnés recorre**, y el segundo es justo el que
 enciende VERDE sin mirar nada. Y de las tres partidas la más cara es el enclavamiento: **el del ESCLAVO —la punta que
 obedece— no lo ejecuta nadie.**

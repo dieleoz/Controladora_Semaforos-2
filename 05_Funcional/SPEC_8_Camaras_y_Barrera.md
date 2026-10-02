@@ -35,6 +35,15 @@ camara, y lo que hace con ella tiene una sola direccion:
   responsable el 14/09 — no derivado), *«porque suelen pasarse carros en ambar y hay que darle unos
   segundos al conductor»*. El retardo no depende de ninguna camara: se cumple con las borneras vacias,
   que es como esta hoy la mayoria de los equipos.
+- 🟡 **DEBE (`D-45`, `N-174`; sin construir): durante el AMARILLO de cierre la pluma SIGUE ARRIBA, y el retardo
+  cuenta desde el ROJO, no desde el amarillo** (SPEC 1 §3.2). Es la letra de `D-33` («3 s despues del rojo») y de
+  `D-42` («retardo del rojo sigue en 3 s»): no las reabre. Hoy `escribirPines()` pide la pluma arriba solo con el
+  verde (`luzPideArriba`), asi que con el amarillo construido sin tocar esa condicion el retardo empezaria en el
+  amarillo y, con los dos a 3 s, la pluma bajaria en el instante del rojo, que es lo que `D-33` vino a quitar: **la
+  condicion gana el amarillo de cierre** (no el del
+  test de lamparas). El `static_assert` de `PLUMA_RETARDO_BAJADA_MS` contra `DESPEJE_SEG_MIN` no cambia, porque el
+  amarillo no resta despeje: tras cada verde la pluma queda arriba `AMARILLO_SEG` mas el retardo, y el otro poste
+  sigue abriendo un despeje entero despues del rojo.
 - **Pasado el retardo, CUALQUIERA de las dos camaras del poste VETA la bajada** mientras siga viendo
   algo. Sin consenso: con un AND, una camara muerta anularia el veto para siempre.
 - **Al soltarse el veto el firmware baja en el instante, pero la camara mantiene su alarma 5 s tras el evento**
@@ -127,7 +136,8 @@ vez el extremo de la cadena electrica que vive en `SPEC_5` §4. **Es de aqui.**
 - **Sube con verde y tambien en `S_FALLO`** —ambar intermitente: orfandad SFTY-6, Modo Ambar,
   `AMBAR_EMERGENCIA`, Degradado en ambar, un poste recien encendido—; **no sube con el verde de un test
   de lamparas** (`!testLedsActivo`, N-82). **La tabla luz -> pluma entera es SPEC 1 §2** y no se repite.
-  Es **SFTY-28**.
+  Es **SFTY-28**. 🟡 Con `D-45` sube tambien —sigue arriba— durante el amarillo de cierre (§1); el paso de verde a
+  ambar intermitente no cambia: la pluma sigue arriba sin interrupcion.
 - **Por que ARRIBA y no ABAJO, escrito en vez de supuesto.** El ambar intermitente dice que el equipo
   se quedo sin enlace y ya no puede garantizar quien tiene el paso. Caben dos politicas y ninguna es
   obviamente correcta: con la pluma **ABAJO** se cierra la via por completo —y un corredor de obra sin
