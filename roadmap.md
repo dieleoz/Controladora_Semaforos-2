@@ -118,10 +118,10 @@ esperar lo que digan las cintas de campo (D).
 
 | # | que dira la cinta | prueba de la hoja `2026-10-01` |
 |---|---|---|
-| D1 | `N-172`: si el Maestro reanuda el Degradado tras un corte (cierra H-D o abre H-A/H-B/H-C) | 1 y 2 |
+| D1 | `N-172`: 02/10 sobre `d3606be` el Maestro volvio a quedar en ambar tras salir del Degradado sin orden (08:21-08:31): la reposicion DR6/DR7 no basta en una prueba corta (H-D no era la causa aqui). La cinta no cubre el corte: hace falta exportar en menos de 5 min tras volver la luz, y el diario del Esclavo | 1 y 2 |
 | D2 | `D-40` en tarjeta: corte en Automatico -> ambar; Esclavo solo -> lo recupera el Maestro | 3 |
 | D3 | `D-38` en tarjeta: J17 fuera -> rojo fijo y alarma cada 60 s | 4 |
-| D4 | Aviso de radio en Degradado y salida solo desde el Poste 1 | 5 |
+| D4 | ~~Aviso de radio en Degradado y salida solo desde el Poste 1~~: medido el 02/10 (`evidencia/021020260914/`), funciona | 5 |
 | D5 | Camaras con peatones: retraso de la alarma, veto con carro y con persona | 6 |
 | D6 | Centralita de la talanquera: contacto mantenido o pulso | 7 |
 | D7 | ESP32 del Esclavo con ultimo arranque por watchdog (`OTRO_PERRO`, 01/10): ¿se repite? (`N-116`) | cualquier cinta |
@@ -137,6 +137,12 @@ mando): G1 censo de solo lectura (piezas, llamadores, vetos que cuelgan, instrum
 
 **H. `DECISIONES.md`** (responsable, 02/10: «marea»): consulta al arquitecto de plataforma, en curso; la forma
 que salga se aplica en la fase F.
+
+**I. Ambar antes del rojo (norma)** (Marco, 02/10): el firmware pasa de VERDE a ROJO sin amarillo (SPEC_1 §3.1) y
+enciende ambar solo antes del verde. El Manual de Senalizacion Vial 2024 (`fuentes/md/`, 4.4.3, pp. 394-395): «En ningun
+caso se podra cambiar de luz verde a luz roja [...] sin que antes aparezca el amarillo»; secuencias admitidas en
+4.4.2 (p. 394), p. ej. Rojo-Verde-Amarillo-Rojo; amarillo 3 s a 50 km/h (rotulo de la Fig. 4-9). I1 decision del
+responsable (`D-45`, secuencia); I2 candidata propia con runbook: toca luces, coordinacion, pluma y despeje.
 
 **E. Despues de banco pasado:** fase 5, lo duplicado Maestro/Esclavo a `lib/`.
 
