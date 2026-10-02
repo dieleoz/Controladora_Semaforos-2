@@ -1,0 +1,1220 @@
+IOT-VIAL - DIARIO DE ORDENES
+App: IOT-VIAL V9.0 (Controladora Semaforos)
+Cruce: KM 12 · EL SISGA
+Equipo: sin identificar (ningun $STATUS con NODE)
+Serie: 4D2007
+Firmware: sin pedir (pulse Consultar version)
+Modo: MENU
+Estado: ROJO
+Hora_RTC: sin telemetria
+Exportado: 2026-10-02T13:48:57.330Z
+
+QUE ES ESTO: una entrada por cada orden que se dio desde este telefono, con
+lo que se mando, lo que el equipo contesto y lo que se vio cambiar despues.
+El PIN sale tapado con asteriscos; al equipo se le manda entero.
+
+LO QUE ESTE DIARIO NO SABE, para que no se lea de mas:
+  - No sabe si el equipo RECIBIO la orden, solo que la app la escribio.
+  - "NO CAMBIO NADA" significa que MODO y ESTADO no se movieron en las
+    tramas que llegaron. No significa que el firmware desobedeciera.
+  - No ve las luces del poste: ve lo que el equipo dice por $STATUS.
+  - No sabe de ordenes dadas desde otro telefono, el mando o los botones.
+  - Pero cuando pone ESCRITA SIN ENLACE si sabe una cosa: que el equipo
+    llevaba segundos sin hablar cuando esa orden salio. Esas NO se pueden
+    leer como un rechazo del equipo, ni como un fallo del firmware.
+
+RESUMEN
+  ordenes anotadas       : 51
+  no llegaron a salir    : 2
+  sin respuesta          : 0
+  de esas, ESCRITAS SIN ENLACE: 0  (el equipo no hablaba cuando salieron)
+  rechazadas por el equipo: 0
+  no movieron MODO ni ESTADO: 7
+  efecto que no se pudo ver : 0
+
+LAS ORDENES, DE LA MAS ANTIGUA A LA MAS NUEVA
+
+07:57:43  ORDEN      CMD:CONSULTA_DEG_AUTO\r\n
+07:57:43  RESPUESTA  $ACK,CMD:CONSULTA_DEG_AUTO,RESULT:ESTE_OFF_OTRO_OFF_APTO_NO*0B   (+0,1 s)
+          EFECTO     CAMBIO: MODO: AMBAR -> MENU (a los 2,0 s) · ESTADO: FALLO COM -> ROJO (a los 2,0 s) · ESC: AMBAR -> ROJO (a los 2,0 s)
+
+07:57:43  ORDEN      CMD:SET_MODO:MENU\r\n
+07:57:43  RESPUESTA  $ACK,CMD:SET_MODO:MENU,RESULT:OK*33   (+0,1 s)
+          EFECTO     CAMBIO: MODO: AMBAR -> MENU (a los 1,5 s) · ESTADO: FALLO COM -> ROJO (a los 1,5 s) · ESC: AMBAR -> ROJO (a los 1,5 s)
+
+07:57:45  ORDEN      CMD:VERSION\r\n
+07:57:45  RESPUESTA  $ACK,CMD:VERSION,RESULT:OK,NODE:MAESTRO,FW:d3606be*76   (+0,1 s)
+          EFECTO     CAMBIO: MODO: MENU -> AMBAR (a los 9,9 s, TARDIO) · ESTADO: ROJO -> FALLO COM (a los 9,9 s, TARDIO) · ESC: ROJO -> AMBAR (a los 9,9 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+07:57:54  ORDEN      CMD:PIN:****:SET_MODO:AMBAR\r\n
+07:57:54  RESPUESTA  $ACK,CMD:SET_MODO:AMBAR,RESULT:OK*7D   (+0,1 s)
+          EFECTO     CAMBIO: MODO: MENU -> AMBAR (a los 0,4 s) · ESTADO: ROJO -> FALLO COM (a los 0,4 s) · ESC: ROJO -> AMBAR (a los 0,4 s)
+
+07:57:59  ORDEN      CMD:FORZAR_ROJO\r\n
+07:57:59  RESPUESTA  $ACK,CMD:FORZAR_ROJO,RESULT:OK*5B   (+0,1 s)
+          EFECTO     CAMBIO: ESTADO: FALLO COM -> ROJO (a los 0,3 s) · MODO: AMBAR -> AUTO (a los 8,3 s, TARDIO) · ESC: AMBAR -> ROJO (a los 8,3 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+07:58:06  ORDEN      CMD:PIN:****:SET_MODO:AUTO\r\n
+07:58:06  RESPUESTA  $ACK,CMD:SET_MODO:AUTO,RESULT:OK*2F   (+0,1 s)
+          EFECTO     CAMBIO: MODO: AMBAR -> AUTO (a los 1,0 s) · ESC: AMBAR -> ROJO (a los 1,0 s) · ESTADO: ROJO -> AMARILLO (a los 11,1 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+08:06:13  ORDEN      CMD:CONSULTA_DEG_AUTO\r\n
+08:06:14  RESPUESTA  $ACK,CMD:CONSULTA_DEG_AUTO,RESULT:ESTE_OFF_OTRO_OFF_APTO_NO*0B   (+0,1 s)
+          EFECTO     NO CAMBIO NADA: MODO siguio en AMBAR y ESTADO siguio en FALLO COM y ESC siguio en AMBAR en los 46 $STATUS de los 95,0 s posteriores
+
+08:06:16  ORDEN      CMD:VERSION\r\n
+08:06:16  RESPUESTA  $ACK,CMD:VERSION,RESULT:OK,NODE:MAESTRO,FW:d3606be*76   (+0,1 s)
+          EFECTO     NO CAMBIO NADA: MODO siguio en AMBAR y ESTADO siguio en FALLO COM y ESC siguio en AMBAR en los 47 $STATUS de los 95,0 s posteriores
+
+08:08:00  ORDEN      CMD:FORZAR_ROJO\r\n
+08:08:01  RESPUESTA  $ACK,CMD:FORZAR_ROJO,RESULT:OK*5B   (+0,2 s)
+          EFECTO     CAMBIO: ESTADO: FALLO COM -> ROJO (a los 2,1 s) · MODO: AMBAR -> MENU (a los 16,1 s, TARDIO) · ESC: AMBAR -> ROJO (a los 16,1 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+08:08:08  ORDEN      CMD:PIN:****:SET_MODO:AMBAR\r\n
+08:08:09  RESPUESTA  $ACK,CMD:SET_MODO:AMBAR,RESULT:REARMADO*7A   (+0,2 s)
+          EFECTO     CAMBIO: ESTADO: ROJO -> FALLO COM (a los 2,1 s) · MODO: AMBAR -> MENU (a los 8,1 s, TARDIO) · ESC: AMBAR -> ROJO (a los 8,1 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+08:08:16  ORDEN      CMD:SET_MODO:MENU\r\n
+08:08:16  RESPUESTA  $ACK,CMD:SET_MODO:MENU,RESULT:OK*33   (+0,1 s)
+          EFECTO     CAMBIO: MODO: AMBAR -> MENU (a los 0,9 s) · ESTADO: FALLO COM -> ROJO (a los 0,9 s) · ESC: AMBAR -> ROJO (a los 0,9 s)
+
+08:08:20  ORDEN      CMD:PIN:****:SET_MODO:AUTO\r\n
+08:08:20  RESPUESTA  $ACK,CMD:SET_MODO:AUTO,RESULT:OK*2F   (+0,1 s)
+          EFECTO     CAMBIO: MODO: MENU -> AUTO (a los 0,9 s) · ESTADO: ROJO -> AMARILLO (a los 10,9 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+08:11:50  ORDEN      CMD:SET_MODO:MENU\r\n
+08:11:51  RESPUESTA  $ACK,CMD:SET_MODO:MENU,RESULT:OK*33   (+0,1 s)
+          EFECTO     CAMBIO: MODO: AUTO -> MENU (a los 2,1 s) · ESC: VERDE -> ROJO (a los 2,1 s) · ESTADO: ROJO -> AMARILLO (a los 24,1 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+08:11:56  ORDEN      CMD:PIN:****:SET_TIEMPOS:3,3,15\r\n
+08:11:57  RESPUESTA  $ACK,CMD:SET_TIEMPOS,RESULT:OK*4A   (+0,2 s)   [el equipo contesta al comando SET_TIEMPOS, sin los argumentos que se mandaron]
+          EFECTO     CAMBIO: MODO: MENU -> AUTO (a los 4,2 s) · ESTADO: ROJO -> AMARILLO (a los 18,2 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+08:11:59  ORDEN      CMD:PIN:****:SET_MODO:AUTO\r\n
+08:11:59  RESPUESTA  $ACK,CMD:SET_MODO:AUTO,RESULT:OK*2F   (+0,1 s)
+          EFECTO     CAMBIO: MODO: MENU -> AUTO (a los 1,7 s) · ESTADO: ROJO -> AMARILLO (a los 15,7 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+08:16:11  ORDEN      CMD:SET_MODO:MENU\r\n
+08:16:11  RESPUESTA  $ACK,CMD:SET_MODO:MENU,RESULT:OK*33   (+0,1 s)
+          EFECTO     CAMBIO: MODO: AUTO -> MENU (a los 1,1 s) · ESC: VERDE -> ROJO (a los 1,1 s) · ESTADO: ROJO -> AMARILLO (a los 19,1 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+08:16:14  ORDEN      CMD:PIN:****:SET_MODO:MANUAL\r\n
+08:16:14  RESPUESTA  $ACK,CMD:SET_MODO:MANUAL,RESULT:OK*3A   (+0,1 s)
+          EFECTO     CAMBIO: MODO: MENU -> MANUAL (a los 2,1 s) · ESTADO: ROJO -> AMARILLO (a los 16,1 s, TARDIO) · ESC: ROJO -> VERDE (a los 44,1 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+08:16:20  ORDEN      CMD:PIN:****:MANUAL:CAMBIAR_TURNO\r\n
+08:16:20  RESPUESTA  $ACK,CMD:CAMBIAR_TURNO,RESULT:OK*54   (+0,1 s)   [el equipo contesta al comando CAMBIAR_TURNO para una orden que se manda como MANUAL:CAMBIAR_TURNO: lo hace asi el firmware]
+          EFECTO     CAMBIO: ESTADO: ROJO -> AMARILLO (a los 10,4 s, TARDIO) · ESC: ROJO -> VERDE (a los 38,4 s, TARDIO) · MODO: MANUAL -> MENU (a los 60,4 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+08:16:41  ORDEN      CMD:PIN:****:MANUAL:CAMBIAR_TURNO\r\n
+08:16:42  RESPUESTA  $ACK,CMD:CAMBIAR_TURNO,RESULT:OK*54   (+0,1 s)   [el equipo contesta al comando CAMBIAR_TURNO para una orden que se manda como MANUAL:CAMBIAR_TURNO: lo hace asi el firmware]
+          EFECTO     CAMBIO: ESTADO: VERDE -> ROJO (a los 0,9 s) · ESC: ROJO -> VERDE (a los 16,9 s, TARDIO) · MODO: MANUAL -> MENU (a los 38,9 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+08:17:15  ORDEN      CMD:FORZAR_ROJO\r\n
+08:17:15  RESPUESTA  $ACK,CMD:FORZAR_ROJO,RESULT:OK*5B   (+0,1 s)
+          EFECTO     CAMBIO: ESC: VERDE -> ROJO (a los 1,6 s) · MODO: MANUAL -> MENU (a los 5,5 s) · ESTADO: ROJO -> AMARILLO (a los 43,7 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+08:17:19  ORDEN      CMD:SET_MODO:MENU\r\n
+08:17:19  RESPUESTA  $ACK,CMD:SET_MODO:MENU,RESULT:OK*33   (+0,1 s)
+          EFECTO     CAMBIO: MODO: MANUAL -> MENU (a los 1,5 s) · ESTADO: ROJO -> AMARILLO (a los 39,7 s, TARDIO) · ESC: ROJO -> ? (a los 79,6 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+08:17:23  ORDEN      CMD:SET_MODO:ALCANCE\r\n
+08:17:24  RESPUESTA  $ACK,CMD:SET_MODO:ALCANCE,RESULT:OK*67   (+0,1 s)
+          EFECTO     CAMBIO: MODO: MENU -> ALCANCE (a los 1,0 s) · ESTADO: ROJO -> AMARILLO (a los 35,1 s, TARDIO) · ESC: ROJO -> ? (a los 75,0 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+08:17:43  ORDEN      CMD:PIN:****:SET_MODO:INTELIGENTE\r\n
+08:17:43  RESPUESTA  $ACK,CMD:SET_MODO:INTELIGENTE,RESULT:OK*6E   (+0,1 s)
+          EFECTO     CAMBIO: MODO: ALCANCE -> INTELIGENTE (a los 1,4 s) · ESTADO: ROJO -> AMARILLO (a los 15,5 s, TARDIO) · ESC: ROJO -> ? (a los 55,4 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+08:17:49  ORDEN      CMD:PIN:****:SET_RTC:2026-10-02,08:17:48\r\n
+08:17:49  RESPUESTA  $ACK,NODE:PUENTE,CMD:SET_RTC,RESULT:OK,FECHA:2026-10-02,HORA:08:17:48*05   (+0,0 s)   [el equipo contesta al comando SET_RTC, sin los argumentos que se mandaron]
+          EFECTO     CAMBIO: ESTADO: ROJO -> AMARILLO (a los 10,0 s, TARDIO) · ESC: ROJO -> ? (a los 49,9 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+08:17:50  ORDEN      CMD:PIN:****:SET_RTC:2026-10-02,08:17:50\r\n
+08:17:50  RESPUESTA  $ACK,NODE:PUENTE,CMD:SET_RTC,RESULT:OK,FECHA:2026-10-02,HORA:08:17:50*0C   (+0,0 s)   [el equipo contesta al comando SET_RTC, sin los argumentos que se mandaron]
+          EFECTO     CAMBIO: ESTADO: ROJO -> AMARILLO (a los 8,3 s, TARDIO) · ESC: ROJO -> ? (a los 48,2 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+08:19:41  ORDEN      CMD:PIN:****:SET_RTC:2026-10-02,08:19:41\r\n
+08:19:41  RESPUESTA  $ACK,NODE:PUENTE,CMD:SET_RTC,RESULT:OK,FECHA:2026-10-02,HORA:08:19:41*02   (+0,0 s)   [el equipo contesta al comando SET_RTC, sin los argumentos que se mandaron]
+          EFECTO     CAMBIO: MODO: INTELIGENTE -> DEGRADADO (a los 1,9 s) · ESTADO: FALLO COM -> ROJO (a los 1,9 s)
+
+08:19:41  ORDEN      CMD:PIN:****:SET_MODO:DEG_T:08:19:41,08:21:41,180,30\r\n
+08:19:41  RESPUESTA  $ACK,CMD:SET_MODO:DEG_T,RESULT:OK*6D   (+0,3 s)   [el equipo contesta al comando SET_MODO:DEG_T, sin los argumentos que se mandaron]
+          EFECTO     CAMBIO: MODO: INTELIGENTE -> DEGRADADO (a los 1,9 s) · ESTADO: FALLO COM -> ROJO (a los 1,9 s)
+
+08:20:00  ORDEN      CMD:CONSULTA_DEG_AUTO\r\n
+08:20:00  RESPUESTA  $ACK,CMD:CONSULTA_DEG_AUTO,RESULT:ESTE_OFF_OTRO_OFF_APTO_NO*0B   (+0,1 s)
+          EFECTO     CAMBIO: MODO: SUBORDINADO -> DEGRADADO (a los 14,0 s, TARDIO) · ESTADO: FALLO COM -> ROJO (a los 14,0 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+08:20:01  ORDEN      CMD:VERSION\r\n
+08:20:02  RESPUESTA  $ACK,CMD:VERSION,RESULT:OK,NODE:ESCLAVO,FW:d3606be*64   (+0,1 s)
+          EFECTO     CAMBIO: MODO: SUBORDINADO -> DEGRADADO (a los 12,7 s, TARDIO) · ESTADO: FALLO COM -> ROJO (a los 12,7 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+08:20:12  ORDEN      CMD:PIN:****:SET_RTC:2026-10-02,08:20:12\r\n
+08:20:12  RESPUESTA  $ACK,NODE:PUENTE,CMD:SET_RTC,RESULT:OK,FECHA:2026-10-02,HORA:08:20:12*0E   (+0,0 s)   [el equipo contesta al comando SET_RTC, sin los argumentos que se mandaron]
+          EFECTO     CAMBIO: MODO: SUBORDINADO -> DEGRADADO (a los 1,9 s) · ESTADO: FALLO COM -> ROJO (a los 1,9 s)
+
+08:20:12  ORDEN      CMD:PIN:****:SET_MODO:DEG_T:08:20:12,08:21:41,180,30\r\n
+08:20:12  RESPUESTA  $ACK,CMD:SET_MODO:DEG_T,RESULT:OK*6D   (+0,2 s)   [el equipo contesta al comando SET_MODO:DEG_T, sin los argumentos que se mandaron]
+          EFECTO     CAMBIO: MODO: SUBORDINADO -> DEGRADADO (a los 1,9 s) · ESTADO: FALLO COM -> ROJO (a los 1,9 s)
+
+08:21:11  ORDEN      CMD:PIN:****:SET_RTC:2026-10-02,08:21:10\r\n
+08:21:11  RESPUESTA  $ACK,NODE:PUENTE,CMD:SET_RTC,RESULT:OK,FECHA:2026-10-02,HORA:08:21:10*0D   (+0,0 s)   [el equipo contesta al comando SET_RTC, sin los argumentos que se mandaron]
+          EFECTO     NO CAMBIO NADA: MODO siguio en DEGRADADO y ESTADO siguio en ROJO en los 40 $STATUS de los 95,0 s posteriores
+
+08:21:12  ORDEN      CMD:PIN:****:SET_RTC:2026-10-02,08:21:12\r\n
+08:21:12  RESPUESTA  $ACK,NODE:PUENTE,CMD:SET_RTC,RESULT:OK,FECHA:2026-10-02,HORA:08:21:12*0F   (+0,0 s)   [el equipo contesta al comando SET_RTC, sin los argumentos que se mandaron]
+          EFECTO     NO CAMBIO NADA: MODO siguio en DEGRADADO y ESTADO siguio en ROJO en los 40 $STATUS de los 95,0 s posteriores
+
+08:21:18  ORDEN      CMD:VERSION\r\n
+08:21:18  RESPUESTA  $ACK,CMD:VERSION,RESULT:OK,NODE:ESCLAVO,FW:d3606be*64   (+0,1 s)
+          EFECTO     NO CAMBIO NADA: MODO siguio en DEGRADADO y ESTADO siguio en ROJO en los 41 $STATUS de los 95,0 s posteriores
+
+08:21:28  ORDEN      VERSION   NO SALIO: sin enlace Bluetooth abierto (no llego a escribirse al cable, asi que no esta en la cinta)
+          RESPUESTA  no hay respuesta que esperar: la orden no salio
+          EFECTO     no hay efecto que mirar: la orden no salio
+
+08:21:30  ORDEN      VERSION   NO SALIO: sin enlace Bluetooth abierto (no llego a escribirse al cable, asi que no esta en la cinta)
+          RESPUESTA  no hay respuesta que esperar: la orden no salio
+          EFECTO     no hay efecto que mirar: la orden no salio
+
+08:21:38  ORDEN      CMD:CONSULTA_DEG_AUTO\r\n
+08:21:39  RESPUESTA  $ACK,CMD:CONSULTA_DEG_AUTO,RESULT:ESTE_OFF_OTRO_OFF_APTO_NO*0B   (+0,1 s)
+          EFECTO     NO CAMBIO NADA: MODO siguio en DEGRADADO y ESTADO siguio en ROJO y ESC siguio en ? en los 47 $STATUS de los 95,0 s posteriores
+
+08:21:41  ORDEN      CMD:VERSION\r\n
+08:21:41  RESPUESTA  $ACK,CMD:VERSION,RESULT:OK,NODE:MAESTRO,FW:d3606be*76   (+0,1 s)
+          EFECTO     NO CAMBIO NADA: MODO siguio en DEGRADADO y ESTADO siguio en ROJO y ESC siguio en ? en los 47 $STATUS de los 95,0 s posteriores
+
+08:31:33  ORDEN      CMD:CONSULTA_DEG_AUTO\r\n
+08:31:34  RESPUESTA  $ACK,CMD:CONSULTA_DEG_AUTO,RESULT:ESTE_OFF_OTRO_OFF_APTO_NO*0B   (+0,1 s)
+          EFECTO     CAMBIO: MODO: AMBAR -> DEGRADADO (a los 32,0 s, TARDIO) · ESTADO: FALLO COM -> ROJO (a los 32,0 s, TARDIO) · ESC: AMBAR -> ? (a los 32,0 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+08:31:36  ORDEN      CMD:VERSION\r\n
+08:31:36  RESPUESTA  $ACK,CMD:VERSION,RESULT:OK,NODE:MAESTRO,FW:d3606be*76   (+0,1 s)
+          EFECTO     CAMBIO: MODO: AMBAR -> DEGRADADO (a los 30,0 s, TARDIO) · ESTADO: FALLO COM -> ROJO (a los 30,0 s, TARDIO) · ESC: AMBAR -> ? (a los 30,0 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+08:32:04  ORDEN      CMD:PIN:****:SET_RTC:2026-10-02,08:32:04\r\n
+08:32:04  RESPUESTA  $ACK,NODE:PUENTE,CMD:SET_RTC,RESULT:OK,FECHA:2026-10-02,HORA:08:32:04*0A   (+0,0 s)   [el equipo contesta al comando SET_RTC, sin los argumentos que se mandaron]
+          EFECTO     CAMBIO: MODO: AMBAR -> DEGRADADO (a los 1,6 s) · ESTADO: FALLO COM -> ROJO (a los 1,6 s) · ESC: AMBAR -> ? (a los 1,6 s)
+
+08:32:04  ORDEN      CMD:PIN:****:SET_MODO:DEG_T:08:32:04,08:34:04,180,30\r\n
+08:32:04  RESPUESTA  $ACK,CMD:SET_MODO:DEG_T,RESULT:OK*6D   (+0,3 s)   [el equipo contesta al comando SET_MODO:DEG_T, sin los argumentos que se mandaron]
+          EFECTO     CAMBIO: MODO: AMBAR -> DEGRADADO (a los 1,6 s) · ESTADO: FALLO COM -> ROJO (a los 1,6 s) · ESC: AMBAR -> ? (a los 1,6 s)
+
+08:40:26  ORDEN      CMD:SET_MODO:MENU\r\n
+08:40:26  RESPUESTA  $ACK,CMD:SET_MODO:MENU,RESULT:SALIENDO_TODO_ROJO*28   (+0,1 s)
+          EFECTO     CAMBIO: ESTADO: VERDE -> ROJO (a los 0,3 s) · MODO: DEGRADADO -> AMBAR (a los 20,3 s, TARDIO) · ESC: ? -> AMBAR (a los 20,3 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+08:40:45  ORDEN      CMD:PIN:****:SET_MODO:AMBAR\r\n
+08:40:45  RESPUESTA  $ACK,CMD:SET_MODO:AMBAR,RESULT:OK*7D   (+0,1 s)
+          EFECTO     CAMBIO: MODO: DEGRADADO -> AMBAR (a los 1,8 s) · ESTADO: ROJO -> FALLO COM (a los 1,8 s) · ESC: ? -> AMBAR (a los 1,8 s)
+
+08:41:04  ORDEN      CMD:FORZAR_ROJO\r\n
+08:41:05  RESPUESTA  $ACK,CMD:FORZAR_ROJO,RESULT:OK*5B   (+0,2 s)
+          EFECTO     CAMBIO: ESTADO: FALLO COM -> ROJO (a los 2,1 s) · MODO: AMBAR -> MENU (a los 4,1 s) · ESC: AMBAR -> ROJO (a los 4,1 s)
+
+08:41:07  ORDEN      CMD:SET_MODO:MENU\r\n
+08:41:07  RESPUESTA  $ACK,CMD:SET_MODO:MENU,RESULT:OK*33   (+0,1 s)
+          EFECTO     CAMBIO: MODO: AMBAR -> MENU (a los 1,5 s) · ESC: AMBAR -> ROJO (a los 1,5 s) · ESTADO: ROJO -> FALLO COM (a los 3,5 s)
+
+08:41:09  ORDEN      CMD:PIN:****:SET_MODO:AMBAR\r\n
+08:41:09  RESPUESTA  $ACK,CMD:SET_MODO:AMBAR,RESULT:OK*7D   (+0,1 s)
+          EFECTO     CAMBIO: MODO: MENU -> AMBAR (a los 1,8 s) · ESTADO: ROJO -> FALLO COM (a los 1,8 s) · ESC: ROJO -> AMBAR (a los 1,8 s)
+
+08:41:43  ORDEN      CMD:FORZAR_ROJO\r\n
+08:41:43  RESPUESTA  $ACK,CMD:FORZAR_ROJO,RESULT:OK*5B   (+0,1 s)
+          EFECTO     CAMBIO: ESTADO: FALLO COM -> ROJO (a los 1,5 s) · MODO: AMBAR -> MENU (a los 9,6 s, TARDIO) · ESC: AMBAR -> ROJO (a los 9,6 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+08:41:51  ORDEN      CMD:SET_MODO:MENU\r\n
+08:41:51  RESPUESTA  $ACK,CMD:SET_MODO:MENU,RESULT:OK*33   (+0,1 s)
+          EFECTO     CAMBIO: MODO: AMBAR -> MENU (a los 1,7 s) · ESC: AMBAR -> ROJO (a los 1,7 s) · ESTADO: ROJO -> AMARILLO (a los 25,7 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+08:42:05  ORDEN      CMD:PIN:****:SET_MODO:INTELIGENTE\r\n
+08:42:05  RESPUESTA  $ACK,CMD:SET_MODO:INTELIGENTE,RESULT:OK*6E   (+0,1 s)
+          EFECTO     CAMBIO: MODO: MENU -> INTELIGENTE (a los 1,7 s) · ESTADO: ROJO -> AMARILLO (a los 11,7 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+08:47:51  ORDEN      CMD:SET_MODO:MENU\r\n
+08:47:51  RESPUESTA  $ACK,CMD:SET_MODO:MENU,RESULT:OK*33   (+0,1 s)
+          EFECTO     CAMBIO: MODO: INTELIGENTE -> MENU (a los 2,0 s) · ESC: VERDE -> ROJO (a los 2,0 s)
+
+
+
+========================================================================
+
+IOT-VIAL - CINTA DE TRAMAS EN CRUDO
+App: IOT-VIAL V9.0 (Controladora Semaforos)
+Cruce: KM 12 · EL SISGA
+Equipo: sin identificar (ningun $STATUS con NODE)
+Serie: 4D2007
+Firmware: sin pedir (pulse Consultar version)
+Modo: MENU
+Estado: ROJO
+Hora_RTC: sin telemetria
+Pluma: sin telemetria
+Camaras: sin telemetria
+Enlace: 100% a las 08:48:21
+Exportado: 2026-10-02T13:48:57.331Z
+
+CONTADORES DE LOS ULTIMOS 5 MINUTOS
+  tramas entradas : 143
+  aceptadas       : 143 (132 con algun campo sin medida)
+  rechazadas      : 0
+  ordenes enviadas: 1  (lo que la app escribio al cable; la terna orden/respuesta/efecto va en el DIARIO DE ORDENES, que se exporta aparte)
+  (156 tramas mas viejas que la ventana siguen en la cinta y NO se cuentan arriba)
+  RECORTADO: se tiraron las 1430 tramas mas antiguas al llegar al tope de 300. Lo de antes de eso no esta aqui.
+
+LA CINTA, DE LA MAS ANTIGUA A LA MAS NUEVA
+Los caracteres de control salen escapados (\r, \n, \xNN); la trama entro tal cual.
+"<--" es lo que ENTRO por el cable; "-->" es lo que la app ESCRIBIO al cable.
+El PIN de las ordenes sale tapado con asteriscos. Al equipo se le manda entero: solo se tapa aqui.
+
+08:39:59  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:DEGRADADO,ESTADO:VERDE,T:--,RF:--,RTT:--,BAT:--,HORA:08:39:58,ESC:?,PLUMA:ARRIBA,CAM:?*6A
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+08:40:01  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:DEGRADADO,ESTADO:VERDE,T:--,RF:--,RTT:--,BAT:--,HORA:08:40:00,ESC:?,PLUMA:ARRIBA,CAM:?*69
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+08:40:03  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:DEGRADADO,ESTADO:VERDE,T:--,RF:--,RTT:--,BAT:--,HORA:08:40:02,ESC:?,PLUMA:ARRIBA,CAM:?*6B
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+08:40:05  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:DEGRADADO,ESTADO:VERDE,T:--,RF:--,RTT:--,BAT:--,HORA:08:40:04,ESC:?,PLUMA:ARRIBA,CAM:?*6D
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+08:40:07  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:DEGRADADO,ESTADO:VERDE,T:--,RF:--,RTT:--,BAT:--,HORA:08:40:06,ESC:?,PLUMA:ARRIBA,CAM:?*6F
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+08:40:07  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:DEGRADADO,DETALLE:ENLACE_DISPONIBLE,HORA:08:40:06*41
+08:40:09  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:DEGRADADO,ESTADO:VERDE,T:--,RF:--,RTT:--,BAT:--,HORA:08:40:08,ESC:?,PLUMA:ARRIBA,CAM:?*61
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+08:40:11  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:DEGRADADO,ESTADO:VERDE,T:--,RF:--,RTT:--,BAT:--,HORA:08:40:10,ESC:?,PLUMA:ARRIBA,CAM:?*68
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+08:40:13  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:DEGRADADO,ESTADO:VERDE,T:--,RF:--,RTT:--,BAT:--,HORA:08:40:12,ESC:?,PLUMA:ARRIBA,CAM:?*6A
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+08:40:15  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:DEGRADADO,ESTADO:VERDE,T:--,RF:--,RTT:--,BAT:--,HORA:08:40:14,ESC:?,PLUMA:ARRIBA,CAM:?*6C
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+08:40:17  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:DEGRADADO,ESTADO:VERDE,T:--,RF:--,RTT:--,BAT:--,HORA:08:40:16,ESC:?,PLUMA:ARRIBA,CAM:?*6E
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+08:40:19  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:DEGRADADO,ESTADO:VERDE,T:--,RF:--,RTT:--,BAT:--,HORA:08:40:18,ESC:?,PLUMA:ARRIBA,CAM:?*60
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+08:40:19  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:ENLACE_RF,DETALLE:RX:141 OK:20 RUIDO:3,HORA:08:40:18*78
+08:40:21  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:DEGRADADO,ESTADO:VERDE,T:--,RF:--,RTT:--,BAT:--,HORA:08:40:20,ESC:?,PLUMA:ARRIBA,CAM:?*6B
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+08:40:23  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:DEGRADADO,ESTADO:VERDE,T:--,RF:--,RTT:--,BAT:--,HORA:08:40:22,ESC:?,PLUMA:ARRIBA,CAM:?*69
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+08:40:25  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:DEGRADADO,ESTADO:VERDE,T:--,RF:--,RTT:--,BAT:--,HORA:08:40:24,ESC:?,PLUMA:ARRIBA,CAM:?*6F
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+08:40:26  -->  [ENVIADA]
+    CMD:SET_MODO:MENU\r\n
+08:40:26  <--  [ACEPTADA]
+    $ACK,CMD:SET_MODO:MENU,RESULT:SALIENDO_TODO_ROJO*28
+08:40:26  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:SALIDA_DEGRADADO_PEDIDA,HORA:08:40:25*55
+08:40:27  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:DEGRADADO,ESTADO:ROJO,T:--,RF:--,RTT:--,BAT:--,HORA:08:40:26,ESC:?,PLUMA:ARRIBA,CAM:?*35
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+08:40:29  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:DEGRADADO,ESTADO:ROJO,T:--,RF:--,RTT:--,BAT:--,HORA:08:40:28,ESC:?,PLUMA:ARRIBA,CAM:?*3B
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+08:40:31  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:DEGRADADO,ESTADO:ROJO,T:--,RF:--,RTT:--,BAT:--,HORA:08:40:30,ESC:?,PLUMA:ABAJO,CAM:?*7E
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+08:40:33  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:DEGRADADO,ESTADO:ROJO,T:--,RF:--,RTT:--,BAT:--,HORA:08:40:32,ESC:?,PLUMA:ABAJO,CAM:?*7C
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+08:40:35  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:DEGRADADO,ESTADO:ROJO,T:--,RF:--,RTT:--,BAT:--,HORA:08:40:34,ESC:?,PLUMA:ABAJO,CAM:?*7A
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+08:40:37  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:DEGRADADO,ESTADO:ROJO,T:--,RF:--,RTT:--,BAT:--,HORA:08:40:36,ESC:?,PLUMA:ABAJO,CAM:?*78
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+08:40:39  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:DEGRADADO,ESTADO:ROJO,T:--,RF:--,RTT:--,BAT:--,HORA:08:40:38,ESC:?,PLUMA:ABAJO,CAM:?*76
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+08:40:41  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:DEGRADADO,ESTADO:ROJO,T:--,RF:--,RTT:--,BAT:--,HORA:08:40:40,ESC:?,PLUMA:ABAJO,CAM:?*79
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+08:40:43  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:DEGRADADO,ESTADO:ROJO,T:--,RF:--,RTT:--,BAT:--,HORA:08:40:42,ESC:?,PLUMA:ABAJO,CAM:?*7B
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+08:40:45  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:DEGRADADO,ESTADO:ROJO,T:--,RF:--,RTT:--,BAT:--,HORA:08:40:44,ESC:?,PLUMA:ABAJO,CAM:?*7D
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+08:40:45  -->  [ENVIADA]
+    CMD:PIN:****:SET_MODO:AMBAR\r\n
+08:40:45  <--  [ACEPTADA]
+    $ACK,CMD:SET_MODO:AMBAR,RESULT:OK*7D
+08:40:45  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:SET_MODO_AMBAR,HORA:08:40:44*10
+08:40:45  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:DEGRADADO,DETALLE:SYNC:-- AVISO:NO VENCIDA:SI,HORA:08:40:44*23
+08:40:47  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:--,RTT:--,BAT:--,HORA:08:40:46,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*66
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+08:40:49  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:--,RTT:--,BAT:--,HORA:08:40:48,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*68
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+08:40:49  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:ENLACE_RF,DETALLE:RX:197 OK:30 RUIDO:5,HORA:08:40:48*71
+08:40:51  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:--,RTT:--,BAT:--,HORA:08:40:50,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*61
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+08:40:53  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:--,RTT:--,BAT:--,HORA:08:40:52,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*63
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+08:40:55  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:--,RTT:--,BAT:--,HORA:08:40:54,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*65
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+08:40:57  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:--,RTT:--,BAT:--,HORA:08:40:56,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*67
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+08:40:59  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:--,RTT:--,BAT:--,HORA:08:40:58,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*69
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+08:41:01  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:--,RTT:--,BAT:--,HORA:08:41:00,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*65
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+08:41:03  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:--,RTT:--,BAT:--,HORA:08:41:02,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*67
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+08:41:04  -->  [ENVIADA]
+    CMD:FORZAR_ROJO\r\n
+08:41:05  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:--,RTT:--,BAT:--,HORA:08:41:04,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*61
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+08:41:05  <--  [ACEPTADA]
+    $ACK,CMD:FORZAR_ROJO,RESULT:OK*5B
+08:41:05  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:08:41:04*55
+08:41:07  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:AMBAR,ESTADO:ROJO,T:--,RF:--,RTT:--,BAT:--,HORA:08:41:06,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*52
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+08:41:07  -->  [ENVIADA]
+    CMD:SET_MODO:MENU\r\n
+08:41:07  <--  [ACEPTADA]
+    $ACK,CMD:SET_MODO:MENU,RESULT:OK*33
+08:41:07  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:SET_MODO_MENU,HORA:08:41:06*59
+08:41:08  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:DEGRADADO,DETALLE:SYNC:0h AVISO:NO VENCIDA:NO,HORA:08:41:07*66
+08:41:09  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:MENU,ESTADO:ROJO,T:--,RF:100%,RTT:211ms,BAT:--,HORA:08:41:08,ESC:ROJO,PLUMA:ABAJO,CAM:?*23
+    reparo: la bateria no venia medida (BAT:--)
+08:41:09  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:ENLACE_RF,DETALLE:OK_RF:100%,HORA:08:41:08*6D
+08:41:09  -->  [ENVIADA]
+    CMD:PIN:****:SET_MODO:AMBAR\r\n
+08:41:09  <--  [ACEPTADA]
+    $ACK,CMD:SET_MODO:AMBAR,RESULT:OK*7D
+08:41:09  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:SET_MODO_AMBAR,HORA:08:41:08*19
+08:41:11  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:100%,RTT:211ms,BAT:--,HORA:08:41:10,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*5C
+    reparo: la bateria no venia medida (BAT:--)
+08:41:13  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:100%,RTT:211ms,BAT:--,HORA:08:41:12,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*5E
+    reparo: la bateria no venia medida (BAT:--)
+08:41:15  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:100%,RTT:211ms,BAT:--,HORA:08:41:14,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*58
+    reparo: la bateria no venia medida (BAT:--)
+08:41:17  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:100%,RTT:211ms,BAT:--,HORA:08:41:16,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*5A
+    reparo: la bateria no venia medida (BAT:--)
+08:41:19  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:100%,RTT:211ms,BAT:--,HORA:08:41:18,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*54
+    reparo: la bateria no venia medida (BAT:--)
+08:41:19  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:ENLACE_RF,DETALLE:RX:278 OK:47 RUIDO:5,HORA:08:41:18*77
+08:41:21  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:100%,RTT:211ms,BAT:--,HORA:08:41:20,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*5F
+    reparo: la bateria no venia medida (BAT:--)
+08:41:23  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:100%,RTT:211ms,BAT:--,HORA:08:41:22,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*5D
+    reparo: la bateria no venia medida (BAT:--)
+08:41:25  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:100%,RTT:211ms,BAT:--,HORA:08:41:24,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*5B
+    reparo: la bateria no venia medida (BAT:--)
+08:41:27  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:100%,RTT:211ms,BAT:--,HORA:08:41:26,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*59
+    reparo: la bateria no venia medida (BAT:--)
+08:41:29  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:100%,RTT:211ms,BAT:--,HORA:08:41:28,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*57
+    reparo: la bateria no venia medida (BAT:--)
+08:41:31  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:100%,RTT:211ms,BAT:--,HORA:08:41:30,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*5E
+    reparo: la bateria no venia medida (BAT:--)
+08:41:33  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:100%,RTT:211ms,BAT:--,HORA:08:41:32,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*5C
+    reparo: la bateria no venia medida (BAT:--)
+08:41:35  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:100%,RTT:211ms,BAT:--,HORA:08:41:34,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*5A
+    reparo: la bateria no venia medida (BAT:--)
+08:41:37  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:100%,RTT:211ms,BAT:--,HORA:08:41:36,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*58
+    reparo: la bateria no venia medida (BAT:--)
+08:41:39  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:100%,RTT:211ms,BAT:--,HORA:08:41:38,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*56
+    reparo: la bateria no venia medida (BAT:--)
+08:41:41  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:100%,RTT:211ms,BAT:--,HORA:08:41:40,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*59
+    reparo: la bateria no venia medida (BAT:--)
+08:41:43  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:100%,RTT:211ms,BAT:--,HORA:08:41:42,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*5B
+    reparo: la bateria no venia medida (BAT:--)
+08:41:43  -->  [ENVIADA]
+    CMD:FORZAR_ROJO\r\n
+08:41:43  <--  [ACEPTADA]
+    $ACK,CMD:FORZAR_ROJO,RESULT:OK*5B
+08:41:43  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:08:41:42*57
+08:41:45  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:AMBAR,ESTADO:ROJO,T:--,RF:100%,RTT:211ms,BAT:--,HORA:08:41:44,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*6C
+    reparo: la bateria no venia medida (BAT:--)
+08:41:47  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:AMBAR,ESTADO:ROJO,T:--,RF:100%,RTT:211ms,BAT:--,HORA:08:41:46,ESC:AMBAR,PLUMA:ABAJO,CAM:?*22
+    reparo: la bateria no venia medida (BAT:--)
+08:41:49  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:AMBAR,ESTADO:ROJO,T:--,RF:100%,RTT:211ms,BAT:--,HORA:08:41:48,ESC:AMBAR,PLUMA:ABAJO,CAM:?*2C
+    reparo: la bateria no venia medida (BAT:--)
+08:41:49  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:ENLACE_RF,DETALLE:RX:292 OK:50 RUIDO:5,HORA:08:41:48*70
+08:41:51  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:AMBAR,ESTADO:ROJO,T:--,RF:100%,RTT:211ms,BAT:--,HORA:08:41:50,ESC:AMBAR,PLUMA:ABAJO,CAM:?*25
+    reparo: la bateria no venia medida (BAT:--)
+08:41:51  -->  [ENVIADA]
+    CMD:SET_MODO:MENU\r\n
+08:41:51  <--  [ACEPTADA]
+    $ACK,CMD:SET_MODO:MENU,RESULT:OK*33
+08:41:51  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:SET_MODO_MENU,HORA:08:41:50*5A
+08:41:53  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:MENU,ESTADO:ROJO,T:--,RF:100%,RTT:211ms,BAT:--,HORA:08:41:52,ESC:ROJO,PLUMA:ABAJO,CAM:?*2C
+    reparo: la bateria no venia medida (BAT:--)
+08:41:55  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:MENU,ESTADO:ROJO,T:--,RF:100%,RTT:211ms,BAT:--,HORA:08:41:54,ESC:ROJO,PLUMA:ABAJO,CAM:?*2A
+    reparo: la bateria no venia medida (BAT:--)
+08:41:57  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:MENU,ESTADO:ROJO,T:--,RF:100%,RTT:211ms,BAT:--,HORA:08:41:56,ESC:ROJO,PLUMA:ABAJO,CAM:?*28
+    reparo: la bateria no venia medida (BAT:--)
+08:41:59  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:MENU,ESTADO:ROJO,T:--,RF:66%,RTT:207ms,BAT:--,HORA:08:41:58,ESC:ROJO,PLUMA:ABAJO,CAM:?*10
+    reparo: la bateria no venia medida (BAT:--)
+08:42:01  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:MENU,ESTADO:ROJO,T:--,RF:66%,RTT:207ms,BAT:--,HORA:08:42:00,ESC:ROJO,PLUMA:ABAJO,CAM:?*1E
+    reparo: la bateria no venia medida (BAT:--)
+08:42:03  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:MENU,ESTADO:ROJO,T:--,RF:75%,RTT:206ms,BAT:--,HORA:08:42:02,ESC:ROJO,PLUMA:ABAJO,CAM:?*1F
+    reparo: la bateria no venia medida (BAT:--)
+08:42:05  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:MENU,ESTADO:ROJO,T:--,RF:75%,RTT:206ms,BAT:--,HORA:08:42:04,ESC:ROJO,PLUMA:ABAJO,CAM:?*19
+    reparo: la bateria no venia medida (BAT:--)
+08:42:05  -->  [ENVIADA]
+    CMD:PIN:****:SET_MODO:INTELIGENTE\r\n
+08:42:05  <--  [ACEPTADA]
+    $ACK,CMD:SET_MODO:INTELIGENTE,RESULT:OK*6E
+08:42:05  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:SET_MODO_INTELIGENTE,HORA:08:42:04*05
+08:42:07  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:8,RF:75%,RTT:206ms,BAT:--,HORA:08:42:06,ESC:ROJO,PLUMA:ABAJO,CAM:?*7E
+    reparo: la bateria no venia medida (BAT:--)
+08:42:09  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:6,RF:75%,RTT:206ms,BAT:--,HORA:08:42:08,ESC:ROJO,PLUMA:ABAJO,CAM:?*7E
+    reparo: la bateria no venia medida (BAT:--)
+08:42:11  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:4,RF:75%,RTT:206ms,BAT:--,HORA:08:42:10,ESC:ROJO,PLUMA:ABAJO,CAM:?*75
+    reparo: la bateria no venia medida (BAT:--)
+08:42:13  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:2,RF:66%,RTT:203ms,BAT:--,HORA:08:42:12,ESC:ROJO,PLUMA:ABAJO,CAM:?*76
+    reparo: la bateria no venia medida (BAT:--)
+08:42:15  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:0,RF:66%,RTT:203ms,BAT:--,HORA:08:42:14,ESC:ROJO,PLUMA:ABAJO,CAM:?*72
+    reparo: la bateria no venia medida (BAT:--)
+08:42:17  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:AMARILLO,T:--,RF:71%,RTT:201ms,BAT:--,HORA:08:42:16,ESC:ROJO,PLUMA:ABAJO,CAM:?*45
+    reparo: la bateria no venia medida (BAT:--)
+08:42:19  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:AMARILLO,T:--,RF:75%,RTT:200ms,BAT:--,HORA:08:42:18,ESC:ROJO,PLUMA:ABAJO,CAM:?*4E
+    reparo: la bateria no venia medida (BAT:--)
+08:42:19  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:ENLACE_RF,DETALLE:RX:384 OK:68 RUIDO:5,HORA:08:42:18*7B
+08:42:21  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:75%,RTT:200ms,BAT:--,HORA:08:42:20,ESC:ROJO,PLUMA:ARRIBA,CAM:?*50
+    reparo: la bateria no venia medida (BAT:--)
+08:42:23  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:75%,RTT:200ms,BAT:--,HORA:08:42:22,ESC:ROJO,PLUMA:ARRIBA,CAM:?*52
+    reparo: la bateria no venia medida (BAT:--)
+08:42:25  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:75%,RTT:200ms,BAT:--,HORA:08:42:24,ESC:ROJO,PLUMA:ARRIBA,CAM:?*54
+    reparo: la bateria no venia medida (BAT:--)
+08:42:27  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:75%,RTT:200ms,BAT:--,HORA:08:42:26,ESC:ROJO,PLUMA:ARRIBA,CAM:?*56
+    reparo: la bateria no venia medida (BAT:--)
+08:42:29  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:70%,RTT:199ms,BAT:--,HORA:08:42:28,ESC:ROJO,PLUMA:ARRIBA,CAM:?*5E
+    reparo: la bateria no venia medida (BAT:--)
+08:42:31  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:70%,RTT:199ms,BAT:--,HORA:08:42:30,ESC:ROJO,PLUMA:ARRIBA,CAM:?*57
+    reparo: la bateria no venia medida (BAT:--)
+08:42:33  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:70%,RTT:198ms,BAT:--,HORA:08:42:32,ESC:ROJO,PLUMA:ARRIBA,CAM:?*54
+    reparo: la bateria no venia medida (BAT:--)
+08:42:35  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:80%,RTT:197ms,BAT:--,HORA:08:42:34,ESC:ROJO,PLUMA:ARRIBA,CAM:?*52
+    reparo: la bateria no venia medida (BAT:--)
+08:42:37  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:80%,RTT:197ms,BAT:--,HORA:08:42:36,ESC:ROJO,PLUMA:ARRIBA,CAM:?*50
+    reparo: la bateria no venia medida (BAT:--)
+08:42:39  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:80%,RTT:196ms,BAT:--,HORA:08:42:38,ESC:ROJO,PLUMA:ARRIBA,CAM:?*5F
+    reparo: la bateria no venia medida (BAT:--)
+08:42:41  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:80%,RTT:196ms,BAT:--,HORA:08:42:40,ESC:ROJO,PLUMA:ARRIBA,CAM:?*50
+    reparo: la bateria no venia medida (BAT:--)
+08:42:43  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:80%,RTT:196ms,BAT:--,HORA:08:42:42,ESC:ROJO,PLUMA:ARRIBA,CAM:?*52
+    reparo: la bateria no venia medida (BAT:--)
+08:42:45  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:90%,RTT:196ms,BAT:--,HORA:08:42:44,ESC:ROJO,PLUMA:ARRIBA,CAM:?*55
+    reparo: la bateria no venia medida (BAT:--)
+08:42:47  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:90%,RTT:196ms,BAT:--,HORA:08:42:46,ESC:ROJO,PLUMA:ARRIBA,CAM:?*57
+    reparo: la bateria no venia medida (BAT:--)
+08:42:49  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:90%,RTT:196ms,BAT:--,HORA:08:42:48,ESC:ROJO,PLUMA:ARRIBA,CAM:?*59
+    reparo: la bateria no venia medida (BAT:--)
+08:42:49  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:ENLACE_RF,DETALLE:RX:508 OK:94 RUIDO:5,HORA:08:42:48*7F
+08:42:51  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:90%,RTT:196ms,BAT:--,HORA:08:42:50,ESC:ROJO,PLUMA:ARRIBA,CAM:?*50
+    reparo: la bateria no venia medida (BAT:--)
+08:42:53  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:90%,RTT:196ms,BAT:--,HORA:08:42:52,ESC:ROJO,PLUMA:ARRIBA,CAM:?*52
+    reparo: la bateria no venia medida (BAT:--)
+08:42:55  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:90%,RTT:196ms,BAT:--,HORA:08:42:54,ESC:ROJO,PLUMA:ARRIBA,CAM:?*54
+    reparo: la bateria no venia medida (BAT:--)
+08:42:57  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:42:56,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6E
+    reparo: la bateria no venia medida (BAT:--)
+08:42:59  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:42:58,ESC:ROJO,PLUMA:ARRIBA,CAM:?*60
+    reparo: la bateria no venia medida (BAT:--)
+08:43:01  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:43:00,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6C
+    reparo: la bateria no venia medida (BAT:--)
+08:43:03  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:43:02,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6E
+    reparo: la bateria no venia medida (BAT:--)
+08:43:05  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:43:04,ESC:ROJO,PLUMA:ARRIBA,CAM:?*68
+    reparo: la bateria no venia medida (BAT:--)
+08:43:07  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:43:06,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6A
+    reparo: la bateria no venia medida (BAT:--)
+08:43:09  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:43:08,ESC:ROJO,PLUMA:ARRIBA,CAM:?*64
+    reparo: la bateria no venia medida (BAT:--)
+08:43:11  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:43:10,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6D
+    reparo: la bateria no venia medida (BAT:--)
+08:43:13  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:43:12,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6F
+    reparo: la bateria no venia medida (BAT:--)
+08:43:15  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:43:14,ESC:ROJO,PLUMA:ARRIBA,CAM:?*69
+    reparo: la bateria no venia medida (BAT:--)
+08:43:17  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:43:16,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6B
+    reparo: la bateria no venia medida (BAT:--)
+08:43:19  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:43:18,ESC:ROJO,PLUMA:ARRIBA,CAM:?*65
+    reparo: la bateria no venia medida (BAT:--)
+08:43:19  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:ENLACE_RF,DETALLE:RX:648 OK:124 RUIDO:5,HORA:08:43:18*46
+08:43:21  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:43:20,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6E
+    reparo: la bateria no venia medida (BAT:--)
+08:43:23  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:43:22,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6C
+    reparo: la bateria no venia medida (BAT:--)
+08:43:25  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:43:24,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6A
+    reparo: la bateria no venia medida (BAT:--)
+08:43:27  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:43:26,ESC:ROJO,PLUMA:ARRIBA,CAM:?*68
+    reparo: la bateria no venia medida (BAT:--)
+08:43:29  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:43:28,ESC:ROJO,PLUMA:ARRIBA,CAM:?*66
+    reparo: la bateria no venia medida (BAT:--)
+08:43:31  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:43:30,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6F
+    reparo: la bateria no venia medida (BAT:--)
+08:43:33  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:43:32,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6D
+    reparo: la bateria no venia medida (BAT:--)
+08:43:35  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:43:34,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6B
+    reparo: la bateria no venia medida (BAT:--)
+08:43:37  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:43:36,ESC:ROJO,PLUMA:ARRIBA,CAM:?*69
+    reparo: la bateria no venia medida (BAT:--)
+08:43:39  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:43:38,ESC:ROJO,PLUMA:ARRIBA,CAM:?*67
+    reparo: la bateria no venia medida (BAT:--)
+08:43:41  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:43:40,ESC:ROJO,PLUMA:ARRIBA,CAM:?*68
+    reparo: la bateria no venia medida (BAT:--)
+08:43:43  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:43:42,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6A
+    reparo: la bateria no venia medida (BAT:--)
+08:43:45  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:43:44,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6C
+    reparo: la bateria no venia medida (BAT:--)
+08:43:47  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:43:46,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6E
+    reparo: la bateria no venia medida (BAT:--)
+08:43:49  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:43:48,ESC:ROJO,PLUMA:ARRIBA,CAM:?*60
+    reparo: la bateria no venia medida (BAT:--)
+08:43:49  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:ENLACE_RF,DETALLE:RX:788 OK:154 RUIDO:5,HORA:08:43:48*49
+08:43:51  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:43:50,ESC:ROJO,PLUMA:ARRIBA,CAM:?*69
+    reparo: la bateria no venia medida (BAT:--)
+08:43:53  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:43:52,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6B
+    reparo: la bateria no venia medida (BAT:--)
+08:43:55  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:43:54,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6D
+    reparo: la bateria no venia medida (BAT:--)
+08:43:57  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:43:56,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6F
+    reparo: la bateria no venia medida (BAT:--)
+08:43:59  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:43:58,ESC:ROJO,PLUMA:ARRIBA,CAM:?*61
+    reparo: la bateria no venia medida (BAT:--)
+08:44:01  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:44:00,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6B
+    reparo: la bateria no venia medida (BAT:--)
+08:44:03  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:44:02,ESC:ROJO,PLUMA:ARRIBA,CAM:?*69
+    reparo: la bateria no venia medida (BAT:--)
+08:44:05  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:44:04,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6F
+    reparo: la bateria no venia medida (BAT:--)
+08:44:07  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:44:06,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6D
+    reparo: la bateria no venia medida (BAT:--)
+08:44:09  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:44:08,ESC:ROJO,PLUMA:ARRIBA,CAM:?*63
+    reparo: la bateria no venia medida (BAT:--)
+08:44:11  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:44:10,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6A
+    reparo: la bateria no venia medida (BAT:--)
+08:44:13  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:44:12,ESC:ROJO,PLUMA:ARRIBA,CAM:?*68
+    reparo: la bateria no venia medida (BAT:--)
+08:44:15  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:44:14,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6E
+    reparo: la bateria no venia medida (BAT:--)
+08:44:17  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:44:16,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6C
+    reparo: la bateria no venia medida (BAT:--)
+08:44:19  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:44:18,ESC:ROJO,PLUMA:ARRIBA,CAM:?*62
+    reparo: la bateria no venia medida (BAT:--)
+08:44:19  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:ENLACE_RF,DETALLE:RX:915 OK:181 RUIDO:5,HORA:08:44:18*49
+08:44:21  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:197ms,BAT:--,HORA:08:44:20,ESC:ROJO,PLUMA:ARRIBA,CAM:?*68
+    reparo: la bateria no venia medida (BAT:--)
+08:44:23  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:197ms,BAT:--,HORA:08:44:22,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6A
+    reparo: la bateria no venia medida (BAT:--)
+08:44:25  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:197ms,BAT:--,HORA:08:44:24,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6C
+    reparo: la bateria no venia medida (BAT:--)
+08:44:27  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:197ms,BAT:--,HORA:08:44:26,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6E
+    reparo: la bateria no venia medida (BAT:--)
+08:44:29  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:197ms,BAT:--,HORA:08:44:28,ESC:ROJO,PLUMA:ARRIBA,CAM:?*60
+    reparo: la bateria no venia medida (BAT:--)
+08:44:31  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:197ms,BAT:--,HORA:08:44:30,ESC:ROJO,PLUMA:ARRIBA,CAM:?*69
+    reparo: la bateria no venia medida (BAT:--)
+08:44:33  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:44:32,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6A
+    reparo: la bateria no venia medida (BAT:--)
+08:44:35  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:44:34,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6C
+    reparo: la bateria no venia medida (BAT:--)
+08:44:37  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:44:36,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6E
+    reparo: la bateria no venia medida (BAT:--)
+08:44:39  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:44:38,ESC:ROJO,PLUMA:ARRIBA,CAM:?*60
+    reparo: la bateria no venia medida (BAT:--)
+08:44:41  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:44:40,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6F
+    reparo: la bateria no venia medida (BAT:--)
+08:44:43  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:44:42,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6D
+    reparo: la bateria no venia medida (BAT:--)
+08:44:45  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:44:44,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6B
+    reparo: la bateria no venia medida (BAT:--)
+08:44:47  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:44:46,ESC:ROJO,PLUMA:ARRIBA,CAM:?*69
+    reparo: la bateria no venia medida (BAT:--)
+08:44:49  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:44:48,ESC:ROJO,PLUMA:ARRIBA,CAM:?*67
+    reparo: la bateria no venia medida (BAT:--)
+08:44:49  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:ENLACE_RF,DETALLE:RX:1074 OK:215 RUIDO:5,HORA:08:44:48*7D
+08:44:51  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:44:50,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6E
+    reparo: la bateria no venia medida (BAT:--)
+08:44:53  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:44:52,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6C
+    reparo: la bateria no venia medida (BAT:--)
+08:44:55  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:44:54,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6A
+    reparo: la bateria no venia medida (BAT:--)
+08:44:57  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:208ms,BAT:--,HORA:08:44:56,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6C
+    reparo: la bateria no venia medida (BAT:--)
+08:44:59  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:208ms,BAT:--,HORA:08:44:58,ESC:ROJO,PLUMA:ARRIBA,CAM:?*62
+    reparo: la bateria no venia medida (BAT:--)
+08:45:01  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:217ms,BAT:--,HORA:08:45:00,ESC:ROJO,PLUMA:ARRIBA,CAM:?*60
+    reparo: la bateria no venia medida (BAT:--)
+08:45:03  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:215ms,BAT:--,HORA:08:45:02,ESC:ROJO,PLUMA:ARRIBA,CAM:?*60
+    reparo: la bateria no venia medida (BAT:--)
+08:45:05  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:215ms,BAT:--,HORA:08:45:04,ESC:ROJO,PLUMA:ARRIBA,CAM:?*66
+    reparo: la bateria no venia medida (BAT:--)
+08:45:07  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:222ms,BAT:--,HORA:08:45:06,ESC:ROJO,PLUMA:ARRIBA,CAM:?*60
+    reparo: la bateria no venia medida (BAT:--)
+08:45:09  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:215ms,BAT:--,HORA:08:45:08,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6A
+    reparo: la bateria no venia medida (BAT:--)
+08:45:11  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:215ms,BAT:--,HORA:08:45:10,ESC:ROJO,PLUMA:ARRIBA,CAM:?*63
+    reparo: la bateria no venia medida (BAT:--)
+08:45:13  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:221ms,BAT:--,HORA:08:45:12,ESC:ROJO,PLUMA:ARRIBA,CAM:?*66
+    reparo: la bateria no venia medida (BAT:--)
+08:45:15  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:214ms,BAT:--,HORA:08:45:14,ESC:ROJO,PLUMA:ARRIBA,CAM:?*66
+    reparo: la bateria no venia medida (BAT:--)
+08:45:17  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:214ms,BAT:--,HORA:08:45:16,ESC:ROJO,PLUMA:ARRIBA,CAM:?*64
+    reparo: la bateria no venia medida (BAT:--)
+08:45:19  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:VERDE,T:--,RF:100%,RTT:209ms,BAT:--,HORA:08:45:18,ESC:ROJO,PLUMA:ARRIBA,CAM:?*66
+    reparo: la bateria no venia medida (BAT:--)
+08:45:19  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:ENLACE_RF,DETALLE:RX:1213 OK:245 RUIDO:5,HORA:08:45:18*7F
+08:45:21  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:8,RF:100%,RTT:205ms,BAT:--,HORA:08:45:20,ESC:ROJO,PLUMA:ARRIBA,CAM:?*01
+    reparo: la bateria no venia medida (BAT:--)
+08:45:23  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:6,RF:100%,RTT:205ms,BAT:--,HORA:08:45:22,ESC:ROJO,PLUMA:ABAJO,CAM:?*41
+    reparo: la bateria no venia medida (BAT:--)
+08:45:25  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:4,RF:100%,RTT:202ms,BAT:--,HORA:08:45:24,ESC:ROJO,PLUMA:ABAJO,CAM:?*42
+    reparo: la bateria no venia medida (BAT:--)
+08:45:27  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:2,RF:100%,RTT:200ms,BAT:--,HORA:08:45:26,ESC:ROJO,PLUMA:ABAJO,CAM:?*44
+    reparo: la bateria no venia medida (BAT:--)
+08:45:29  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:0,RF:100%,RTT:200ms,BAT:--,HORA:08:45:28,ESC:ROJO,PLUMA:ABAJO,CAM:?*48
+    reparo: la bateria no venia medida (BAT:--)
+08:45:31  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:199ms,BAT:--,HORA:08:45:30,ESC:VERDE,PLUMA:ABAJO,CAM:?*2A
+    reparo: la bateria no venia medida (BAT:--)
+08:45:33  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:222ms,BAT:--,HORA:08:45:32,ESC:VERDE,PLUMA:ABAJO,CAM:?*2B
+    reparo: la bateria no venia medida (BAT:--)
+08:45:35  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:222ms,BAT:--,HORA:08:45:34,ESC:VERDE,PLUMA:ABAJO,CAM:?*2D
+    reparo: la bateria no venia medida (BAT:--)
+08:45:37  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:215ms,BAT:--,HORA:08:45:36,ESC:VERDE,PLUMA:ABAJO,CAM:?*2B
+    reparo: la bateria no venia medida (BAT:--)
+08:45:39  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:210ms,BAT:--,HORA:08:45:38,ESC:VERDE,PLUMA:ABAJO,CAM:?*20
+    reparo: la bateria no venia medida (BAT:--)
+08:45:41  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:210ms,BAT:--,HORA:08:45:40,ESC:VERDE,PLUMA:ABAJO,CAM:?*2F
+    reparo: la bateria no venia medida (BAT:--)
+08:45:43  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:206ms,BAT:--,HORA:08:45:42,ESC:VERDE,PLUMA:ABAJO,CAM:?*2A
+    reparo: la bateria no venia medida (BAT:--)
+08:45:45  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:203ms,BAT:--,HORA:08:45:44,ESC:VERDE,PLUMA:ABAJO,CAM:?*29
+    reparo: la bateria no venia medida (BAT:--)
+08:45:47  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:203ms,BAT:--,HORA:08:45:46,ESC:VERDE,PLUMA:ABAJO,CAM:?*2B
+    reparo: la bateria no venia medida (BAT:--)
+08:45:49  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:201ms,BAT:--,HORA:08:45:48,ESC:VERDE,PLUMA:ABAJO,CAM:?*27
+    reparo: la bateria no venia medida (BAT:--)
+08:45:49  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:ENLACE_RF,DETALLE:RX:1380 OK:281 RUIDO:5,HORA:08:45:48*79
+08:45:51  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:200ms,BAT:--,HORA:08:45:50,ESC:VERDE,PLUMA:ABAJO,CAM:?*2F
+    reparo: la bateria no venia medida (BAT:--)
+08:45:53  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:200ms,BAT:--,HORA:08:45:52,ESC:VERDE,PLUMA:ABAJO,CAM:?*2D
+    reparo: la bateria no venia medida (BAT:--)
+08:45:55  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:199ms,BAT:--,HORA:08:45:54,ESC:VERDE,PLUMA:ABAJO,CAM:?*28
+    reparo: la bateria no venia medida (BAT:--)
+08:45:57  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:198ms,BAT:--,HORA:08:45:56,ESC:VERDE,PLUMA:ABAJO,CAM:?*2B
+    reparo: la bateria no venia medida (BAT:--)
+08:45:59  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:198ms,BAT:--,HORA:08:45:58,ESC:VERDE,PLUMA:ABAJO,CAM:?*25
+    reparo: la bateria no venia medida (BAT:--)
+08:46:01  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:197ms,BAT:--,HORA:08:46:00,ESC:VERDE,PLUMA:ABAJO,CAM:?*24
+    reparo: la bateria no venia medida (BAT:--)
+08:46:03  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:46:02,ESC:VERDE,PLUMA:ABAJO,CAM:?*27
+    reparo: la bateria no venia medida (BAT:--)
+08:46:05  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:46:04,ESC:VERDE,PLUMA:ABAJO,CAM:?*21
+    reparo: la bateria no venia medida (BAT:--)
+08:46:07  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:46:06,ESC:VERDE,PLUMA:ABAJO,CAM:?*23
+    reparo: la bateria no venia medida (BAT:--)
+08:46:09  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:46:08,ESC:VERDE,PLUMA:ABAJO,CAM:?*2D
+    reparo: la bateria no venia medida (BAT:--)
+08:46:11  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:46:10,ESC:VERDE,PLUMA:ABAJO,CAM:?*24
+    reparo: la bateria no venia medida (BAT:--)
+08:46:13  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:46:12,ESC:VERDE,PLUMA:ABAJO,CAM:?*26
+    reparo: la bateria no venia medida (BAT:--)
+08:46:15  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:46:14,ESC:VERDE,PLUMA:ABAJO,CAM:?*20
+    reparo: la bateria no venia medida (BAT:--)
+08:46:17  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:46:16,ESC:VERDE,PLUMA:ABAJO,CAM:?*22
+    reparo: la bateria no venia medida (BAT:--)
+08:46:19  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:46:18,ESC:VERDE,PLUMA:ABAJO,CAM:?*2C
+    reparo: la bateria no venia medida (BAT:--)
+08:46:19  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:ENLACE_RF,DETALLE:RX:1520 OK:311 RUIDO:5,HORA:08:46:18*7B
+08:46:21  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:46:20,ESC:VERDE,PLUMA:ABAJO,CAM:?*27
+    reparo: la bateria no venia medida (BAT:--)
+08:46:23  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:46:22,ESC:VERDE,PLUMA:ABAJO,CAM:?*25
+    reparo: la bateria no venia medida (BAT:--)
+08:46:25  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:46:24,ESC:VERDE,PLUMA:ABAJO,CAM:?*23
+    reparo: la bateria no venia medida (BAT:--)
+08:46:27  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:46:26,ESC:VERDE,PLUMA:ABAJO,CAM:?*21
+    reparo: la bateria no venia medida (BAT:--)
+08:46:29  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:90%,RTT:196ms,BAT:--,HORA:08:46:28,ESC:VERDE,PLUMA:ABAJO,CAM:?*17
+    reparo: la bateria no venia medida (BAT:--)
+08:46:31  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:90%,RTT:196ms,BAT:--,HORA:08:46:30,ESC:VERDE,PLUMA:ABAJO,CAM:?*1E
+    reparo: la bateria no venia medida (BAT:--)
+08:46:33  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:90%,RTT:196ms,BAT:--,HORA:08:46:32,ESC:VERDE,PLUMA:ABAJO,CAM:?*1C
+    reparo: la bateria no venia medida (BAT:--)
+08:46:35  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:90%,RTT:212ms,BAT:--,HORA:08:46:34,ESC:VERDE,PLUMA:ABAJO,CAM:?*15
+    reparo: la bateria no venia medida (BAT:--)
+08:46:37  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:90%,RTT:212ms,BAT:--,HORA:08:46:36,ESC:VERDE,PLUMA:ABAJO,CAM:?*17
+    reparo: la bateria no venia medida (BAT:--)
+08:46:39  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:90%,RTT:208ms,BAT:--,HORA:08:46:38,ESC:VERDE,PLUMA:ABAJO,CAM:?*12
+    reparo: la bateria no venia medida (BAT:--)
+08:46:41  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:90%,RTT:213ms,BAT:--,HORA:08:46:40,ESC:VERDE,PLUMA:ABAJO,CAM:?*17
+    reparo: la bateria no venia medida (BAT:--)
+08:46:43  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:90%,RTT:213ms,BAT:--,HORA:08:46:42,ESC:VERDE,PLUMA:ABAJO,CAM:?*15
+    reparo: la bateria no venia medida (BAT:--)
+08:46:45  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:90%,RTT:208ms,BAT:--,HORA:08:46:44,ESC:VERDE,PLUMA:ABAJO,CAM:?*19
+    reparo: la bateria no venia medida (BAT:--)
+08:46:47  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:90%,RTT:205ms,BAT:--,HORA:08:46:46,ESC:VERDE,PLUMA:ABAJO,CAM:?*16
+    reparo: la bateria no venia medida (BAT:--)
+08:46:49  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:90%,RTT:205ms,BAT:--,HORA:08:46:48,ESC:VERDE,PLUMA:ABAJO,CAM:?*18
+    reparo: la bateria no venia medida (BAT:--)
+08:46:49  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:ENLACE_RF,DETALLE:RX:1658 OK:340 RUIDO:5,HORA:08:46:48*76
+08:46:51  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:90%,RTT:203ms,BAT:--,HORA:08:46:50,ESC:VERDE,PLUMA:ABAJO,CAM:?*17
+    reparo: la bateria no venia medida (BAT:--)
+08:46:53  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:90%,RTT:201ms,BAT:--,HORA:08:46:52,ESC:VERDE,PLUMA:ABAJO,CAM:?*17
+    reparo: la bateria no venia medida (BAT:--)
+08:46:55  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:90%,RTT:201ms,BAT:--,HORA:08:46:54,ESC:VERDE,PLUMA:ABAJO,CAM:?*11
+    reparo: la bateria no venia medida (BAT:--)
+08:46:57  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:199ms,BAT:--,HORA:08:46:56,ESC:VERDE,PLUMA:ABAJO,CAM:?*29
+    reparo: la bateria no venia medida (BAT:--)
+08:46:59  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:198ms,BAT:--,HORA:08:46:58,ESC:VERDE,PLUMA:ABAJO,CAM:?*26
+    reparo: la bateria no venia medida (BAT:--)
+08:47:01  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:198ms,BAT:--,HORA:08:47:00,ESC:VERDE,PLUMA:ABAJO,CAM:?*2A
+    reparo: la bateria no venia medida (BAT:--)
+08:47:03  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:197ms,BAT:--,HORA:08:47:02,ESC:VERDE,PLUMA:ABAJO,CAM:?*27
+    reparo: la bateria no venia medida (BAT:--)
+08:47:05  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:197ms,BAT:--,HORA:08:47:04,ESC:VERDE,PLUMA:ABAJO,CAM:?*21
+    reparo: la bateria no venia medida (BAT:--)
+08:47:07  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:197ms,BAT:--,HORA:08:47:06,ESC:VERDE,PLUMA:ABAJO,CAM:?*23
+    reparo: la bateria no venia medida (BAT:--)
+08:47:09  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:197ms,BAT:--,HORA:08:47:08,ESC:VERDE,PLUMA:ABAJO,CAM:?*2D
+    reparo: la bateria no venia medida (BAT:--)
+08:47:11  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:47:10,ESC:VERDE,PLUMA:ABAJO,CAM:?*25
+    reparo: la bateria no venia medida (BAT:--)
+08:47:13  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:47:12,ESC:VERDE,PLUMA:ABAJO,CAM:?*27
+    reparo: la bateria no venia medida (BAT:--)
+08:47:15  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:47:14,ESC:VERDE,PLUMA:ABAJO,CAM:?*21
+    reparo: la bateria no venia medida (BAT:--)
+08:47:17  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:47:16,ESC:VERDE,PLUMA:ABAJO,CAM:?*23
+    reparo: la bateria no venia medida (BAT:--)
+08:47:19  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:47:18,ESC:VERDE,PLUMA:ABAJO,CAM:?*2D
+    reparo: la bateria no venia medida (BAT:--)
+08:47:19  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:ENLACE_RF,DETALLE:RX:1798 OK:370 RUIDO:5,HORA:08:47:18*7C
+08:47:21  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:47:20,ESC:VERDE,PLUMA:ABAJO,CAM:?*26
+    reparo: la bateria no venia medida (BAT:--)
+08:47:23  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:47:22,ESC:VERDE,PLUMA:ABAJO,CAM:?*24
+    reparo: la bateria no venia medida (BAT:--)
+08:47:25  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:47:24,ESC:VERDE,PLUMA:ABAJO,CAM:?*22
+    reparo: la bateria no venia medida (BAT:--)
+08:47:27  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:47:26,ESC:VERDE,PLUMA:ABAJO,CAM:?*20
+    reparo: la bateria no venia medida (BAT:--)
+08:47:29  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:47:28,ESC:VERDE,PLUMA:ABAJO,CAM:?*2E
+    reparo: la bateria no venia medida (BAT:--)
+08:47:31  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:47:30,ESC:VERDE,PLUMA:ABAJO,CAM:?*27
+    reparo: la bateria no venia medida (BAT:--)
+08:47:33  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:47:32,ESC:VERDE,PLUMA:ABAJO,CAM:?*25
+    reparo: la bateria no venia medida (BAT:--)
+08:47:35  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:47:34,ESC:VERDE,PLUMA:ABAJO,CAM:?*23
+    reparo: la bateria no venia medida (BAT:--)
+08:47:37  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:47:36,ESC:VERDE,PLUMA:ABAJO,CAM:?*21
+    reparo: la bateria no venia medida (BAT:--)
+08:47:39  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:47:38,ESC:VERDE,PLUMA:ABAJO,CAM:?*2F
+    reparo: la bateria no venia medida (BAT:--)
+08:47:41  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:47:40,ESC:VERDE,PLUMA:ABAJO,CAM:?*20
+    reparo: la bateria no venia medida (BAT:--)
+08:47:43  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:47:42,ESC:VERDE,PLUMA:ABAJO,CAM:?*22
+    reparo: la bateria no venia medida (BAT:--)
+08:47:45  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:47:44,ESC:VERDE,PLUMA:ABAJO,CAM:?*24
+    reparo: la bateria no venia medida (BAT:--)
+08:47:47  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:47:46,ESC:VERDE,PLUMA:ABAJO,CAM:?*26
+    reparo: la bateria no venia medida (BAT:--)
+08:47:49  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:47:48,ESC:VERDE,PLUMA:ABAJO,CAM:?*28
+    reparo: la bateria no venia medida (BAT:--)
+08:47:49  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:ENLACE_RF,DETALLE:RX:1938 OK:400 RUIDO:5,HORA:08:47:48*7D
+08:47:51  -->  [ENVIADA]
+    CMD:SET_MODO:MENU\r\n
+08:47:51  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:INTELIGENTE,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:47:50,ESC:VERDE,PLUMA:ABAJO,CAM:?*21
+    reparo: la bateria no venia medida (BAT:--)
+08:47:51  <--  [ACEPTADA]
+    $ACK,CMD:SET_MODO:MENU,RESULT:OK*33
+08:47:51  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:SET_MODO_MENU,HORA:08:47:50*5C
+08:47:53  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:MENU,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:47:52,ESC:ROJO,PLUMA:ABAJO,CAM:?*26
+    reparo: la bateria no venia medida (BAT:--)
+08:47:55  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:MENU,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:47:54,ESC:ROJO,PLUMA:ABAJO,CAM:?*20
+    reparo: la bateria no venia medida (BAT:--)
+08:47:57  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:MENU,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:47:56,ESC:ROJO,PLUMA:ABAJO,CAM:?*22
+    reparo: la bateria no venia medida (BAT:--)
+08:47:59  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:MENU,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:47:58,ESC:ROJO,PLUMA:ABAJO,CAM:?*2C
+    reparo: la bateria no venia medida (BAT:--)
+08:48:01  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:MENU,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:48:00,ESC:ROJO,PLUMA:ABAJO,CAM:?*2E
+    reparo: la bateria no venia medida (BAT:--)
+08:48:03  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:MENU,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:48:02,ESC:ROJO,PLUMA:ABAJO,CAM:?*2C
+    reparo: la bateria no venia medida (BAT:--)
+08:48:05  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:MENU,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:48:04,ESC:ROJO,PLUMA:ABAJO,CAM:?*2A
+    reparo: la bateria no venia medida (BAT:--)
+08:48:07  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:MENU,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:48:06,ESC:ROJO,PLUMA:ABAJO,CAM:?*28
+    reparo: la bateria no venia medida (BAT:--)
+08:48:09  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:MENU,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:48:08,ESC:ROJO,PLUMA:ABAJO,CAM:?*26
+    reparo: la bateria no venia medida (BAT:--)
+08:48:11  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:MENU,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:48:10,ESC:ROJO,PLUMA:ABAJO,CAM:?*2F
+    reparo: la bateria no venia medida (BAT:--)
+08:48:13  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:MENU,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:48:12,ESC:ROJO,PLUMA:ABAJO,CAM:?*2D
+    reparo: la bateria no venia medida (BAT:--)
+08:48:15  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:MENU,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:48:14,ESC:ROJO,PLUMA:ABAJO,CAM:?*2B
+    reparo: la bateria no venia medida (BAT:--)
+08:48:17  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:MENU,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:48:16,ESC:ROJO,PLUMA:ABAJO,CAM:?*29
+    reparo: la bateria no venia medida (BAT:--)
+08:48:19  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:MENU,ESTADO:ROJO,T:--,RF:100%,RTT:196ms,BAT:--,HORA:08:48:18,ESC:ROJO,PLUMA:ABAJO,CAM:?*27
+    reparo: la bateria no venia medida (BAT:--)
+08:48:19  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:ENLACE_RF,DETALLE:RX:2080 OK:430 RUIDO:5,HORA:08:48:18*7D
+08:48:21  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:4D2007,MODO:MENU,ESTADO:ROJO,T:--,RF:100%,RTT:206ms,BAT:--,HORA:08:48:20,ESC:ROJO,PLUMA:ABAJO,CAM:?*26
+    reparo: la bateria no venia medida (BAT:--)

@@ -1,0 +1,9 @@
+Notas del funcional (Marco), 02/10/2026, banco de d3606be. Pegadas por Diego.
+
+Los resultados siguen siendo los mismos que el pasado, a diferencia de que, cuando los semaforos Maestro y Esclavo
+estan en modo degradado y volvemos a tener comunicacion, sale un letrero rapido de que ya hay comunicacion de nuevo
+entre los radios. Ya no es necesario ir al poste Esclavo para sacarlo del modo degradado: con entrar solo al poste
+Maestro y enviar la orden de regresar al menu, es posible dar cualquier orden y los dos postes responden.
+
+Mirando productos de controladores semaforicos: tanto para el paso de rojo a verde como de verde a rojo debemos
+tener un ambar intermedio de aviso; es importante para un correcto funcionamiento.
