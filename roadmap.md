@@ -83,8 +83,11 @@ python 01_Firmware/Simulaciones/banco/correr.py   # solo los packs. Sirve para i
 
 ### Lo siguiente, en orden (el estado de cada punto, en `ESTADO.md`)
 
-Reordenado el 02/10. Se cierra por fases: ninguna empieza sin cerrar la anterior. Al acabar A y B solo queda
-esperar lo que digan las cintas de campo (D).
+Reordenado el 02/10. Se cierra por fases: ninguna empieza sin cerrar la anterior. **Orden de ejecucion acordado
+con el responsable el 02/10: A (con H antes de A3) -> paquete validado -> I -> G -> F.** Al acabar solo quedan C
+(decisiones) y D (cintas de campo). Aplicado por recomendacion, el 02/10, con el «ok» del responsable: `FORZAR_ROJO`
+tambien pasa por amarillo (`D-45`, la norma dice «en ningun caso»); la tanda 2 de G retira `SOLICITAR_PASO`,
+`SET_MODO:DEGRADADO`, la entrada `J14`/PB0 y la franja SFTY-20, y conserva los pines de peaton y zumbador (`D-46`).
 
 **A. `N-173` Runbook de la candidata `d3606be`** (se salto para mandar a Marco; ahora entero, para dejar `main` ok)
 
