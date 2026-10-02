@@ -3,8 +3,8 @@
 **Este fichero lleva SOLO lo pendiente y lo que falta validar.** El 07/09/2026 se le sacaron 4.631
 lineas de cosas ya cerradas, y el **12/09/2026 se le sacaron sus apartados §3, §6, §7, §8, §9 y
 §10** —el «porque» entero—: todo eso esta **integro, literal y con su evidencia** en
-[`roadmap_hist.md`](roadmap_hist.md), que lleva indice por `N-x` y por apartado. **No se borro
-nada** — las dos cuentas estan publicadas al final de aquel fichero.
+[`05_Funcional/historico/roadmap_hist.md`](05_Funcional/historico/roadmap_hist.md), que lleva indice por `N-x` y por
+apartado. **No se borro nada** — las dos cuentas estan publicadas al final de aquel fichero.
 
 > 🔴 **EL TOPE SON 600 LINEAS. `wc -l roadmap.md` DA LA CUENTA DE VERDAD** —cualquier cifra escrita
 > aqui envejece sola (`CLAUDE.md` §14)—. **Hoy se cumple, y aun asi hay que medirlo cada vez, porque
@@ -20,7 +20,8 @@ nada** — las dos cuentas estan publicadas al final de aquel fichero.
 > **Las dos reglas que lo mantienen abajo con el tiempo. Sin ellas el numero vuelve en una semana:**
 >
 > 1. **Aqui solo vive lo PENDIENTE.** El porque —como se descubrio, que se midio, que se refuto—
->    vive en [`roadmap_hist.md`](roadmap_hist.md), y una fila de aqui **apunta** a el, no lo copia.
+>    vive en [`05_Funcional/historico/roadmap_hist.md`](05_Funcional/historico/roadmap_hist.md),
+>    y una fila de aqui **apunta** a el, no lo copia.
 > 2. 🔴 **UNA FILA QUE SE CIERRA SALE DE AQUI.** Se tacha con el commit o el `grep` que lo prueba, y
 >    **en la pasada siguiente se muda al historico con ese cierre dentro**. Dejarla tachada para
 >    siempre es como se llego a 2.695 lineas: **ningun commit retiraba nunca un apartado**, solo se
@@ -30,7 +31,8 @@ nada** — las dos cuentas estan publicadas al final de aquel fichero.
 > se dice la cifra y se pregunta: **perder una fila abierta cuesta mucho mas que pasarse de 600.**
 
 > 🔴 **TODA CITA A `§3`, `§6`, `§7`, `§8`, `§9` O `§10` DE ESTE FICHERO APUNTA A
-> [`roadmap_hist.md`](roadmap_hist.md)**, donde esos seis apartados viven integros desde el 12/09
+> [`05_Funcional/historico/roadmap_hist.md`](05_Funcional/historico/roadmap_hist.md)**, donde esos seis
+> apartados viven integros desde el 12/09
 > bajo la cabecera **«MUDANZA DEL 12/09/2026»**, con su propio indice por apartado y por `N-x`. Las
 > citas a `§0`, `§1`, `§2`, `§4` y `§5` son de aqui. **Los numeros NO se renumeraron a proposito**
 > (`CLAUDE.md` §5): el firmware, cuatro packs, `ARQUITECTURA.map` y once documentos citan
@@ -40,7 +42,7 @@ nada** — las dos cuentas estan publicadas al final de aquel fichero.
 > **Como se lee.** Este fichero es **la lista de lo que falta**, ordenada por **quien lo
 > desbloquea**: §0 la tiene entera por grupos —(1) teclado, (2) decision del responsable, (3)
 > cobre/banco/campo— y §1, §2, §4 y §5 desarrollan cada grupo. **El porque esta en el historico.**
-> Si algo no esta aqui, o esta hecho, o esta en `roadmap_hist.md`.
+> Si algo no esta aqui, o esta hecho, o esta en `05_Funcional/historico/roadmap_hist.md`.
 
 > ⚠️ **Las citas a `CLAUDE.md` con `§x.bis`, `§x.ter`, `§x.quater` o `§4.sexies` son de ANTES del 07/09**,
 > cuando ese fichero se compacto (`74a1054`) y se renumero. Se deja la cita como estaba —es cronica— y la
@@ -54,7 +56,7 @@ nada** — las dos cuentas estan publicadas al final de aquel fichero.
 | **el hardware medido** | `05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md` — gana a `DECISIONES.md` y a `CLAUDE.md` en cobre, pines y conectores |
 | **las reglas permanentes** | [`CLAUDE.md`](CLAUDE.md) |
 | **el estado de hoy** | [`ESTADO.md`](ESTADO.md) |
-| **el porque de lo cerrado** | [`roadmap_hist.md`](roadmap_hist.md) |
+| **el porque de lo cerrado** | [`05_Funcional/historico/roadmap_hist.md`](05_Funcional/historico/roadmap_hist.md) |
 
 ## Las cifras NO se copian aqui
 
@@ -123,7 +125,7 @@ candidata crecio con I (`cda33df`) y G (`f9cad1f`): un solo runbook sobre todo.
 | ~~C1~~ | Contestada: `D-47` (el rojo fijo sobrevive al corte) | -- |
 | ~~C2~~ | Se cierra sola: `D-46` retira `SET_MODO:DEGRADADO`, al Degradado se entra solo por el testigo | -- |
 | C3 | `Validacion_LCD` se llevo 4 packs sin `banco/historico/` (`D-32`); renombrar toca 42 ficheros | -- |
-| C4 | Documentos a `05_Funcional/historico/` con el grafo de `entregas/grafo/`; despues `CRUDAS` en `.topes` | el responsable mueve la carpeta |
+| C4 | El grafo vive hoy FUERA del repo, en `D:/@Proyect/Entregas_Semaforos/grafo/` (foto del 28/09 sobre `925c71e`); `entregas/grafo/` no existe. Pendiente: traerlo a `entregas/` o rehacerlo (el metodo aun no lo define). Los historicos ya se MUEVEN a `05_Funcional/historico/` sin `CRUDAS` (02/10) | el responsable |
 
 **D. A la espera de las cintas de campo** (se leen enteras y contando, `CLAUDE.md` §7)
 
@@ -212,7 +214,7 @@ Fases de organizacion del repo: 0 paquetes a `entregas/` · 1 inventarios · 2 `
 ### 🎯 LO QUE QUEDA PENDIENTE DE IMPLEMENTACION (medido el 11/09 sobre `b79d904`; `648b62f` solo toca `README.md`; **lo de la hora re-medido el 11/09 por la tarde sobre `68dd2c5`**, el merge de `D-26`; **lo del ambar de emergencia re-medido el 12/09 sobre `913c29c`** — cierra la fila 1.2 y **abre la 1.17**, que es lo que su arnes dejo a la vista al compilar el despachador de verdad)
 
 > **Es la unica lista viva de este fichero; §1, §2, §4 y §5 la desarrollan y el porque vive en
-> [`roadmap_hist.md`](roadmap_hist.md).** Cada fila de §0 a §6 que
+> [`05_Funcional/historico/roadmap_hist.md`](05_Funcional/historico/roadmap_hist.md).** Cada fila de §0 a §6 que
 > daba algo por abierto se midio el 11/09 contra el fuente de `main` —`grep` por los dos nombres
 > posibles y filtrando comentarios, `CLAUDE.md` §7.1—: **lo que el codigo ya hace se cerro en su
 > apartado, tachado y con el commit o el `grep` que lo prueba**, y lo que no, esta aqui. **Lo que
@@ -305,7 +307,7 @@ Fases de organizacion del repo: 0 paquetes a `entregas/` · 1 inventarios · 2 `
 |  | `Guia_Cableado_y_Pruebas_Banco.html` **5.229** y `Camaras_Sisga_4x.html` **1.323**, que son **documentos de campo**; **(c)** `ARQUITECTURA.map` **1.517** — para que baje hay que sacar su §7, la referencia de cobre, a fichero propio: **decisión del responsable**; **(d)** `10_Manual_Bluetooth` **1.760** y `15_Lista_de_Compras` **1.703**; **(e)** `02_LCD/` (1.137) y `MANUAL_MANDO_4_RELES.md` (1.087), que **arrastran 4 y 12 líneas en documentos vivos** y el segundo |  | `99_Legacy/` | **y el repositorio sigue cargando los bytes**. Se mueve en disco y se |
 |  | tiene una decisión escrita EN CONTRA en `05_Funcional/historico/04_Manuales_README.md` — **van con `D-30` o después**; **(f)** cuatro frases muertas que viven en `ORDEN_EJECUCION.md`, `OPTIMIZACIONES.md`, `INDICE_CRUZADO.md` y `17_`, que **no se metieron en el pack para no poner el ancla sin construirla** (`CLAUDE.md` §1); **(g)** los manuales **1, 2, 3, 9, 14, 18** suman **~17.000 líneas** describiendo un sistema que cambió cuatro veces: |  |  | registra la BAJA: el índice tiene que salir con líneas `D`, nunca `R`. |
 |  | **no se parten, se jubilan y se rehace uno solo — y NO antes de que el firmware esté quieto**, que es la regla de §15 |  |  | Y **`historico/` ≠ `99_Legacy/`**: el primero sigue dentro de git, el |
-|  |  |  |  | segundo no |
+|  |  |  |  | segundo no: sale de git entero y el responsable lo borra del disco al entregar en campo (02/10) |
 | 🆕 **1.35** | 🟢 **LAS CINCO SPEC v0 ESTAN ESCRITAS Y EN `main`** (`6880b6c`, `762bc29`, `960bc1f`). El responsable, 12/09: *«vamos a hacerlo desde cero»*, *«sólo genera las spec»*, *«sólo las decisiones que son correctas»*. **1.468 líneas** —`SPEC_1_Ciclo_y_Luces` 289 · `SPEC_2_Dos_Puntas_y_Radio` 300 · `SPEC_3_La_Hora` 300 · `SPEC_4_App_y_Bluetooth` 279 · `SPEC_5_Cobre_Camaras_Pluma` 300— contra las **~17.000** de los seis manuales que describen lo mismo. | **`CLAUDE.md` §15** (cómo se escribe una | `05_Funcional/SPEC_*.md`, y los manuales | 🔴 |
 |  | **Ninguna se copió de esos manuales**: se escribieron desde `DECISIONES.md` vigente y desde el fuente, verificando cada afirmación contra el código (`CLAUDE.md` §15). ⬇️ 🔴 **LO QUE FALTA PARA CERRAR LA v0, y es lo único que queda:** **(a)** 🛑 **MEDIDO EL 12/09 Y NO SE PUEDE HACER TODAVIA — un agente lo intento y PARO, con razon.** Los cuatro candidatos (`14_Manual_App`, `10_Manual_Bluetooth`, | spec) y §16 (el tope) | `1_`, `2_`, `3_`, `8_`, `9_`, `10_`, | **Los cuatro defectos que salieron de escribirlas, y que ningún manual habría revelado porque los manuales se leen y el |
 |  | `3_Protocolo`, `05_Funcional/historico/MANUAL_USUARIO.md`) |  |  | código se mide:** |
@@ -396,7 +398,8 @@ mano**~~ **son la cinta y el diario del Maestro**, exportados por la app y copia
    **gratis**— no consta recorrida. **De esto cuelga todo lo demas.**~~ — 🔴 **FALSO en su segunda
    mitad, medido el 11/09:** la tarjeta muerta es **la Maestro de la sesion 1 del banco**, y **no
    cuelga de ella todo lo demas**: el 04/09 se reprogramo **otra placa** como Maestro
-   (`roadmap_hist.md` `N-126`: *«la Maestro de la sesion 1 sigue con el corto y se descarto entera»*),
+   (`05_Funcional/historico/roadmap_hist.md` `N-126`: *«la Maestro de la sesion 1 sigue con el corto y se
+   descarto entera»*),
    que se anuncio `SEM-179DB0-M` —la serie sale del UID del STM32, `identidad.cpp`— y **es la
    `SERIE:179DB0` que corrio V9 en el Sisga**. Lo que si sigue en pie es que la escalera de `N-116`
    no consta recorrida, y **de ella cuelga recuperar esa placa**, no ejercer firmware en cobre.

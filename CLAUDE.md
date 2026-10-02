@@ -153,9 +153,9 @@ truncan, borrados por delimitador, `worktree remove` y agentes reanudados: `meto
 
 `05_Funcional/SPEC_0..SPEC_8` MANDA, tambien sobre el firmware (§15) · `05_Funcional/17_...`, cobre medido con fecha,
 instrumento y firmware dentro · `DECISIONES.md`, el andamio: lo ya contestado · `ARQUITECTURA.map`, que abre cada
-instrumento y que hay en cada conector · `roadmap.md`/`roadmap_hist.md`, el porque, por `N-x` · `ESTADO.md`, hoy ·
-`evidencia/`, las actas · `HISTORIA.md`, la cronica · `OPTIMIZACIONES.md`, reglas `SFTY-x` y su trazabilidad ·
-`01_Firmware/compuerta.py`, la unica forma de verificar · `04_Manuales/`, para el tecnico y el auditor.
+instrumento y que hay en cada conector · `roadmap.md`/`05_Funcional/historico/roadmap_hist.md`, el porque, por `N-x` ·
+`ESTADO.md`, hoy · `evidencia/`, las actas · `HISTORIA.md`, la cronica · `OPTIMIZACIONES.md`, reglas `SFTY-x` y su
+trazabilidad · `01_Firmware/compuerta.py`, la unica forma de verificar · `04_Manuales/`, para el tecnico y el auditor.
 
 ## 13. Convenciones
 

@@ -43,6 +43,12 @@ scratch/
 # rama, asi que un `git checkout` de esa rama falla mientras exista la carpeta.
 .claude/worktrees/
 
+# --- Legado: fuera de git entero (decision del responsable, 02/10/2026) -------
+# Desde el 12/09 solo se versionaban su LEEME.md y su .gitignore. Ya no: la carpeta
+# vive solo en el disco y el responsable la borra al entregar en campo. Lo que
+# hubo dentro se recupera de la historia con `git show <hash>:99_Legacy/<ruta>`.
+99_Legacy/
+
 # --- Firmware de biseccion -------------------------------------------------
 # Misma razon que los *.zip de arriba: el repositorio ya contiene el fuente del
 # que salen. Cada .bin se regenera con `git worktree add` + `pio run` sobre el

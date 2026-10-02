@@ -84,7 +84,9 @@ de donde salio cada cosa esta en `HISTORIA.md`.
 
 ## §16. Archivar
 
-- `05_Funcional/historico/` sigue en git, consultable. `99_Legacy/` esta fuera de git por su `.gitignore`.
+- `05_Funcional/historico/` sigue en git, consultable: ahi se MUEVEN los historicos (R100), no se marcan CRUDAS.
+- `99_Legacy/` esta fuera de git ENTERO desde el 02/10 (`.gitignore` raiz; su `LEEME.md` tampoco se versiona): vive
+  solo en el disco y el responsable la borra al entregar en campo.
 - `git mv` a `99_Legacy/` deja los ficheros SEGUIDOS en la ruta nueva: se mueve en disco y se registra la BAJA; el
   indice sale con `D`, nunca `R`.
 - Un fichero base que pasa de 1.000 lineas se parte: lo vivo se queda, la cronica se muda literal a su `_hist`, y el

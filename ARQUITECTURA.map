@@ -96,7 +96,7 @@ comando con el arbol quieto. Lo que SI es estable, porque cita un `§` concreto:
 | `05_Funcional/SPEC_4_App_y_Bluetooth.md:340,349` | `ARQUITECTURA.map §4-5` | SI |
 | `README.md` (sin linea fija, cerca de la estructura de firmware) | `ARQUITECTURA.map §7.3` (J14) | SI - §7 apunta a `ARQUITECTURA_conectores.map §7.3` |
 | `INDICE_CRUZADO.md` (11 citas) | `ARQUITECTURA.map` general, `Anexo A`, `C4`, `:97`, `:267` | 🔴 **NO**: `Anexo A`, `C4` y las citas por linea (`:97`, `:267`) no existen en esta reescritura (ver 4 de mas abajo) |
-| `CLAUDE.md` (3), `DECISIONES.md` (1), `99_Legacy/LEEME.md` (1), `05_Funcional/historico/MANUAL_PANTALLA_LCD.md` (1) | generica, sin `§` | sin cambio |
+| `CLAUDE.md` (3), `DECISIONES.md` (1), `99_Legacy/LEEME.md` (1; fuera de git desde el 02/10, se borra al entregar en campo), `05_Funcional/historico/MANUAL_PANTALLA_LCD.md` (1) | generica, sin `§` | sin cambio |
 
 **A quien apunta este fichero:** `ARQUITECTURA_conectores.map` (§7, integro, mismos
 numeros 7.1-7.7) · `evidencia/2026-09-28_compuerta.txt` (§2.4, §5) ·

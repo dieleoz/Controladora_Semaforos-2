@@ -3,7 +3,8 @@
 **Este fichero es el catálogo propietario de las 29 reglas `SFTY-x` y su trazabilidad
 regla → código → prueba** (`CLAUDE.md` §12), y no hay otro. **No es la crónica de cómo se descubrió
 nada:** las 2.310 líneas que tenía el 12/09/2026 están íntegras en
-[`roadmap_hist.md`](roadmap_hist.md), anexo *«`OPTIMIZACIONES.md` íntegro, la foto del 12/09»*.
+[`05_Funcional/historico/roadmap_hist.md`](05_Funcional/historico/roadmap_hist.md), anexo *«`OPTIMIZACIONES.md`
+íntegro, la foto del 12/09»*.
 **Manda la SPEC (`05_Funcional/SPEC_0..8`; [`DECISIONES.md`](DECISIONES.md) es su indice); el hardware medido,
 desde `05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md`. Las dos GANAN a este fichero.**
 
@@ -104,7 +105,7 @@ que no la comprueba es **peor** que una fila vacía, porque la vacía al menos n
 | **SFTY-29** | **— solo diseño.** Presencia como veto del todo-rojo y sensor de pluma | — |
 
 > ⚠️ **CÓMO SE LEE UN ✅ DE ESTA TABLA. Sin esto promete más de lo que cubre** *(auditorías del 28/08
-> y del 01/09; el desarrollo y las medidas, en el anexo de `roadmap_hist.md`)*:
+> y del 01/09; el desarrollo y las medidas, en el anexo de `05_Funcional/historico/roadmap_hist.md`)*:
 >
 > - **La segunda columna no la comprueba nadie.** Es un resumen curado, no un censo: la fila de
 >   `SFTY-21` cita tres ficheros y el `grep` devuelve **35**.
