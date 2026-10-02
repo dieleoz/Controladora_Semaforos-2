@@ -68,14 +68,14 @@ void modo_ambar_setup() {
   // Si la orden de ambar se perdiera, el Esclavo queda PARADO -no dando paso- hasta
   // que la orfandad lo saque, y parado es la direccion segura.
   //
-  // Antes solo iba el rojo y el ambar del Esclavo llegaba 25 s despues, por orfandad
+  // Antes solo iba el rojo y el ambar del Esclavo llegaba SFTY6_SILENCIO_MS despues, por orfandad
   // (SFTY-6). El estado final era el correcto, pero nadie lo habia ordenado: era el
   // Esclavo rindiendose. En banco se vio como "a veces los dos pasan a ambar, a veces
   // solo el maestro" -segun cuanto mirase uno- y el operario pulsaba tres veces en
   // catorce segundos porque no veia cambiar la otra punta.
   //
   // LA ORFANDAD SE QUEDA COMO RED, decidido por el responsable el 04/09: si la radio se
-  // cae justo en este instante, el Esclavo sigue yendo a ambar a los 25 s por su cuenta.
+  // cae justo en este instante, el Esclavo sigue yendo a ambar a SFTY6_SILENCIO_MS por su cuenta.
   // Se gana el caso bueno sin perder el malo.
   //
   // No se espera ACK: esta punta se calla a continuacion -main.cpp no llama al
@@ -88,9 +88,4 @@ void modo_ambar_setup() {
 
 void modo_ambar_loop() {
   semaforo_actualizar();
-
-  if (botonCancelar()) {
-    modoActual_set(MENU);
-    menu_setup();
-  }
 }

@@ -48,10 +48,6 @@ enum MotivoDegradado {
 // criterios distintos seria tener una sola puerta, la mas floja.
 MotivoDegradado modo_degradado_evaluarEntrada();
 
-// Textos de pantalla del motivo, en dos lineas de 20 caracteres como maximo.
-const char* modo_degradado_motivoL1(MotivoDegradado m);
-const char* modo_degradado_motivoL2(MotivoDegradado m);
-
 // Encola por radio la configuracion del ciclo degradado (CMD_CONFIG de SFTY-23).
 // Dos relojes en hora dan tiempo comun, pero para ir EN FASE ambas puntas deben
 // computar el mismo horario. Se llama al arrancar, mientras el enlace vive: cuando

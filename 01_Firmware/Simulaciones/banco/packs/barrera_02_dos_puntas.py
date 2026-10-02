@@ -132,10 +132,14 @@ def correr(b, fw):
         f"se leyeron {len(lm)} llamadas a aplicarSalidas() en el Maestro",
         f"solo {len(lm)} llamadas halladas. Una lista casi vacia daria PASS sin mirar "
         "nada, que es la prueba muerta que este banco persigue")
+    # D-44: se compara el CONJUNTO, que es la propiedad escrita -ningun estado que
+    # una punta muestre y la otra no-. Se comparaba la lista con repeticiones, y el test de
+    # lamparas del Esclavo, retirado, repetia tres combinaciones que el ciclo ya pide; el
+    # del Maestro sigue. Una combinacion NUEVA en una sola punta sigue haciendo FALLAR esto.
     b.verificar(
-        sorted(lm) == sorted(le),
-        f"las {len(lm)} combinaciones que cada punta pide son las mismas: no hay un "
-        "estado que una muestre y la otra no",
+        set(lm) == set(le),
+        f"las {len(set(lm))} combinaciones distintas que cada punta pide son las mismas: no "
+        "hay un estado que una muestre y la otra no",
         f"LAS PUNTAS PIDEN COMBINACIONES DISTINTAS.\n"
         f"        solo en Maestro: {sorted(set(lm) - set(le))}\n"
         f"        solo en Esclavo: {sorted(set(le) - set(lm))}")

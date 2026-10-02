@@ -519,7 +519,7 @@ const DiarioOrdenes = {
   // diario, y eso es justo la clase de hueco que se lee como averia.
   //
   // Las demas casan solas por una de las dos reglas de casa(): identicas
-  // (SET_MODO:AUTO, FORZAR_ROJO, AMBAR_EMERGENCIA, CANCELAR_AMBAR, SOLICITAR_PASO,
+  // (SET_MODO:AUTO, FORZAR_ROJO, AMBAR_EMERGENCIA, CANCELAR_AMBAR,
   // TEST_LEDS, DEMANDA, REINICIAR_RELOJ) o por cabecera, cuando la orden lleva
   // argumentos y el ACK no (SET_TIEMPOS:12,10,5 -> CMD:SET_TIEMPOS; SET_RTC:fecha,hora
   // -> CMD:SET_RTC).

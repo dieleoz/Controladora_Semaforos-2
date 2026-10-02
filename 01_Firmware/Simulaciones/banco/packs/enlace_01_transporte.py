@@ -148,7 +148,10 @@ def _alias_de(fw, punta, pines):
     escribe digitalWrite(LCD_PSB, ...). Los nombres se DESCUBREN de pines.h en vez de
     listarse aqui, que es la leccion de barrera_01: una lista escrita a mano se queda
     corta el dia que alguien anade un alias, y entonces la guarda aprueba sin mirar."""
-    texto_pines = fw.texto(punta, "include", "pines.h")
+    return _alias_en(fw.texto(punta, "include", "pines.h"), pines)
+
+
+def _alias_en(texto_pines, pines):
     encontrados = []
     for pin in pines:
         encontrados += re.findall(r"#define\s+([A-Z_][A-Z0-9_]*)\s+%s\b" % pin,
@@ -273,14 +276,8 @@ def _bloque_nadie_mas_los_reclama(b, fw):
         alias = _alias_de(fw, punta, (rx, tx))
         nombres = [rx, tx] + alias
 
-        # SUELO DEL BUSCADOR. Estos dos pines los tenia la pantalla (PSB y RST), asi
-        # que pines.h TIENE que seguir dandoles nombre; si el censo de alias vuelve
-        # vacio, lo que fallo es el patron y no el arbol -§4-.
-        if not alias:
-            raise fw.Abortado(
-                "%s/include/pines.h no da ningun nombre a %s ni a %s: el censo de "
-                "alias se quedo ciego y buscaria solo los pines crudos, que es como "
-                "nadie los escribe" % (punta, rx, tx))
+        # D-44: sale el suelo "pines.h TIENE que nombrarlos" (eran LCD_PSB/LCD_RST). Se buscan
+        # los crudos y cualquier alias; el control negativo de abajo prueba al buscador.
 
         # D-32 (1), 13/09: AQUI SE COMPROBABA QUE LA PANTALLA HABIA RENUNCIADO AL
         # PIN DEL PUERTO -que el constructor U8G2_ST7920 de lcd.cpp llevaba
@@ -332,7 +329,10 @@ def _bloque_nadie_mas_los_reclama(b, fw):
     # copia: si _reclamantes() dejara de casar, las dos comprobaciones de arriba
     # aprobarian todo y nadie se enteraria.
     rx, tx = _declaracion_puerto(fw, "Maestro")
-    alias = _alias_de(fw, "Maestro", (rx, tx))
+    alias = _alias_en("#define LCD_PSB     %s   // sintetico\n" % tx, (rx, tx))
+    b.control_negativo(
+        alias == ["LCD_PSB"],
+        "el censo de alias encuentra un #define sintetico sobre %s: no esta ciego" % tx)
     colado = (fw.codigo("Maestro", "src", "main.cpp")
               + "\nvoid _fuga_de_prueba() { pinMode(%s, OUTPUT); }\n" % alias[0])
     b.control_negativo(

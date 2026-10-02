@@ -10,7 +10,6 @@ void semaforo_apagarTodo();
 // rojo llega despues; con el cierre en curso no lo reinicia, y forzarVerde() no lo reabre.
 void semaforo_forzarRojo();
 void semaforo_forzarVerde();
-void semaforo_toggle();
 void semaforo_iniciarFallo();
 void semaforo_actualizar();
 bool semaforo_estable();

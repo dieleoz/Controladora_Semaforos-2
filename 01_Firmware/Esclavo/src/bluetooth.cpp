@@ -519,7 +519,7 @@ static bool salidaDegradadoIniciada() {
 //
 // El campo MODO: del $STATUS decia SUBORDINADO SIEMPRE, escrito dentro de la plantilla
 // del snprintf. Era cierto mientras esta punta no tuviera ningun modo propio, y dejo de
-// serlo el 05/09: con SET_MODO:DEGRADADO aqui abajo, el Esclavo puede gobernar su luz
+// serlo el 05/09: con el Degradado (hoy por testigo, D-46) el Esclavo puede gobernar su luz
 // por reloj y la unica pantalla que lo decia -el menu del LCD- se retiro.
 //
 // UN BOTON PARA ENTRAR EN UN MODO QUE NO SE PUEDE VER ES MEDIA FUNCION. Y hay tres
@@ -1011,7 +1011,7 @@ static void procesarComando(const char* cmd) {
       //
       // NO PROMETE que el ambar se vaya: el Maestro puede estar en un ambar que pidio
       // otra persona -y entonces ignora el aviso a proposito-. Dice lo que hizo, que es
-      // volver a pedirlo. Es el mismo reparto que SOLICITAR_PASO: esta punta pide.
+      // volver a pedirlo. Es el reparto de siempre: esta punta pide.
       if (semaforo_estado() == S_FALLO) {
         protocolo_enviarPaquete(CMD_CANCELA_AMBAR_ESCLAVO);
         enviarTramaConCrc("$ACK,CMD:CANCELAR_AMBAR,RESULT:REENVIADO_AL_MAESTRO");
@@ -1075,106 +1075,9 @@ static void procesarComando(const char* cmd) {
     // -el mismo error contestado de dos maneras segun por donde entre-.
     enviarTramaConCrc("$ERR,CMD:FORZAR_ROJO,DESC:RENOMBRADO_USE_AMBAR_EMERGENCIA");
     bluetooth_reportarEvento("APP_BLUETOOTH", "FORZAR_ROJO_RENOMBRADO");
-  } else if (strcmp(accion, "SOLICITAR_PASO") == 0) {
-    // EL ESCLAVO PIDE; NO ORDENA. Ver OPTIMIZACIONES.md SFTY-27.
-    // D-36 (29/09): la app ya no tiene boton para esta orden; se conserva para el
-    // terminal serie. No es huerfana: no se borra sin otra decision.
-    //
-    // El funcional del PMT se coloca en el extremo que haga falta y no tiene por que
-    // saber cual de los dos postes es el Maestro. Esto lo resuelve sin darle mando a
-    // esta punta: aqui no se enciende nada, se manda la MISMA demanda que manda la
-    // camara, y el Maestro decide, aplica el todo-rojo y ordena.
-    //
-    // Con dos funcionales, uno en cada extremo, el Maestro serializa: ninguno concede
-    // nada, los dos piden. Que pulsen a la vez tiene que ser aburrido.
-    if (demanda_solicitar()) {
-      enviarTramaConCrc("$ACK,CMD:SOLICITAR_PASO,RESULT:PEDIDO_AL_MAESTRO");
-      bluetooth_reportarEvento("APP_BLUETOOTH", "SOLICITUD_PASO_ENVIADA");
-    } else {
-      // No se finge un envio que no ocurrio: si el operario no sabe que su pulsacion
-      // cayo en la ventana de silencio, volvera a pulsar creyendo que no le hacen caso.
-      enviarTramaConCrc("$ERR,CMD:SOLICITAR_PASO,DESC:REPITA_EN_UNOS_SEGUNDOS");
-    }
-  } else if (strcmp(accion, "SET_MODO:DEGRADADO") == 0) {
-    // D-37 (29/09): la app ya no tiene boton para esta orden (dio verde contra ambar
-    // mientras se iba al otro poste). Se conserva para el terminal serie.
-    // D-18: EL MODO DEGRADADO DE ESTE POSTE SE PIDE POR APP, Y ESTA RAMA ES LA LLAVE.
-    // Resuelve A-11 (decision del responsable, 05/09: "esto ya es por app"). La salida
-    // descartada era volver a poner pulsadores en el conector de la botonera: contradecia
-    // D-1 y competia por esos mismos dos pines con lo que aun esta por decidir para ellos.
-    //
-    // Y ES LA UNICA PUERTA DE ESTA PUNTA A UN MODO QUE DA VERDE SIN CONFIRMAR AL OTRO
-    // EXTREMO, que es por lo que no la cierra nadie por su cuenta: cambia quien arbitra el
-    // ciclo. Lo que el Maestro hace mientras esta punta esta dentro se mide y se escribe,
-    // no se supone.
-    //
-    // EL MODO ESTABA CONSTRUIDO Y LA LLAVE SE HABIA TIRADO. degradado_entrar() tenia
-    // tres llamadores y los tres estaban muertos o inalcanzables: la secuencia A.B.A.B
-    // del mando -el hardware se retiro, D-1-, el menu de la pantalla -botonAceptar() es
-    // "return false;" desde que PB14/PB15 son camaras- y la reanudacion tras corte, que
-    // exige HABER ENTRADO ANTES. Esta rama no construye la puerta: le da la llave.
-    //
-    // LA PUERTA ES LA MISMA QUE LA DEL MANDO Y LA DE LA PANTALLA. No se comprueba nada
-    // aqui: se llama a degradado_entrar(), que vuelve a evaluar TODAS las condiciones
-    // por su cuenta. Tres vias con tres criterios serian una sola puerta -la mas floja
-    // de las tres-, y esta es la unica del firmware que enciende un verde sin
-    // confirmacion del otro extremo.
-    //
-    // UN $ERR POR MOTIVO, PORQUE degradado_entrar() DEVUELVE UN RechazoDegradado Y NO UN
-    // bool. Contestar OK sin mirar lo que la llamada devolvio es una mentira con formato
-    // de exito (CLAUDE.md 6): el operario esta en lo alto de un poste y necesita saber
-    // QUE le falta -"sin hora" se arregla sincronizando, "sync caducada" obliga a
-    // arreglar el radio-, no que algo fallo.
-    //
-    // EL TEXTO SALE DE degradado_textoRechazo(), QUE ES LA TABLA QUE YA ENSENABA EL
-    // GABINETE. Una tabla propia para el celular seria una tercera que alguien tendria
-    // que sincronizar -es lo que dice la rama gemela del Maestro-, y ademas
-    // costura_07_motivos_rechazo vigila que las dos puntas tengan UNA sola tabla: una
-    // copia aqui la dejaria comparando media tabla.
-    //
-    // POR QUE p[64]: "$ERR,CMD:SET_MODO:DEGRADADO,DESC:" son 33 caracteres y el motivo
-    // mas largo de esa tabla son 18 ("AMBAR EMERG.PUESTO", acotado a proposito en
-    // modo_degradado.cpp). 33 + 18 + NUL = 52 B, y con el envoltorio "*XX\r\n" 68 B de
-    // los 160 de tramaCompleta.
-    //
-    // 🔴 Y LO QUE ESTA RAMA NO PUEDE COMPROBAR, ESCRITO PARA QUE NO SE LEA COMO QUE SI:
-    // que el Maestro haya dejado de gobernar. Medido el 05/09 en las dos puntas: el
-    // Maestro emite CMD_PING cada LATIDO_MS (3000 ms, coordinador.cpp) mientras cicla, y
-    // main.cpp de aqui llama a degradado_salir() al recibir PING, GO_RED o GO_GREEN. O
-    // sea que con el Maestro vivo este modo dura un latido y el operario ve el equipo
-    // obedecer y volverse atras solo. NO SE INVENTA AQUI UN SEGUNDO RELOJ DE SILENCIO
-    // para rechazarlo: este fichero ya tiene escrito por que no -el simulador del puente
-    // tumbo esa idea, ver bluetooth_loop()-, y el dato que haria falta -tUltimoComando-
-    // es un static local del loop() de main.cpp. Lo que SI se hace es que se VEA: el
-    // campo MODO: de arriba pasa a DEGRADADO y vuelve a SUBORDINADO, en el tablero.
-    //
-    // Y NO ES PELIGROSO, que es la pregunta que decide si esto se construye: el todo-rojo
-    // obligatorio de entrada dura ROJO_MINIMO_MS (4000 ms) como MINIMO y el latido son
-    // 3000, asi que el Maestro vivo saca a esta punta ANTES de que pueda dar su primer
-    // verde por reloj. La desigualdad la recalcula esclavo_08_ambar_en_degradado desde
-    // el C++ de las dos puntas, porque una relacion entre dos constantes que solo vive
-    // en un comentario se queda describiendo un equipo que ya no existe (N-71).
-    const EstadoDegradado antesDeg = degradado_estado();
-    const RechazoDegradado rDeg = degradado_entrar();
-    if (rDeg != DEG_ACEPTADO) {
-      char p[64];
-      snprintf(p, sizeof(p), "$ERR,CMD:SET_MODO:DEGRADADO,DESC:%s",
-               degradado_textoRechazo(rDeg));
-      enviarTramaConCrc(p);
-      bluetooth_reportarEvento("APP_BLUETOOTH", "SET_MODO_DEGRADADO_RECHAZADO");
-    } else if (antesDeg == DEG_ENTRANDO || antesDeg == DEG_ACTIVO) {
-      // degradado_entrar() devuelve DEG_ACEPTADO sin hacer nada cuando el modo YA
-      // gobierna. Contestar OK diria que esta pulsacion encendio algo, y el operario que
-      // pulso dos veces no sabria cual de las dos movio la luz -que es exactamente lo
-      // que costo la cinta del 04/09 con SET_MODO:AMBAR-. Aqui no se re-arma nada: el
-      // todo-rojo de entrada ya paso o esta pasando.
-      enviarTramaConCrc("$ACK,CMD:SET_MODO:DEGRADADO,RESULT:YA_ACTIVO");
-      bluetooth_reportarEvento("APP_BLUETOOTH", "SET_MODO_DEGRADADO_YA_ACTIVO");
-    } else {
-      enviarTramaConCrc("$ACK,CMD:SET_MODO:DEGRADADO,RESULT:OK");
-      bluetooth_reportarEvento("APP_BLUETOOTH", "SET_MODO_DEGRADADO");
-    }
   } else if (strncmp(accion, "SET_MODO:DEG_T:", 15) == 0) {
+    // D-46: SOLICITAR_PASO y SET_MODO:DEGRADADO salieron de esta punta; al Degradado se entra
+    // por el testigo (D-35), y las dos ordenes viejas caen en COMANDO_NO_SOPORTADO.
     // D-35 (SPEC_2 7.bis): la MISMA orden que en el Maestro, con su tabla de rechazo propia
     // (RechazoTestigo). Aqui solo se traduce texto a numeros (molde SET_TIEMPOS, con el %c
     // que delata lo que sobra); verde distinto de 180 es formato. La respuesta sale de lo
@@ -1222,8 +1125,8 @@ static void procesarComando(const char* cmd) {
   } else if (strcmp(accion, "TEST_LEDS") == 0) {
     // RECHAZADO A PROPOSITO, y no es una limitacion pendiente de quitar.
     //
-    // semaforo_iniciarTestLeds() enciende 6 s de secuencia -rojo, ambar y VERDE- sin
-    // mirar nada. Lanzado sobre un Esclavo en servicio, ese verde sale mientras el
+    // D-44: el test de esta punta salio del firmware. Encendia 6 s de secuencia -rojo,
+    // ambar y VERDE- sin mirar nada. Lanzado sobre un Esclavo en servicio, ese verde saldria mientras el
     // Maestro esta dando paso al otro sentido: dos vehiculos entrando de frente al
     // tramo. Y da igual que el tecnico se haya conectado al Esclavo correcto: el
     // peligro no es equivocarse de poste, es que esta punta acepte mover luces.
@@ -1268,10 +1171,6 @@ static void procesarComando(const char* cmd) {
   } else {
     enviarTramaConCrc("$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO_EN_ESCLAVO");
   }
-}
-
-bool bluetooth_testLedsActivo() {
-  return semaforo_testLedsEnCurso();
 }
 
 bool bluetooth_ambarEmergencia() {
@@ -1616,7 +1515,7 @@ void bluetooth_loop() {
     //
     // LA EXCEPCION QUE SI EXISTE, ESCRITA PARA QUE NO SE PIERDA: en Modo Degradado esta
     // punta SI conoce su fase, porque la calcula por reloj, y el numero ya esta hecho en
-    // degradado_segundosParaCambio() -que hoy solo lo usa la pantalla del menu-. No se
+    // degradado_segundosParaCambio() -sin llamador desde el menu; D-44 la retiro-. No se
     // publica aqui a proposito: el Maestro NO tiene el getter equivalente -su
     // modo_degradado.cpp calcula el restante para el LCD y no lo expone-, asi que
     // publicarlo en una sola punta dejaria al operario con un numero en un poste y "--"

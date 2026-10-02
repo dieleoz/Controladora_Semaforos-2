@@ -287,17 +287,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const padPosteEl = document.getElementById('pad-poste');
 
   // Mandos de tecnico que no salen por data-cmd porque cada uno tiene una condicion
-  // propia: ALCANCE viaja sin PIN, DEMANDA solo vale en un modo concreto y DEGRADADO
-  // pasa antes por un dialogo.
+  // propia: ALCANCE viaja sin PIN y DEMANDA solo vale en un modo concreto.
   const btnModoAlcance = document.getElementById('btn-modo-alcance');
   const btnDemanda = document.getElementById('btn-demanda');
   const demandaHintEl = document.getElementById('demanda-hint');
-  const btnModoDegradado = document.getElementById('btn-modo-degradado');
-  const degradadoModal = document.getElementById('degradado-modal');
-  const modalDegradadoClose = document.getElementById('modal-degradado-close');
-  const chkDegradadoVerificado = document.getElementById('chk-degradado-verificado');
-  const btnDegradadoCancelar = document.getElementById('btn-degradado-cancelar');
-  const btnDegradadoConfirmar = document.getElementById('btn-degradado-confirmar');
 
   // El dialogo de VIA DESPEJADA. Es el que sustituye al teclado de PIN en las dos
   // ordenes que ABREN paso desde la botonera de campo. Ver 4.bis.
@@ -1539,8 +1532,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // no viene -firmware anterior- y un literal que esta tabla no conoce, que se ensena en
   // crudo. La quinta -sin enlace- va aparte porque no es un valor: es que lo que hay en
   // pantalla ya no vale.
-  // MODO: los diez literales que las dos puntas pueden emitir. Nueve son los `case`
-  // de obtenerNombreModo() (Maestro/src/bluetooth.cpp:367-379) y el decimo es el
+  // MODO: los nueve literales que las dos puntas pueden emitir (D-44 retiro HORA). Ocho
+  // son los `case` de obtenerNombreModo() (Maestro/src/bluetooth.cpp) y el noveno es el
   // literal fijo que el Esclavo escribe dentro de su propio snprintf,
   // MODO:SUBORDINADO (Esclavo/src/bluetooth.cpp:328).
   //
@@ -1557,7 +1550,6 @@ document.addEventListener('DOMContentLoaded', () => {
     'MENU':        { texto: '☰ EN MENÚ · SIN CICLO',        fondo: 'rgba(0,240,255,0.15)',   borde: 'var(--cyan-neon)',  color: 'var(--cyan-neon)' },
     'INTELIGENTE': { texto: '👁 INTELIGENTE · POR DEMANDA',  fondo: 'rgba(0,240,255,0.15)',   borde: 'var(--cyan-neon)',  color: 'var(--cyan-neon)' },
     'ALCANCE':     { texto: '🛑 ALCANCE · ROJO FIJO',       fondo: 'rgba(255,30,68,0.2)',    borde: 'var(--red-lamp)',   color: 'var(--red-lamp)' },
-    'HORA':        { texto: '🕐 AJUSTANDO HORA',            fondo: 'rgba(0,240,255,0.15)',   borde: 'var(--cyan-neon)',  color: 'var(--cyan-neon)' },
     'DEGRADADO':   { texto: '⚠️ DEGRADADO · SIN ENLACE ENTRE POSTES', fondo: 'rgba(255,179,0,0.15)', borde: 'var(--amber-lamp)', color: 'var(--amber-lamp)' },
     'SUBORDINADO': { texto: '🔗 SUBORDINADO AL MAESTRO',    fondo: 'rgba(0,240,255,0.15)',   borde: 'var(--cyan-neon)',  color: 'var(--cyan-neon)' },
     // A-11 (05/09). EL DECIMOPRIMERO, Y ES DEL ESCLAVO. Esa punta dejo de publicar
@@ -1631,12 +1623,14 @@ document.addEventListener('DOMContentLoaded', () => {
           ? 'ámbar pedido por el operario: se pasa con precaución'
           : 'sin enlace: se pasa con precaución';
       }
-      if (state.estadoLuces === 'ROJO' || state.estadoLuces === 'AMARILLO') {
+      // D-45 (SPEC_4 6 (2)): el amarillo es el CIERRE de cada verde, y la pluma sigue arriba
+      // en el por diseno (SFTY-28), no por un veto: baja al llegar el rojo.
+      if (state.estadoLuces === 'AMARILLO') return 'amarillo de cierre: baja al pasar a rojo';
+      if (state.estadoLuces === 'ROJO') {
         // D-13. Con las camaras habra ratos de LUZ ROJA CON LA PLUMA ARRIBA: hay algo
         // debajo y la barrera no baja. Hoy un operario eso lo lee como averia y llama.
         // La frase lo DICE, no lo insinua.
-        return 'con la luz en ' + (state.estadoLuces === 'ROJO' ? 'ROJO' : 'ÁMBAR')
-             + ' · NO es avería: no baja mientras haya alguien debajo';
+        return 'con la luz en ROJO · NO es avería: no baja mientras haya alguien debajo';
       }
       return null;
     }
@@ -2895,81 +2889,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // =========================================================================
-  // 4.ter MODO DEGRADADO: LA UNICA ORDEN QUE ENCIENDE UN VERDE SIN LA OTRA PUNTA
-  // =========================================================================
-  // Las otras ordenes de modo se piden y el coordinador confirma. Esta no: el equipo
-  // se pone a dar paso guiandose por su reloj, y el escenario malo -las dos unidades
-  // en verde a la vez- no lo detiene ninguna radio porque no hay radio. Por eso no
-  // esta en la reja de mandos junto a las demas, sino detras de un dialogo que dice
-  // lo que va a pasar y de una casilla que hay que marcar.
-  //
-  // El dialogo es del propio DOM y no un confirm() del navegador: el nativo bloquea
-  // el hilo -colgo una corrida E2E, N75-4- y encima solo deja una linea de texto.
-  //
-  // El orden de las dos barreras no es indiferente: primero el PIN -que es la que el
-  // firmware exige de verdad- y despues la casilla. Al reves, el operario leeria la
-  // advertencia, la aceptaria, y le saldria un teclado despues de haber dicho que si.
-  function abrirConfirmacionDegradado() {
-    if (chkDegradadoVerificado) chkDegradadoVerificado.checked = false;
-    if (btnDegradadoConfirmar) btnDegradadoConfirmar.disabled = true;
-    openModal(degradadoModal);
-  }
-
-  if (btnModoDegradado) {
-    btnModoDegradado.addEventListener('click', () => {
-      const punta = puntaCorrecta('SET_MODO:DEGRADADO');
-      if (punta) { avisarOtraPunta('SET_MODO:DEGRADADO', punta); return; }
-      if (!state.pinVerificado) { pedirPin(() => btnModoDegradado.click()); return; }
-      abrirConfirmacionDegradado();
-    });
-  }
-
-  if (chkDegradadoVerificado && btnDegradadoConfirmar) {
-    chkDegradadoVerificado.addEventListener('change', () => {
-      btnDegradadoConfirmar.disabled = !chkDegradadoVerificado.checked;
-    });
-  }
-
-  if (btnDegradadoCancelar) {
-    btnDegradadoCancelar.addEventListener('click', () => {
-      closeModal(degradadoModal);
-      addEvent('cyan', 'Modo Degradado: entrada cancelada por el tecnico.');
-    });
-  }
-
-  if (modalDegradadoClose) {
-    modalDegradadoClose.addEventListener('click', () => closeModal(degradadoModal));
-  }
-
-  if (btnDegradadoConfirmar) {
-    btnDegradadoConfirmar.addEventListener('click', () => {
-      if (chkDegradadoVerificado && !chkDegradadoVerificado.checked) return;
-      // La guarda de punta se repite AQUI aunque el boton que abre el dialogo ya la
-      // tenga. No es redundancia decorativa: quien escribe al cable es esta linea, y
-      // una barrera que vive en otro manejador solo protege mientras nadie llame a
-      // este por otro camino. Ademas es la unica forma de que un censo pueda
-      // comprobarlo sin seguir una cadena de dialogos -y una propiedad que solo se
-      // puede verificar leyendo es una que se rompe sin que nadie se entere-.
-      const puntaDeg = puntaCorrecta('SET_MODO:DEGRADADO');
-      if (puntaDeg) { avisarOtraPunta('SET_MODO:DEGRADADO', puntaDeg); return; }
-      closeModal(degradadoModal);
-      // ESTA PUERTA NO TIENE GUARDA DE PIN DELANTE Y SET_MODO:DEGRADADO NO ESTA EN
-      // SIN_PIN, asi que sin PIN verificado la llamada no escribia un byte y la linea
-      // de abajo se imprimia igual: "orden enviada... esperando respuesta" sobre una
-      // orden que no salio, y el tecnico esperando un $ACK que no puede llegar. Lo
-      // encontro el pack app_05_sin_exito_mudo, no una lectura: era el quinto sitio
-      // con este defecto y el unico que no estaba en la lista de partida. Y es el peor
-      // de los cinco por lo que pide: el Degradado es el unico modo que enciende verde
-      // sin confirmacion del otro extremo.
-      if (!enviarComandoFirmware('SET_MODO:DEGRADADO')) return;
-      // NO se pinta ningun modo: la puerta de modo_degradado_evaluarEntrada() rechaza
-      // por seis motivos distintos y el que decide es el equipo. Si dice que no, llega
-      // un $ERR con el motivo concreto y lo ensena el camino de rechazos de siempre.
-      addEvent('cyan', 'Tecnico: orden MODO DEGRADADO enviada al equipo. Esperando ' +
-                       'respuesta: el equipo puede rechazarla y dira por que.');
-    });
-  }
+  // D-37/D-46: el Degradado sin testigo ya no se ofrece (D-37) y su orden salio del
+  // firmware (D-46); aqui vivian su manejador y su dialogo, sin boton desde el 29/09.
   // D-35 (testigo) y A-15 (degradado automatico) viven en js/testigo.js y js/deg_auto.js.
   Testigo.iniciar({ state, enviarComandoFirmware, puntaCorrecta, avisarOtraPunta, addEvent,
                     showToast, horaLocal24, fechaLocalISO, pedirPin });
@@ -3364,32 +3285,6 @@ document.addEventListener('DOMContentLoaded', () => {
              'La unidad pasa por un todo-rojo y vuelve a ordenar el ambar a las dos ' +
              'puntas: espere a verlo. Si pulso varias veces, ESTA es la que movio la luz.',
       toast: 'Ya estaba en modo ambar: el ambar se ha vuelto a encender'
-    },
-    // A-11 (05/09). LAS DOS DEL DEGRADADO, Y LAS PIDE app_10 PORQUE AHORA HAY DOS SIES.
-    //
-    // Hasta hoy SET_MODO:DEGRADADO tenia un solo RESULT -el OK del Maestro- y el
-    // generico bastaba. Con la puerta del Esclavo abierta hay dos, y la diferencia entre
-    // ellos es la de siempre: si ESTA pulsacion movio algo o no.
-    'SET_MODO:DEGRADADO|OK': {
-      tono: 'red',
-      texto: 'Equipo: MODO DEGRADADO ACEPTADO y arrancando. Este poste queda AHORA en ' +
-             'TODO ROJO -es obligatorio antes del primer verde- y a partir de ahi da paso ' +
-             'guiandose SOLO POR SU RELOJ, sin confirmar nada con el otro poste. NO SE ' +
-             'VAYA sin haber comprobado el otro extremo: es la unica maniobra del equipo ' +
-             'que enciende un verde sin que nadie diga que el otro sentido esta parado.',
-      toast: 'Degradado arrancando: todo rojo primero, y compruebe el otro poste'
-    },
-    // El equipo YA estaba en Degradado -entrando o activo- y esta orden no ha arrancado
-    // nada. Contestar lo mismo que arriba diria que esta pulsacion puso el modo, y quien
-    // pulso dos veces no sabria cual de las dos movio la luz. Es la leccion de la cinta
-    // del 04/09 con SET_MODO:AMBAR, aplicada antes de que costara una sesion de banco.
-    'SET_MODO:DEGRADADO|YA_ACTIVO': {
-      tono: 'green',
-      texto: 'Equipo: YA ESTABA en Modo Degradado, asi que esta orden NO ha cambiado ' +
-             'nada -ni ha reiniciado el todo-rojo ni ha vuelto a arrancar el ciclo por ' +
-             'reloj-. Si esta esperando ver moverse la luz por haber pulsado, no se va a ' +
-             'mover por esto: el modo ya venia puesto de antes.',
-      toast: 'Ya estaba en Degradado: esta orden no ha cambiado nada'
     },
     // D-35: OK entra y queda en rojo hasta inicio; RENOVADO ya alternaba con ese ciclo.
     'SET_MODO:DEG_T|OK': {
@@ -4423,9 +4318,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // que traduce el atributo a comando, para que el boton del HTML y lo que sale por
   // Bluetooth no puedan divergir: el pack app_01_comandos lee justo ese atributo.
   //
-  // LAS DOS PUNTAS ACEPTAN CONJUNTOS DISTINTOS, y la app mandaba a ciegas. SOLICITAR_PASO
-  // solo lo entiende el Esclavo (Esclavo/src/bluetooth.cpp:128) y SET_MODO solo el
-  // Maestro (Maestro/src/bluetooth.cpp:123-137): pulsados contra la punta equivocada
+  // LAS DOS PUNTAS ACEPTAN CONJUNTOS DISTINTOS, y la app mandaba a ciegas. SET_MODO solo
+  // lo entiende el Maestro (D-46 retiro SOLICITAR_PASO y SET_MODO:DEGRADADO del
+  // Esclavo, Maestro/src/bluetooth.cpp): pulsados contra la punta equivocada
   // devolvian $ERR,CMD:DESCONOCIDO y el boton parecia roto. El nodo lo dice $STATUS.
   // DEMANDA y REINICIAR_RELOJ tampoco existen en el Esclavo: su despachador no las
   // conoce y contestaria $ERR,CMD:DESCONOCIDO, que es el error que no dice nada.
@@ -4440,9 +4335,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // A-11 (05/09): 'SET_MODO' A SECAS SE ROMPE EN SUS SEIS, Y NO ES ORDEN NI ESTILO.
   //
   // La entrada cubria por raiz -'SET_MODO' gobierna las siete SET_MODO:X-, y eso era
-  // correcto mientras el Esclavo no atendiera ninguna. Desde hoy atiende UNA:
-  // SET_MODO:DEGRADADO, que es la puerta que A-11 abrio para poder pedir el Modo
-  // Degradado de esa punta desde el telefono. Las otras seis siguen siendo del Maestro.
+  // correcto mientras el Esclavo no atendiera ninguna. Desde el 05/09 atendia UNA:
+  // SET_MODO:DEGRADADO (A-11), que D-46 retiro de las dos puntas; al Degradado se entra
+  // por el testigo. Las seis de abajo siguen siendo del Maestro.
   //
   // DEJARLA COMO ESTABA NO HABRIA SIDO "un poco estricto de mas": la app habria
   // contestado "esa orden la atiende el MAESTRO" delante de un Esclavo que SI la
@@ -4455,7 +4350,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         'DEMANDA', 'REINICIAR_RELOJ', 'FORZAR_ROJO'];
   // CANCELAR_AMBAR (R-3) vive en el Esclavo, que tiene el latch como en AMBAR_EMERGENCIA:
   // contra un Maestro volveria como $ERR,CMD:DESCONOCIDO, el error que parece boton roto.
-  const SOLO_ESCLAVO = ['SOLICITAR_PASO', 'AMBAR_EMERGENCIA', 'CANCELAR_AMBAR'];
+  const SOLO_ESCLAVO = ['AMBAR_EMERGENCIA', 'CANCELAR_AMBAR'];
 
   // 🟠 N-124, VENTANA CONOCIDA Y ABIERTA A PROPOSITO - NO ES UN DESCUIDO.
   //
@@ -5647,7 +5542,7 @@ document.addEventListener('DOMContentLoaded', () => {
     modalSiteClose.addEventListener('click', () => closeModal(siteModal));
   }
 
-  [btModal, siteModal, pinModal, degradadoModal, viaModal].forEach(m => {
+  [btModal, siteModal, pinModal, viaModal].forEach(m => {
     if (m) {
       m.addEventListener('click', (e) => {
         if (e.target === m) closeModal(m);

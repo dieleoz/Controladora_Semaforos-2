@@ -9,7 +9,6 @@
 #include "modo_automatico.h"
 #include "modo_inteligente.h"
 #include "modo_alcance.h"
-#include "modo_hora.h"
 #include "modo_degradado.h"
 #include "modo_ambar.h"
 #include "reloj.h"
@@ -160,10 +159,8 @@ void loop() {
   reloj_actualizar();
 
 
-  // SFTY-21: los flancos de los cuatro botones se detectan aquí, UNA vez por
-  // iteración y antes de atender ningún modo. El mando de reles los ve desde dentro de
-  // botones.cpp, de modo que una secuencia desde el suelo se reconoce esté el equipo
-  // en la pantalla que esté, y no solo en las que casualmente leen ese botón.
+  // Las camaras de J16, una vez por iteracion y antes de atender ningun modo (D-44: los
+  // botones de p5/p8 ya no se leen).
   botones_actualizar();
 
   // Telemetría periódica y comandos por Bluetooth en USART1
@@ -345,7 +342,6 @@ void loop() {
       case MODO_AUTOMATICO:  modoAutomatico_setup();  break;
       case MODO_INTELIGENTE: modoInteligente_setup(); break;
       case MODO_ALCANCE:     modoAlcance_setup();     break;
-      case MODO_HORA:        modo_hora_setup();       break;
       case MODO_DEGRADADO:   modo_degradado_setup();  break;
       case MODO_AMBAR:       modo_ambar_setup();      break;
       case MENU:             menu_setup();            break;
@@ -354,12 +350,11 @@ void loop() {
   }
 
   switch (modo) {
-    case MENU:            menu_loop();            break;
+    case MENU:            break;   // D-44: en el menu no queda navegacion que atender
     case MODO_MANUAL:     modoManual_loop();      break;
     case MODO_AUTOMATICO: modoAutomatico_loop();  break;
     case MODO_INTELIGENTE:modoInteligente_loop(); break;
     case MODO_ALCANCE:    modoAlcance_loop();     break;
-    case MODO_HORA:       modo_hora_loop();       break;
     case MODO_DEGRADADO:  modo_degradado_loop();  break;
     case MODO_AMBAR:      modo_ambar_loop();      break;
   }

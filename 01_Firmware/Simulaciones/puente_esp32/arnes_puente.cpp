@@ -46,7 +46,6 @@
 //   CRISTAL <e>  con cristal, el veredicto de reloj_estadoCristal(): 0 VIGILANDO, 1 CUENTA,
 //                2 CONGELADO (1.49), 3 SIN_CRISTAL (1.49b3)
 //   RADIO_MANDA <0|1>  (Esclavo) lo que contesta reloj_radioManda(), D-26 (3)
-//   MDG <n>      fija el motivo que devuelve la puerta del Modo Degradado
 //   DEG          (Esclavo) imprime estado, gobiernaLuz y rendicion del Degradado REAL
 //   DEG_ENTRAR   (Esclavo) pide la puerta REAL e imprime el RechazoDegradado
 //   DEG_SALIR    (Esclavo) salida ordenada del modo
@@ -143,7 +142,6 @@ bool reloj_horaFiable() { return rlj_enHora; }
 // arreglo: el equipo declarandose EN HORA con el reloj parado en ceros, de donde cuelga
 // la autorizacion del Modo Degradado.
 void reloj_invalidarHora() { rlj_enHora = false; }
-bool reloj_hayCristal() { return rlj_cristal; }
 uint8_t reloj_hora() { return rlj_h; }
 uint8_t reloj_minuto() { return rlj_m; }
 uint8_t reloj_segundo() { return rlj_s; }
@@ -255,7 +253,6 @@ void reloj_ajustarFranjaNocturna(uint8_t, uint8_t) {}
 uint8_t reloj_inicioNoche() { return 22; }
 uint8_t reloj_finNoche() { return 5; }
 bool reloj_esHorarioNocturno() { return false; }
-const char* reloj_textoHora() { return "18:25:00"; }
 
 // D-13 fase 1 (05/09): el campo CAM: del $STATUS, sustituido en las DOS puntas.
 //
@@ -369,14 +366,7 @@ bool protocolo_hayPaqueteDisponible(RF_Packet* destino) {
 // confirmado, no podia ejercerse por este arnes.
 void menu_setup() { modoActual_set(MENU); coordinador_forzarMenu(); }
 
-// modo_degradado.cpp son 597 lineas con la pantalla dentro. De toda esa maquina,
-// bluetooth.cpp solo consulta la PUERTA -evaluarEntrada- y los dos textos del motivo.
-// El motivo se gobierna desde fuera para poder ejercer la rama de rechazo, que es la
-// que compone un $ERR con snprintf en un buffer de 80.
-static int mdg_motivo = 0;   // 0 = MDG_OK
-MotivoDegradado modo_degradado_evaluarEntrada() { return (MotivoDegradado)mdg_motivo; }
-const char* modo_degradado_motivoL1(MotivoDegradado) { return "FALTA_HORA"; }
-const char* modo_degradado_motivoL2(MotivoDegradado) { return "PONGA_LA_HORA"; }
+// D-46: SET_MODO:DEGRADADO salio; de modo_degradado.cpp bluetooth.cpp solo pide la salida.
 bool modo_degradado_pedirSalida() { return true; }
 
 // D-32 (1), 13/09 - EL RELOJ DEL LIMITE DE 48 h, GOBERNABLE DESDE FUERA.
@@ -433,15 +423,9 @@ bool respaldo_tiemposCiclo(uint8_t* r, uint8_t* v, uint8_t* d) {
   return true;
 }
 
-// lcd.cpp y botones.cpp: los pide modo_automatico.cpp, que si es real.
-void lcd_dibujarAutomatico(const char*, int, int) {}
-void lcd_dibujarConfigValor(const char*, int, const char*) {}
+// botones.cpp: los pide main.cpp; D-44 retiro los cuatro botones.
 void botones_setup() {}
 void botones_actualizar() {}
-bool botonArriba() { return false; }
-bool botonAbajo() { return false; }
-bool botonAceptar() { return false; }
-bool botonCancelar() { return false; }
 #endif
 
 #include "arnes_puente_testigo2.inc"  // D-35: dobles del testigo
@@ -675,14 +659,6 @@ int main(void) {
       printf("OK radio=%d\n", (int)radio_viva);
 #else
       printf("OK radio=n/a\n");
-#endif
-
-    } else if (strncmp(linea, "MDG ", 4) == 0) {
-#if defined(PUNTA_MAESTRO)
-      mdg_motivo = atoi(linea + 4);
-      printf("OK mdg=%d\n", mdg_motivo);
-#else
-      printf("OK mdg=n/a\n");
 #endif
 
     } else if (strcmp(linea, "DEG_ENTRAR") == 0) {

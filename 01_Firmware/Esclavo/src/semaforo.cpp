@@ -19,19 +19,10 @@ static unsigned long tCambio = 0;
 // 14/09 (D-30) y este registro se queda porque D-33 lo usa por su cuenta.
 static bool ultR = false, ultA = false, ultV = false;
 
-// --- N-82: test de lamparas ------------------------------------------------
-// La bandera vive AQUI ARRIBA, y no junto a semaforo_iniciarTestLeds() donde estaba,
-// porque escribirPines() tiene que poder consultarla: la talanquera cuelga del mismo
-// 'verde' que enciende la lampara y hay que saber si ese verde es un paso concedido
-// o una lampara que se esta ensenando.
-static bool testLedsActivo = false;
-static unsigned long tInicioTest = 0;
-
-// Cada lampara se ensena 2 s: es lo que tarda un tecnico en confirmarla mirando hacia
-// arriba, y el total -tres fases, 6 s- es lo que aguanta sin bajar la vista. El
-// numero se escribe una vez y las tres fases se cuentan sobre el, para que no puedan
-// desincronizarse entre ellas.
-static const unsigned long TEST_FASE_MS = 2000;
+// D-44: el test de lamparas del Esclavo salio (sin armador: bluetooth.cpp rechaza TEST_LEDS).
+// Queda esta CONSTANTE en false solo para que escribirPines() sea identico al del Maestro,
+// que si tiene test (barrera_02 y barrera_03 comparan los dos cuerpos).
+static const bool testLedsActivo = false;
 
 // --- N-153: LO QUE LA PLUMA ESTA HACIENDO, PARA PODER PUBLICARLO -----------
 //
@@ -324,29 +315,6 @@ void semaforo_forzarVerde() {
   aplicarSalidas(LOW, LOW, HIGH);
 }
 
-// Sin llamador. Ya no saca del ambar intermitente a verde: solo alterna rojo y verde.
-void semaforo_toggle() {
-  if (estado == S_ROJO) {
-    semaforo_forzarVerde();
-  } else if (estado == S_VERDE) {
-    semaforo_forzarRojo();
-  }
-}
-
-void semaforo_iniciarTestLeds() {
-  // SIN GUARDA, Y ES DELIBERADO. La tentacion era rechazar aqui el test cuando una
-  // senal del mando ocupa las luces. Seria un rechazo MUDO: esta funcion no devuelve
-  // nada y el $ACK de bluetooth.cpp se manda igual, asi que el tecnico se iria del
-  // poste con una confirmacion de algo que no ocurrio. La espera se resuelve en
-  // semaforo_actualizar(), donde no hay que prometer nada.
-  testLedsActivo = true;
-  tInicioTest = millis();
-}
-
-bool semaforo_testLedsEnCurso() {
-  return testLedsActivo;
-}
-
 // N-153: lo ULTIMO que se le mando al pin de la pluma. Lo publica el campo PLUMA: del
 // $STATUS; ver el porque de que sea una bandera y no un recalculo sobre plumaAbierta.
 bool semaforo_plumaArriba() {
@@ -369,36 +337,6 @@ void semaforo_iniciarFallo() {
 
 void semaforo_actualizar() {
   unsigned long ahora = millis();
-
-  // Test de lámparas en taller (6 segundos: 2s Rojo -> 2s Amarillo -> 2s Verde)
-  // D-30 (14/09): AQUI ESPERABA EL TEST A QUE LA SENAL DEL MANDO SOLTARA LAS LUCES.
-  // Con el mando fuera ya no hay quien ocupe las lamparas por encima de la logica, y
-  // la rama de espera solo sabia dar una respuesta: el test corre siempre entero.
-  if (testLedsActivo) {
-    unsigned long elapsed = ahora - tInicioTest;
-    if (elapsed < TEST_FASE_MS) {
-      aplicarSalidas(true, false, false);
-    } else if (elapsed < 2 * TEST_FASE_MS) {
-      aplicarSalidas(false, true, false);
-    } else if (elapsed < 3 * TEST_FASE_MS) {
-      // El verde del test pasa por el enclavamiento como cualquier otro: si algun
-      // dia SFTY-2 se lo niega, esta fase se queda sin encender y eso es la
-      // respuesta correcta, no un estorbo que rodear. La pluma no lo sigue -ver
-      // escribirPines()-, asi que el tecnico ve la lampara sin que se abra la via.
-      aplicarSalidas(false, false, true);
-    } else {
-      // N-82.bis: aqui el test no lo arma nadie -bluetooth.cpp rechaza TEST_LEDS y
-      // esclavo_06 vigila que nadie llame a semaforo_iniciarTestLeds()-. Acaba en rojo
-      // POR EL SETTER, no con un rojo fijo a pelo: asi la luz y 'estado' no pueden
-      // discrepar, que es el defecto que la cinta del 28/09 midio en el Maestro. No se
-      // restaura otro estado a proposito: el Esclavo no fuerza verde por su cuenta
-      // (costura_10), y un final que llamara a semaforo_forzarVerde() se lo daria.
-      testLedsActivo = false;
-      semaforo_forzarRojo();
-    }
-    return;
-  }
-
 
   // D-45: el amarillo de cierre acaba en ROJO.
   if (estado == S_AMARILLO && (ahora - tCambio >= AMARILLO_SEG * 1000UL)) {

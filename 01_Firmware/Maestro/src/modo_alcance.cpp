@@ -42,12 +42,6 @@ void modoAlcance_setup() {
 }
 
 void modoAlcance_loop() {
-  if (botonCancelar()) {
-    modoActual_set(MENU);
-    menu_setup();
-    return;
-  }
-
   // Mantiene vivo el latido de 3 s, que es de donde sale la telemetria.
   coordinador_actualizar();
 }

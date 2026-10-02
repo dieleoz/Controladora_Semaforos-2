@@ -109,20 +109,9 @@ BKP_Simulado arnes_bkp;
 
 static_assert(sizeof(RF_Packet) == 4, "RF_Packet dejo de medir 4 bytes");
 
-// ---------------------------------------------------------------------------
-// BOTONES SIMULADOS. Bloque literal de adaptador_maestro.cpp: leerlos los gasta.
-// botonCancelar() lo consultan modo_degradado_loop() y modo_ambar_loop(), asi que la
-// salida por boton se puede ejercer de verdad.
-// ---------------------------------------------------------------------------
-static bool g_pulsarArriba = false, g_pulsarAbajo = false;
-static bool g_pulsarAceptar = false, g_pulsarCancelar = false;
-
+// D-44: aqui vivian los cuatro botones simulados; el firmware ya no los lee.
 void botones_setup() {}
 void botones_actualizar() {}
-bool botonArriba()   { bool v = g_pulsarArriba;   g_pulsarArriba = false;   return v; }
-bool botonAbajo()    { bool v = g_pulsarAbajo;    g_pulsarAbajo = false;    return v; }
-bool botonCancelar() { bool v = g_pulsarCancelar; g_pulsarCancelar = false; return v; }
-bool botonAceptar()  { bool v = g_pulsarAceptar;  g_pulsarAceptar = false;  return v; }
 // D-33 (14/09/2026): NO HAY CAMARAS EN ESTE BANCO, y por eso contesta que no hay nadie.
 // Es la respuesta correcta para un equipo con las borneras de J16 vacias -el pull-down
 // de 10K deja los pines bajos para siempre-, no un "por ahora". Lo que este arnes mide
@@ -318,27 +307,18 @@ PUNTA_API void punta_entrada(int pin, int nivel) {
   if (pin >= 0 && pin < 64) arnes_entradas[pin] = nivel;
 }
 
-PUNTA_API void punta_pulsar(int boton) {
-  switch (boton) {
-    case 1: g_pulsarArriba = true; break;
-    case 2: g_pulsarAbajo = true; break;
-    case 3: g_pulsarAceptar = true; break;
-    case 4: g_pulsarCancelar = true; break;
-    default: break;
-  }
-}
-
 PUNTA_API long punta_mando(const char* que, long arg) {
   { const long r = arnesDegAuto_mando(que, arg); if (r != PUNTA_DESCONOCIDO) return r; }  // A-15
   // --- El reloj de pared de esta punta -------------------------------------
-  // arg empaquetado como d*1000000 + h*10000 + m*100 + s. Entra por reloj_ajustar(),
-  // que es la MISMA puerta que usa la pantalla AJUSTAR HORA del equipo real.
+  // arg empaquetado como d*1000000 + h*10000 + m*100 + s. Entra por reloj_ajustarConAcuse(),
+  // la regla de rango real del Maestro.
   if (!strcmp(que, "ajustar_reloj")) {
     uint8_t d = (uint8_t)((arg / 1000000L) % 100);
     uint8_t h = (uint8_t)((arg / 10000L) % 100);
     uint8_t m = (uint8_t)((arg / 100L) % 100);
     uint8_t s = (uint8_t)(arg % 100L);
-    reloj_ajustar(h, m, s, d);
+    // D-44: el envoltorio reloj_ajustar() salio del Maestro; se llama a la funcion que lo era.
+    (void)reloj_ajustarConAcuse(h, m, s, d);
     return reloj_enHora() ? 1 : 0;
   }
   // EL SALTO DE HORA, CONSERVANDO LA FASE SUB-SEGUNDO.
@@ -393,7 +373,6 @@ PUNTA_API long punta_mando(const char* que, long arg) {
   if (!strcmp(que, "eventos_salto_rojo")) return (long)g_eventosSaltoRojo;
   // --- SFTY-23: el intercambio horario REAL, encolado por el coordinador ----
   if (!strcmp(que, "sincronizar_hora"))   return coordinador_sincronizarHora() ? 1 : 0;
-  if (!strcmp(que, "medir_desfase"))      return coordinador_medirDesfase() ? 1 : 0;
   if (!strcmp(que, "publicar_config"))    { modo_degradado_publicarConfig(); return 1; }
   if (!strcmp(que, "config_confirmada"))  return coordinador_configConfirmada() ? 1 : 0;
   if (!strcmp(que, "desfase_valido"))     return coordinador_desfaseValido() ? 1 : 0;

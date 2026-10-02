@@ -40,211 +40,38 @@ PUNTAS = ("Maestro", "Esclavo")
 # pack lo dice: sobra tanto una que aparece como una que desaparece.
 CONOCIDAS = {
     "Maestro": {
-        # 🟢 D-30, 14/09: mando_registrarPulso SALE de esta lista, y lo pidio el propio
-        # pack. Entro el 14/09 cuando el firmware dejo de leer los flancos de J16 p5/p8,
-        # con la anotacion escrita al lado: "SALE de aqui el dia que el fichero se retire
-        # entero". Ese dia es hoy -mando.cpp y mando.h ya no existen en ninguna punta-,
-        # asi que dejarla seria vigilar el aire: la comprobacion de "desaparecidas" la
-        # pediria por su nombre y no la encontraria declarada en ningun header.
+        # D-44: SALEN DE LA LISTA, porque se retiraron del firmware, las huerfanas que
+        # el censo del legacy nombro: bluetooth_testLedsActivo, reloj_textoHora,
+        # reloj_hayCristal, semaforo_toggle, coordinador_intentarHandshake,
+        # coordinador_medirDesfase y coordinador_reiniciarConexion. Dejarlas aqui seria
+        # vigilar el aire (comprobacion de "desaparecidas"). reloj_ajustar(), que quedo sin
+        # llamador al irse el Modo Hora, se retiro tambien y no entra.
         #
-        # 🟢 roadmap 1.48 (c): modoAutomatico_pedirArranqueDirecto SALE de esta lista
-        # porque se RETIRO del firmware -declaracion de modo_automatico.h y cuerpo vacio
-        # (N-42) de modo_automatico.cpp-. Entro el 14/09 al morir su unico llamador,
-        # mando.cpp, con la anotacion "queda anotada para que el que lo retire la borre
-        # tambien de esta lista". Dejarla seria vigilar el aire.
-        # Getters de telemetria que la pantalla dejo de pedir. No danan; se anotan.
-        # 🟢 D-32 (1), 13/09: protocolo_tramasDescartadas SALE, igual que salio en el
-        # Esclavo con N-108 y por el mismo motivo -ahora se publica al aire-. Viajaba
-        # aqui desde el 27/08 y NO estaba en el grupo del LCD de abajo, asi que la
-        # lista decia que el Maestro perdia DOS contadores de SFTY-15 cuando en
-        # realidad no leia NINGUNO de los tres. Lo dijo el propio pack al ganar
-        # llamador, no una relectura: es la comprobacion 3 haciendo su trabajo.
-        "bluetooth_testLedsActivo",
-        # N-86 retiro las tres del puerto de camara IA (protocolo_actualizarAI,
-        # protocolo_obtenerAutosEsperandoAI, protocolo_obtenerUltimoTiempoAI). Ya no
-        # se declaran en ningun header, asi que salen de la lista: la comprobacion de
-        # "desaparecidas" las pediria por su nombre y estaria vigilando el aire.
+        # respaldo.cpp y respaldo.h son GEMELOS BYTE A BYTE entre las dos puntas (lo exige
+        # maestro_02_respaldo): estas tres no tienen lector en el Maestro y no se pueden
+        # retirar de una sola punta.
         "respaldo_valido", "respaldo_verdeSeg", "respaldo_despejeSeg",
-        "reloj_textoHora", "semaforo_toggle",
         # SFTY-20, franja nocturna: OPTIMIZACIONES.md la declara "DISENO, NO
-        # IMPLEMENTADO" y el protocolo de pruebas "especificada, sin construir".
-        # El documento NO miente, asi que esto no es un hallazgo: es obra a medias
-        # declarada como tal.
+        # IMPLEMENTADO". Andamio que D-46 conserva (se construira, N-175).
         "reloj_ajustarFranjaNocturna", "reloj_esHorarioNocturno",
         "reloj_inicioNoche", "reloj_finNoche",
-        # API del coordinador que quedo del diseno anterior de reconexion.
-        # N-108 (31/08): coordinador_comunicacionPerdida SALE de la lista. Ya tiene
-        # llamador -bluetooth.cpp la consulta para publicar el $EVENT de cambio de
-        # estado del enlace-, y una huerfana que gano llamador y se queda anotada es
-        # justo lo que este pack persigue: la lista dejaria de poder fallar.
-        # D-32 (1), 13/09: SALE lcd_dibujarConfigValor DE ESTA LISTA, y no porque
-        # estorbe: porque el pack lo EXIGE. Su comprobacion de "desaparecidas" pide que
-        # toda huerfana anotada siga declarandose en algun header, y esta vivia en
-        # Maestro/include/lcd.h, que hoy no existe. Dejarla aqui es tenerla "vigilando
-        # el aire", que es el fallo que esa tercera comprobacion existe para cazar.
-        #
-        # El motivo con el que entro el 04/09 (N-141) terminaba diciendo: "No se borra
-        # de lcd.cpp en este commit: ese fichero lo compila de verdad Validacion_LCD, y
-        # retirar simbolos de ahi es un trabajo aparte con su propia medida". Ese
-        # trabajo aparte es este.
-        "coordinador_intentarHandshake",
-        "coordinador_medirDesfase", "coordinador_reiniciarConexion",
-        # ------------------------------------------------------------------
-        # D-32 (1), 13/09 — LAS QUE SE QUEDARON SIN LECTOR AL RETIRAR EL LCD.
-        # Motivo comprobable una por una, que es lo que este pack exige. Se anotan
-        # AQUI y no se borran de sus modulos: ninguna es codigo de pantalla, son
-        # getters de estado a los que la pantalla era el unico que preguntaba.
-        #
-        # 🟢 protocolo_bytesRecibidos y protocolo_tramasValidas SALEN DE LA LISTA EL
-        # MISMO DIA, Y SALEN PORQUE ESTE PACK LO EXIGE: una huerfana que GANA llamador
-        # y se queda anotada es justo lo que persigue -la lista dejaria de poder
-        # fallar-. La anotacion decia: "el sustituto natural es publicarlos en
-        # bluetooth.cpp, y eso es firmware que hay que escribir, no una anotacion".
-        # Escrito: Maestro/src/bluetooth.cpp emite ahora el $EVENT periodico
-        # ORIGEN:ENLACE_RF con "RX:<n> OK:<n> RUIDO:<n>" cada DIAG_ENLACE_MS, gemelo
-        # del que D-32 (2) puso en el Esclavo, y esp32_07_presupuesto_bytes lo acota y
-        # lo mete en el peor segundo. Los DOS contadores de SFTY-15 del poste 1 -los
-        # que separan "no llega nada" de "llega basura"- vuelven a ser observables, y
-        # ya no en el $STATUS: no cabia (margen 2 contra el tope del puente).
-        # reloj_hayCristal — N-24. Su unico lector era repintar() de modo_hora.cpp,
-        # que se lo pasaba a lcd_dibujarAjusteHora() para poder decir "SIN CRISTAL" en
-        # vez de mandar al operario a teclear la hora contra un RTC parado.
-        # AQUI NO SE PIERDE LA CAPACIDAD, y es comprobable: reloj_diagnostico() sigue
-        # teniendo lector -bluetooth.cpp- y RelojDiag lleva lseOn, lseRdy y rtcSel, que
-        # son los BITS CRUDOS de los que este getter deriva su booleano. O sea que
-        # quien quiera saber si el oscilador arranco lo sigue pudiendo saber, y ademas
-        # por el camino que N-45 eligio a proposito: los bits, no una conclusion.
-        "reloj_hayCristal",
     },
     "Esclavo": {
-        # 🟢 D-30, 14/09: aqui estaba mando_registrarPulso y sale por lo mismo que en el
-        # Maestro: el fichero que la declaraba ya no existe.
-        #
-        # Y NO ENTRA NADA EN SU LUGAR POR EL MANDO. La otra huerfana que esta retirada
-        # creo en esta punta -menu_estaAbierto(), cuyo unico lector era
-        # secuenciasInhibidas() de mando.cpp- NO se anota: se RETIRO del firmware, de
-        # menu.cpp y de menu.h. Anotarla habria sido darle permiso a un adorno con forma
-        # de barrera (CLAUDE.md 6.1), y su fichero si es de este lote.
-        # N-133 (04/09): los dos accesos a los tiempos del ciclo AUTOMATICO.
-        #
-        # EL MOTIVO ES COMPROBABLE, que es lo que §3.bis exige de una excepcion: no se
-        # acepta un huerfano "porque si". Aqui son dos hechos que otro pack ya mide:
-        #
-        #   1. respaldo.cpp y respaldo.h son GEMELOS BYTE A BYTE entre las dos puntas,
-        #      y lo exige maestro_02_respaldo -"un respaldo escrito por una punta
-        #      podria no validarlo la otra"-. O sea que estas dos funciones no PUEDEN
-        #      no estar aqui: retirarlas del Esclavo separaria a los gemelos y ese
-        #      pack caeria en el acto.
-        #   2. El ciclo automatico solo existe en el Maestro: no hay
-        #      Esclavo/src/modo_automatico.cpp. El Esclavo no elige tiempos; los
-        #      recibe por radio. Asi que en esta punta no hay a quien llamarlas.
-        #
-        # Si algun dia el Esclavo gana ciclo propio, ganaran llamador y este pack lo
-        # dira -"una huerfana que gano llamador y se queda anotada"-, que es justo lo
-        # que persigue.
-        "respaldo_guardarTiemposCiclo", "respaldo_tiemposCiclo",
-        # N-108 (31/08): protocolo_tramasDescartadas SALE de la lista en esta punta.
-        # El $ALARM de la caida y el $EVENT de la vuelta publican los contadores de
-        # SFTY-15, que es para lo que se escribieron: separan "no llega nada" de
-        # "llega basura" de "enlace marginal". Sigue huerfana en el MAESTRO, donde
-        # nadie los publica todavia, y por eso alli se queda anotada.
-        "bluetooth_testLedsActivo",
-        # N-86: mismas tres del puerto de camara IA, retiradas tambien en esta punta.
+        # N-133: respaldo.cpp/.h gemelos byte a byte (maestro_02_respaldo). El ciclo
+        # automatico solo existe en el Maestro: aqui no hay a quien llamarlas.
+        "respaldo_guardarTiemposCiclo", "respaldo_tiemposCiclo", "respaldo_valido",
+        # protocolo.h es identico en las dos puntas; el Maestro si la llama.
         "protocolo_reiniciarContadores",
-        # N-160: reloj_dia SALE de esta lista. Gano llamador de verdad -reloj_actualizar()
-        # la lee para pasarle la fecha al cristal que arranca tarde, en vez de dejar que
-        # los getters salten a un RTC sin sembrar-. Se retira porque el pack lo exigio al
-        # ganar llamador, que es el trinquete de CLAUDE.md 6.1 haciendo su trabajo: una
-        # lista que acumula nombres obsoletos deja de poder fallar.
-        "respaldo_valido", "semaforo_toggle",
-        # D-26 (11/09): reloj_dia VUELVE a la lista en esta punta, y el motivo es
-        # comprobable -lo que CLAUDE.md 6 exige de una excepcion-:
-        #
-        #   1. Su unico lector era la copia de la hora al RTC que hacia reloj_actualizar() al
-        #      adoptar el cristal, y esa copia se RETIRO el 11/09 con la medida escrita en
-        #      reloj.cpp: nadie leia esa hora y reescribir CNT podia rejuvenecer una marca de
-        #      sync -y bloqueaba hasta ~3 s con el perro en 4-.
-        #   2. El respaldo no la necesita: desde N-49 fecha con reloj_contadorSegundos().
-        #      `grep reloj_dia Esclavo/src` sin comentarios da solo su definicion.
-        #   3. Se queda declarada porque el dia lo impone la radio (CMD_HORA_D) y su gemela
-        #      del Maestro SI tiene lector (enviarHoraCompleta): retirarla aqui separaria las
-        #      dos APIs del reloj por un getter.
-        # Si gana un llamador en el Esclavo, este pack lo dira: es el trinquete.
+        # D-26 (11/09): reloj_dia se queda declarada. Su unico lector en esta punta se
+        # retiro el 11/09, el dia lo impone la radio (CMD_HORA_D) y su gemela del Maestro
+        # SI tiene lector. D-44 no la retira: el arnes del Degradado a dos puntas la lee
+        # (reloj_real/rtc_periferico.cpp, frontera de segundo) con su logica real.
         "reloj_dia",
-        # El Esclavo rechaza TEST_LEDS: que no tenga llamador es la barrera funcionando.
-        # D-45: semaforo_forzarVerde SALE de la lista -gano llamador-: el verde abre directo
-        # y lo piden las dos puertas de siempre, la orden de verde y el Degradado.
-        "semaforo_iniciarTestLeds",
-        # ==================================================================
-        # D-32 (1), 13/09 — LAS DOCE QUE PIERDEN SU UNICO LLAMADOR AL RETIRAR EL
-        # menu.cpp DE ESTA PUNTA. Todas tenian por lector el menu_loop() del Esclavo y
-        # solo a el; medido symbol a symbol con el mismo algoritmo de este pack antes
-        # de tocar nada. Se agrupan en tres motivos distintos, y cada grupo dice que
-        # pasa si nunca se le vuelve a llamar (CLAUDE.md 6.2).
-        #
-        # ---- GRUPO 1: los dos botones que SI existen (A y B, J16 p5/p8) ----
-        # Su unico consumidor eran las lineas 183-184 del menu_loop() retirado.
-        #
-        # 🔴 D-30, 14/09 — ESTE COMENTARIO DECIA "lo que baja de dos a uno es el numero
-        # de CONSUMIDORES, y el que queda es el reconocedor de secuencias del mando, que
-        # es el que gobierna". YA NO HAY SEGUNDO CONSUMIDOR: baja de uno a CERO.
-        #
-        # Los pines SE SIGUEN LEYENDO igual -los lee botones_actualizar(), una sola vez
-        # por vuelta- pero esa lectura ya no alimenta a nadie que mueva la luz. Lo que
-        # cambia de verdad es el riesgo de cobre: hasta el 14/09 un puente en J16 p5/p8
-        # componia secuencias que metian al cruce en ambar o en Degradado; hoy no
-        # compone nada. La instruccion de no cablearlos sigue viva igualmente -los
-        # bornes siguen vacios y pelados-, pero ya no es lo unico que lo impide.
-        "botonArriba", "botonAbajo",
-        # ---- GRUPO 2: los dos que ya no tenian sujeto fisico ----
-        # botonAceptar() y botonCancelar() son `return false;` desde el 31/08 (D-2:
-        # PB14 y PB15, J16 p10 y p12, son camaras). botones.cpp las conserva
-        # declaradas A PROPOSITO -"mientras existan, git grep botonCancelar sigue
-        # listando de una sola vez todo lo que la retirada de los botones C y D dejo
-        # sin mando fisico"-, y ese motivo sigue siendo bueno. Lo que cambia es que su
-        # ultimo punto de uso en esta punta estaba en el menu_loop() retirado.
-        # QUE PASA SI NUNCA SE LLAMAN: nada. Ya no podian devolver true.
-        "botonAceptar", "botonCancelar",
-        # ---- GRUPO 3: los getters del Degradado que solo miraba la pantalla ----
-        # Los dos primeros son TEXTO PARA PINTAR y no tienen otra lectura posible:
-        "degradado_textoEstado", "degradado_textoFase",
-        # Los que siguen son ESTADO, y aqui hay que ser exacto con lo que se pierde.
-        # Su unico lector en el firmware del Esclavo era el menu_loop(): pintaban la
-        # antiguedad de la ultima sincronizacion, el aviso del limite de 48 h, el
-        # motivo de la rendicion y la cuenta atras al siguiente cambio.
-        # NINGUNA ES UNA GUARDA: son getters de solo lectura, asi que dejarlas sin
-        # lector no abre ningun veto -lo que decide sigue decidiendo dentro de
-        # modo_degradado.cpp, que las calcula para su propia logica-.
-        #
-        # 🟢 CUATRO SALEN DE LA LISTA EL MISMO DIA -degradado_huboSync,
-        # degradado_msDesdeSync, degradado_syncVencida y degradado_avisoLimite- Y NO
-        # POR COMODIDAD: este pack falla con una huerfana que GANA llamador y se queda
-        # anotada, porque entonces la lista deja de poder fallar. La anotacion pedia
-        # exactamente esto: "el sustituto seria publicarla en el $STATUS o en el
-        # $EVENT periodico de D-32 (2), y eso es bluetooth.cpp: firmware por escribir".
-        # Escrito: diagDegradadoPublicar() en Esclavo/src/bluetooth.cpp emite el
-        # $EVENT ORIGEN:DEGRADADO con "SYNC:<h>h AVISO:<SI|NO> VENCIDA:<SI|NO>" por
-        # FLANCO del trio y repetido mientras el aviso sigue armado. Lo que se
-        # recupera no es una cifra: es el AVISO previo a las 48 h, con SU plazo -el de
-        # AVISO_SIN_SYNC_MS, 40 de 48, o sea las ultimas 8 h-, que no se reinventa
-        # aqui porque quien compara sigue siendo modo_degradado.cpp.
-        # 🟢 AQUI SE ANOTO "EL MAESTRO NO TIENE ESTE AVISO", Y SE CERRO EL MISMO DIA.
-        # Aquella nota era cierta y se deja escrita en pasado porque explica el hueco:
-        # alli el plazo -AVISO_LIMITE_MS, 44 h de 48, las ultimas 4- vivia DENTRO de la
-        # funcion de dibujo del LCD, con la antiguedad como variable LOCAL, asi que al
-        # retirar la pantalla la constante se quedo con UN SOLO USO -su declaracion- y
-        # el poste 1 se iba a ambar al vencer sin haber avisado, y ademas en silencio:
-        # irAAmbar() no emite $EVENT ni $ALARM.
-        # CONSTRUIDO: Maestro/include/modo_degradado.h publica ahora los cuatro getters
-        # espejo -modo_degradado_huboSync/msDesdeSync/avisoLimite/syncVencida- y
-        # Maestro/src/bluetooth.cpp emite el MISMO $EVENT ORIGEN:DEGRADADO que el
-        # Esclavo. La comparacion NO se movio al despachador: sigue en
-        # modo_degradado.cpp, que es quien tiene la constante.
-        # ⚠️ Y NO SE USO coordinador_msDesdeUltimaSync(), que si era publica y era el
-        # atajo: devuelve millis() - tUltimaSyncOk y a los 49,7 dias da la vuelta. El
-        # propio modo_degradado.cpp lleva escrito por que no se usa esa.
-        "degradado_rendidoPorHora",
-        "degradado_segundosParaCambio",
+        # D-44: SALEN DE LA LISTA, retiradas del firmware: bluetooth_testLedsActivo,
+        # botonArriba/Abajo/Aceptar/Cancelar, semaforo_toggle, semaforo_iniciarTestLeds y
+        # los getters de pantalla del Degradado (degradado_textoEstado, textoFase,
+        # rendidoPorHora, segundosParaCambio). D-46 retiro ademas degradado_textoRechazo,
+        # cuyo unico lector era SET_MODO:DEGRADADO.
     },
 }
 

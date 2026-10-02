@@ -58,7 +58,6 @@ PUNTA_API void punta_rx(const unsigned char* trama4);  // entrega una trama a la
 
 // --- ESCENARIO -------------------------------------------------------------
 PUNTA_API void punta_entrada(int pin, int nivel);   // mueve una entrada digital
-PUNTA_API void punta_pulsar(int boton);             // 1=A/Arriba 2=B/Abajo 3=Aceptar 4=Cancelar
 
 // Consultas y ordenes con nombre. Cada punta expone cosas distintas -el Maestro tiene
 // coordinador, el Esclavo tiene Modo Degradado- y una API fija con un hueco por cada

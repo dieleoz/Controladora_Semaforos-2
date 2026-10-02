@@ -33,17 +33,8 @@ void reloj_setup();
 // poner en hora encenderia el modo intermitente a deshora.
 bool reloj_enHora();
 
-// N-24 — ¿arranco el oscilador del cristal Y2? Distinto de reloj_enHora(), y la
-// diferencia es la que el operario necesita ver:
-//
-//   enHora=false, hayCristal=true   -> el reloj cuenta, pero nadie lo ha puesto en
-//                                      hora. Se arregla desde AJUSTAR HORA.
-//   enHora=false, hayCristal=false  -> no hay con que contar. NO se arregla desde el
-//                                      menu: es la pila, R5 o el propio cristal.
-//
-// Sin esta distincion, ajustar la hora parecia funcionar -la pantalla la mostraba- y
-// al apagar y encender volvia a ceros, sin nada que explicara por que.
-bool reloj_hayCristal();
+// N-24: reloj_hayCristal() salio (D-44, sin llamador); el veredicto del cristal lo da
+// reloj_estadoCristal(), abajo.
 
 // 1.49(a) - EL VEREDICTO DEL CRISTAL EN TRES ESTADOS -cuatro desde 1.49b3, abajo-, porque hay tres respuestas y el bool de
 // arriba solo sabe dos. Entre que el oscilador arranca y que vigilarCristal() ha visto contar
@@ -192,32 +183,11 @@ uint8_t reloj_dia();
 // Esta funcion existe para la operacion intermitente NOCTURNA (N-3), aplazada.
 uint32_t reloj_segundosDelDia();
 
-// Ajusta el reloj y lo marca como valido.
-//
-// `dia` (1..31) fija ademas el dia del mes. Con 0 -el valor por defecto- la fecha
-// no se toca, que es lo que necesita la pantalla de ajuste: el operario teclea
-// HH:MM y no tiene por que saber la fecha.
-//
-// Por radio SI viaja el dia (CMD_HORA_D), para que las dos puntas cuenten los dias
-// con el MISMO numero. No interesa la fecha real: interesa que esten acopladas. Con
-// calendarios independientes, un corte el dia del cambio de mes deja a UNA punta
-// sin reanudar -en ambar- mientras la otra reanuda y da verde.
-void reloj_ajustar(uint8_t hora, uint8_t minuto, uint8_t segundo = 0, uint8_t dia = 0);
-
 // D-20 / N-160 - LA FUNCION QUE SI PUEDE CONTESTAR, Y POR QUE HUBO QUE ANADIRLA.
 //
-// reloj_ajustar() rechaza en silencio -"if (hora > 23 ...) return;"- y es void, asi que
-// quien la llama no puede saber si la hora entro. Sobre eso se construyo un $ACK que no
-// dependia de lo que la llamada hizo, que es el patron que mas defectos ha dado aqui.
-//
-// LA FIRMA DE reloj_ajustar() NO SE PUDO CAMBIAR A bool, y esto es una MEDIDA, no una
-// opinion: tres arneses la DOBLAN con la firma void y compilan contra este mismo
-// header -Validacion_Automatico/dos_puntas/adaptador_esclavo.cpp y
-// adaptador_maestro_deg.cpp con las cuatro cifras, Validacion_LCD/arnes_esclavo.cpp con
-// tres-. Cambiar el retorno aqui los rompe con "ambiguating new declaration", medido
-// con g++. Por eso la regla de rango se MUDA a esta funcion y reloj_ajustar() pasa a ser
-// su envoltorio: la regla sigue viviendo en UN SOLO SITIO -no hay copia que se pueda
-// desincronizar- y el que contesta ya tiene a quien preguntar.
+// La regla de rango vive SOLO aqui y devuelve si la hora entro: un $ACK que no mire lo que
+// devolvio la llamada es el patron que mas defectos ha dado. D-44: reloj_ajustar(), su
+// envoltorio void, salio de esta punta con su unico llamador (la pantalla AJUSTAR HORA).
 //
 // TOMA int Y NO uint8_t A PROPOSITO. El unico llamador que necesita el acuse parsea con
 // sscanf("%d"), y castear a uint8_t ANTES de validar convierte un h=256 en 0 -o sea en
@@ -555,5 +525,3 @@ uint8_t reloj_finNoche();
 // Contempla franjas que cruzan la medianoche, p. ej. 22:00 -> 05:00.
 bool reloj_esHorarioNocturno();
 
-// Texto "HH:MM" para pantalla. Devuelve "--:--" si el reloj no esta en hora.
-const char* reloj_textoHora();

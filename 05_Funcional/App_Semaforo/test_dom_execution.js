@@ -1620,15 +1620,10 @@ assert(!!marcaHoraInicial && !/\d{1,2}:\d{2}/.test(marcaHoraInicial[1]),
 // =========================================================================
 // 13. LA PLUMA SE DIBUJA, Y ROJO+ARRIBA NO ES UNA AVERIA (N-153, 05/09)
 // =========================================================================
-// MEDIDO ANTES DE ESCRIBIR NADA: "talanquera|pluma|barrera" daba 28 coincidencias en
-// app.js y NINGUNA era un estado -todas explican lo que hace un boton-. El operario no
-// podia saber si la barrera estaba arriba o abajo AHORA. Y no era que la app lo
-// ignorase: el equipo no lo publicaba.
-//
-// ESTE BLOQUE MIDE EL CAMINO QUE CORRE EN EL TELEFONO, igual que el 12: la rama de
-// $STATUS de app.js y pintarPluma(). El viaje de ida y vuelta del campo por el parser
-// lo mide simulador_app_bluetooth.py con dominio cerrado; lo que solo se puede medir
-// aqui es lo que queda ESCRITO en la pantalla, que es lo unico que lee el operario.
+// Mide lo que queda ESCRITO en la pantalla -la rama de $STATUS de app.js y pintarPluma()-,
+// que es lo unico que lee el operario; el viaje del campo por el parser lo mide
+// simulador_app_bluetooth.py. Antes de N-153 ninguna de las 28 menciones de
+// "talanquera|pluma|barrera" en app.js era un estado: el equipo no lo publicaba.
 const plumaDom = document.getElementById('pluma-estado');
 assert(!!plumaDom, 'La consola tiene donde ensenar el estado de la talanquera');
 
@@ -1650,6 +1645,11 @@ assert(/PLUMA ARRIBA/.test(plumaDom.textContent) && !/AVER/i.test(plumaDom.textC
 conectarComo('MAESTRO', 'SERIE:SEM-M-01,MODO:AUTO,ESTADO:ROJO,T:20,RF:97,RTT:70,BAT:12.9,HORA:17:00:04,ESC:VERDE,PLUMA:ARRIBA');
 assert(/PLUMA ARRIBA/.test(plumaDom.textContent) && /NO es aver/i.test(plumaDom.textContent),
   `Con la luz en ROJO y la pluma ARRIBA la pantalla declara que no es una averia: "${plumaDom.textContent}"`);
+// 13.3.bis D-45 (SPEC_4 6 (2)): en el AMARILLO de cierre la pluma esta arriba por diseno, no por veto.
+conectarComo('MAESTRO',
+  'SERIE:SEM-M-01,MODO:AUTO,ESTADO:AMARILLO,T:2,RF:97,RTT:70,BAT:12.9,HORA:17:00:05,ESC:ROJO,PLUMA:ARRIBA');
+assert(/amarillo de cierre/i.test(plumaDom.textContent) && !/AVER/i.test(plumaDom.textContent),
+  `AMARILLO + PLUMA:ARRIBA es el cierre (D-45), no una averia: "${plumaDom.textContent}"`);
 
 // 13.4 EL CAMPO DEJA DE VENIR -firmware anterior a N-153-. No se puede quedar el ARRIBA
 // de la trama de arriba pintado como si fuera de ahora: una barrera de hace un rato no

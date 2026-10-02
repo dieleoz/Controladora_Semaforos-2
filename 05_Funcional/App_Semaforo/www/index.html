@@ -1064,37 +1064,6 @@
     </div>
   </div>
 
-  <!-- Confirmacion del Modo Degradado.
-       Es un modal propio de la app y NO un confirm()/prompt() del navegador: el
-       dialogo nativo bloquea el hilo -es lo que colgo una corrida E2E (N75-4)- y
-       ademas no deja escribir lo que de verdad hay que leer antes de pulsar. -->
-  <div class="modal-overlay" id="degradado-modal">
-    <div class="modal-card">
-      <div class="modal-header">
-        <h4>⚠️ Modo Degradado</h4>
-        <button class="modal-close" id="modal-degradado-close">✕</button>
-      </div>
-      <p class="modal-desc">
-        Al aceptar, <strong>esta unidad abrirá paso guiándose solo por su reloj</strong>.
-        Nadie le confirmará que el otro sentido está en rojo.
-      </p>
-      <ul class="degradado-lista">
-        <li>Las dos unidades deben tener la hora puesta y el <strong>mismo ciclo acordado</strong>.</li>
-        <li>El equipo puede rechazar la orden. El motivo sale en <strong>Eventos</strong>.</li>
-        <li><strong>Poste 1 — para salir:</strong> VOLVER AL MENÚ. El equipo hace 30 s de todo-rojo.</li>
-            <li><strong>Poste 2 — VOLVER AL MENÚ NO LE LLEGA</strong>: esa orden sólo la atiende el Poste 1. Sus tres salidas son: que <strong>vuelva el enlace con el Poste 1</strong> · <strong>ÁMBAR EMERGENCIA</strong>, la única que tiene usted en la mano · o que <strong>venzan las 48 h</strong> de autorización.</li>
-      </ul>
-      <label class="degradado-check">
-        <input type="checkbox" id="chk-degradado-verificado">
-        <span>He verificado en persona la otra unidad y el enlace está caído.</span>
-      </label>
-      <div class="degradado-acciones">
-        <button class="btn-secondary-bt" id="btn-degradado-cancelar">Cancelar</button>
-        <button class="btn-degradado" id="btn-degradado-confirmar" disabled>Entrar en Degradado</button>
-      </div>
-    </div>
-  </div>
-
   <!-- ¿Queda algún vehículo en el tramo?  (04/09)
        LA BARRERA DE LO QUE ABRE PASO YA NO ES UN PIN.
 

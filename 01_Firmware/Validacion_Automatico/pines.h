@@ -20,8 +20,8 @@
 // pines DISTINTOS, porque toda la pregunta que este arnes contesta es si una deteccion en
 // J16 llega al Modo Inteligente, que lee J14. Con un solo pin compartido la respuesta
 // saldria que si por construccion, y eso seria una tapia (CLAUDE.md 8.sexies).
-#define BOTON1           11
-#define BOTON2           12
+#define J16_P5_SIN_USO   11   // D-44: era BOTON1; nadie lo lee
+#define J16_P8_SIN_USO   12   // D-44: era BOTON2; nadie lo lee
 #define CAM_C_PIN        13
 #define CAM_D_PIN        14
 

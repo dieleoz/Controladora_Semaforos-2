@@ -58,7 +58,6 @@ static bool verdeSoltadoPorMargen = false;
 // SFTY-4 (Safety Case): Tiempo de Despeje / All-Red
 static unsigned long tiempoDespejeMs = 15000;
 
-static bool handshakeOk = false;
 static unsigned long tUltimoPing = 0;
 // 1.49c (15/09): EL ANCLA DEL SILENCIO ES LA RESPUESTA QUE LE CONTESTARON, NO LA ULTIMA
 // TRAMA QUE LLEGO (SPEC_2 s4).
@@ -85,8 +84,8 @@ static unsigned long tUltimoPing = 0;
 // "LLEGA RADIO?" SE QUEDA SIN RELOJ, Y NO POR OLVIDO: censados los cinco lectores del reloj
 // viejo -tieneComunicacion, la gracia de arranque de SFTY-6, puedeSostenerVerde(), el
 // margen de C_ESPERANDO_ACK_RED y la compuerta de D-34-, los cinco preguntaban lo segundo.
-// Un reloj sin lector seria declarar sin ejercer (CLAUDE.md 6). Lo que queda de esa
-// pregunta es handshakeOk, que si tiene lector.
+// Un reloj sin lector seria declarar sin ejercer (CLAUDE.md 6). D-44: handshakeOk, que
+// la contestaba, salio con su unico lector, coordinador_intentarHandshake(), huerfano.
 static unsigned long tUltimaRespuestaEsclavo = 0;
 static bool demandaRemotaPendiente = false;
 // N-142: el Esclavo aviso de que le pusieron ambar de emergencia. Se anota aqui y lo
@@ -780,34 +779,8 @@ void coordinador_setup() {
   estadoC = C_IDLE;
   quienVerde = QV_NINGUNO;
   rojoEsclavoConfirmado = false;
-  handshakeOk = false;
   verdeSoltadoPorMargen = false;   // N-163: esta orden redefine la intencion; no se reanuda nada
   tUltimaRespuestaEsclavo = 0; // en 0: el Esclavo no ha contestado nada todavia
-}
-
-void coordinador_reiniciarConexion() {
-  handshakeOk = false;
-  estadoC = C_IDLE;
-  quienVerde = QV_NINGUNO;
-  rojoEsclavoConfirmado = false;   // al otro lado puede haber otra unidad
-  verdeSoltadoPorMargen = false;   // N-163: esta orden redefine la intencion; no se reanuda nada
-  tUltimoPing = 0;
-  tUltimaRespuestaEsclavo = 0;
-
-  // SFTY-23: se aborta el intercambio en vuelo -su ACK ya no va a llegar- y se
-  // invalida la medida de desfase. Al otro lado puede haber ahora una unidad recien
-  // arrancada: seguir mostrando el desfase del enlace anterior seria describir a un
-  // equipo con el dato de otro.
-  estadoSync = SY_IDLE;
-  hayDesfase = false;
-  pendHora = true;    // la hora vuelve a empujarse en cuanto el enlace responda
-  pendConfig = true;  // y el ciclo con ella: al otro lado puede haber otra unidad
-  configConfirmada = false;  // lo confirmado lo confirmo OTRA unidad, quiza
-}
-
-bool coordinador_intentarHandshake() {
-  coordinador_actualizar();
-  return handshakeOk;
 }
 
 void coordinador_configurar(unsigned long tiempoDespeje, unsigned long, unsigned long) {
@@ -977,7 +950,6 @@ void coordinador_actualizar() {
     if (esRespuesta) {
       tUltimaRespuestaEsclavo = millis();
     }
-    handshakeOk = true;
 
     // Telemetria: solo cierra el latido la respuesta que le corresponde (PONG a un
     // PING, ACK_RED a un GO_RED). Aceptar cualquier paquete falsearia la medida: si
@@ -1668,14 +1640,6 @@ bool coordinador_sincronizarHora() {
   // autorizaria despues el Modo Degradado. Es peor que no tener hora.
   if (!reloj_enHora()) return false;
   pendHora = true;
-  return true;
-}
-
-bool coordinador_medirDesfase() {
-  // La diferencia contra un reloj que no esta en hora no mide nada, y acabaria
-  // anotada en el acta de pruebas como si fuera un dato.
-  if (!reloj_enHora()) return false;
-  pendDelta = true;
   return true;
 }
 

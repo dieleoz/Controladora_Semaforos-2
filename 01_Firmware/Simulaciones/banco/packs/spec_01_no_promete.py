@@ -63,11 +63,9 @@
 #    android/ ni de build/ (CLAUDE.md 14: son tres copias que pueden mentir; la canonica
 #    es la de la raiz de la app).
 #
-# 5. LOS COMENTARIOS NO CUENTAN (CLAUDE.md 7.1). Aqui los comentarios CITAN lo que
-#    explican -"semaforo_toggle() -que no tiene ningun llamador-"- y un grep crudo sale
-#    inflado. El corpus va con los comentarios fuera. Efecto medido y deliberado: un
-#    simbolo que solo se nombra en un comentario cuenta como AUSENTE, porque un
-#    comentario no se compila.
+# 5. LOS COMENTARIOS NO CUENTAN (CLAUDE.md 7.1): aqui CITAN lo que explican y un grep crudo
+#    sale inflado. El corpus va sin comentarios: un simbolo que solo se nombra en un
+#    comentario cuenta como AUSENTE, porque un comentario no se compila.
 #
 # 6. LO TACHADO NO SE JUZGA. ~~...~~ es historia corregida a proposito: una frase falsa
 #    dentro de un tachado es CORRECTA. El bloque viene literal de
@@ -583,15 +581,16 @@ def correr(b, fw):
         "`PLUMA_RETARDO_BAJADA_MS` se perdona")
 
     # (c) M3 acusa declarar huerfano a quien tiene llamadores, y perdona al que no los
-    #     tiene. Los dos sujetos son reales: escribirPines() es la barrera de salidas y
-    #     semaforo_toggle() es el huerfano medido que la propia SPEC_1 publica.
+    #     tiene: escribirPines() y reloj_esHorarioNocturno() (andamio SFTY-20, DEFINIDO; D-44
+    #     retiro semaforo_toggle(), y un sujeto inexistente tambien da 0 usos).
     con_llamador = juzgar("`escribirPines()` no tiene ningun llamador.\n", _M3)
-    sin_llamador = juzgar("`semaforo_toggle()` no tiene ningun llamador.\n", _M3)
+    sin_llamador = juzgar("`reloj_esHorarioNocturno()` no tiene ningun llamador.\n", _M3)
     b.control_negativo(
         len(con_llamador) == 1 and usos(corpus, con_llamador[0][1]) > 0
-        and len(sin_llamador) == 1 and usos(corpus, sin_llamador[0][1]) == 0,
-        "M3: declarar huerfano a `escribirPines()` se acusa (%d llamadas) y declararlo de "
-        "`semaforo_toggle()` se perdona (0)" % usos(corpus, "escribirPines"))
+        and len(sin_llamador) == 1 and usos(corpus, sin_llamador[0][1]) == 0
+        and re.search(r"\bbool\s+reloj_esHorarioNocturno\s*\(\s*\)\s*\{", corpus),
+        "M3: huerfano `escribirPines()` se acusa (%d llamadas); `reloj_esHorarioNocturno()`, "
+        "definida y sin llamador, se perdona (0)" % usos(corpus, "escribirPines"))
 
     # (d) Lo tachado no se juzga. La MISMA frase, dentro y fuera de ~~.
     b.control_negativo(
@@ -615,7 +614,7 @@ def correr(b, fw):
     no_simbolos = ("SPEC_5", "D-17.bis", "A-1.bis", "STM32 -> ESP32", "J16", "PB0",
                    "CMD:LEER_RTC", "$STATUS", "CLAUDE.md", "PRUEBA ALCANCE")
     si_simbolos = ("PLUMA_RETARDO_BAJADA_MS", "escribirPines()", "app.js",
-                   "semaforo.cpp", "modo_degradado_motivoL2")
+                   "semaforo.cpp", "modo_degradado_textoTestigo")
     ciegos = [x for x in no_simbolos if simbolo(x)] + \
              [x for x in si_simbolos if not simbolo(x)]
     b.control_negativo(

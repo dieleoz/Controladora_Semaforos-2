@@ -8,10 +8,6 @@
 
 void botones_setup();
 void botones_actualizar();
-bool botonArriba();
-bool botonAbajo();
-bool botonAceptar();
-bool botonCancelar();
 // D-33 (14/09/2026): semaforo.cpp REAL llama a esta antes de dejar bajar la pluma, asi
 // que la firma tiene que estar o no compila. NO es un detalle de arnes: es la prueba de
 // que el veto no se puede quitar en silencio -quitarlo rompe el ENLACE, no se queda

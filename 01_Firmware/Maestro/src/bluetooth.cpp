@@ -455,11 +455,8 @@ static bool pedirCambioVerificado() {
 // N-114 - DOS $ERR DE ESTE FICHERO MANDAN AL TECNICO A UNA PANTALLA TAPIADA.
 //
 // SIN_CRISTAL_VEA_CONSULTA_RELOJ y SIGUE_PARADO_VEA_CONSULTA_RELOJ nombran la consulta
-// de N-45 por su nombre. Esa consulta es MODO_HORA, y MODO_HORA se arma en UN solo
-// sitio -menu.cpp, el case 1 de NIVEL_CONFIG-, al que hacen falta DOS botonAceptar():
-// uno para bajar al nivel y otro para entrar en la opcion. botonAceptar() es hoy
-// "return false" -PB14 y PB15 dejaron de ser pulsadores para ser camaras-, asi que la
-// puerta esta tapiada por DOS sitios a la vez, y por Bluetooth no existe SET_MODO:HORA.
+// de N-45 por su nombre. Esa consulta era MODO_HORA, y D-44 la retiro del firmware con su
+// unico armador (la navegacion del menu); por Bluetooth no existio nunca SET_MODO:HORA.
 // El equipo estaba mandando a leer un instrumento que nadie puede abrir.
 //
 // Y NO ES UNA CURIOSIDAD: es el instrumento del bloqueante BLQ-2. Sin estos bits,
@@ -491,7 +488,7 @@ static bool pedirCambioVerificado() {
 // dentro del DETALLE convierte todo lo que va detras en campos sueltos que el pintor de
 // $EVENT no mira: los bits saldrian al cable y no llegarian a la pantalla. Seria la
 // prueba muerta con forma de telemetria. Se separan con espacio, que es lo que ya hace
-// el DESC de SET_MODO:DEGRADADO. Lo vigila reloj_01_consulta_por_bluetooth.
+// el DESC de SET_MODO:DEG_T. Lo vigila reloj_01_consulta_por_bluetooth.
 //
 // CFG Y ANIO NO VAN, Y ES LO CONTRARIO DE UN OLVIDO. reloj.cpp los saca de rtcOperativo
 // -"configurado = rtcOperativo ? rtc.isConfigured() : false"-, y las DOS puertas que
@@ -823,29 +820,9 @@ static void procesarComando(const char* cmd) {
       enviarTramaConCrc("$ACK,CMD:SET_MODO:INTELIGENTE,RESULT:OK");
       bluetooth_reportarEvento("APP_BLUETOOTH", "SET_MODO_INTELIGENTE");
     }
-  } else if (strcmp(accion, "SET_MODO:DEGRADADO") == 0) {
-    // D-37 (29/09): la app ya no tiene boton para esta orden (dio verde contra ambar
-    // mientras se iba al otro poste). Se conserva para el terminal serie.
-    // LA PUERTA ES LA MISMA QUE LA DE LA PANTALLA Y LA DEL MANDO. Tres vias de entrada
-    // con tres criterios serian una sola puerta: la mas floja de las tres. Y esta es la
-    // unica del firmware que enciende un verde sin confirmacion del otro extremo.
-    const MotivoDegradado m = modo_degradado_evaluarEntrada();
-    if (m != MDG_OK) {
-      // El motivo se compone con los MISMOS dos textos que ensena el gabinete. Una
-      // tabla propia para el celular seria una tercera que alguien tendria que
-      // sincronizar, y el dia que difieran el tecnico de arriba y el de abajo leerian
-      // causas distintas del mismo rechazo.
-      char p[80];
-      snprintf(p, sizeof(p), "$ERR,CMD:SET_MODO:DEGRADADO,DESC:%s %s",
-               modo_degradado_motivoL1(m), modo_degradado_motivoL2(m));
-      enviarTramaConCrc(p);
-    } else {
-      modoActual_set(MODO_DEGRADADO);
-      enviarTramaConCrc("$ACK,CMD:SET_MODO:DEGRADADO,RESULT:OK");
-      bluetooth_reportarEvento("APP_BLUETOOTH", "SET_MODO_DEGRADADO");
-    }
   } else if (strncmp(accion, "SET_MODO:DEG_T:", 15) == 0) {
-    // D-35 (SPEC_2 7.bis): EL DEGRADADO CON TESTIGO, una puerta PARALELA a la de arriba.
+    // D-35 (SPEC_2 7.bis): EL DEGRADADO CON TESTIGO. D-46: es la unica orden de entrada;
+    // SET_MODO:DEGRADADO salio del firmware y ahora cae en COMANDO_NO_SOPORTADO.
     // Formato ahora,inicio,verde,despeje = HH:MM:SS,HH:MM:SS,v,d. Aqui solo se traduce texto
     // a numeros (molde SET_TIEMPOS, con el %c que delata lo que sobra); verde distinto de
     // 180 es formato. Los rangos y la hora los decide modo_degradado_entrarTestigo(), y la
@@ -931,8 +908,8 @@ static void procesarComando(const char* cmd) {
       bluetooth_reportarEvento("APP_BLUETOOTH", "TEST_LEDS_INICIADO");
     } else if (semaforo_estado() == S_FALLO) {
       enviarTramaConCrc("$ERR,CMD:TEST_LEDS,DESC:SIN_ENLACE_AMBAR_NO_SE_PRUEBA");
-    } else if ((modoActual_get() == MENU || modoActual_get() == MODO_HORA ||
-                modoActual_get() == MODO_ALCANCE) && !coordinador_rojoEsclavoConfirmado()) {
+    } else if ((modoActual_get() == MENU || modoActual_get() == MODO_ALCANCE) &&
+               !coordinador_rojoEsclavoConfirmado()) {
       enviarTramaConCrc("$ERR,CMD:TEST_LEDS,DESC:ESPERANDO_ROJO_DEL_ESCLAVO");
     } else {
       enviarTramaConCrc("$ERR,CMD:TEST_LEDS,DESC:EN_SERVICIO_PASE_A_MENU");
@@ -1083,15 +1060,10 @@ static const char* obtenerNombreModo(ModoSistema m) {
     case MODO_AUTOMATICO: return "AUTO";
     case MODO_INTELIGENTE: return "INTELIGENTE";
     case MODO_ALCANCE: return "ALCANCE";
-    case MODO_HORA: return "HORA";
     case MODO_DEGRADADO: return "DEGRADADO";
     case MODO_AMBAR: return "AMBAR";
     default: return "DESCONOCIDO";
   }
-}
-
-bool bluetooth_testLedsActivo() {
-  return semaforo_testLedsEnCurso();
 }
 
 // ---------------------------------------------------------------------------

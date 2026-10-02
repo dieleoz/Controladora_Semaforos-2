@@ -356,14 +356,6 @@ void reloj_fijarEnero() {
   if (rtcOperativo && rtc.getMonth() != 1) rtc.setMonth(1);
 }
 
-// 1.22: un Y2 que da LSERDY y deja CNT quieto sale de aqui en false, igual que uno que no
-// arranco: para quien pregunta son el mismo caso -no hay con que contar-.
-// ~~desde hoy esto contesta "hay un cristal que CUENTA"~~ -> FALSO DURANTE LA VENTANA, medido
-// el 15/09 (roadmap 1.49 (a)): entre la adopcion y el veredicto de vigilarCristal() esto ya
-// vale true sin haber visto contar nada. La pregunta "cuenta?" la contesta
-// reloj_estadoCristal(), abajo; esta sigue sin llamador (costura_10 la lleva).
-bool reloj_hayCristal() { return rtcOperativo; }
-
 // 1.49 - VER reloj.h. Se deduce de lo que ya habia: rtcOperativo lo baja el cerrojo de 1.22
 // o un arranque fallido, y los flancos los cuenta vigilarCristal().
 // 1.49b3: el cerrojo se pregunta PRIMERO -vigilarCristal() baja rtcOperativo al cerrarlo, asi
@@ -505,14 +497,6 @@ bool reloj_ajustarConAcuse(int hora, int minuto, int segundo, int dia) {
   return true;
 }
 
-// N-160: envoltorio. Existe para NO cambiar la firma que doblan los arneses (ver
-// reloj.h) y para que los llamadores que no miran el retorno -la pantalla AJUSTAR HORA
-// y la rama CMD_HORA_S del Esclavo- sigan compilando sin tocarlos. No repite la guarda:
-// la unica copia de la regla de rango esta en reloj_ajustarConAcuse().
-void reloj_ajustar(uint8_t hora, uint8_t minuto, uint8_t segundo, uint8_t dia) {
-  (void)reloj_ajustarConAcuse((int)hora, (int)minuto, (int)segundo, (int)dia);
-}
-
 // N-162 (11/09) - LA HORA SOLO SE LEE SI TIENE EXACTAMENTE LA FORMA QUE EL ESP32 COMPONE.
 //
 // "YYYY-MM-DD,HH:MM:SS": 19 caracteres, cifras donde van cifras, separadores donde van
@@ -585,11 +569,4 @@ bool reloj_esHorarioNocturno() {
   return (h >= nocheInicio || h < nocheFin);  // franja que cruza medianoche
 }
 
-const char *reloj_textoHora() {
-  static char buf[6];
-  if (!horaValida) return "--:--";
-  snprintf(buf, sizeof(buf), "%02u:%02u", (unsigned)reloj_hora(),
-           (unsigned)reloj_minuto());
-  return buf;
-}
 

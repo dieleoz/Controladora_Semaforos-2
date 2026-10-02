@@ -334,15 +334,6 @@ void semaforo_forzarVerde() {
   aplicarSalidas(LOW, LOW, HIGH);
 }
 
-// Sin llamador. Ya no saca del ambar intermitente a verde: solo alterna rojo y verde.
-void semaforo_toggle() {
-  if (estado == S_ROJO) {
-    semaforo_forzarVerde();
-  } else if (estado == S_VERDE) {
-    semaforo_forzarRojo();
-  }
-}
-
 void semaforo_iniciarFallo() {
   estado = S_FALLO;
   tCambio = millis();
@@ -359,7 +350,7 @@ void semaforo_iniciarFallo() {
 // Esclavo rechaza TEST_LEDS desde siempre (SPEC_4), que aqui faltaba.
 //
 // Admitido solo en los modos que dejan los DOS postes en rojo fijo por
-// coordinador_forzarMenu() -MENU, HORA y ALCANCE- y con la luz de este poste en S_ROJO:
+// coordinador_forzarMenu() -MENU y ALCANCE (D-44)- y con la luz de este poste en S_ROJO:
 // en esos modos, sin enlace, el coordinador pasa a S_FALLO (ambar intermitente en las
 // dos puntas) y un verde ahi seria un verde contra un ambar que invita a pasar.
 //
@@ -369,7 +360,7 @@ void semaforo_iniciarFallo() {
 // se corta si el coordinador deja C_MENU_IDLE, y con el enlace caido la luz pasa a S_FALLO.
 static bool testLedsAdmitido() {
   const ModoSistema m = modoActual_get();
-  return (m == MENU || m == MODO_HORA || m == MODO_ALCANCE) && estado == S_ROJO &&
+  return (m == MENU || m == MODO_ALCANCE) && estado == S_ROJO &&
          coordinador_rojoEsclavoConfirmado();
 }
 

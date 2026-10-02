@@ -6,8 +6,8 @@
 # sin mirar lo que la llamada devolvio. Este pack vigila la version que esa regla NO
 # cubria: la mentira que necesita LAS DOS PUNTAS para existir.
 #
-#   Esclavo   SOLICITAR_PASO  ->  "$ACK,CMD:SOLICITAR_PASO,RESULT:PEDIDO_AL_MAESTRO"
-#                                 y manda CMD_DEMANDA por radio
+#   Esclavo   la camara pide  ->  manda CMD_DEMANDA por radio (hasta D-46 lo hacia ademas
+#                                 SOLICITAR_PASO, con su "$ACK,...,PEDIDO_AL_MAESTRO")
 #   Maestro   recibe CMD_DEMANDA  ->  demandaRemotaPendiente = true   + CMD_ACK_DEMANDA
 #                                     y esa bandera la lee UN SOLO fichero
 #

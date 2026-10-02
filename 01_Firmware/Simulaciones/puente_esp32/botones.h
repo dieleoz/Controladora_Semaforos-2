@@ -8,10 +8,6 @@
 
 void botones_setup();
 void botones_actualizar();
-bool botonArriba();
-bool botonAbajo();
-bool botonAceptar();
-bool botonCancelar();
 
 // D-13 (05/09): bluetooth.cpp REAL llama a esta para rellenar el campo CAM: del
 // $STATUS, asi que la firma tiene que estar o no compila. La definicion esta en

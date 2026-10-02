@@ -6,87 +6,13 @@
 #include "bluetooth.h"
 
 // ---------------------------------------------------------------------------
-// N-16 — Portado SIN CAMBIOS de src/botones.cpp del Maestro.
-//
-// Se copia en vez de "mejorarse" porque los pulsadores del gabinete estan en
-// paralelo con el mando de reles que el operario acciona desde el piso, a 5 m,
-// sin ver la pantalla (SFTY-21). Ese mando entrega un pulso por flanco de ~2 s y
-// no repite. Si cada punta filtrara los rebotes con criterios distintos, la
-// misma orden se leeria distinto en cada gabinete y el operario no tendria forma
-// de saber cual de los dos le hizo caso.
-//
-// A y B en INPUT PELADO y contacto contra los 3,3 V del pin de al lado: pulsado = HIGH
-// desde N-118. Cableado identico al
-// del Maestro (PB9, PB13; ver pines.h). PB14 y PB15 dejaron de ser botones el
-// 31/08: son las camaras de J16 y se leen al final de este mismo fichero.
+// N-16: portado del Maestro. D-44: de J16 este fichero ya solo lee las dos camaras
+// (PB14, PB15); p5 y p8 se declaran INPUT y nadie los lee (ver pines.h).
 // ---------------------------------------------------------------------------
 
-struct Boton {
-  int pin;
-  bool estadoAnt = false;
-  bool estadoEstable = false;
-  unsigned long tUltimoCambio = 0;
-  unsigned long tUltimoFlanco = 0;
-};
-
-// Solo A y B. C y D dejaron de ser botones el 31/08: son las camaras de J16, y su
-// estado vive mas abajo, en camAnt[], porque no se leen igual ni significan lo mismo.
-static Boton b1, b2;
-const unsigned long DEBOUNCE_MS = 30;
-const unsigned long FLANCO_MS = 200;
-
-static void actualizar(Boton &b) {
-  // N-118: ACTIVO EN ALTO, y lo decide EL COBRE, no una preferencia.
-  //
-  // Aqui ponia `== LOW` con los pines en INPUT_PULLUP, y eso llevaba mal desde el primer
-  // dia: R65/R66 son 10K A MASA sobre /Boton1 y /Boton2 -medido en el .kicad_pcb y
-  // confirmado en banco el 03/09 con 9,92 kOhm-, y J16 reparte 3,3 V en la posicion de
-  // al lado de cada boton (p4, p7, p9, p11) con UNA SOLA masa en todo el conector (p2).
-  // Un contacto por boton contra masa necesitaria una masa por boton. Solo hay una.
-  //
-  // Con INPUT_PULLUP, el pull-up interno (30-50 kOhm) contra ese 10K deja el pin en
-  // 0,55-0,83 V, por debajo del VIL de 0,99 V: el micro lo lee LOW SIEMPRE. El banco
-  // midio 0,6 V, dentro de la horquilla. O sea que los dos botones estaban clavados en
-  // "pulsado" y NUNCA producian un flanco: el mando A/B no se podia pulsar.
-  //
-  // NO ES UNA REGRESION NUESTRA: el repositorio del que salio este firmware
-  // -2semaforos_3estados- trae este mismo `== LOW` y el MISMO .kicad_pcb byte a byte
-  // (md5 088667eac75207e8dcfa0ce5b93adce6). La contradiccion es original.
-  bool lecturaCruda = (digitalRead(b.pin) == HIGH);
-
-  if (lecturaCruda != b.estadoAnt) {
-    b.tUltimoCambio = millis();
-    b.estadoAnt = lecturaCruda;
-  }
-
-  if (millis() - b.tUltimoCambio > DEBOUNCE_MS) {
-    b.estadoEstable = lecturaCruda;
-  }
-}
-
-static bool disparadoAnt[2] = {false, false};
-
-// Solo el FLANCO de pulsacion cuenta. Mantener pulsado no repite, y es
-// deliberado: con el mando de reles la pulsacion sostenida no existe -da un solo
-// pulso-, asi que una repeticion por mantener seria una funcion que el operario
-// del piso nunca podria usar y que ademas dispararia sola en la botonera fisica.
-//
-// Sirve igual para el pulsador del gabinete y para el rele del mando, que esta
-// cableado EN PARALELO con el: electricamente son el mismo contacto y el firmware
-// no puede distinguir un dedo de un rele.
-static bool flancoBoton(Boton &b, int idx) {
-  actualizar(b);
-  bool disparo = false;
-  if (b.estadoEstable && !disparadoAnt[idx] && (millis() - b.tUltimoFlanco > FLANCO_MS)) {
-    disparo = true;
-    b.tUltimoFlanco = millis();
-  }
-  disparadoAnt[idx] = b.estadoEstable;
-  return disparo;
-}
-
-// Flanco detectado en ESTA iteracion, pendiente de que alguien lo consuma.
-static bool flanco[2] = {false, false};
+// D-44: J16 p5 y p8 (A y B) YA NO SE LEEN. Salieron la struct Boton, su antirrebote,
+// los flancos, consumir() y la siembra de N-26 de los botones: el mando y el menu que
+// los consumian ya no existen. Los dos pines solo se declaran INPUT en botones_setup().
 
 
 // ---------------------------------------------------------------------------
@@ -215,6 +141,7 @@ static const unsigned long CAM_PEGADA_MS = 1200000UL;
 //
 // SE PODRA BAJAR CUANDO HAYA DATOS, y los datos los da esta misma fase 1: sus eventos
 // son los que diran cuanto silencio hay de verdad en este cruce. Hoy no hay ninguno.
+// D-24: CAM_CIEGA salta a las 24 h de paso abierto sin flanco.
 static const unsigned long CAM_CIEGA_MS = 86400000UL;
 
 // -------------------------------------------------------------------------------
@@ -651,14 +578,11 @@ static void camaras_actualizar() {
 }
 
 void botones_setup() {
-  // N-118: A y B pasan a INPUT PELADO, igual que las camaras C y D. Los CUATRO pines de
-  // J16 son electricamente identicos, asi que se leen igual. Antes eran
-  // dos que alimentan las secuencias del mando de reles, y ese camino no se toca.
-  pinMode(BOTON1, INPUT);
-  pinMode(BOTON2, INPUT);
-
-  b1.pin = BOTON1;
-  b2.pin = BOTON2;
+  // D-44: J16 p5 y p8 NO SE LEEN. Se declaran INPUT de forma explicita para no depender
+  // del estado de reset del core, que no esta medido; el reposo lo fija el pull-down de
+  // 10K de la placa (R65/R66). Nadie llama a digitalRead() sobre ellos.
+  pinMode(J16_P5_SIN_USO, INPUT);
+  pinMode(J16_P8_SIN_USO, INPUT);
 
   // LAS ENTRADAS DE CAMARA: INPUT PELADO, NUNCA INPUT_PULLUP. El reposo lo fija el
   // pull-down de 10K que la placa ya trae -R64 en PB0; R67 y R68 en PB14 y PB15-, y el
@@ -673,151 +597,21 @@ void botones_setup() {
   pinMode(CAM_C_PIN, INPUT);
   pinMode(CAM_D_PIN, INPUT);
 
-  // N-26 — UN BOTON YA PULSADO AL ENCENDER NO ES UNA PULSACION, ES UN ESTADO.
-  //
-  // Se corrige IGUAL que en el Maestro, y por la misma razon por la que este archivo se
-  // porto sin cambios: los pulsadores de los dos gabinetes van en paralelo con el mando
-  // de reles, y si cada punta interpretara el arranque de forma distinta la misma orden
-  // se leeria distinto en cada una.
-  //
-  // El fallo se vio en el MAESTRO -aparecia solo en la pantalla de configuracion del
-  // Modo Manual, un ACEPTAR que nadie dio-, pero el codigo era identico aqui, asi que
-  // el defecto tambien lo era. Este setup declaraba los pines sin LEERLOS: todo el
-  // estado arrancaba en false aunque el pin estuviera en LOW, y la primera llamada a
-  // flancoBoton() veia estadoEstable=true con disparadoAnt=false, que es la definicion
-  // de un flanco. Con tUltimoCambio y tUltimoFlanco en 0, ni el antirrebote ni el
-  // guarda de FLANCO_MS filtraban esa primera lectura.
-  //
-  // AQUI PESA MAS QUE EN EL MAESTRO. El Esclavo no tiene a nadie mirando su pantalla:
-  // el operario esta abajo, junto al otro gabinete. Una maniobra que arranque sola en
-  // esta punta no la ve nadie, y lo que se nota es el cruce descuadrado.
-  //
-  // Se siembra el estado REAL de cada pin, y disparadoAnt con el mismo valor: un boton
-  // que ya venia pulsado queda como "ya disparado" y no genera flanco hasta que se
-  // SUELTE y se vuelva a pulsar. Al encender no sabemos cuanto lleva asi, solo que
-  // nadie lo acaba de pulsar. Si esta trabado, esta punta arranca normal y ese boton no
-  // responde, en vez de ejecutar por su cuenta.
-  //
-  // Los 2 ms son para que el pull-up interno -unos 40 kOhm- levante la linea antes de
-  // creerse la lectura. Con el watchdog en 4 s no comprometen nada.
+  // Las entradas se asientan antes de sembrar el nivel de las camaras (N-26). D-44:
+  // aqui se sembraban ademas los dos botones; la espera se conserva tal cual.
   delay(2);
 
-  Boton *todos[2] = {&b1, &b2};
-  for (int i = 0; i < 2; i++) {
-    // N-118: la siembra lee con la MISMA polaridad que actualizar(). Si aqui quedara un
-    // `== LOW` con el resto en ALTO, un boton suelto se sembraria como "pulsado" y el
-    // primer flanco de verdad se perderia: la guarda de N-26 se comeria la pulsacion
-    // buena en vez de la fantasma. Las dos lecturas se cambian juntas o ninguna.
-    const bool pulsado = (digitalRead(todos[i]->pin) == HIGH);
-    todos[i]->estadoAnt = pulsado;
-    todos[i]->estadoEstable = pulsado;
-    todos[i]->tUltimoCambio = millis();  // el antirrebote arranca contando desde AHORA
-    disparadoAnt[i] = pulsado;           // pulsado al arrancar = flanco ya consumido
-  }
-
-  // Y lo mismo para las camaras, por la misma razon y en el mismo sitio.
   camaras_sembrar();
 }
 
 void botones_actualizar() {
-  flanco[0] = flancoBoton(b1, 0);
-  flanco[1] = flancoBoton(b2, 1);
-
-  // D-30 (14/09): LOS FLANCOS DE J16 p5 Y p8 YA NO ALIMENTAN NADA, Y EL MANDO SALIO DEL
-  // FIRMWARE.
-  //
-  // Aqui el reconocedor de secuencias veia cada pulso de BOTON1/BOTON2 antes que nadie:
-  // A.A.A, B.B.B y A.B.A.B movian el cruce de verdad. El hardware del mando salio del
-  // equipo el 05/09 -"se opera solo por app"-, la lectura se corto el 14/09 y el
-  // responsable reafirmo ese mismo dia "eliminamos las botoneras A, B, C y D". Con esta
-  // pieza sale ya el modulo entero: mando.cpp, mando.h y la senal de confirmacion que
-  // vivia en semaforo.cpp.
-  //
-  // LOS PINES SIGUEN VACIOS Y PELADOS, y eso no lo arregla el firmware: lo que se arregla
-  // es que un puente ahi ya no pueda componer una secuencia, porque no hay reconocedor.
-  // La instruccion de no cablearlos sigue viva en la guia de campo.
-
-  // Las camaras de J16 se leen en la MISMA vuelta y en el mismo sitio que la botonera,
-  // porque comparten conector y porque asi hay un solo punto donde mirar cuando J16 se
-  // comporte raro. Van despues del mando a proposito: si un pulso y una deteccion caen
-  // en la misma iteracion, la secuencia del operario que esta subido al poste se
-  // registra antes que la peticion de un coche.
+  // D-44: de J16 solo se leen las camaras; p5 y p8 ya no tienen lector.
   camaras_actualizar();
 }
 
-static bool consumir(int idx) {
-  bool v = flanco[idx];
-  flanco[idx] = false;
-  return v;
-}
-
-bool botonArriba()  { return consumir(0); }
-bool botonAbajo()   { return consumir(1); }
-
-// D-17.bis: LA PANTALLA Y SU MENU SE RETIRAN DEL EQUIPO, NO DEL CODIGO, y estas dos
-// funciones son el sitio donde esa distincion se vuelve mecanica. Devolviendo falso, todo
-// lo que se navegaba con ellas queda inalcanzable sin borrar una sola rama, asi que la
-// interfaz muere y el control de flujo de cada modo se queda intacto. Es la direccion
-// segura: retirar la interfaz no puede convertirse en una reescritura de la salida del
-// Degradado.
-//
-// D-16: y lo que sustituye a estos dos botones no es otro boton, es el telefono. Por eso
-// el censo de abajo no es documentacion de cortesia: es la lista de lo que deja de poder
-// hacerse sin app, y cada linea suya tiene que tener sustituto o esto no se podia hacer.
-//
-// SIN SUJETO: YA NO HAY PIN QUE PUEDA LEVANTAR ESTOS DOS FLANCOS (31/08/2026).
-//
-// J16 p10 y p12 son camaras, asi que ACEPTAR y CANCELAR no tienen ya pulsador ni rele
-// detras. No se BORRAN, y la razon no es comodidad: tienen veintitantos llamadores
-// repartidos por nueve ficheros -menu.cpp y los siete modos en el Maestro, el menu en el
-// Esclavo-, y borrarlas convertiria una reasignacion de pines en una reescritura del
-// control de flujo de cada modo, la salida del Degradado incluida. Ahi es exactamente
-// donde se cuelan los errores en un cambio que no deberia cambiar comportamiento.
-//
-// Devolviendo false el compilador conserva cada punto de uso, y "git grep botonCancelar"
-// sigue devolviendo EN UNA SOLA LISTA todo lo que la retirada de C y D se llevo por
-// delante. Borrarlas dispersa esa lista en nueve diffs y la vuelve ilegible.
-//
-// LO QUE SE PIERDE, CENSADO, Y CON QUE SE SUSTITUYE -verificado el 31/08 llamador a
-// llamador; si alguna vez falta un sustituto, esto NO se puede hacer-:
-//
-//   MAESTRO
-//     entrar a un modo desde el panel   menu.cpp:111        SET_MODO:AUTO|MANUAL|AMBAR|
-//                                                           MENU|ALCANCE|INTELIGENTE|
-//                                                           DEGRADADO (bluetooth.cpp:177+)
-//     salir de Alcance/Ambar/Auto/      modo_*.cpp          SET_MODO:MENU  (:191)
-//     Manual/Inteligente/Hora
-//     salir del Degradado               modo_degradado:465  SET_MODO:MENU (:196, sale por
-//                                                           el todo-rojo) y el mando B.B.B
-//     confirmar tiempos                 modo_auto/manual    SET_TIEMPOS    (:275)
-//     dar paso en Manual                modo_manual.cpp:49  MANUAL:CAMBIAR_TURNO (:257)
-//     confirmar la hora                 modo_hora.cpp:208   SET_RTC (:295) y
-//                                                           REINICIAR_RELOJ (:330)
-//
-//   OJO: LAS DOS LINEAS DE ABAJO ESTAN CADUCADAS DESDE EL 05/09 Y SE MARCAN EN VEZ DE
-//   REESCRIBIRSE, porque son el ejemplo exacto de una version de la especificacion que el
-//   codigo sigue contando. Dicen que el sustituto de esta punta es el mando de reles; hoy
-//   no lo es por dos motivos a la vez: D-1 se llevo los pulsadores -asi que ese sustituto
-//   no existe en el cobre- y D-18 le dio a esta punta la orden por app para entrar al
-//   Degradado -asi que el sustituto que falta ya esta construido, en el despachador de
-//   Bluetooth-. Censado rama por rama el 07/09, las tres secuencias del mando tienen hoy
-//   sustituto en ese despachador: entrar al Degradado, pedir el ambar de emergencia -que
-//   es OTRO latch, no este, y ademas arranca la salida del Degradado- y revocarlo. Lo que
-//   no tiene sustituto es armar ESTE latch, el del gabinete, y eso es correcto: sin
-//   pulsadores no hay quien lo arme, y solo el gesto que lo armo podia revocarlo.
-//
-//   ESCLAVO  -- esta punta NO tiene SET_MODO por Bluetooth, asi que el sustituto no es la
-//   app sino EL MANDO DE RELES, que sigue entero sobre A y B (PB9/PB13):
-//     entrar al Degradado               menu.cpp:227        A.B.A.B -> ACC_DEGRADADO
-//                                                           (mando.cpp:148)
-//     salir del Degradado               menu.cpp:215        A.A.A -> ACC_OBEDECER (:121)
-//                                                           B.B.B -> ACC_AMBAR    (:138)
-//
-// EFECTO LATERAL QUE VA EN LA DIRECCION BUENA: con ACEPTAR mudo, la pantalla del Esclavo
-// no puede bajar del listado, asi que menu_estaAbierto() es siempre falso y el mando deja
-// de poder quedarse inhibido por una pantalla que alguien olvido abierta (SFTY-21).
-bool botonAceptar() { return false; }
-bool botonCancelar(){ return false; }
+// D-44: aqui vivian botonArriba()/botonAbajo() y botonAceptar()/botonCancelar(),
+// sin llamador desde que salieron el menu, el Modo Hora y las salidas por boton de
+// cada modo. Los sustitutos son las ordenes de la app (D-16).
 
 // LA PRESENCIA SOSTENIDA EN J16. El porque de que esto exista -y de que desde D-33 exista
 // en las DOS puntas- esta en botones.h.

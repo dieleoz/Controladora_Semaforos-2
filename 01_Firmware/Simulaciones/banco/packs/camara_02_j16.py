@@ -66,21 +66,24 @@
 
 import re
 
-# EJERCE SFTY-21: que los dos pines del mando (A y B) se lean con la polaridad que pide el
-# conector -INPUT pelado, activo en ALTO-. 🔴 D-30 (14/09): y ya NO alimentan ningun
-# reconocedor de secuencias; el veto que cuelga de ahi es hoy el de la app. Hasta el 04/09
-# esta etiqueta decia
-# "sigan en INPUT_PULLUP", y con eso la regla que dice ejercer estaba muerta (N-118).
+# EJERCE SFTY-21: los tres vetos de bluetooth_ambarEmergencia() del Esclavo (seccion 7):
+# con un ambar pedido, ninguna orden de luz por radio lo pisa. D-44: la polaridad
+# de A y B ya no se ejerce aqui -el firmware dejo de leer J16 p5/p8-; se exige lo contrario,
+# que NADIE los lea.
 
 NOMBRE = "camara_02_j16"
-DESCRIPCION = "J16: A y B siguen siendo botones, C y D son camaras, y las dos puntas las leen igual"
+DESCRIPCION = "J16: nadie lee p5/p8, C y D son camaras, y las dos puntas las leen igual"
 
 PUNTAS = ("Maestro", "Esclavo")
 
 # El reparto DECIDIDO el 31/08. No es un valor del firmware -es la decision que el
 # firmware tiene que cumplir-, asi que va aqui; lo que se lee del C++ es a que pin fisico
 # apunta cada nombre, y eso es lo que se compara contra esto.
-MANDO_ESPERADO = {"BOTON1": "PB9", "BOTON2": "PB13"}
+# ~~MANDO_ESPERADO = {"BOTON1": "PB9", "BOTON2": "PB13"}~~ -> INVERTIDO por D-44: los
+# dos pines siguen declarados, con nombre neutro, y NADIE los lee.
+SIN_USO_ESPERADO = {"J16_P5_SIN_USO": "PB9", "J16_P8_SIN_USO": "PB13"}
+NOMBRES_VIEJOS = ("BOTON1", "BOTON2")
+BOTONES_RETIRADOS = ("botonArriba", "botonAbajo", "botonAceptar", "botonCancelar", "consumir")
 CAMARAS_J16_ESPERADAS = {"CAM_C_PIN": "PB14", "CAM_D_PIN": "PB15"}
 
 # Los tres nombres de entrada de camara que el firmware debe conocer. CAM_DEMANDA_PIN es
@@ -108,7 +111,8 @@ PINES_DE_LUZ = ("ROJO1", "ROJO2", "AMARILLO1", "AMARILLO2", "VERDE1", "VERDE2",
 SUSTITUTOS_MAESTRO = (
     "SET_MODO:MENU",          # la salida de todos los modos
     "SET_MODO:AUTO", "SET_MODO:MANUAL", "SET_MODO:AMBAR",
-    "SET_MODO:ALCANCE", "SET_MODO:INTELIGENTE", "SET_MODO:DEGRADADO",
+    # D-46: SET_MODO:DEGRADADO salio; al Degradado se entra por el testigo (D-35).
+    "SET_MODO:ALCANCE", "SET_MODO:INTELIGENTE", "SET_MODO:DEG_T:",
     "MANUAL:CAMBIAR_TURNO",   # el "dar paso" del Modo Manual
     "SET_TIEMPOS:",           # confirmar tiempos, que hacia el boton 3
     # Poner la hora, que hacia AJUSTAR HORA con ACEPTAR. Hasta el 11/09 el sustituto era
@@ -235,16 +239,24 @@ def correr(b, fw):
                 "05_Funcional/17_...:1.7 y el aviso de los 12 V de p1"
                 % (punta, nombre, real, esperado))
 
-        # -- 1.3 A y B no se han movido: el mando cuelga de ellos --
-        for nombre, esperado in sorted(MANDO_ESPERADO.items()):
+        # -- 1.3 INVERTIDA por D-44. Exigia que BOTON1/BOTON2 siguieran en PB9/PB13
+        # porque "el mando cuelga de ellos"; el mando y la lectura salieron. Ahora: los dos
+        # pines conservan un nombre NEUTRO sobre el mismo cobre, y el nombre viejo no vuelve.
+        for nombre, esperado in sorted(SIN_USO_ESPERADO.items()):
             real = _pin(fw, punta, nombre)
             mapa[(punta, nombre)] = real
             b.verificar(
                 real == esperado,
-                "%s: %s sigue en %s - el camino del mando no se toco" % (punta, nombre, real),
-                "%s: %s apunta a %s y deberia seguir en %s. Mover A o B mueve las "
-                "secuencias del mando de reles, que es lo unico que le queda al operario "
-                "que esta en el suelo sin telefono" % (punta, nombre, real, esperado))
+                "%s: %s apunta a %s (J16 sin lector, D-44)" % (punta, nombre, real),
+                "%s: %s apunta a %s y J16 lo pone en %s. El nombre neutro tiene que seguir "
+                "sobre el mismo cobre" % (punta, nombre, real, esperado))
+        viejos = [n for n in NOMBRES_VIEJOS if re.search(r"#define\s+%s\b" % n, pines)
+                  or re.search(r"\b%s\b" % n, todo)]
+        b.verificar(
+            not viejos,
+            "%s: BOTON1 y BOTON2 ya no se declaran ni se usan (D-44)" % punta,
+            "%s: %s vuelve(n) a aparecer. Un nombre de boton sobre p5/p8 invita a leerlos "
+            "otra vez, y con un puente en la bornera eso es una orden fantasma" % (punta, viejos))
 
     # =============================================================================
     # 2. EL MODO DEL PIN: INPUT PELADO PARA LA CAMARA, PULLUP PARA EL BOTON
@@ -278,41 +290,33 @@ def correr(b, fw):
             "invertida al cerrarla. Es N-67 exacto" % (punta, ", ".join(malos), malos))
 
         modos_boton = {}
-        for bt in sorted(MANDO_ESPERADO):
+        for bt in sorted(SIN_USO_ESPERADO):
             for c in fuentes.values():
                 for m in re.finditer(r"pinMode\s*\(\s*%s\s*,\s*(\w+)\s*\)" % bt, c):
                     modos_boton.setdefault(bt, []).append(m.group(1))
-        # N-118 - ESTA COMPROBACION SE INVIRTIO EL 04/09, Y EL PORQUE IMPORTA MAS QUE EL
-        # CAMBIO. Exigia INPUT_PULLUP con este motivo: "SFTY-21 depende de que A y B se
-        # lean igual que siempre". Era falso, y de la peor clase: una prueba que EXIGIA el
-        # defecto, con una razon que sonaba a seguridad.
-        #
-        # Lo que la tumbo, medido: R65/R66 son 10K A MASA sobre /Boton1 y /Boton2 -las
-        # mismas que R67/R68 sobre C y D-, y J16 reparte 3,3 V en p4 y p7, las posiciones
-        # de al lado. Es EXACTAMENTE la cuenta que la cabecera de este pack ya hacia bien
-        # para las camaras; lo unico que pasaba es que no se aplicaba a A y B. El banco
-        # del 03/09 midio 9,92 kOhm y 0,6 V en p5/p8: el pin estaba clavado en BAJO, nunca
-        # habia flanco, y el mando NO SE PODIA PULSAR. SFTY-21 no dependia de esto: estaba
-        # MUERTO por esto.
+        # N-118 (04/09): INPUT y no INPUT_PULLUP -R65/R66 son 10K a masa; el banco midio 0,6 V
+        # en p5/p8 con pull-up-. D-44: la declaracion se CONSERVA -explicita, para no
+        # depender del estado de reset del core, sin medir-; lo que se invierte es la lectura.
         b.verificar(
-            sorted(modos_boton) == sorted(MANDO_ESPERADO)
+            sorted(modos_boton) == sorted(SIN_USO_ESPERADO)
             and all(m == "INPUT" for ms in modos_boton.values() for m in ms),
-            "%s: A y B en INPUT pelado, como C y D - los cuatro pines de J16 son "
-            "electricamente identicos y el reposo lo fija el pull-down de 10K" % punta,
-            "%s: los pines del mando se declaran %s. Con INPUT_PULLUP el pull-up interno "
-            "contra los 10K de R65/R66 deja el pin en 0,6 V -medido en banco el 03/09-, "
-            "que el micro lee LOW en permanencia: sin flanco no hay secuencia, y SFTY-21 "
-            "se queda sin respaldo fisico" % (punta, modos_boton or "(no se hallan)"))
+            "%s: J16 p5 y p8 se declaran INPUT pelado y explicito, como C y D (D-44)" % punta,
+            "%s: J16 p5/p8 se declaran %s. Sin un INPUT explicito el pin queda en el estado "
+            "de reset del core, sin medir; con INPUT_PULLUP, contra los 10K de R65/R66, en "
+            "0,6 V" % (punta, modos_boton or "(no se hallan)"))
 
-        # -- 2.bis NINGUN PIN DE CAMARA ENTRA POR EL CAMINO DE BOTON --
-        codigo_botones = fw.codigo(punta, "src", "botones.cpp")
+        # -- 2.bis INVERTIDA por D-44: NADIE LEE J16 p5 NI p8 --
+        # Sustituye a "ninguna camara se asigna a una estructura Boton": la struct ya no
+        # existe, y la pregunta que queda es mas ancha. Se busca por los TRES nombres de cada
+        # pin -el neutro, el viejo y el crudo- en todos los .cpp de la punta, sin comentarios.
+        nombres_p5p8 = list(SIN_USO_ESPERADO) + list(NOMBRES_VIEJOS) + ["PB9", "PB13"]
+        lecturas = sorted("%s: %s" % (f, n) for f, c in fuentes.items() for n in nombres_p5p8
+                          if re.search(r"digitalRead\s*\(\s*%s\s*\)" % n, c))
         b.verificar(
-            not re.search(r"\.pin\s*=\s*CAM_", codigo_botones),
-            "%s: ninguna camara se asigna a una estructura Boton: no entra por el "
-            "antirrebote de flanco de bajada" % punta,
-            "%s: hay una camara asignada a un Boton. Ese camino lee activo en BAJO y "
-            "cuenta flancos de bajada: aplicado a una entrada activa en ALTO detecta la "
-            "deteccion cuando el coche SE VA" % punta)
+            not lecturas,
+            "%s: ningun .cpp llama a digitalRead() sobre J16 p5/p8 (D-44)" % punta,
+            "%s: se vuelve a leer J16 p5/p8 -> %s. Con un puente en esa bornera, lo que se "
+            "lea ahi es una orden que nadie dio" % (punta, lecturas))
 
     # -- 2.ter Y EL CONJUNTO ES EL MISMO EN LAS DOS PUNTAS (esto es N-97) --
     b.verificar(
@@ -417,24 +421,19 @@ def correr(b, fw):
             "camaras de J16: si lee LOW, las dos entradas quedan invertidas a la vez"
             % (punta, por_funcion.get("camara_leerPin", "(no se encuentra la funcion)")))
 
-        botoneras = {q: v for q, v in por_funcion.items()
-                     if q in ("actualizar", "botones_setup")}
-        # N-118, la otra mitad. Decia "A y B van contra masa", y el cobre dice que no: hay
-        # UNA SOLA masa en todo J16 (p2). Un contacto por boton contra masa necesitaria
-        # una masa por boton. Lo que el conector reparte es 3,3 V, uno por boton.
-        #
-        # SE EXIGEN LAS DOS FUNCIONES A LA VEZ -actualizar() y botones_setup()- y no una
-        # cualquiera: si la siembra del arranque se quedara en LOW con la lectura en ALTO,
-        # un boton suelto se sembraria como "pulsado" y la guarda de N-26 se comeria la
-        # PRIMERA pulsacion buena. Medir solo una de las dos dejaria pasar ese caso.
+        # ~~El camino del boton -actualizar() y botones_setup()- lee activo en ALTO (N-118)~~
+        # -> INVERTIDA por D-44: ese camino salio entero. Lo que se exige ahora es que
+        # en botones.cpp NO QUEDE otro lector que el de las camaras: toda lectura comparada
+        # vive en camara_leerPin(). Un digitalRead() en otra funcion es un boton que vuelve.
+        lectores = {_quien_contiene(funciones, m.start())
+                    for m in re.finditer(r"digitalRead\s*\(", codigo_botones)}
+        otros = sorted(q or "(fuera de funcion)" for q in lectores if q != "camara_leerPin")
         b.verificar(
-            botoneras and all(v == {"HIGH"} for v in botoneras.values()),
-            "%s: el camino del boton lee activo en ALTO en %s - la misma polaridad que "
-            "las camaras, que es la que pide el conector"
-            % (punta, ", ".join(sorted(botoneras))),
-            "%s: el camino del boton lee %s. Con los 10K a masa de R65/R66 y los 3,3 V en "
-            "el pin de al lado, leer en BAJO deja el mando pulsado en permanencia y sin "
-            "un solo flanco" % (punta, botoneras or "(nada)"))
+            "camara_leerPin" in lectores and not otros,
+            "%s: en botones.cpp solo camara_leerPin() lee un pin: J16 p5/p8 no tienen lector "
+            "(D-44)" % punta,
+            "%s: botones.cpp lee pines tambien en %s. Desde D-44 el unico lector de J16 es el "
+            "de las camaras" % (punta, otros or "(ninguna lectura hallada: buscador ciego)"))
 
     # =============================================================================
     # 5. LAS DOS PUNTAS LEEN LAS CAMARAS DE J16 CON EL MISMO CODIGO (N-97)
@@ -581,29 +580,22 @@ def correr(b, fw):
     for punta in PUNTAS:
         codigo_botones = fw.codigo(punta, "src", "botones.cpp")
 
+        # ~~botonAceptar()/botonCancelar() devuelven false (sin sujeto)~~ y ~~las tablas de
+        # flancos son de DOS~~ -> INVERTIDAS por D-44: las cuatro funciones de boton,
+        # sus tablas y consumir() salieron. Ahora se exige que NO EXISTAN en la punta: ni
+        # definidas en un .cpp ni declaradas en botones.h.
+        todo_p = "".join(fw.codigo(punta, "src", f) for f in fw.fuentes_de(punta, "src"))
+        todo_p += fw.codigo(punta, "include", "botones.h")
+        quedan = [n for n in BOTONES_RETIRADOS if re.search(r"\b%s\s*\(" % n, todo_p)]
+        tablas = re.findall(r"static\s+bool\s+(flanco|disparadoAnt)\s*\[", codigo_botones)
         b.verificar(
-            re.search(r"bool\s+botonAceptar\s*\(\s*\)\s*\{\s*return\s+false\s*;", codigo_botones)
-            and re.search(r"bool\s+botonCancelar\s*\(\s*\)\s*\{\s*return\s+false\s*;", codigo_botones),
-            "%s: botonAceptar() y botonCancelar() estan SIN SUJETO y lo dicen devolviendo "
-            "false: no queda pin que pueda levantarlas" % punta,
-            "%s: botonAceptar()/botonCancelar() vuelven a consumir un flanco. Sus pines "
-            "son camaras: si algo se lo puede levantar, es que hay un camino que sigue "
-            "tratando PB14/PB15 como pulsadores" % punta)
+            not quedan and not tablas,
+            "%s: no queda ninguna funcion de boton (%s) ni su estado de flancos (D-44)"
+            % (punta, ", ".join(BOTONES_RETIRADOS)),
+            "%s: vuelven %s%s. Un boton sin pin detras es estado que alguien acabara "
+            "llenando por error" % (punta, quedan, " y las tablas %s" % tablas if tablas else ""))
 
         cuerpo_act = _cuerpo(codigo_botones, "botones_actualizar")
-        tablas = dict(re.findall(r"static\s+bool\s+(flanco|disparadoAnt)\[(\d+)\]",
-                                 codigo_botones))
-        b.verificar(
-            tablas.get("flanco") == "2" and tablas.get("disparadoAnt") == "2"
-            and cuerpo_act is not None
-            and not re.search(r"flanco\[[23]\]", cuerpo_act)
-            and not re.search(r"consumir\s*\(\s*[23]\s*\)", codigo_botones),
-            "%s: las tablas de flancos son de DOS y nadie escribe ni consume un tercer "
-            "hueco: no queda estado reservado a dos botones que ya no existen" % punta,
-            "%s: las tablas son %s y/o queda alguien tocando el hueco 2 o 3. Estado que "
-            "nadie puede llenar es estado que alguien acabara llenando por error - y en "
-            "este fichero el hueco 2 era el boton que EJECUTABA"
-            % (punta, tablas or "(no se hallan)"))
 
         # ~~A y B tienen que seguir alimentando mando_registrarPulso()~~ -> INVERTIDA el
         # 14/09 (CLAUDE.md 9). Aquella linea exigia lo que HOY ES EL DEFECTO.
@@ -664,8 +656,10 @@ def correr(b, fw):
     # esto se rompiera, el Esclavo se quedaria sin ninguna forma de entrar ni de salir
     # -no hay pulsadores, no hay pantalla y el Maestro no puede ordenarlo por radio,
     # porque el radio muerto es justo la razon de entrar al modo-.
+    # D-46: la puerta de ENTRADA se reparte al testigo (D-35): SET_MODO:DEGRADADO,
+    # que llamaba a degradado_entrar(), salio; la app entra con SET_MODO:DEG_T.
     bt_esc = fw.codigo("Esclavo", "src", "bluetooth.cpp")
-    for fn, que in (("degradado_entrar", "ENTRAR al Modo Degradado"),
+    for fn, que in (("degradado_entrarTestigo", "ENTRAR al Modo Degradado"),
                     ("degradado_salir", "SALIR del Modo Degradado")):
         b.verificar(
             re.search(r"\b%s\s*\(" % fn, bt_esc) is not None,
@@ -728,19 +722,24 @@ def correr(b, fw):
         "es como se detecta N-97 volviendo a meterse dentro de un modo")
 
     b.control_negativo(
-        re.search(r"bool\s+botonAceptar\s*\(\s*\)\s*\{\s*return\s+false\s*;",
-                  "bool botonAceptar() { return consumir(2); }") is None,
-        "el detector de 'sin sujeto' NO acepta un botonAceptar() que sigue consumiendo un "
-        "flanco")
+        [n for n in BOTONES_RETIRADOS
+         if re.search(r"\b%s\s*\(" % n, "bool botonAceptar() { return false; }")]
+        == ["botonAceptar"],
+        "el censo de botones retirados ve un botonAceptar() que vuelve, aunque devuelva false")
+
+    b.control_negativo(
+        any(re.search(r"digitalRead\s*\(\s*%s\s*\)" % n, "x = digitalRead(J16_P5_SIN_USO);")
+            for n in SIN_USO_ESPERADO),
+        "el censo de lecturas de p5/p8 ve un digitalRead(J16_P5_SIN_USO) colado")
 
     b.control_negativo(
         '"SET_MODO:MENU' not in 'if (strcmp(accion, "SET_MODO:AUTO") == 0) {}',
         "el censo de sustitutos no da por presente un comando que no esta")
 
     b.control_negativo(
-        dict(re.findall(r"static\s+bool\s+(flanco|disparadoAnt)\[(\d+)\]",
-                        "static bool flanco[4] = {0,0,0,0};")).get("flanco") == "4",
-        "el lector de tablas ve una tabla de flancos que se quedo con cuatro huecos")
+        re.findall(r"static\s+bool\s+(flanco|disparadoAnt)\s*\[",
+                   "static bool flanco[2] = {false, false};") == ["flanco"],
+        "el lector de tablas ve una tabla de flancos que vuelve")
 
     b.control_negativo(
         "coordinador_pedirCambio(" in

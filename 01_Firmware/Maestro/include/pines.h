@@ -83,32 +83,6 @@
 // Maestro, que es quien decide. Ver roadmap.md N-59 y N-64.
 #define LED_TESTIGO        PB8  // -> R16 1K -> LED D5. NO es entrada de camara
 
-// --- LCD ST7920 (modo serial, 3 hilos + PSB + RST) ---
-//
-// LOS DATOS SON PB3/PB4/PB5 Y NADA MAS. PB6 es un nivel estatico que se escribe una sola
-// vez en el arranque y PB7 es el reset: ninguno de los dos transporta datos del display,
-// aunque su sitio en este bloque lo sugiera. Importa al depurar -si la pantalla sale mal,
-// mover PB6 o PB7 no cambia lo que se dibuja- y al repartir pines.
-//
-// Y AMBOS ESTAN MULTIPLEXADOS CON PERIFERICO, cosa que no estaba escrita en ningun sitio
-// del fuente y que cambia decisiones de hardware: PB6 y PB7 son USART1 REMAPEADO y ademas
-// I2C1 por hardware. Quien pida un segundo puerto serie o un bus I2C tiene que saber que
-// esos dos pines ya se los quedo la pantalla, y que soltarlos obliga a recablear el LCD.
-//
-// PENDIENTE DE CONFIRMAR EN LA PLACA -- el nombre de PB6 no cuadra:
-// aqui se llama LCD_PSB, pero la ETIQUETA DE RED del esquematico para ese mismo hilo es
-// "RS(A0)". Los dos nombres no pueden ser ciertos a la vez, y menos cuando en este mismo
-// bloque el nombre "RS" ya esta dado a PB4. Lo que hace el firmware -pinMode y un
-// digitalWrite(LOW) una sola vez en lcd.cpp, y nunca mas- es propio de un PSB, el selector
-// de modo serie/paralelo; un RS se conmuta en cada byte. Eso INCLINA la respuesta, no la
-// cierra: se resuelve siguiendo el hilo hasta la pata rotulada del modulo del display, no
-// leyendo mas codigo. Queda anotado sin darlo por resuelto en ninguna de las dos direcciones.
-#define LCD_SCLK    PB3   // -> E del LCD  (clock serial)
-#define LCD_CS      PB4   // -> RS del LCD (chip select)
-#define LCD_SID     PB5   // -> RW del LCD (dato serial)
-#define LCD_PSB     PB6   // -> PSB del LCD (fijo LOW). Nombre SIN CONFIRMAR: la red se rotula "RS(A0)"
-#define LCD_RST     PB7   // -> RST del LCD (reset)
-
 // --- J16: mitad botonera, mitad camaras (decision del 31/08/2026) ---
 //
 // D-2: LAS DOS POSICIONES DE ABAJO SON LAS CAMARAS, Y ESA ES LA DECISION QUE GOBIERNA
@@ -116,25 +90,15 @@
 // conector que el reconocedor de secuencias del mando no necesita, asi que darselas a
 // la camara no le quita su puerta a nadie.
 //
-// J16 llevaba los CUATRO pulsadores. Desde el 31/08 se queda con dos -A y B, que son
-// los que alimentan las secuencias del mando de reles (SFTY-21)- y sus otras dos
-// posiciones pasan a ser entradas de camara. No es un cambio de nombre: cambia el modo
-// del pin, la polaridad con la que se lee y quien lo lee.
+// J16 llevaba los CUATRO pulsadores. Desde el 31/08 sus posiciones p10 y p12 son
+// entradas de camara; p5 y p8 eran A y B, que alimentaban el mando de reles.
 //
-//   J16 p5   PB9    BOTON1      Arriba / mando A   INPUT pelado,  activo en ALTO
-//   J16 p8   PB13   BOTON2      Abajo  / mando B   INPUT pelado,  activo en ALTO
+//   J16 p5   PB9    J16_P5_SIN_USO   nadie lo lee      INPUT pelado (D-44)
+//   J16 p8   PB13   J16_P8_SIN_USO   nadie lo lee      INPUT pelado (D-44)
 //
-//   ^ ESAS DOS FILAS DECIAN "INPUT_PULLUP, activo en BAJO" Y ERA FALSO (05/09). El
-//     fuente hace pinMode(BOTON1, INPUT) pelado -botones.cpp:160-161- y lee
-//     digitalRead(b.pin) == HIGH -botones.cpp:40-, o sea justo lo contrario. Y lo
-//     contradecia el texto de N-118 TREINTA LINEAS MAS ABAJO EN ESTE MISMO FICHERO,
-//     mas la medida en cobre del 03/09: pull-down real de 10 kOhm en las cuatro
-//     posiciones (R65-R68), con 3,3 V en la de al lado. El gesto es cerrar contra los
-//     3,3 V, y es el MISMO para los cuatro pines de J16, sin excepcion.
-//
-//     Se anota en vez de corregirse en silencio porque esta es la cabecera que todo el
-//     mundo lee primero, y una frase falsa aqui gobierna lo que alguien cablea. Lo
-//     encontro un agente revisando las spec, no un test: los comentarios no compilan.
+//   ^ D-44: EL FIRMWARE YA NO LEE p5 NI p8. Solo se declaran INPUT en el arranque, por
+//     nombre neutro, para no depender del estado de reset del core (sin medir). Con un
+//     firmware anterior a D-44 dentro siguen siendo botones: no se cablean (SPEC_5 3).
 //   J16 p10  PB14   CAM_C_PIN   camara             INPUT pelado,  activo en ALTO
 //   J16 p12  PB15   CAM_D_PIN   camara             INPUT pelado,  activo en ALTO
 //
@@ -181,8 +145,8 @@
 // firmware NO PUEDE protegerse de esto -esa posicion no llega a ningun pin del micro,
 // asi que ninguna linea de codigo se entera de que la puentearon contra una de senal-.
 // La barrera es fisica o no hay barrera.
-#define BOTON1      PB9   // J16 p5  - Arriba / mando A
-#define BOTON2      PB13  // J16 p8  - Abajo  / mando B
+#define J16_P5_SIN_USO  PB9   // J16 p5  - era BOTON1 (A); D-44: nadie lo lee
+#define J16_P8_SIN_USO  PB13  // J16 p8  - era BOTON2 (B); D-44: nadie lo lee
 #define CAM_C_PIN   PB14  // J16 p10 - camara de contacto seco (era BOTON3, "Aceptar")
 // D-25 (11/09, decision del responsable): DOS CAMARAS POR POSTE, y por eso p12 DEJA DE ESTAR
 // VACIO. Deroga de D-13 "una camara por poste" y "p12 vacio a proposito". El codigo que lo

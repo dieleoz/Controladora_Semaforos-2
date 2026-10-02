@@ -202,7 +202,6 @@ typedef unsigned long (*FnEscrituras)(void);
 typedef int  (*FnTx)(unsigned char*);
 typedef void (*FnRx)(const unsigned char*);
 typedef void (*FnEntrada)(int, int);
-typedef void (*FnPulsar)(int);
 typedef long (*FnMando)(const char*, long);
 typedef long (*FnDomLeer)(int);
 typedef void (*FnDomEscribir)(int, long);
@@ -221,7 +220,6 @@ struct Punta {
   FnTx          tx = nullptr;
   FnRx          rx = nullptr;
   FnEntrada     entrada = nullptr;
-  FnPulsar      pulsar = nullptr;
   FnMando       mando = nullptr;
   FnDomLeer     domLeer = nullptr;
   FnDomEscribir domEscribir = nullptr;
@@ -247,7 +245,6 @@ struct Punta {
     tx          = resolver<FnTx>("punta_tx");
     rx          = resolver<FnRx>("punta_rx");
     entrada     = resolver<FnEntrada>("punta_entrada");
-    pulsar      = resolver<FnPulsar>("punta_pulsar");
     mando       = resolver<FnMando>("punta_mando");
     domLeer     = resolver<FnDomLeer>("punta_dominio_leer");
     domEscribir = resolver<FnDomEscribir>("punta_dominio_escribir");
@@ -614,7 +611,8 @@ static Escenario prepararSincronizadas(uint8_t dia, uint8_t hh, uint8_t mm, uint
   // usan la pantalla AJUSTAR HORA y el setup() del equipo.
   MAESTRO.orden("sincronizar_hora");
   MAESTRO.orden("publicar_config");
-  MAESTRO.orden("medir_desfase");
+  // D-44: la medida de desfase la arma sola la sincronizacion acusada (coordinador.cpp);
+  // la orden "medir_desfase" salio con coordinador_medirDesfase(), sin llamador.
 
   // Tiempo de sobra para los tres intercambios con sus reintentos y el retardo de
   // cortesia del Esclavo (SFTY-17).

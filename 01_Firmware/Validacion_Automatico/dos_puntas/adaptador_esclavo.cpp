@@ -61,8 +61,6 @@
 #include "Arduino.h"
 #include "pines.h"
 #include "botones.h"
-#include "lcd.h"
-#include "menu.h"
 #include "IWatchdog.h"
 
 #include "semaforo.h"
@@ -99,26 +97,9 @@ IWatchdogClase IWatchdog;
 
 static_assert(sizeof(RF_Packet) == 4, "RF_Packet dejo de medir 4 bytes");
 
-// ---------------------------------------------------------------------------
-// BOTONES SIMULADOS. Mismo contrato que en el arnes de una punta: leerlos los gasta.
-// D-30 (14/09): el rele del mando iba EN PARALELO con Boton1/Boton2 y un pulso
-// alimentaba los dos caminos -mando_registrarPulso() y el flag del boton-. Retiradas
-// las botoneras queda solo el pulsador del gabinete.
-// ---------------------------------------------------------------------------
-static bool g_pulsarArriba = false, g_pulsarAbajo = false;
-static bool g_pulsarAceptar = false, g_pulsarCancelar = false;
-static bool g_pendA = false, g_pendB = false;
-
+// D-44: aqui vivian los cuatro botones simulados; el firmware ya no los lee.
 void botones_setup() {}
-void botones_actualizar() {
-  if (g_pendA) { g_pulsarArriba = true; }
-  if (g_pendB) { g_pulsarAbajo = true; }
-  g_pendA = g_pendB = false;
-}
-bool botonArriba()   { bool v = g_pulsarArriba;   g_pulsarArriba = false;   return v; }
-bool botonAbajo()    { bool v = g_pulsarAbajo;    g_pulsarAbajo = false;    return v; }
-bool botonAceptar()  { bool v = g_pulsarAceptar;  g_pulsarAceptar = false;  return v; }
-bool botonCancelar() { bool v = g_pulsarCancelar; g_pulsarCancelar = false; return v; }
+void botones_actualizar() {}
 // D-33 (14/09/2026): NO HAY CAMARAS EN ESTE BANCO, y por eso contesta que no hay nadie.
 // Es la respuesta correcta para un equipo con las borneras de J16 vacias -el pull-down
 // de 10K deja los pines bajos para siempre-, no un "por ahora". Lo que este arnes mide
@@ -128,23 +109,8 @@ bool camara_presenciaJ16() { return false; }
 
 bool camara_leerPin(uint8_t pin) { return digitalRead(pin) == HIGH; }
 
-// ---------------------------------------------------------------------------
-// PANTALLA SIMULADA. Solo cuenta llamadas.
-//
-// D-30 (14/09): AQUI VIVIA menu_estaAbierto(), Y SE VA CON EL MANDO.
-//
-// Era la puerta que INHIBIA las secuencias del mando de reles, y su UNICO lector en
-// todo el firmware era secuenciasInhibidas() de Esclavo/src/mando.cpp. Retirado el
-// mando, la funcion se quedo sin quien la llame: ya no la define este adaptador ni la
-// declara esclavo/menu.h, y con ella sale la orden "menu_abierto" que la movia desde
-// el orquestador -ningun escenario la usaba-. menu_setup() y menu_loop() SIGUEN VIVAS:
-// las llama main.cpp del Esclavo, que esta DLL si compila.
-// ---------------------------------------------------------------------------
-static unsigned long g_lcdRedibujos = 0;
-void lcd_setup() {}
-void lcd_dibujarBienvenida() { g_lcdRedibujos++; }
-void menu_setup() {}
-void menu_loop() { g_lcdRedibujos++; }
+// D-44: aqui vivian lcd_setup(), la bienvenida, menu_setup() y menu_loop();
+// main.cpp del Esclavo ya no los llama.
 
 #ifdef ARNES_RELOJ_REAL
 #include "adaptador_esclavo_deg_auto.inc"  // bluetooth simulado y A-15 (bloque H): ver alli
@@ -537,16 +503,6 @@ PUNTA_API void punta_rx(const unsigned char* trama4) {
 
 PUNTA_API void punta_entrada(int pin, int nivel) {
   if (pin >= 0 && pin < 64) arnes_entradas[pin] = nivel;
-}
-
-PUNTA_API void punta_pulsar(int boton) {
-  switch (boton) {
-    case 1: g_pendA = true; break;
-    case 2: g_pendB = true; break;
-    case 3: g_pulsarAceptar = true; break;
-    case 4: g_pulsarCancelar = true; break;
-    default: break;
-  }
 }
 
 PUNTA_API long punta_mando(const char* que, long arg) {

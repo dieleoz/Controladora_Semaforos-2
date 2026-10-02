@@ -1,5 +1,5 @@
-// Sustituto minimo de Arduino.h para compilar el codigo de pantalla en el PC.
-// Solo cubre lo que usa lcd.cpp; no pretende emular Arduino.
+// Sustituto minimo de Arduino.h para compilar ciclo_degradado.h en el PC. D-44: vivia en
+// Validacion_LCD, que salio con el LCD; no pretende emular Arduino.
 #pragma once
 
 #include <stdint.h>

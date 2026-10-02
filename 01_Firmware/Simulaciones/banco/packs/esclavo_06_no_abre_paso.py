@@ -18,8 +18,9 @@
 # LA REGLA QUE SE VIGILA, en una linea: al Esclavo se le puede PEDIR y se le puede
 # PARAR; no se le puede ABRIR.
 #
-#   PETICION  ->  SOLICITAR_PASO manda CMD_DEMANDA por radio. El MAESTRO decide,
-#                 aplica el todo-rojo y ordena. Aqui no se enciende nada.
+#   PETICION  ->  la camara manda CMD_DEMANDA por radio. El MAESTRO decide, aplica el
+#                 todo-rojo y ordena. D-46: SOLICITAR_PASO, la peticion por app,
+#                 salio del firmware.
 #   PARADA    ->  FORZAR_ROJO es la direccion segura y ni siquiera pide PIN.
 #   APERTURA  ->  no existe, y este pack es lo que impide que vuelva.
 #
@@ -40,7 +41,10 @@ DESCRIPCION = "el Esclavo pide y para, pero no abre: ningun comando BT enciende 
 
 # Funciones de semaforo.cpp capaces de encender un VERDE. Un comando de Bluetooth que
 # llame a cualquiera de estas esta abriendo paso por su cuenta.
-ABREN_PASO = ("semaforo_iniciarTestLeds",)
+# D-44: el test de lamparas del Esclavo salio del firmware; se queda en la lista
+# para que no vuelva por el Bluetooth, y entra semaforo_forzarVerde(), que es hoy la
+# funcion de esta punta que enciende un verde.
+ABREN_PASO = ("semaforo_iniciarTestLeds", "semaforo_forzarVerde")
 
 # Lo que el Bluetooth del Esclavo puede atender. Anadir aqui exige justificarlo arriba.
 COMANDOS_PERMITIDOS = {
@@ -92,53 +96,13 @@ COMANDOS_PERMITIDOS = {
                         "Pide PIN, y el verde lo sigue decidiendo el Maestro (R-3). "
                         "N-152: ademas AVISA al Maestro por radio, que sale de su ambar "
                         "-solo si era el que pidio esta punta- al todo-rojo, no al ciclo",
-    # A-11 (05/09). LA ENTRADA MAS INCOMODA DE ESTA LISTA, Y SE ESCRIBE ENTERA.
-    #
-    # LAS OTRAS CINCO CABEN EN "no abre paso". ESTA SI ABRE PASO, y decir otra cosa seria
-    # repetir el error de N-83 -una lista blanca dando por revisado un comando cuyo motivo
-    # describe otra cosa de la que hace-. El Modo Degradado da VERDE guiandose por el
-    # reloj, y lo da SIN confirmacion del otro extremo: es el unico camino del firmware
-    # que enciende un verde sin que nadie diga que el otro sentido esta en rojo.
-    #
-    # NO ES UN AGUJERO NUEVO: el modo existe desde el 31/07 y ya tenia esa propiedad. Lo
-    # que hasta el 05/09 no existia era una PUERTA ABRIBLE -sus tres llamadores estaban
-    # muertos: el mando sin hardware (D-1), el menu sin botonAceptar() (D-2), y la
-    # reanudacion tras corte, que exige haber entrado antes-. O sea que lo que este
-    # comando cambia no es lo que el modo hace: es que se pueda pedir.
-    #
-    # POR QUE SE ACEPTA. Las cuatro razones son comprobables en el fuente, y ninguna es
-    # "porque lo decidio el responsable" -eso autoriza el cambio, no lo justifica-:
-    #
-    #   1. NO ELIGE LUZ. La rama llama a degradado_entrar() y a nada mas. La fase la
-    #      calcula ciclo_degradado_fase(), que es el MISMO fichero en las dos puntas
-    #      (costura_02_fase_ciclo), a partir de la hora del dia y de la configuracion que
-    #      el Maestro dejo verificada. Aqui no hay un verde que elegir.
-    #   2. LA PUERTA ES UNA Y NO SE COPIA. degradado_entrar() vuelve a evaluar TODAS las
-    #      condiciones -reloj en hora, ciclo conocido y no nulo, sincronizacion recibida y
-    #      no caducada, sin ambar de emergencia puesto-. La rama no comprueba nada por su
-    #      cuenta: tres vias con tres criterios serian la mas floja de las tres.
-    #   3. ENTRA POR TODO-ROJO, SIEMPRE. degradado_entrar() arranca con
-    #      semaforo_forzarRojo() y el modo no da su primer verde hasta agotar
-    #      rojoObligatorioMs(). O sea que el efecto inmediato de este comando es PARAR,
-    #      no abrir.
-    #   4. PIDE PIN, y ademas la app lo pone detras de un dialogo con casilla. Es la
-    #      misma asimetria de CANCELAR_AMBAR leida al derecho.
-    #
-    # 🔴 Y LO QUE NO PROTEGE, ESCRITO PARA QUE NO SE LEA COMO QUE SI: con el Maestro vivo
-    # este modo no se sostiene. main.cpp de esta punta llama a degradado_salir() al
-    # recibir CMD_PING, CMD_GO_RED o CMD_GO_GREEN, y el Maestro emite PING cada
-    # LATIDO_MS. Lo que impide que en ese rato salga un verde por reloj es que
-    # ROJO_MINIMO_MS sea MAYOR que LATIDO_MS, y esa desigualdad no vive aqui: la
-    # recalcula esclavo_08_ambar_en_degradado desde el C++ de las dos puntas (N-71).
-    "SET_MODO:DEGRADADO":
-                        "ABRE PASO, y por eso el motivo va entero arriba: da verde por "
-                        "reloj sin confirmar la otra punta. Se acepta porque no elige "
-                        "luz -la fase la calcula el fichero compartido-, porque entra "
-                        "por todo-rojo, porque la puerta es degradado_entrar() y no una "
-                        "copia de sus condiciones, y porque pide PIN",
+    # D-46: aqui iba SET_MODO:DEGRADADO, que salio del firmware. Al Degradado
+    # se entra por el testigo (D-35), la entrada siguiente.
     # D-35 (SPEC_2 7.bis): Degradado con testigo, puerta paralela con PIN que entra por rojo.
-    "SET_MODO:DEG_T:":  "ABRE PASO como SET_MODO:DEGRADADO: verde por reloj tras rojo fijo "
-                        "hasta inicio, con PIN, la puerta es degradado_entrarTestigo()",
+    "SET_MODO:DEG_T:":  "ABRE PASO: verde por reloj tras rojo fijo hasta inicio, sin "
+                        "confirmar la otra punta. No elige luz -la fase la calcula el "
+                        "fichero compartido-, entra por rojo, pide PIN y la puerta es "
+                        "degradado_entrarTestigo()",
     "SET_DEG_AUTO:":    "ABRE PASO DIFERIDO (A-15, SPEC_2 7.ter): no enciende nada al "
                         "recibirla; arma la opcion, que solo actua con la opcion en las "
                         "DOS puntas y la radio caida, entra por rojo fijo y por la misma "
@@ -147,7 +111,6 @@ COMANDOS_PERMITIDOS = {
     "CONSULTA_DEG_AUTO": "CONTESTA y no hace nada mas: tres getters en un snprintf, sin "
                         "estado; entra con y sin PIN (SPEC_4 3.2), como VERSION",
     "FORZAR_ROJO":      "presente solo para RECHAZARLO ensenando el nombre nuevo",
-    "SOLICITAR_PASO":   "PIDE al Maestro; no enciende nada en esta punta",
     "TEST_LEDS":        "presente solo para RECHAZARLO con un motivo legible",
     # 11/09 (D-20 / A-15): SUSTITUYE a "SET_RTC:", que desde hoy es solo del puente. Entra
     # SIN PIN porque la manda el ESP32 de este poste -el puente la tira si le llega del
@@ -264,22 +227,31 @@ def correr(b, fw):
     #
     # SE MIDE SOBRE EL FUENTE SIN COMENTARIOS. El patron busca la llamada como SENTENCIA
     # entera -precedida de ';', '{' o '}'-, que es la unica forma en que el valor se tira.
-    RE_ENTRAR = re.compile(r"\bdegradado_entrar\s*\(\s*\)")
-    RE_ENTRAR_SUELTA = re.compile(r"(?:^|[;{}])\s*degradado_entrar\s*\(\s*\)\s*;")
+    # D-46: REPARTIDA. SET_MODO:DEGRADADO -el llamador de degradado_entrar()- salio;
+    # la puerta que la app abre es degradado_entrarTestigo() (D-35), y la exigencia se muda a
+    # ella: que exista y que su RechazoTestigo se MIRE. Y degradado_entrar() ya no se llama
+    # desde el Bluetooth: solo la reanudacion tras corte la usa.
+    RE_ENTRAR = re.compile(r"\bdegradado_entrarTestigo\s*\(")
+    RE_ENTRAR_SUELTA = re.compile(r"(?:^|[;{}])\s*degradado_entrarTestigo\s*\([^;]*\)\s*;")
+    RE_VIEJA = re.compile(r"\bdegradado_entrar\s*\(\s*\)")
 
     entradas = RE_ENTRAR.findall(bt)
     sueltas = RE_ENTRAR_SUELTA.findall(bt)
     b.verificar(
         len(entradas) >= 1 and not sueltas,
-        "el Bluetooth del Esclavo abre la puerta del Degradado %d vez/veces y MIRA lo "
-        "que devuelve: cada motivo de rechazo puede tener su propio $ERR" % len(entradas),
-        "el Bluetooth del Esclavo %s. Sin llamador, el Modo Degradado de esta punta "
-        "vuelve a ser una funcion terminada y sin usuario posible (A-11); con la llamada "
-        "suelta, el valor de RechazoDegradado se tira y el despachador contesta que si a "
-        "un rechazo -el operario se va del poste creyendo que dejo el modo puesto-"
-        % ("no llama a degradado_entrar()" if not entradas
-           else "llama a degradado_entrar() como sentencia suelta, sin usar el "
-                "RechazoDegradado que devuelve"))
+        "el Bluetooth del Esclavo abre la puerta del Degradado con testigo %d vez/veces y "
+        "MIRA lo que devuelve: cada motivo de rechazo tiene su $ERR" % len(entradas),
+        "el Bluetooth del Esclavo %s. Sin llamador, la app no tiene puerta al Degradado de "
+        "esta punta; con la llamada suelta, el RechazoTestigo se tira y el despachador "
+        "contesta que si a un rechazo"
+        % ("no llama a degradado_entrarTestigo()" if not entradas
+           else "llama a degradado_entrarTestigo() como sentencia suelta"))
+    b.verificar(
+        not RE_VIEJA.search(bt),
+        "el Bluetooth del Esclavo ya no llama a degradado_entrar(): SET_MODO:DEGRADADO "
+        "salio (D-46)",
+        "el Bluetooth del Esclavo vuelve a llamar a degradado_entrar(): es la orden "
+        "SET_MODO:DEGRADADO que D-46 retiro")
 
     # ---- 4. La demanda sale por UNA sola puerta ----
     # Dos origenes -la camara de PB0 y el boton de la app- significan lo mismo. Si cada
@@ -324,11 +296,14 @@ def correr(b, fw):
         "la puerta de demanda volvio a protocolo.cpp: eso rompe la identidad byte a "
         "byte con el Maestro que exige costura_01_contratos")
 
+    # ~~SOLICITAR_PASO entra por demanda_solicitar()~~ -> INVERTIDA por D-46: la
+    # orden salio; desde la app esta punta ya no pide. Solo la camara pide.
     b.verificar(
-        re.search(r"demanda_solicitar\s*\(", bt) is not None,
-        "SOLICITAR_PASO entra por esa misma puerta, no por un camino propio",
-        "el Bluetooth del Esclavo no usa demanda_solicitar(): o no pide, o se "
-        "ha abierto un segundo camino sin limite de ritmo")
+        re.search(r"demanda_solicitar\s*\(", bt) is None
+        and "SOLICITAR_PASO" not in atendidos,
+        "el Bluetooth del Esclavo ya no pide paso: SOLICITAR_PASO salio (D-46)",
+        "el Bluetooth del Esclavo vuelve a pedir paso (demanda_solicitar() o "
+        "SOLICITAR_PASO): D-46 retiro esa orden")
 
     # ---- CONTROL NEGATIVO ----
     # Sin esto, el dia que el patron dejara de casar -otro formato, otro nombre- el pack
@@ -359,11 +334,13 @@ def correr(b, fw):
     # SINTACTICAMENTE VALIDA y compila, asi que ningun compilador la delata.
     b.control_negativo(
         not RE_ENTRAR.search("void _sinpuerta(){ enviarTramaConCrc(\"$ACK\"); }"),
-        "un bluetooth.cpp sin ningun llamador de degradado_entrar() se detecta: es el "
-        "estado en que A-11 encontro esta punta")
+        "un bluetooth.cpp sin ningun llamador de degradado_entrarTestigo() se detecta")
     b.control_negativo(
         bool(RE_ENTRAR_SUELTA.search(
-            "void _muda(){ degradado_entrar(); "
-            "enviarTramaConCrc(\"$ACK,CMD:SET_MODO:DEGRADADO,RESULT:OK\"); }")),
-        "una llamada SUELTA a degradado_entrar() con el $ACK detras se detecta: es el "
-        "OK mudo que contesta OK a un rechazo")
+            "void _muda(){ degradado_entrarTestigo(a, i, d); "
+            "enviarTramaConCrc(\"$ACK,CMD:SET_MODO:DEG_T,RESULT:OK\"); }")),
+        "una llamada SUELTA a degradado_entrarTestigo() con el $ACK detras se detecta: es "
+        "el OK mudo que contesta OK a un rechazo")
+    b.control_negativo(
+        bool(RE_VIEJA.search("void _vieja(){ const RechazoDegradado r = degradado_entrar(); }")),
+        "una llamada a degradado_entrar() colada en el Bluetooth se detecta")

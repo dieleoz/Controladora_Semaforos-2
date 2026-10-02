@@ -143,11 +143,6 @@ static EstadoDegradado estado = DEG_INACTIVO;
 static unsigned long tCambioEstado = 0;
 static bool rendicionEnCurso = false;
 
-// "Por que cayo el modo la ultima vez": la hora (D-38, rojo fijo) o el limite de 48 h. Es otra
-// pregunta que rendicionEnCurso y que syncVencidaLatch (CLAUDE.md 8). Desde D-38 la hora ya
-// no rinde a ambar, asi que en DEG_RENDIDO vale siempre false.
-static bool rendidoPorHora = false;
-
 // Ultima orden de luz que ESTE modulo dio. Se actua solo en los flancos, nunca en
 // cada vuelta del bucle, por dos razones: no reiniciar la transicion a verde a
 // cada iteracion, y no pisar al backstop de verde maximo de main.cpp. Si el
@@ -339,7 +334,6 @@ static void irARojoSinHora() {
   semaforo_forzarRojo();
   verdeAplicado = false;
   rendicionEnCurso = false;
-  rendidoPorHora = true;   // el motivo de la ultima caida, para quien lo pregunte
   respaldo_guardarDegradado(false);
   respaldo_guardarRojoSinHora();   // D-47: DESPUES de bajar el Degradado, que lo borra
   respaldo_guardarRendido(true);
@@ -771,7 +765,6 @@ void degradado_actualizar() {
       irARojoSinHora();
       return;
     }
-    rendidoPorHora = false;
     iniciarSalida(true);
     return;
   }
@@ -857,54 +850,7 @@ EstadoDegradado degradado_estado() { return estado; }
 // ambar". Desde D-38 solo la pide el limite de 48 h; la hora va a DEG_ROJO_SIN_HORA.
 bool degradado_rendicionEnCurso() { return rendicionEnCurso; }
 
-// D-21 (1). El porque de que sea una bandera propia esta arriba, donde se declara.
-bool degradado_rendidoPorHora() { return rendidoPorHora; }
-
 FaseDegradado degradado_fase() { return calcularFase(); }
 
-uint32_t degradado_segundosParaCambio() {
-  if (!reloj_enHora()) return 0;
-  return ciclo_degradado_restante(reloj_segundosDelDia(),
-                                  cicloVerde(),
-                                  cicloDespeje());
-}
-
-// EL ROTULO DICE EL MOTIVO. Desde D-38 "RENDIDO HORA" no se alcanza (la hora va a rojo
-// fijo); se deja hasta que arnes_esclavo.cpp, que mide esta linea, se revise. Todos caben en
-// los 20 caracteres que la 6x10 admite desde x=2 dejando una celda libre.
-const char* degradado_textoEstado() {
-  switch (estado) {
-    case DEG_INACTIVO: return "INACTIVO";
-    case DEG_ENTRANDO: return "ENTRANDO: TODO ROJO";
-    case DEG_ACTIVO:   return "ACTIVO (por reloj)";
-    case DEG_SALIENDO: return "SALIENDO: TODO ROJO";
-    case DEG_RENDIDO:  return rendidoPorHora ? "RENDIDO HORA: AMBAR"
-                                             : "RENDIDO 48h: AMBAR";
-    case DEG_ROJO_SIN_HORA: return "ROJO FIJO: SIN HORA";
-  }
-  return "";
-}
-
-const char* degradado_textoFase() {
-  switch (calcularFase()) {
-    case FD_VERDE_MAESTRO: return "Verde Maestro";
-    case FD_VERDE_ESCLAVO: return "VERDE AQUI";
-    case FD_AMARILLO_ESCLAVO: return "AMARILLO AQUI";
-    default:               return "Todo rojo";
-  }
-}
-
-const char* degradado_textoRechazo(RechazoDegradado motivo) {
-  switch (motivo) {
-    case DEG_RECHAZO_SIN_HORA:     return "SIN HORA VALIDA";
-    case DEG_RECHAZO_SIN_CONFIG:   return "FALTA CONFIG CICLO";
-    case DEG_RECHAZO_CICLO_NULO:   return "CICLO EN CERO";
-    case DEG_RECHAZO_SIN_SYNC:     return "NUNCA SINCRONIZADO";
-    case DEG_RECHAZO_SYNC_VENCIDA: return "SYNC CADUCADA >48h";
-    // R-4. 18 caracteres EXACTOS, que es el techo que menu.cpp:107 declara para este
-    // texto -"los 18 caracteres del motivo mas largo"- y el que ya ocupan otros tres.
-    // Un motivo recortado no sirve para arreglar nada, que es justo lo que dice alli.
-    case DEG_RECHAZO_AMBAR_VIGENTE: return "AMBAR EMERG.PUESTO";
-    default:                       return "";
-  }
-}
+// D-44/D-46: aqui vivian los rotulos de la pantalla (estado, fase) y la tabla de rechazo de
+// SET_MODO:DEGRADADO; salieron sin lector con el menu y con la orden.

@@ -30,10 +30,6 @@ void bluetooth_reportarAlarma(const char* evento, const char* causa, const char*
  */
 void bluetooth_reportarEvento(const char* origen, const char* detalle);
 
-/**
- * @brief Indica si el modo de test de lámparas (6s) está en ejecución.
- */
-bool bluetooth_testLedsActivo();
 
 // ---------------------------------------------------------------------------
 // AMBAR DE EMERGENCIA PEDIDO POR BLUETOOTH (CMD:AMBAR_EMERGENCIA) — N-83.

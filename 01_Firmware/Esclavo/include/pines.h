@@ -83,52 +83,17 @@
 // Maestro, que es quien decide. Ver roadmap.md N-59 y N-64.
 #define LED_TESTIGO        PB8  // -> R16 1K -> LED D5. NO es entrada de camara
 
-// --- LCD ST7920 (modo serial, 3 hilos + PSB + RST) ---
-//
-// LOS DATOS SON PB3/PB4/PB5 Y NADA MAS. PB6 es un nivel estatico que se escribe una sola
-// vez en el arranque y PB7 es el reset: ninguno de los dos transporta datos del display,
-// aunque su sitio en este bloque lo sugiera. Importa al depurar -si la pantalla sale mal,
-// mover PB6 o PB7 no cambia lo que se dibuja- y al repartir pines.
-//
-// Y AMBOS ESTAN MULTIPLEXADOS CON PERIFERICO, cosa que no estaba escrita en ningun sitio
-// del fuente y que cambia decisiones de hardware: PB6 y PB7 son USART1 REMAPEADO y ademas
-// I2C1 por hardware. Quien pida un segundo puerto serie o un bus I2C tiene que saber que
-// esos dos pines ya se los quedo la pantalla, y que soltarlos obliga a recablear el LCD.
-//
-// PENDIENTE DE CONFIRMAR EN LA PLACA -- el nombre de PB6 no cuadra:
-// aqui se llama LCD_PSB, pero la ETIQUETA DE RED del esquematico para ese mismo hilo es
-// "RS(A0)". Los dos nombres no pueden ser ciertos a la vez, y menos cuando en este mismo
-// bloque el nombre "RS" ya esta dado a PB4. Lo que hace el firmware -pinMode y un
-// digitalWrite(LOW) una sola vez en lcd.cpp, y nunca mas- es propio de un PSB, el selector
-// de modo serie/paralelo; un RS se conmuta en cada byte. Eso INCLINA la respuesta, no la
-// cierra: se resuelve siguiendo el hilo hasta la pata rotulada del modulo del display, no
-// leyendo mas codigo. Queda anotado sin darlo por resuelto en ninguna de las dos direcciones.
-#define LCD_SCLK    PB3   // -> E del LCD  (clock serial)
-#define LCD_CS      PB4   // -> RS del LCD (chip select)
-#define LCD_SID     PB5   // -> RW del LCD (dato serial)
-#define LCD_PSB     PB6   // -> PSB del LCD (fijo LOW). Nombre SIN CONFIRMAR: la red se rotula "RS(A0)"
-#define LCD_RST     PB7   // -> RST del LCD (reset)
-
 // --- J16: mitad botonera, mitad camaras (decision del 31/08/2026) ---
 //
-// J16 llevaba los CUATRO pulsadores. Desde el 31/08 se queda con dos -A y B, que son
-// los que alimentan las secuencias del mando de reles (SFTY-21)- y sus otras dos
-// posiciones pasan a ser entradas de camara. No es un cambio de nombre: cambia el modo
-// del pin, la polaridad con la que se lee y quien lo lee.
+// J16 llevaba los CUATRO pulsadores. Desde el 31/08 sus posiciones p10 y p12 son
+// entradas de camara; p5 y p8 eran A y B, que alimentaban el mando de reles.
 //
-//   J16 p5   PB9    BOTON1      Arriba / mando A   INPUT pelado,  activo en ALTO
-//   J16 p8   PB13   BOTON2      Abajo  / mando B   INPUT pelado,  activo en ALTO
+//   J16 p5   PB9    J16_P5_SIN_USO   nadie lo lee      INPUT pelado (D-44)
+//   J16 p8   PB13   J16_P8_SIN_USO   nadie lo lee      INPUT pelado (D-44)
 //
-//   ^ ESTA PUNTA SE QUEDO SIN ARREGLAR EL 05/09, Y ES LA QUE MAS IMPORTA (N-118).
-//     El arreglo de 273b315 corrigio la misma frase falsa en el Maestro y NO TOCO EL
-//     ESCLAVO: durante unas horas el Poste 2 -el que esta a 1000 m, al que no se llega
-//     andando- llevo la cabecera equivocada. Lo encontro una revision externa, no un
-//     test, porque los comentarios no compilan.
-//
-//     Lo falso era "INPUT_PULLUP, activo en BAJO". El fuente de ESTA punta hace
-//     pinMode(BOTON1, INPUT) pelado -botones.cpp:178-179- y lee digitalRead(b.pin) ==
-//     HIGH -botones.cpp:54-. Y lo respalda la medida en cobre del 03/09: pull-down real
-//     de 10 kOhm en las cuatro posiciones de J16, con 3,3 V en la de al lado.
+//   ^ D-44: EL FIRMWARE YA NO LEE p5 NI p8. Solo se declaran INPUT en el arranque, por
+//     nombre neutro, para no depender del estado de reset del core (sin medir). Con un
+//     firmware anterior a D-44 dentro siguen siendo botones: no se cablean (SPEC_5 3).
 //   J16 p10  PB14   CAM_C_PIN   camara             INPUT pelado,  activo en ALTO
 //   J16 p12  PB15   CAM_D_PIN   camara             INPUT pelado,  activo en ALTO
 //
@@ -176,8 +141,8 @@
 //
 // Y p1 de J16 lleva 12 V CRUDOS -sin opto, sin serie, sin clamp- a nueve posiciones de
 // p10 y once de p12. Se tapa fisicamente antes de enchufar nada (17_...:2.1).
-#define BOTON1      PB9   // J16 p5  - Arriba / mando A
-#define BOTON2      PB13  // J16 p8  - Abajo  / mando B
+#define J16_P5_SIN_USO  PB9   // J16 p5  - era BOTON1 (A); D-44: nadie lo lee
+#define J16_P8_SIN_USO  PB13  // J16 p8  - era BOTON2 (B); D-44: nadie lo lee
 // D-2: estas dos posiciones son LAS DOS CAMARAS, y no por preferencia: son los pines que
 // la camara necesita y los unicos que el mando no usaba. Los pulsadores que habia aqui no
 // se han mudado a otro sitio - dejaron de existir, y lo que colgaba de ellos se sustituye

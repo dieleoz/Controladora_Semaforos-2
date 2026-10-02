@@ -141,16 +141,7 @@ EstadoDegradado degradado_estado();
 // seria falsa.
 bool degradado_rendicionEnCurso();
 
-// D-21 (1) - CUAL DE LAS DOS RENDICIONES FUE, para que el rotulo no diga "48h" cuando lo
-// que caduco fue la hora. Solo tiene sentido con el modo ya rendido o rindiendose; la
-// pantalla lo pregunta para elegir el rotulo, no para decidir nada de la luz.
-bool degradado_rendidoPorHora();
-
 FaseDegradado   degradado_fase();
-
-// Segundos hasta el proximo cambio de fase, para la cuenta atras de la pantalla.
-// Sale de ciclo_degradado_restante(), no de un contador propio.
-uint32_t degradado_segundosParaCambio();
 
 // --- D-35: EL DEGRADADO CON TESTIGO (SPEC_2 7.bis) --------------------------
 // Segunda puerta, PARALELA a degradado_comprobar()/degradado_entrar(), que no se tocan.
@@ -185,6 +176,3 @@ bool reloj_guardarFechaEsp32(const char* str);
 // A-15 (29/09, H4): con la radio mandando, SOLO la fecha de la linea del ESP32 (reloj.cpp).
 bool reloj_fecharDesdeEsp32(const char* str);
 
-const char* degradado_textoEstado();
-const char* degradado_textoFase();
-const char* degradado_textoRechazo(RechazoDegradado motivo);

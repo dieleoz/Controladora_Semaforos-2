@@ -398,30 +398,6 @@ MotivoDegradado modo_degradado_evaluarEntrada() {
   return MDG_OK;
 }
 
-const char* modo_degradado_motivoL1(MotivoDegradado m) {
-  switch (m) {
-    case MDG_FALTA_HORA:   return "Falta: reloj sin";
-    case MDG_NUNCA_SYNC:   return "Falta: nunca hubo";
-    case MDG_SYNC_VIEJA:   return "Falta: la ultima";
-    case MDG_SIN_CONFIG:   return "Falta: el esclavo";
-    case MDG_SIN_DESFASE:  return "Falta: sin medida";
-    case MDG_DESFASE_ALTO: return "Desfase fuera de";
-    default:               return "";
-  }
-}
-
-const char* modo_degradado_motivoL2(MotivoDegradado m) {
-  switch (m) {
-    case MDG_FALTA_HORA:   return "poner en hora";
-    case MDG_NUNCA_SYNC:   return "sincronizacion RF";
-    case MDG_SYNC_VIEJA:   return "sync es muy vieja";
-    case MDG_SIN_CONFIG:   return "no tiene el ciclo";
-    case MDG_SIN_DESFASE:  return "de desfase valida";
-    case MDG_DESFASE_ALTO: return "tolerancia (+-3s)";
-    default:               return "";
-  }
-}
-
 void modo_degradado_publicarConfig() {
   // El segundo argumento es el despeje YA AMPLIADO, que es lo que exige el contrato:
   // el Esclavo lo aplica tal cual. Es la MISMA constante que alimenta a
@@ -789,9 +765,8 @@ void modo_degradado_setup() {
   if (motivo != MDG_OK) {
     estado = DEG_RECHAZO;
     semaforo_forzarRojo();
-    // D-32 (1): el motivo ya no se pinta. SIGUE PUBLICANDOSE: modo_degradado_motivoL1()
-    // y motivoL2() las lee bluetooth.cpp para el $ERR del rechazo, que es hoy la unica
-    // via por la que el tecnico sabe por que no entro.
+    // D-46: sin SET_MODO:DEGRADADO no queda entrada que llegue aqui sin reanudar; la puerta
+    // se conserva para cualquier modoActual_set(MODO_DEGRADADO) futuro. Ya no hay $ERR.
     return;
   }
 
@@ -950,29 +925,15 @@ void modo_degradado_loop() {
   // el ROJO ENCENDIDO: mientras dure un amarillo de cierre, su reloj no empieza.
   if (semaforo_estado() == S_AMARILLO) tEstado = millis();
 
-  // El flanco se lee UNA sola vez y se guarda. Consultarlo dos veces lo consumiria en
-  // la primera y la segunda comprobacion no lo veria nunca: el boton parece que no
-  // responde y nadie entiende por que.
-  const bool salir = botonCancelar();
-
-  // Boton 4: salir. Se pasa por todo-rojo ANTES de devolver el mando al menu, en los
-  // dos sentidos de la transicion. La verificacion visual de las dos puntas es
-  // obligatoria tambien AL SALIR, no solo al entrar: el escenario peligroso de este
-  // modo es que una sola punta lo abandone.
-  //
-  // El cuerpo se mudo a modo_degradado_pedirSalida() sin tocarlo, porque el despachador
-  // de Bluetooth necesita ESTA salida y no otra: dos formas de abandonar el modo serian
-  // dos criterios, y en la calle mandaria el mas flojo.
-  if (salir && modo_degradado_pedirSalida()) {
-    return;
-  }
+  // D-44: aqui se leia el boton 4 (salir). Del Degradado se sale por la app con
+  // SET_MODO:MENU, que llama a modo_degradado_pedirSalida(): la misma salida por todo-rojo.
 
   switch (estado) {
 
     case DEG_RECHAZO:
       // Vuelve solo al menu. Que el equipo se quede parado en una pantalla de error
       // esperando a que alguien la lea es como se pierden las obras de vista.
-      if (salir || millis() - tEstado >= RECHAZO_MS) {
+      if (millis() - tEstado >= RECHAZO_MS) {
         modoActual_set(MENU);
         menu_setup();
       }

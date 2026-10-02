@@ -97,7 +97,7 @@ static void oirPresente() {
 }
 
 bool degAuto_alRecibir(const RF_Packet* pkt) {
-  // PRESENTE no es respuesta: no renueva tUltimaRespuestaEsclavo ni pone handshakeOk.
+  // PRESENTE no es respuesta: no renueva tUltimaRespuestaEsclavo.
   if (pkt->command == CMD_PRESENTE) {
     oirPresente();
     return true;

@@ -388,7 +388,7 @@ class AmbarEmergencia:
 class Esclavo:
     """Puerto del loop() de src/main.cpp, con su misma secuencia de llamadas.
 
-    El ORDEN importa y por eso se respeta: los flancos primero, luego las luces, la
+    El ORDEN importa y por eso se respeta: las camaras primero, luego las luces, la
     radio en medio y el SOSTENEDOR DEL AMBAR al final, que es lo que hace que la
     ultima palabra de cada vuelta sea del latch y no de una orden de radio que acabe
     de llegar. Hasta el 14/09 el que cerraba la vuelta era mando_actualizar(), en el
@@ -397,7 +397,6 @@ class Esclavo:
 
     def __init__(self, obedece_ambar_emergencia=True):
         self.t = 0
-        self.flanco = [False] * 4
         self.semaforo = Semaforo(self)
         self.degradado = ModoDegradado(self)
         self.ambar = AmbarEmergencia(self)
@@ -504,16 +503,6 @@ class Esclavo:
         self.respaldo_despeje = despeje
         self.respaldo_hay_ciclo = True
         self.respaldo_guardados.append((verde, despeje))
-
-    # --- botones ---------------------------------------------------------
-    def consumir_boton(self, idx):
-        v = self.flanco[idx]
-        self.flanco[idx] = False
-        return v
-
-    def pulsar(self, idx, paso=10):
-        self.flanco[idx] = True
-        self.loop(paso)
 
     # --- radio -----------------------------------------------------------
     def programar_respuesta(self, cmd, param=0):
@@ -641,11 +630,7 @@ class Esclavo:
     def loop(self, dt=10):
         self.t += dt
 
-        # botones_actualizar(): el mando ve los pulsos ANTES que ninguna pantalla
-        # D-30 (14/09): aqui botones_actualizar() pasaba cada flanco de BOTON1/BOTON2
-        # al reconocedor de secuencias del mando, ANTES que ninguna pantalla. El
-        # firmware dejo de hacerlo el 14/09 y el modulo salio entero: los pines se
-        # siguen leyendo, pero ya no alimentan nada que mueva la luz.
+        # D-44: botones_actualizar() ya solo lee las camaras de J16; p5/p8 no se leen.
 
         self.semaforo.actualizar()
         self._atender_respuesta_pendiente()
@@ -685,7 +670,6 @@ class Esclavo:
 
         # D-32 (1): aqui iba `if self.interfaz_arrancada: self.menu.loop()`.
         self.ambar.actualizar()
-        self.flanco = [False] * 4
 
     # --- utilidades del banco --------------------------------------------
     def correr(self, ms, paso=10):

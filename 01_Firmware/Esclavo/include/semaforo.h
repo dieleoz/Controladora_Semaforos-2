@@ -10,7 +10,6 @@ void semaforo_apagarTodo();
 // rojo llega despues; con el cierre en curso no lo reinicia, y forzarVerde() no lo reabre.
 void semaforo_forzarRojo();
 void semaforo_forzarVerde();
-void semaforo_toggle();
 void semaforo_iniciarFallo();
 void semaforo_actualizar();
 bool semaforo_estable();
@@ -30,9 +29,6 @@ const char* semaforo_nombreEstado();
 // guarda de aplicarSalidas() no volvia a disparar: era un camino que ningun
 // instrumento podia ejercer, y eso es lo que CLAUDE.md 6 prohibe dejar dentro.
 // Sale entero, no a medias. El equipo escribe las luces por el camino normal.
-// Test de lámparas de 6 segundos en taller (2s Rojo -> 2s Amarillo -> 2s Verde)
-void semaforo_iniciarTestLeds();
-bool semaforo_testLedsEnCurso();
 
 // ---------------------------------------------------------------------------
 // N-153 - EL ESTADO DE LA PLUMA, PUBLICADO.

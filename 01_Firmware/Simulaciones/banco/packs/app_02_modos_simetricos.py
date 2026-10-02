@@ -82,14 +82,15 @@ SIN_SET_MODO_A_PROPOSITO = {
         "degradado_comprobar() lo rechaza al reentrar -DEG_RECHAZO_SYNC_VENCIDA-, "
         "para que "
         "no se convierta en un boton de posponer.",
-    "HORA":
-        "MODO_HORA es la pantalla AJUSTAR HORA (SFTY-18), que se edita DIGITO A "
-        "DIGITO con los botones fisicos o el mando de reles y solo escribe al RTC "
-        "al confirmar. Mandarla por Bluetooth dejaria al equipo plantado en una "
-        "pantalla de edicion que nadie esta operando en el poste, y sin ciclo. La "
-        "via remota para poner el reloj ya existe: es SET_RTC, que el propio SFTY-18 "
-        "nombra como sustituto de esa pantalla. Desde el 11/09 SET_RTC lo atiende el "
-        "puente (el DS3231) y la hora le llega al STM32 como CMD:HORA_ESP32 (D-20).",
+    # D-44: sale la excepcion "HORA" -MODO_HORA salio del firmware y ninguna punta
+    # lo emite ya-. D-46: entra "DEGRADADO", en las dos puntas.
+    "DEGRADADO":
+        "al Degradado se entra por el testigo, D-35/D-46: SET_MODO:DEGRADADO salio del "
+        "firmware de las dos puntas y la orden que lo pide es SET_MODO:DEG_T:<ahora,inicio,"
+        "verde,despeje> (degradado_entrarTestigo() en el Esclavo, modo_degradado_entrarTestigo() "
+        "en el Maestro). Se SALE como antes: SET_MODO:MENU en el Poste 1 (todo-rojo) y "
+        "AMBAR_EMERGENCIA en el Poste 2. La telemetria lo sigue emitiendo porque el modo "
+        "existe y gobierna la luz: lo que cambio es la puerta, no el estado.",
 }
 
 # El rotulo del `default:` del switch no es un modo: es lo que la telemetria dice
@@ -142,7 +143,7 @@ def _acepta_set_modo(codigo):
 
 # DONDE VIVE EL ENUM, CON EL ROL ESCRITO Y POR PUNTA.
 #
-# Hasta el 28/08 esto era fw.codigo(punta, "include", "menu.h"): el enum ModoSistema
+# Hasta el 28/08 esto leia include/menu.h de cada punta: el enum ModoSistema
 # vivia dentro de la cabecera de la pantalla. Al sacarlo a modos.h -el modo lo
 # consultan main.cpp, mando.cpp y bluetooth.cpp, que no dibujan nada- la ruta se
 # reapunta EN EL MISMO COMMIT que el traslado. Si no, este pack no encontraria el enum
@@ -283,7 +284,11 @@ def correr(b, fw):
                 "pack censa ramas exactas strcmp(accion,\"SET_MODO:X\") y con la "
                 "forma por prefijo su censo se queda corto: acusaria al firmware de "
                 "no aceptar modos que si acepta. Se arregla el pack" % p)
-        if not acepta:
+        # D-46: el Esclavo se quedo SIN ninguna rama exacta SET_MODO:X -la unica era
+        # SET_MODO:DEGRADADO- y todo lo que emite esta exceptuado por escrito. Ahi un censo
+        # vacio es la verdad, no un buscador ciego (el control negativo de abajo prueba el
+        # buscador). Solo se aborta si hay algo que exigir y nada contra que compararlo.
+        if not acepta and (emite - set(SIN_SET_MODO_A_PROPOSITO)):
             raise fw.Abortado(
                 "%s: el despachador no tiene ni una rama strcmp(accion,\"SET_MODO:"
                 "X\"). O cambio de forma o el buscador esta roto; comparar contra "

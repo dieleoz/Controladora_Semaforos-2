@@ -60,8 +60,8 @@
 #include "Arduino.h"
 #include "pines.h"
 #include "botones.h"
-#include "lcd.h"
 #include "menu.h"
+#include "modos.h"   // D-44: lo traia el sustituto de menu.h, que salio
 
 #include "coordinador.h"
 #include "semaforo.h"
@@ -85,19 +85,9 @@ unsigned long arnes_toques[64];
 // estaria moviendo tramas truncadas entre las dos puntas y nadie lo notaria.
 static_assert(sizeof(RF_Packet) == 4, "RF_Packet dejo de medir 4 bytes");
 
-// ---------------------------------------------------------------------------
-// BOTONES SIMULADOS. Cada bool se consume solo (como el real: leerlo lo gasta).
-// [bloque literal de arnes_automatico.cpp]
-// ---------------------------------------------------------------------------
-static bool g_pulsarArriba = false, g_pulsarAbajo = false;
-static bool g_pulsarAceptar = false, g_pulsarCancelar = false;
-
+// D-44: aqui vivian los cuatro botones simulados; el firmware ya no los lee.
 void botones_setup() {}
 void botones_actualizar() {}
-bool botonArriba()   { bool v = g_pulsarArriba;   g_pulsarArriba = false;   return v; }
-bool botonAbajo()    { bool v = g_pulsarAbajo;    g_pulsarAbajo = false;    return v; }
-bool botonAceptar()  { bool v = g_pulsarAceptar;  g_pulsarAceptar = false;  return v; }
-bool botonCancelar() { bool v = g_pulsarCancelar; g_pulsarCancelar = false; return v; }
 // D-33 (14/09/2026): NO HAY CAMARAS EN ESTE BANCO, y por eso contesta que no hay nadie.
 // Es la respuesta correcta para un equipo con las borneras de J16 vacias -el pull-down
 // de 10K deja los pines bajos para siempre-, no un "por ahora". Lo que este arnes mide
@@ -117,12 +107,6 @@ void bluetooth_reportarAlarma(const char* evento, const char* causa, const char*
 }
 void bluetooth_reportarEvento(const char*, const char*) {}
 
-// ---------------------------------------------------------------------------
-// PANTALLA SIMULADA. Solo cuenta llamadas: este arnes mide el CICLO, no el dibujo.
-// ---------------------------------------------------------------------------
-static unsigned long g_lcdRedibujos = 0;
-void lcd_dibujarAutomatico(const char*, int, int) { g_lcdRedibujos++; }
-void lcd_dibujarConfigValor(const char*, int, const char*) { g_lcdRedibujos++; }
 void menu_setup() {}
 
 // modoActual_get()/set() DE VERDAD: los leen coordinador.cpp y modo_automatico.cpp
@@ -228,13 +212,8 @@ bool protocolo_hayPaqueteDisponible(RF_Packet* destino) {
 // UN TICK DE main.cpp, EN EL ORDEN REAL.
 // [bloque literal de arnes_automatico.cpp::pasoPrincipal()]
 //
-// g_pendA/g_pendB son los dos botones fisicos del gabinete (Boton1/Boton2), y siguen
-// difiriendose un tick a proposito: es lo que hace botones_actualizar() en el equipo.
-// D-30 (14/09): ademas de encender el flag del boton, alimentaban
-// mando_registrarPulso() -el rele del mando iba EN PARALELO con estos dos pulsadores-.
-// Retiradas las botoneras, lo que queda es el pulsador y nada mas.
+// D-44: aqui iban g_pendA/g_pendB, los botones de J16 p5/p8 diferidos un tick.
 // ---------------------------------------------------------------------------
-static bool g_pendA = false, g_pendB = false;
 
 // N-142 (11/09): EL TRAMO DE main.cpp QUE CONSUME EL AVISO DEL ESCLAVO, TRANSCRITO EN SU
 // SITIO Y EN SU ORDEN. Es lo unico de main.cpp que decide luz en este camino y no estaba.
@@ -259,10 +238,6 @@ static ModoSistema modoAnterior = MENU;
 static unsigned long g_entradasAmbar = 0;
 
 static void pasoPrincipal() {
-  if (g_pendA) { g_pulsarArriba = true; }
-  if (g_pendB) { g_pulsarAbajo = true; }
-  g_pendA = g_pendB = false;
-
   semaforo_actualizar();
 
   ModoSistema modo = modoActual_get();
@@ -336,25 +311,14 @@ PUNTA_API void punta_entrada(int pin, int nivel) {
   if (pin >= 0 && pin < 64) arnes_entradas[pin] = nivel;
 }
 
-PUNTA_API void punta_pulsar(int boton) {
-  switch (boton) {
-    case 1: g_pendA = true; break;
-    case 2: g_pendB = true; break;
-    case 3: g_pulsarAceptar = true; break;
-    case 4: g_pulsarCancelar = true; break;
-    default: break;
-  }
-}
-
 PUNTA_API long punta_mando(const char* que, long arg) {
   // Arranca un modo Automatico limpio: CONFIG_ROJO -> CONFIG_VERDE -> CONFIG_ESTATICO
   // -> CORRIENDO, aceptando lo configurado. Es la puerta de entrada real al ciclo.
   if (!strcmp(que, "arrancar_automatico")) {
     coordinador_setup();
     g_modoActual = MODO_AUTOMATICO;
-    g_pulsarArriba = g_pulsarAbajo = g_pulsarAceptar = g_pulsarCancelar = false;
     modoAutomatico_setup();
-    for (int i = 0; i < 3; i++) { g_pulsarAceptar = true; modoAutomatico_loop(); }
+    for (int i = 0; i < 3; i++) { modoAutomatico_loop(); }
     return modoAutomatico_enMarcha() ? 1 : 0;
   }
   // verde/rojo en minutos y despeje en segundos, empaquetados: v*10000 + r*100 + d.
@@ -372,7 +336,6 @@ PUNTA_API long punta_mando(const char* que, long arg) {
     return (arg >= 0 && arg < 64) ? (long)arnes_toques[arg] : -1;
   if (!strcmp(que, "tramas_emitidas"))    return (long)g_tramasEmitidas;
   if (!strcmp(que, "alarmas"))            return (long)g_alarmasEmitidas;
-  if (!strcmp(que, "redibujos"))          return (long)g_lcdRedibujos;
   // N-162: lo que el campo ESC: del $STATUS diria en este instante -la funcion REAL
   // de coordinador.cpp, no una copia-. La cinta del Sisga lo pillo diciendo VERDE con
   // el Esclavo ya en rojo y el Maestro en ambar.

@@ -20,8 +20,8 @@
 // llegaba a C_IDLE.
 //
 // EL CAMBIO DE SENTIDO NO HABIA QUE CONSTRUIRLO: ya existe entero en
-// coordinador_pedirCambio() -verde a rojo directo, todo-rojo de despeje, y los 4 s de
-// ambar SOLO al pasar de rojo a verde, que es justo lo que pidio el responsable-. Lo
+// coordinador_pedirCambio() -verde, amarillo de cierre, todo-rojo de despeje y rojo a
+// verde directo, la secuencia de la norma (D-45)-. Lo
 // unico que faltaba era poder LLEGAR a el.
 //
 // SE RETIRA EL ENUM ENTERO, no se deja con un valor. Es §3.septies literal: en el
@@ -66,7 +66,7 @@ void modoManual_setup() {
   //
   // "el boton dar paso maestro queda en rojo, pasan 15 seg y ... pasa a ambar
   // intermitente". Los 15 s no son una coincidencia: tiempoDespejeMs vale 15000 ms por
-  // defecto, y ese ambar es la transicion rojo->AMBAR 4 s->verde que el propio Maestro
+  // defecto, y ese ambar era la transicion rojo->ambar->verde de entonces (D-45 la quito) que el Maestro
   // arranca al vencer el plazo. El equipo estaba haciendo un ciclo que nadie pidio.
   //
   // Lo decidio el responsable el 04/09, y es la definicion del modo: "en manual, dar
@@ -80,30 +80,8 @@ void modoManual_setup() {
 }
 
 void modoManual_loop() {
-  if (botonCancelar()) {
-    modoActual_set(MENU);
-    menu_setup();
-    return;
-  }
-
-  // EL MANDO A/B NO DA PASO, Y ES UNA DECISION PENDIENTE, NO UN OLVIDO.
-  //
-  // Aqui habia `if (botonArriba() || botonAbajo()) coordinador_pedirCambio();`, muerto
-  // desde el 31/08 por estar detras de la fase inalcanzable. Al retirar la fase reviviria
-  // SOLO, y con el mando de reles conectado eso significa que UN PULSO SUELTO de A o de B
-  // cambia el sentido del trafico.
-  //
-  // No se reactiva sin que el responsable lo decida: dar paso ABRE paso, y anadir una via
-  // nueva de abrirlo -que ademas es un mando a distancia- no es una consecuencia
-  // colateral que deba colarse dentro del arreglo de otra cosa. Hoy el paso se da desde
-  // la app, que ademas pregunta si el tramo esta despejado.
-  //
-  // Las secuencias A.A.A y B.B.B del mando siguen funcionando: mando.cpp lee los mismos
-  // flancos y este bloque no las consumia.
-
-  // SFTY-12 tambien se queda fuera por lo mismo: colgaba de botonAceptar(), que no puede
-  // ser cierto. El rojo fijo se pide hoy con FORZAR_ROJO desde la app -sin PIN, porque
-  // parar es la direccion segura- y esa via SI esta ejercida.
+  // D-44: el paso se da desde la app (MANUAL:CAMBIAR_TURNO) y el rojo con FORZAR_ROJO;
+  // ya no hay botones que lean este bucle.
 
   coordinador_actualizar();
 

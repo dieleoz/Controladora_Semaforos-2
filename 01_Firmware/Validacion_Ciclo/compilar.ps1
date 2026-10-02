@@ -11,7 +11,7 @@
 $ErrorActionPreference = 'Stop'
 $AQUI = Split-Path -Parent $MyInvocation.MyCommand.Path
 $INC_FIRMWARE = Join-Path $AQUI '..\Maestro\include'
-$STUB = Join-Path $AQUI '..\Validacion_LCD'      # el Arduino.h minimo, ya existente
+$STUB = $AQUI      # el Arduino.h minimo (D-44: mudado aqui desde Validacion_LCD)
 $BUILD = Join-Path $AQUI 'build'
 
 if (-not (Test-Path $BUILD)) { New-Item -ItemType Directory -Path $BUILD | Out-Null }

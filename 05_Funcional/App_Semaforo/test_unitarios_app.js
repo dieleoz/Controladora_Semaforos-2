@@ -289,9 +289,9 @@ runTest('Comandos', 'Generación de comando FORZAR_ROJO de emergencia', () => {
   assert.strictEqual(cmd, 'CMD:PIN:1234:FORZAR_ROJO\r\n');
 });
 
-runTest('Comandos', 'Generación de comando SOLICITAR_PASO desde Esclavo', () => {
-  const cmd = buildCommand('1234', 'SOLICITAR_PASO');
-  assert.strictEqual(cmd, 'CMD:PIN:1234:SOLICITAR_PASO\r\n');
+runTest('Comandos', 'Generación de comando CANCELAR_AMBAR desde Esclavo (D-46: SOLICITAR_PASO salio)', () => {
+  const cmd = buildCommand('1234', 'CANCELAR_AMBAR');
+  assert.strictEqual(cmd, 'CMD:PIN:1234:CANCELAR_AMBAR\r\n');
 });
 
 runTest('Comandos', 'Generación de comando SET_TIEMPOS:5,6,30', () => {

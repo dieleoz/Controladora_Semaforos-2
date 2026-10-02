@@ -303,7 +303,6 @@ typedef unsigned long (*FnEscrituras)(void);
 typedef int  (*FnTx)(unsigned char*);
 typedef void (*FnRx)(const unsigned char*);
 typedef void (*FnEntrada)(int, int);
-typedef void (*FnPulsar)(int);
 typedef long (*FnMando)(const char*, long);
 typedef long (*FnDomLeer)(int);
 typedef void (*FnDomEscribir)(int, long);
@@ -322,7 +321,6 @@ struct Punta {
   FnTx          tx = nullptr;
   FnRx          rx = nullptr;
   FnEntrada     entrada = nullptr;
-  FnPulsar      pulsar = nullptr;
   FnMando       mando = nullptr;
   FnDomLeer     domLeer = nullptr;
   FnDomEscribir domEscribir = nullptr;
@@ -351,7 +349,6 @@ struct Punta {
     tx          = resolver<FnTx>("punta_tx");
     rx          = resolver<FnRx>("punta_rx");
     entrada     = resolver<FnEntrada>("punta_entrada");
-    pulsar      = resolver<FnPulsar>("punta_pulsar");
     mando       = resolver<FnMando>("punta_mando");
     domLeer     = resolver<FnDomLeer>("punta_dominio_leer");
     domEscribir = resolver<FnDomEscribir>("punta_dominio_escribir");

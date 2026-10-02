@@ -56,8 +56,8 @@
 #include "Arduino.h"
 #include "pines.h"
 #include "botones.h"
-#include "lcd.h"
 #include "menu.h"
+#include "modos.h"   // D-44: lo traia el sustituto de menu.h, que salio
 
 #include "coordinador.h"
 #include "semaforo.h"
@@ -365,19 +365,6 @@ void bluetooth_reportarEvento(const char* tipo, const char* detalle) {
 static void pulsarAceptar() {
   modoAutomatico_loop();
 }
-
-// ---------------------------------------------------------------------------
-// PANTALLA SIMULADA. Solo registra la ultima llamada: este arnes mide el CICLO, no
-// el dibujo -eso ya lo cubre Validacion_LCD sobre el lcd.cpp real-.
-// ---------------------------------------------------------------------------
-static unsigned long g_lcdRedibujos = 0;
-
-void lcd_dibujarAutomatico(const char* nombreEstado, int, int) {
-  g_lcdRedibujos++;
-  (void)nombreEstado;
-}
-void lcd_dibujarConfigValor(const char*, int, const char*) { g_lcdRedibujos++; }
-void lcd_dibujarInteligente(const char*, int, bool) { g_lcdRedibujos++; }
 
 void menu_setup() {}
 
@@ -2074,9 +2061,7 @@ int main() {
   std::printf("==============================================================\n");
   std::printf(" Medido sobre coordinador.cpp + semaforo.cpp + modo_automatico.cpp +\n");
   std::printf(" botones.cpp (D-13) + modo_inteligente.cpp y demanda.cpp (A-12) REALES,\n");
-  std::printf(" compilados para el PC. %lu redibujos de\n",
-              g_lcdRedibujos);
-  std::printf(" pantalla observados, %lu escrituras de pin observadas.\n",
+  std::printf(" compilados para el PC. %lu escrituras de pin observadas.\n",
               arnes_escrituras);
   std::printf(" Ningun paso de este arnes reimplementa el ciclo: lo que se mide es el\n");
   std::printf(" binario, no un modelo de el.\n");

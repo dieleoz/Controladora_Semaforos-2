@@ -986,15 +986,6 @@ body {
   filter: grayscale(1);
 }
 
-.degradado-lista {
-  margin: 0 0 14px 16px;
-  padding: 0;
-  font-size: 11px;
-  color: var(--text-secondary);
-}
-
-.degradado-lista li { margin-bottom: 6px; }
-
 .degradado-check {
   display: flex;
   align-items: flex-start;

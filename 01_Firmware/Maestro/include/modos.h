@@ -20,7 +20,6 @@ enum ModoSistema {
   MODO_AUTOMATICO,
   MODO_INTELIGENTE,
   MODO_ALCANCE,
-  MODO_HORA,       // SFTY-18: ajuste del reloj. No arranca ciclos.
   MODO_DEGRADADO,  // SFTY-21: operacion por reloj, sin radio. Activacion MANUAL.
 
   // SFTY-21: ambar intermitente pedido a proposito, no por fallo.

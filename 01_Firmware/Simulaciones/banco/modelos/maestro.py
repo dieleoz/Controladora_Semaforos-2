@@ -37,10 +37,6 @@ def cte(partes, patron, base=10):
 SEM = ("Maestro", "src", "semaforo.cpp")
 AMBAR_FALLO_PERIODO_MS = cte(SEM, r"ahora\s*-\s*tCambio\s*>=\s*(\d+)\)\s*\{\s*\n\s*tCambio")
 
-# --- botones.cpp -----------------------------------------------------------
-BOT = ("Maestro", "src", "botones.cpp")
-FLANCO_MS = cte(BOT, r"FLANCO_MS\s*=\s*(\d+)")
-
 # --- modo_degradado.cpp (la puerta) ----------------------------------------
 DEG = ("Maestro", "src", "modo_degradado.cpp")
 SYNC_FRESCA_MS = cte(DEG, r"SYNC_FRESCA_MS\s*=\s*(\d+)")

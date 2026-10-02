@@ -246,12 +246,6 @@ void modoAutomatico_setup() {
 }
 
 void modoAutomatico_loop() {
-  if (botonCancelar()) {
-    modoActual_set(MENU);
-    menu_setup();
-    return;
-  }
-
   // N-135: LA LLAMADA AL COORDINADOR ES INCONDICIONAL, Y ESO NO ES ESTILO.
   // main.cpp EXCLUYE a este modo del refresco de fondo, asi que si esta llamada
   // quedara dentro de una rama que pudiera no alcanzarse, el Maestro se quedaria

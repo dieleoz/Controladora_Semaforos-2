@@ -154,12 +154,6 @@ void modoInteligente_setup() {
 }
 
 void modoInteligente_loop() {
-  if (botonCancelar()) {
-    modoActual_set(MENU);
-    menu_setup();
-    return;
-  }
-
   {
       coordinador_actualizar();
 

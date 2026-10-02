@@ -5,7 +5,6 @@
 #include "demanda.h"    // la puerta unica por la que sale una demanda
 #include "reloj.h"           // SFTY-23
 #include "botones.h"         // N-16
-#include "menu.h"            // N-16
 #include "config_ciclo.h"    // SFTY-23: lo que este fichero publica para el Degradado
 #include "modo_degradado.h"  // SFTY-21
 #include "respaldo.h"        // N-20: lo que sobrevive al corte de energia
@@ -168,17 +167,6 @@ static int8_t calcularDesfase(uint8_t segundoMaestro) {
   return (int8_t)d;
 }
 
-// N-16: la bienvenida se sostiene por tiempo, no con delay().
-//
-// El Maestro se permite un delay(2000) porque lo hace ANTES de armar el
-// watchdog. Aqui el watchdog se arma lo primero (ver el razonamiento del cristal
-// Y2, mas abajo) y un delay de dos segundos seria medio periodo del perro
-// guardian gastado en un logotipo. Peor todavia: durante esos dos segundos el
-// equipo no leeria la radio, y este nodo es el que enciende las luces.
-static const unsigned long BIENVENIDA_MS = 1500;
-static unsigned long tArranque = 0;
-static bool interfazArrancada = false;
-
 void setup() {
   // LAS LUCES PRIMERO, SIEMPRE. Pase lo que pase mas abajo, el cruce ya esta en rojo
   // y es un semaforo. Esa parte del orden no se toca.
@@ -308,7 +296,6 @@ void setup() {
   // D-47: el rojo fijo por falta de hora sobrevive al corte; desde ahi se sale como hoy.
   if (respaldo_rojoSinHora()) degradado_arrancarEnRojoSinHora();
 
-  tArranque = millis();
 }
 
 void loop() {
@@ -323,13 +310,7 @@ void loop() {
   reloj_actualizar();
 
 
-  // SFTY-21: los cuatro flancos se detectan AQUI, una sola vez y antes que nada.
-  // Dentro, botones.cpp le ensena los pulsos de A y B al mando sin consumirlos.
-  //
-  // Tiene que ir antes de menu_loop() y antes de cualquier cosa que lea un boton: si
-  // la deteccion siguiera repartida dentro de cada botonX(), las pulsaciones que
-  // ninguna pantalla consulta no existirian para nadie, y el operario del piso habria
-  // pulsado tres veces sin que el equipo contase ninguna.
+  // Las camaras de J16, una vez por iteracion y antes que nada (D-44: p5/p8 ya no se leen).
   botones_actualizar();
 
   // Telemetría periódica y comandos por Bluetooth en USART1
@@ -419,7 +400,7 @@ void loop() {
     } else if (pkt.command == CMD_GO_AMBAR) {
       verdeSoltadoPorMargen = false;   // D-34: una orden de luz redefine la intencion
       // N-134 (04/09): EL AMBAR ORDENADO. Reportado en banco: "si le vuelvo a ambar,
-      // ese cambia a ambar pero este no" -y luego, 25 s despues, si-.
+      // ese cambia a ambar pero este no" -y luego, pasado SFTY6_SILENCIO_MS, si-.
       //
       // Se reutiliza semaforo_iniciarFallo(), que es EXACTAMENTE la misma puerta por la
       // que esta punta entra en ambar por orfandad unas lineas mas abajo. No es una luz
@@ -780,7 +761,7 @@ void loop() {
       //
       // El nombre del evento NO lleva el numero dentro. El ejemplo del header decia
       // "FALLO_RF_12S", y ese literal habria quedado mintiendo el dia que el umbral
-      // paso a 25 s (N-71). El umbral va en la causa, no en el nombre.
+      // cambio (N-71; hoy SFTY6_SILENCIO_MS). El umbral va en la causa, no en el nombre.
       //
       // D-26 (5): ESTA ES LA ALARMA QUE MANDA AL USUARIO A PONERLE LA HORA A ESTE POSTE.
       // Sin radio la hora del Maestro ya no llega, y desde D-26 (3) esta punta pasa a
@@ -855,23 +836,7 @@ void loop() {
     ackVerdeEnviado = true;
   }
 
-  // N-16: interfaz, siempre al final del bucle.
-  //
-  // El volcado del framebuffer a la ST7920 por SPI de software cuesta decenas de
-  // milisegundos, asi que va DESPUES de atender la radio y las luces: si alguna
-  // vuelta se alarga, lo que se retrasa es el repintado de una pantalla y no una
-  // orden de semaforo. El repintado periodico esta acotado a una vez por segundo
-  // dentro de menu.cpp, muy por debajo de los 4 s del watchdog.
-  if (!interfazArrancada) {
-    // La bienvenida se retira por tiempo transcurrido, sin bloquear: durante esos
-    // 1,5 s el equipo ya esta escuchando la radio y obedeciendo ordenes.
-    if (millis() - tArranque >= BIENVENIDA_MS) {
-      interfazArrancada = true;
-      menu_setup();
-    }
-  } else {
-    menu_loop();
-  }
+  // D-44: aqui iban la bienvenida y el menu del Esclavo; salieron sin nada que dibujar.
 }
 
 

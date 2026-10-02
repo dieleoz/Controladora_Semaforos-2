@@ -8,11 +8,9 @@
 #include "protocolo.h"
 
 void coordinador_setup();
-void coordinador_reiniciarConexion();
 void coordinador_forzarMenu();
 void coordinador_forzarRojoTotal();
 void coordinador_iniciarModo();
-bool coordinador_intentarHandshake();
 void coordinador_configurar(unsigned long tiempoEstaticoMs, unsigned long minRojoMs, unsigned long minVerdeMs);
 void coordinador_pedirCambio();
 void coordinador_actualizar();
@@ -24,7 +22,6 @@ unsigned long coordinador_msDesdeRespuesta();
 // N-82.bis: true solo en C_MENU_IDLE y con el ACK_RED del Esclavo a la orden de rojo de
 // esta entrada al menu. Es lo que hace seguro el test de lamparas del Maestro.
 bool coordinador_rojoEsclavoConfirmado();
-void coordinador_reiniciarConexion();
 const char* coordinador_nombreEstadoMaster();
 
 // ---------------------------------------------------------------------------
@@ -183,10 +180,6 @@ static const int LATIDOS_SIN_RESPUESTA_MAX = 999;
 // El true significa "peticion aceptada", no "el Esclavo ya la aplico"; para eso esta
 // coordinador_msDesdeUltimaSync().
 bool coordinador_sincronizarHora();
-
-// Encola una medicion de desfase (CMD_DELTA). Mismo criterio: sin hora fiable en el
-// Maestro la diferencia no significa nada, y devuelve false.
-bool coordinador_medirDesfase();
 
 // Encola la configuracion del ciclo (verde y despeje, en segundos). Dos relojes en
 // hora dan tiempo comun, pero para ir en FASE ambas puntas deben computar el mismo

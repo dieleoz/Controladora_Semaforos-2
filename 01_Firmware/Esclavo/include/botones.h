@@ -3,57 +3,18 @@
 #include <Arduino.h>
 
 // ---------------------------------------------------------------------------
-// N-16 — Botonera del Esclavo.
-//
-// Esta cabecera existia desde hace meses copiada del Maestro y SIN ningun .cpp
-// que la implementara: prometia cuatro botones en un firmware que no leia
-// ninguno. Desde el 01/08/2026 la implementa src/botones.cpp, portado tal cual
-// del Maestro, y deja de mentir.
-//
-// El antirrebote y la ventana de flanco son IGUALES a los del Maestro a
-// proposito. Los cuatro pulsadores estan en paralelo con el mando de reles del
-// operario (ver SFTY-21), que entrega pulsos de ~2 s sin repeticion: dos puntas
-// con criterios distintos de que es "una pulsacion" harian que la misma orden se
-// leyera distinto en cada gabinete.
+// N-16: portado del Maestro. D-44: de J16 solo quedan las dos camaras (PB14, PB15).
 // ---------------------------------------------------------------------------
 
 void botones_setup();
 
 // ---------------------------------------------------------------------------
-// SFTY-21 — La deteccion de flancos se hace UNA VEZ POR ITERACION, aqui, y no
-// dentro de cada botonX() como hacia la version portada del Maestro en N-16.
-//
-// El motivo es el mando de reles, y es el mismo que obligo a cambiarlo en el
-// Maestro: sus secuencias (A.A.A, B.B.B, A.B.A.B) tienen que verse SIEMPRE, sin
-// que importe que la pantalla en la que este el equipo lea o no ese boton. Con la
-// deteccion metida dentro de botonArriba(), una pantalla que no consultase el
-// Boton 1 hacia que esas pulsaciones NO EXISTIERAN PARA NADIE: el operario habria
-// pulsado tres veces desde el suelo y el equipo no habria contado ninguna.
-//
-// En el Esclavo el agujero era todavia mas ancho que en el Maestro. Durante el
-// segundo y medio de bienvenida menu_loop() ni siquiera corre, asi que sin esta
-// llamada nadie leeria los pulsadores en todo ese rato.
-//
-// Efecto secundario bueno: antes, si una pantalla dejaba de consultar un boton
-// durante un rato, la pulsacion quedaba latente y se disparaba en cuanto alguien
-// preguntaba, aunque hubiera ocurrido mucho antes. Ahora el flanco vive solo la
-// iteracion en la que ocurre.
-//
-// DEBE llamarse al principio del loop principal, antes de atender nada mas.
+// Lee las camaras de J16 una vez por iteracion (D-44: p5/p8 ya no se leen).
+// DEBE llamarse al principio del loop principal, antes de atender ningun modo.
 void botones_actualizar();
 
-// Estas siguen CONSUMIENDO el flanco: leerlo lo gasta.
-bool botonArriba();
-bool botonAbajo();
-
-// ACEPTAR y CANCELAR YA NO TIENEN SUJETO (31/08/2026). Sus pines -PB14 y PB15, J16 p10 y
-// p12- son camaras desde esa fecha, asi que las dos devuelven siempre false. Se conservan
-// declaradas a proposito, y el censo de lo que se pierde y de con que se sustituye cada
-// caso esta en botones.cpp, junto a las definiciones. No se llaman en vano: mientras
-// existan, "git grep botonCancelar" sigue listando de una sola vez todo lo que la
-// retirada de los botones C y D dejo sin mando fisico.
-bool botonAceptar();
-bool botonCancelar();
+// D-44: botonArriba()/botonAbajo() y botonAceptar()/botonCancelar() salieron con la
+// lectura de J16 p5/p8: el menu, el Modo Hora y las salidas por boton ya no existen.
 
 // ---------------------------------------------------------------------------
 // D-12: DE CADA CAMARA ESTE SISTEMA CONSUME UN CONTACTO SECO, Y NADA MAS. No hay red
