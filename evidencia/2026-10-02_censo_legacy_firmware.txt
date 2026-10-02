@@ -1,0 +1,41 @@
+CENSO DEL LEGACY DEL FIRMWARE (fase G1), 02/10/2026, HEAD 2283374 (firmware igual a d3606be). Solo lectura.
+
+YA NO ESTA: el LCD (17d3a1f, 13/09: lcd.cpp/.h, U8g2) y el mando A/B/C/D (f57a401, 14/09: mando.cpp/.h,
+mando_ambarLocal, semaforo_senalEnCurso, intercepcion de escribirPines). grep sin comentarios = 0.
+QUEDA la cola de interfaz: lectura de J16 p5/p8, botones, navegacion de menu.cpp, Modo Hora, semaforo_toggle().
+
+TANDA 1, MUERTO O INOFENSIVO (propuesta D-44; ningun veto queda abierto, §6.2)
+- Esclavo menu.cpp/.h + bienvenida (MUERTA de hecho).
+- Maestro Modo Hora: modo_hora.*, MODO_HORA, case 1 de menu.cpp, testLedsAdmitido, rama TEST_LEDS/"HORA"
+  (inalcanzable: no hay SET_MODO:HORA). Arrastra app.js estilo 'HORA', excepcion "HORA" de app_02, SFTY-20 en
+  OPTIMIZACIONES -> modo_hora.h.
+- Maestro menu_loop (navegacion); menu_setup() SE QUEDA (todo-rojo; SET_MODO:MENU; espera de D-29).
+- botonAceptar/botonCancelar (return false) y sus ramas; el termino «salir» del Degradado (salida, no veto).
+  camara_02_j16 §7 EXIGE return false: invertir o borrar.
+- Lectura BOTON1/BOTON2 (PB9/PB13) en las dos puntas. camara_02 MANDO_ESPERADO lo celebra: invertir a «nadie lee
+  PB9/PB13». Duda: conservar pinMode(INPUT) explicito con nombre neutro (estado de reset del core sin medir).
+- semaforo_toggle() (unica transicion fallo->verde, 0 llamadores): en el MISMO commit que barrera_04 PUERTAS_AL_VERDE
+  (si no, ABORTA), costura_10 y la muestra del control negativo de spec_01.
+- Huerfanas de costura_10 (reloj_textoHora, reloj_hayCristal, coordinador_intentarHandshake/medirDesfase/
+  reiniciarConexion, bluetooth_testLedsActivo; Esclavo degradado_textoEstado/textoFase/rendidoPorHora/
+  segundosParaCambio, semaforo_forzarVerde, reloj_dia), test de LEDs del Esclavo, pines_repetidor.h, #define LCD_*,
+  compile_commands.json. Limites: respaldo.cpp gemelo byte a byte (maestro_02); protocolo.h identico.
+- Instrumentos de lo retirado: stubs lcd/menu, punta_pulsar, Validacion_LCD (Arduino.h a Validacion_Ciclo antes).
+Flash: las huerfanas ya no estan en el binario (--gc-sections). Estimado Maestro -1,0 KB, Esclavo -0,2 KB.
+Lineas de producto ~1.250-1.300 (la mayoria comentario). Comentarios: 12.350 de 20.522 lineas (60 %), 1.330 con
+marca de cronica: poda aparte, con la compuerta (packs leen comentarios).
+
+TEXTO PROPUESTO D-44: Sale del firmware lo que quedaba de la interfaz local: lectura de J16 p5/p8 (BOTON1/BOTON2,
+botonArriba/Abajo), botonAceptar/Cancelar y sus ramas, la navegacion del menu, el Modo Hora y semaforo_toggle().
+menu_setup() se queda como puerta del todo-rojo, y J16 p5/p8 siguen sin cablear mientras quede un equipo anterior
+al 14/09. Deroga de D-1 y D-32 (1) «el codigo se queda»; de D-17.bis, MODO_HORA y navegacion. Cierra SPEC_1 §12.2(a),
+§12.7, §12.8.
+
+TANDA 2, RETIRA UNA PUERTA U ORDEN (decide el responsable)
+- SOLICITAR_PASO del Esclavo (D-36 la conserva). DEMANDA del Maestro sigue en la app.
+- SET_MODO:DEGRADADO (D-37 la conserva); la reanudacion D-29 no usa la orden; app_02 falla sin excepcion.
+- PB0/CAM_DEMANDA_PIN (J14): EJECUTA si se cablea; SPEC_8 §2 la declara tercera entrada.
+- Franja nocturna SFTY-20 (andamio sin llamador de una regla «diseno, no implementado»): desistir o no.
+- Literales $ERR *_VEA_CONSULTA_RELOJ: nombran una pantalla que no existe; cambiar es protocolo (app, reloj_01).
+- ROJO_PEATON/VERDE_PEATON/BUZZER: recomendado NO retirar (el nombre es la custodia de barrera_01/camara_02; ancla D-14).
+- JS muerto de la app (btnModoDegradado, SOLICITAR_PASO en SOLO_ESCLAVO): tanda 1 de la app.
