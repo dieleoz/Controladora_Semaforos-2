@@ -131,6 +131,13 @@ esperar lo que digan las cintas de campo (D).
 skills, con quien lee cada fichero por ruta (agente de solo lectura, en curso); F2 mover/archivar en commits
 pequenos, rutas y compuerta en el MISMO commit (`CLAUDE.md` §5), SOLO despues de A6 y con el arbol quieto.
 
+**G. Retirar del firmware lo que queda del LCD y la botonera** (responsable, 02/10; choca con `D-32`, que dejo el
+mando): G1 censo de solo lectura (piezas, llamadores, vetos que cuelgan, instrumentos, flash), en curso; G2 fila
+`D-43`; G3 candidata propia con runbook entero, DESPUES de A6.
+
+**H. `DECISIONES.md`** (responsable, 02/10: «marea»): consulta al arquitecto de plataforma, en curso; la forma
+que salga se aplica en la fase F.
+
 **E. Despues de banco pasado:** fase 5, lo duplicado Maestro/Esclavo a `lib/`.
 
 ### `N-167` El paquete validado de `a0d605b`: el runbook entero — ✅ HECHO el 29-30/09, sale `a505fa2` `SIN_BANCO`
