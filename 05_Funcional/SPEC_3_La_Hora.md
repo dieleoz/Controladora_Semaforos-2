@@ -155,9 +155,15 @@ CAUSA:ROJO_SIN_HORA,...,ACCION:ROJO_FIJO` al entrar y cada `AVISO_ROJO_SIN_HORA_
 
 **No se vuelve solo.** Del rojo fijo se sale **por una orden del operario**, por el todo-rojo de la salida:
 el Maestro con `SET_MODO:MENU`; el Esclavo con las tramas de gobierno del Maestro ya fuera de Degradado, o
-con `AMBAR_EMERGENCIA`. Una siembra fresca no devuelve el modo. 🔴 **Riesgo abierto, decision pendiente
-del responsable:** esa punta, si sufre un corte, ya no reanuda: el Maestro arranca en ambar (`D-40`,
+con `AMBAR_EMERGENCIA`. Una siembra fresca no devuelve el modo. 🔴 **Riesgo abierto, decidido por `D-47`
+y sin construir:** esa punta, si sufre un corte, hoy ya no reanuda: el Maestro arranca en ambar (`D-40`,
 SPEC 1 §4.1) y el Esclavo cae a ambar por orfandad, **verde contra ambar** mientras la otra alterna.
+
+🟡 **DEBE (02/10; sin construir, `N-174`), las dos cosas que este rojo fijo aun no alcanza:**
+- **`D-47`: sobrevive a un corte.** Al volver la luz ese poste arranca en rojo fijo, no en ambar (`D-40` exceptua
+  al Degradado); si estaba en verde al perder la hora, antes 3 s de amarillo (`D-45`).
+- **`D-49`: el reloj que se congela en marcha** (cristal que deja de oscilar) va a ROJO FIJO como `D-38`, no a
+  ambar como hoy; antes 3 s de amarillo si estaba en verde. El arnes midio contra ese ambar el verde del otro poste.
 
 **El salto de hora pasa por ROJO** (`D-26` (4)). Cada siembra mueve la fase de golpe lo que el oscilador
 derivo. El umbral **no se escogio: se deriva del despeje** —es el rojo que separa los dos verdes, menos un
@@ -254,8 +260,9 @@ inundacion (`N-73`). **Cada linea sale de lo que la llamada devolvio**, nunca de
 | **`D-28`** (12/09) | **la mas nueva, y manda sobre las otras cuatro en esto:** (1) la cadencia queda fijada **al segundo** —el responsable la cerro para que nadie derivase su propia cifra—; (2) el plazo pasa a derivarse de **dos siembras perdidas** | de `D-26` (2), el «~» que dejaba la cadencia aproximada; **de `D-21` (1), que el plazo se derive del relevo** |
 | **`D-29`** (12/09) | el indicador de la pila no se borra hasta que la primera siembra del arranque haya podido llegar | que `N-20` hubiera muerto en el Esclavo — que era el estado de hecho, sin que nadie lo decidiera |
 | **`D-38`** (30/09) | en Degradado, la punta que pierde la hora fiable pasa a **rojo fijo** (§5) | de `D-21` (1), el ambar, solo dentro del Degradado |
+| **`D-47`**, **`D-49`** (02/10) | el rojo fijo sobrevive a un corte y alcanza al reloj congelado; **sin construir** (§5) | de `D-38`, la excepcion implicita del reloj que no cuenta |
 
-**No hay contradiccion viva entre las seis.** Las que parecen chocar se resuelven por fecha, y lo dicen
+**No hay contradiccion viva entre ellas.** Las que parecen chocar se resuelven por fecha, y lo dicen
 en su propia fila. Y la del ambar por hora que miente lleva **su propia premisa tumbada** —«tendrian que
 pasar MESES»— marcada como refutada al revisarla en noviembre: con el cable de siembra mudo son minutos.
 

@@ -5,10 +5,10 @@
 > **con esa radio sana, degradada y muerta**.
 
 **Qué NO entra:** el ciclo de un poste solo (SPEC 1) · la hora (SPEC 3) · la app (SPEC 4) · el cobre y las radios como
-aparato (SPEC 5) · el procedimiento de campo y el parche `T-2` (SPEC 6). **De dónde sale:** las decisiones vigentes del
-responsable (`DECISIONES.md`) mandan en lo decidido y el fuente en lo que el equipo HACE; los manuales no son fuente.
-**Ninguna cifra vive aquí**: se cita el SÍMBOLO. **Todo lo medido está sobre `ef3504c` con el árbol limpio** — el
-firmware lo tocan otros agentes.
+aparato (SPEC 5) · el procedimiento de campo y el parche `T-2` (SPEC 6). **De dónde sale:** manda esta spec;
+`DECISIONES.md` es su índice para no volver a preguntar, y el fuente dice lo que el equipo HACE; los manuales no son
+fuente. **Ninguna cifra vive aquí**: se cita el SÍMBOLO. **Todo lo medido está sobre `ef3504c` con el árbol limpio** —
+el firmware lo tocan otros agentes.
 
 ## 1. EL REPARTO — quién decide qué
 
@@ -100,16 +100,14 @@ rojo — *se guarda lo que ABRE PASO, no lo que lo para*. La orden de verde es *
 ya en ámbar de transición o en verde, **re-acusa y no toca la luz**. 🟡 Con `D-45` ese ámbar es de CIERRE: sobre él
 la orden de verde ni re-acusa ni reabre (§2.2.bis).
 
-> 🔴 **LA DECISIÓN DICE «DOS VETOS» Y EN EL FUENTE HAY TRES `if`. LAS DOS CUENTAS SON CIERTAS Y CUENTAN COSAS
-> DISTINTAS, y confundirlas es lo que hace que se lean como una sola.** **DOS por SUJETO**, que es como lo escribe la
-> decisión (`D-8`): el veto del **mando** y el de la **app**; dos personas distintas pueden poner ese ámbar. **TRES
-> por RAMA**, que es lo que hay que guardar: los dos sujetos aparecen **juntos, en la misma condición, en tres `if`
-> del bucle principal del Esclavo** — la rama de la orden de rojo, la de la orden de verde, y una **tercera** que es
-> la recuperación tras fallo. **Esa tercera NO es un `else` de la primera:** una orden de rojo vetada arriba entra por
-> ella y volvería a forzar rojo por su cuenta. El fuente lo avisa —*«guardar solo una de las dos deja la revocación
-> intacta»*— y `SPEC 5` §3 tiene la cuenta de tres. Una regla que ENUMERA sujetos comprueba que cada sujeto EXISTE, y
-> dónde se ejerce (`CLAUDE.md` §2).
-> `grep -c "mando_ambarLocal() && !bluetooth_ambarEmergencia" 01_Firmware/Esclavo/src/main.cpp`
+> 🔴 **EL VETO ES DE UN SUJETO Y EN EL FUENTE SON TRES `if`.** **UNO por SUJETO** (`D-8`): la app, la única que
+> puede poner hoy ese ámbar —el mando salió del firmware (`D-30`) y su término de la condición con él (SPEC 1 §4)—.
+> **TRES por RAMA**, que es lo que hay que guardar: la misma condición guarda, en el bucle principal del Esclavo, la
+> rama de la orden de rojo, la de la orden de verde, y una **tercera** que es la recuperación tras fallo. **Esa tercera
+> NO es un `else` de la primera:** una orden de rojo vetada arriba entra por ella y volvería a forzar rojo por su
+> cuenta. El fuente lo avisa —*«guardar solo una de las dos deja la revocación intacta»*—. Una regla que ENUMERA
+> sujetos comprueba que cada sujeto EXISTE, y dónde se ejerce (`CLAUDE.md` §2).
+> `grep -c "bluetooth_ambarEmergencia()" 01_Firmware/Esclavo/src/main.cpp`
 
 ## 3. LOS REINTENTOS
 
@@ -148,6 +146,8 @@ deliberadas a todo-rojo (el rojo forzado y el arranque de modo), y vuelve a cero
 un acuse, que es lo que ya acota el viaje de ida y vuelta. Al soltarlo la punta va a rojo directo, marca que soltó por
 margen y **sale a reposo** —no a una espera de acuse— para no tocar la cadencia del latido: medido, la otra salida
 producía **más** ámbares en microcortes que se recuperan. **El umbral NO se baja**, y es condición del responsable.
+🟡 **DEBE (`D-48`, 02/10; sin construir, `N-174`): `SFTY6_SILENCIO_MS` sube de 25 a 28 s** para que quepa el amarillo
+del Esclavo (`D-45`) con los reintentos del ciclo; el presupuesto de §9 se recalcula sobre el nuevo techo.
 🟡 **DEBE (`D-45`, sin construir): la suelta cierra por el amarillo, en las dos puntas, y empieza un `AMARILLO_SEG`
 ANTES**, para que lo que llegue al punto de suelta de hoy sea el ROJO; un amarillo contra el ámbar intermitente del
 otro poste es paso abierto durante el amarillo. Lo que cuesta, en §2.2.bis.
@@ -212,8 +212,8 @@ todo-rojo**. *(Literales, SPEC 4 §3.2; el campo, SPEC 6.)*
 
 > 🔴 **ENTRAR POR PRIMERA VEZ ES MANUAL** (salvo la opción automática de §7.ter, que un técnico activa antes).
 > **REANUDAR TRAS UN CORTE NO LO ES — Y AL OPERARIO SE LE AVISA DEL CORTE, NO DE LA REANUDACIÓN.**
-> - **La primera entrada sí la pide una persona:** Poste 2, la app (`D-18`) por su puerta única de entrada; Poste 1,
->   `SET_MODO:DEGRADADO` o el `A.B.A.B` del mando.
+> - **La primera entrada sí la pide una persona, y hoy por el testigo** (`D-35`, §7.bis): la app ya no ofrece la de
+>   aquí (`D-37`), y `SET_MODO:DEGRADADO` de las dos puntas, que aún la abre, sale (`D-46`, sin construir).
 > - **La reanudación la decide la máquina**, en cada arranque y **sin pulsación ninguna** (`D-29`): cada punta tiene su
 >   función de reanudar tras corte, llamada desde el arranque **y desde el bucle** —dos sitios, porque la hora llega
 >   segundos después y la decisión queda diferida hasta que cierre su ventana—. El Esclavo entra por **la MISMA puerta
@@ -224,9 +224,9 @@ todo-rojo**. *(Literales, SPEC 4 §3.2; el campo, SPEC 6.)*
 >   también el ESP32, la app abre al conectar el cartel de corte (`js/aviso_corte.js`, SPEC 4 §6) con el `MODO:` del
 >   `$STATUS`. Si no reanuda, el Poste 1 arranca en **ámbar** (`D-40`, SPEC 1 §4.1).
 > - **Lo que sí protege:** el permiso se tira si el equipo ya no está quieto donde lo dejó el arranque —una persona
->   eligió modo, o el modo ya gobierna—, si hay ámbar del mando puesto, o si falló cualquier condición de vigencia. Lo
->   que se difiere es **el borrado, no el límite duro**; la ventana, en SPEC 3 §6 y H-3. Y **en las dos puntas la
->   decisión espera además a que el cristal tenga veredicto** (1.49b), dentro de esa misma ventana: SPEC 3 §6.
+>   eligió modo, o el modo ya gobierna—, si hay ámbar de emergencia de la app vigente, o si falló cualquier condición de
+>   vigencia. Lo que se difiere es **el borrado, no el límite duro**; la ventana, en SPEC 3 §6 y H-3. Y **en las dos
+>   puntas la decisión espera además a que el cristal tenga veredicto** (1.49b), dentro de esa misma ventana: SPEC 3 §6.
 
 **Condiciones del Poste 2, y devuelve MOTIVO, no un sí/no** —quien la llame tiene que poder decirle al operario qué le
 falta—: sin hora **fiable** (fiable, no sólo puesta) · sin configuración recibida · ciclo nulo · nunca hubo
@@ -238,6 +238,8 @@ ninguna admite marcha atrás** (el indicador de la pila se baja **al empezar** l
 de la radio**, sólo con tramas de **gobierno** · **el límite duro** sin sincronización, con su aviso previo · y la
 **la hora no fiable**. **El límite acaba en ámbar y sólo el Esclavo pasa por el despeje** (**SPEC 6 A.4**); **la hora
 no fiable acaba en ROJO FIJO en las dos** (`D-38`, `irARojoSinHora()`; SPEC 3 §5). De ninguno de los dos se sale solo.
+🟡 **DEBE (02/10; sin construir, `N-174`):** el rojo fijo sobrevive a un corte (`D-47`) y alcanza también al reloj que
+se congela en marcha, que hoy va a ámbar (`D-49`); los dos, en SPEC 3 §5.
 🟡 **DEBE (`D-45`, sin construir): todo paso de verde a rojo del Degradado lleva su amarillo**: el fin de la fase
 propia (lo da la fase, §8 (e)), el salto de hora, la entrada con un verde encendido, las cuatro salidas, el rojo
 fijo sin hora y el rojo previo a la caída a ámbar (hoy un par de segundos de rojo y después el parpadeo: con
@@ -366,6 +368,8 @@ congelado (§4), y la verificación de esta puerta es de banco, no de pack.
 > `D-18` «la llave la tiene la app» y la de `D-21` «ni si vuelve a él». **Sigue decidiendo una persona, pero ANTES:**
 > el técnico activa la opción con PIN en cada poste. **Con la opción apagada en cualquiera de los dos, el equipo hace
 > exactamente lo de hoy** (§4 y §7: ámbar a los 25 s y vuelta sola al ciclo cuando vuelve la radio).
+> **En carretera va APAGADA, como sale de fábrica (`D-43`)**: sin radio se usa el testigo (§7.bis) con el traslado
+> real (15-20 min) en su campo de la app.
 
 | símbolo | valor | por qué |
 |---|---|---|
@@ -556,7 +560,7 @@ condición MÁS DÉBIL y por eso va la última:** la medida es **circular** y **
 sincronización, no este número. Al fallar un intento **la medida se suelta y la hora y la configuración NO**: es
 diagnóstico contra seguridad.
 
-**(c) La puerta del Poste 1.** También devuelve **motivo, no sí/no**, y es la MISMA para la app y para el `A.B.A.B`:
+**(c) La puerta del Poste 1.** También devuelve **motivo, no sí/no**; hoy la llama `SET_MODO:DEGRADADO` (`D-46`):
 falta hora · nunca hubo sincronización · sincronización vieja · **falta configuración** —que el ESCLAVO haya acusado el
 ciclo; **se añadió porque faltaba**, y sin él el Maestro daba verde por reloj mientras el Esclavo rechazaba y caía a
 ámbar por orfandad— · falta desfase · desfase alto.
@@ -666,9 +670,9 @@ pendientes**: apuntan al fichero de protocolo y al coordinador fuera del ciclo �
 
 ## HUECOS MEDIDOS
 
-1. 🟢 **CERRADOS dos:** el número de reintentos del aviso de ámbar está **elegido, no derivado**; y el veto del mando
-   sobre la orden de verde **sigue en pie** porque la retirada de la interfaz (`D-30`) se recortó y el mando se queda —lo que
-   **no** cierra que `J16` p5/p8 sigan vacíos y leídos por dos caminos (SPEC 5 §3)—.
+1. 🟢 **CERRADOS dos:** el número de reintentos del aviso de ámbar está **elegido, no derivado**; y el veto sobre la
+   orden de verde es hoy sólo el de la app (§2.3): el mando salió (`D-30`). **No** cierra que `J16` p5/p8 sigan vacíos
+   y leídos (SPEC 5 §3) hasta `D-44` (SPEC 1 §12.2).
 2. 🔴 **Los dos presupuestos de radio no casan sobre el mismo techo: fila pendiente, no detalle.** §9 los separa por su
    borde; **elegir el modelo sigue sin hacerse**.
 3. ⚠️ **El acuse de rojo no lleva a qué orden contesta** —escrito en el propio coordinador—: un acuse retenido en el

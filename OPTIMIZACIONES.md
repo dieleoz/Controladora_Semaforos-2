@@ -4,8 +4,8 @@
 regla → código → prueba** (`CLAUDE.md` §12), y no hay otro. **No es la crónica de cómo se descubrió
 nada:** las 2.310 líneas que tenía el 12/09/2026 están íntegras en
 [`roadmap_hist.md`](roadmap_hist.md), anexo *«`OPTIMIZACIONES.md` íntegro, la foto del 12/09»*.
-**Lo decidido manda desde [`DECISIONES.md`](DECISIONES.md); el hardware medido, desde
-`05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md`. Los dos GANAN a este fichero.**
+**Manda la SPEC (`05_Funcional/SPEC_0..8`; [`DECISIONES.md`](DECISIONES.md) es su indice); el hardware medido,
+desde `05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md`. Las dos GANAN a este fichero.**
 
 **Ecosistema:** Firmware STM32 + Repetidor ESP32 + Radio LoRa E90-DTU.
 **Velocidades, que no son la misma:** el puerto serie al módulo va a **9600 bps**
@@ -857,13 +857,8 @@ exactamente lo que hace hoy—.
 
 ## 🚧 SFTY-28 — Talanquera acoplada al estado del semáforo (**IMPLEMENTADA la regla; abiertas las decisiones de operación**)
 
-> ⏸️ **PENDIENTE ANOTADO EL 05/09/2026 — NO EJECUTADO AQUÍ, A PROPÓSITO.** El responsable dijo que
-> *«la barrera puede no bajar y el semáforo cambia igual»*, lo que **derogaría** el sentido único de
-> esta regla. Pero la derogación formal es **`A-1.bis` de [`DECISIONES.md`](DECISIONES.md)**, y va
-> con la fase 2 de `D-13`, en otro lote. **Esta sección no se reescribe todavía**: una frase nueva no
-> deroga una decisión escrita, y con más razón porque el cambio **retira una barrera** —el veto de la
-> pluma—, que es la dirección en la que un malentendido no se nota hasta que alguien está en la
-> calzada.
+> 🟢 **Su mitad de «nunca al revés» la derogó `D-33` (14/09):** la pluma sigue a la luz para SUBIR y la cámara
+> sólo retiene la bajada. Manda `05_Funcional/SPEC_8` §1; lo de abajo es la regla de antes de esa fecha.
 
 **Estado:** anotado el 26/08/2026 y **construido el 27/08** en las dos puntas. La orden sale de
 `escribirPines()` —**la misma puerta que las lámparas**— y sigue al `verde` YA enclavado; el arranque

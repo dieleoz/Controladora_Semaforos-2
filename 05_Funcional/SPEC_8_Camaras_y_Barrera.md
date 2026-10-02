@@ -17,7 +17,7 @@ la tabla de conectores, la cadena electrica y lo que no se ha medido del hardwar
 > puntero y se queda con la otra mitad, la que **no** es firmware: **sin energia el pin cae, el
 > MOSFET no conduce y el brazo baja.** Las dos mitades se leen juntas o ninguna protege a nadie.
 
-**De donde sale cada linea.** Lo decidido lo fija `DECISIONES.md`, que **gana a este fichero**; el
+**De donde sale cada linea.** Manda esta spec; `DECISIONES.md` es su indice para no volver a preguntar; el
 cobre medido, `05_Funcional/17_...` y `SPEC_5`. El firmware se cita **por SIMBOLO**, nunca por linea,
 y se remidio contra `{Maestro,Esclavo}/src/{semaforo,botones,modo_inteligente,main}.cpp` el
 14/09/2026.
@@ -49,6 +49,9 @@ camara, y lo que hace con ella tiene una sola direccion:
 - **Al soltarse el veto el firmware baja en el instante, pero la camara mantiene su alarma 5 s tras el evento**
   (de fabrica, `D-42`): la pluma baja unos 5 s despues de que el objeto salga. Esos 5 s son CONFIGURACION de la
   camara. Una camara que avisa DESPUES de los 3 s del rojo encuentra la pluma ya abajo y no la sube.
+- **Que ve la camara es CONFIGURACION, no firmware (`D-39`):** las cuatro detectan Vehiculo **y** Humano, con
+  sensibilidad 50 %, que se reajusta en campo con el enfoque. Precio aceptado: alguien parado en el barrido deja la
+  pluma arriba, y se avisa (§3).
 - **El veto es LOCAL y no para el ciclo.** *«Esas barreras son casi de adorno; el que manda es el
   semaforo y su estado»* (responsable, 14/09). El coordinador no lo consulta: el otro poste abre su
   verde igual.
@@ -126,6 +129,10 @@ elegir un numero que nadie ha medido todavia. *(Decidido el 14/09.)*
 NUNCA dio un flanco**, y la app pinta `CAM: OK` con la primera deteccion **de cualquiera de las
 dos**. Tras cada reinicio la vigilancia queda desarmada hasta la primera deteccion. **Por que esa exencion
 ya no tiene motivo: `SPEC_5` §7.2**, que es donde se sigue reportando, porque el choque nacio del cobre.
+
+**El plazo de `CAM_CIEGA` es de 24 h de PASO ABIERTO sin flanco (`D-24`, `CAM_CIEGA_MS` en `botones.cpp` de las dos
+puntas; construido, no ejercido en su tiempo real):** cuenta tiempo con la pluma arriba, no de reloj, y tiene que ser
+mayor que `CAM_PEGADA_MS` para que un contacto trabado no se anuncie como camara ciega.
 
 # 5. 🔴 LA PLUMA EN AVERIA: **SUBE con el ambar intermitente** — y esa eleccion NO TIENE FILA
 
@@ -208,8 +215,8 @@ la **4** (la concesion de paso por camara nunca se probo)—. Aqui, lo que falta
 | 5 | **Que hace el equipo si se saca la barrera de servicio con el brazo abajo** — §6. El equipo arranca siempre con la barrera abajo |
 | 6 | **La cinta de campo no ayuda:** 253 tramas del Sisga (10/09) y **las 253 dicen `CAM:?`** — en veinte minutos ninguna camara le dio un flanco al equipo (`SPEC_5` §6) |
 
-*Decisiones recogidas: `D-12`, `D-13` (lo no derogado), `D-25`, `D-27`, `D-33`. Abiertas que nombra
-sin resolver: `A-1.bis`, `A-6`. 🔴 **Y una eleccion vial vigente que NO tiene fila y deberia tenerla:
-la pluma ARRIBA en `S_FALLO`, del cliente y el PMT el 27/08/2026 (§5).** Lo decidido lo fija
-`DECISIONES.md`, que **gana a este fichero**; el cobre, `17_...` y `SPEC_5`. Nacido el 14/09/2026 al
+*Decisiones recogidas: `D-12`, `D-13` (lo no derogado), `D-24`, `D-25`, `D-27`, `D-33`, `D-39`, `D-42`. Abiertas
+que nombra sin resolver: `A-1.bis`, `A-6`. 🔴 **Y una eleccion vial vigente que NO tiene fila y deberia tenerla:
+la pluma ARRIBA en `S_FALLO`, del cliente y el PMT el 27/08/2026 (§5).** Manda esta spec;
+`DECISIONES.md` es su indice; el cobre, `17_...` y `SPEC_5`. Nacido el 14/09/2026 al
 partir `SPEC_5` por lector (`roadmap.md` 1.45).*

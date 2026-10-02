@@ -14,8 +14,8 @@ es `SPEC_8`.** **Fuera** ademas: el ciclo (SPEC 1), la radio (SPEC 2), la hora (
 
 **De donde sale cada linea.** Las MEDIDAS de cobre son de `05_Funcional/17_Arquitectura_28-08_y_
 Decisiones_Abiertas.md`, **copiadas literales con su fecha** — esa spec **gana a esta** en todo lo
-medido. Lo decidido lo fija `DECISIONES.md`. El firmware se cita **por SIMBOLO**, nunca por linea.
-**Escala:** `MEDIDO EN COBRE` = multimetro sobre la placa, con su numero y fecha · `MEDIDO` = leido
+medido. Lo decidido vive en las spec (`DECISIONES.md` es su indice). El firmware se cita **por SIMBOLO**, nunca por
+linea. **Escala:** `MEDIDO EN COBRE` = multimetro sobre la placa, con su numero y fecha · `MEDIDO` = leido
 del fichero · `SIN VERIFICAR` = **nadie lo ha comprobado, ni aqui ni en ningun sitio**.
 
 > 🔴 **Y la linea que manda sobre todo lo demas: no hay ni una fila «VERIFICADO EN LA PLACA» en todo
@@ -294,8 +294,8 @@ Manda la medida de cobre; el choque se escribe, no se arregla desde aqui (`CLAUD
 
 *Decisiones recogidas: `D-1`, `D-2`, `D-3`, `D-4`, `D-10`, `D-12`, `D-13` (lo no derogado), `D-14`,
 `D-25`, `D-27`, ~~`D-32` (1)~~ (derogada por `D-30`, reafirmada el 14/09), `D-32` (4), `D-30`. Abiertas que nombra sin resolver: `A-2`, `17_` §3.6 y §3.10. Las MEDIDAS
-son de `17_Arquitectura_28-08_y_Decisiones_Abiertas.md`, que **gana a este fichero**; lo decidido, de
-`DECISIONES.md`, que **gana a los dos**. El firmware se remidio contra `{Maestro,Esclavo}/include/
+son de `17_Arquitectura_28-08_y_Decisiones_Abiertas.md`, que **gana a este fichero**; lo decidido vive
+en las spec, y `DECISIONES.md` es su indice. El firmware se remidio contra `{Maestro,Esclavo}/include/
 pines.h` y `src/{semaforo,botones,main}.cpp` el 12/09/2026; **§3, contra `botones.cpp`, `menu.cpp`,
 `modo_hora.cpp` y `main.cpp` de las dos puntas el 15/09/2026**. **La conducta de camara y barrera se
 partio a `SPEC_8` el 14/09/2026** (`roadmap.md` 1.45).*

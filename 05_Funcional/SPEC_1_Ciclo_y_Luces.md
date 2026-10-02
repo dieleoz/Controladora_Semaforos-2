@@ -160,7 +160,7 @@ su propio fichero, y se lee y escribe con un par de funciones (`modoActual_get()
 | Inteligente | cicla por tiempo **con suelo y techo**, y las cámaras sólo pueden ALARGAR | `SET_MODO:INTELIGENTE` |
 | Alcance | **no arranca ciclos**: mantiene lo que haya (rojo fijo con enlace) | `SET_MODO:ALCANCE` |
 | Hora | no toca las luces | 🔴 **INALCANZABLE** — ver Huecos |
-| Degradado | todo-rojo de entrada y luego verde/rojo por reloj | `SET_MODO:DEGRADADO`; ~~`A.B.A.B`;~~ reanudación tras corte |
+| Degradado | todo-rojo de entrada y luego verde/rojo por reloj | `SET_MODO:DEGRADADO` (sale, `D-46`, §12.11); `SET_MODO:DEG_T` (testigo); reanudación tras corte |
 | Ámbar | **ámbar intermitente**, pedido o de arranque | `SET_MODO:AMBAR`; ~~`B.B.B`;~~ aviso del Poste 2; salida del Degradado; **arranque** (§4.1) |
 
 **El modo Ámbar es una salida de emergencia y por eso no tiene condiciones**: funciona desde cualquier modo en
@@ -196,6 +196,9 @@ fija su motivo y la marca desaparece. El `$STATUS` dice `MODO:AMBAR` en los dos 
 **Poste 2: NO cambia, y es decisión de diseño** (contra la letra de `D-40`, que nombra a los dos). Reiniciado solo,
 arranca en rojo (`semaforo_forzarRojo()` en su `setup()`) y lo recupera el Poste 1 por radio; sin radio, cae a
 ámbar por orfandad (§9). Arrancarlo en fallo daría **ámbar contra el verde** de un Poste 1 que siguió ciclando.
+
+🟡 **DEBE (`D-47`, 02/10; sin construir, `N-174`):** el poste que estaba en rojo fijo por falta de hora (`D-38`,
+SPEC 3 §5) arranca tras el corte en **rojo fijo**, no en ámbar; si estaba en verde, antes 3 s de amarillo (`D-45`).
 
 ## 5. Los tiempos, y de dónde salen
 
@@ -340,18 +343,21 @@ Cada uno trae con qué reproducirlo.
    🟡 *(02/10: el aviso está decidido, `D-45`; sin construir, §12.10.)*
    ⚠️ **Y el contador que medía esto cambió de significado con la obra:** ya no dice «habría actuado» —esa
    transición dejó de ocurrir el día que el veto existe— sino **cuántos vetos ACTUARON de verdad**.
-2. 🔴 **LA RETIRADA DE LA INTERFAZ VIEJA (`D-30`): el LCD y el mando YA SALIERON; la lectura de p5/p8 y el menú NO.**
-   **Lo que el equipo HACE hoy** *(registro 1, medido el 15/09/2026 contra el fuente de las dos puntas)*: **el LCD
-   salió el 13/09** y **el mando A/B/C/D salió entero el 14/09** —primero el corte de sus pulsos (`ccca294`), después
-   el módulo, sus lectores y la señal que interceptaba las luces (`f57a401`)—. Ya no existen `mando_ambarLocal()` ni `semaforo_senalEnCurso()`.
-   ⬇️ ~~retirarlo toca la barrera de salidas o abre vetos~~ → **medido: no abrió ninguno** (SPEC 5 §3).
-   🔴 **LO QUE FALTA — COLA DE TRABAJO DEL FIRMWARE** *(registro 2)*: **(a)** la **lectura de `BOTON1`/`BOTON2`**
-   (`J16` p5/p8), que `D-30` retira con el resto y **sigue viva**: `botones_actualizar()` la antirrebota y
-   `botonArriba()`/`botonAbajo()` entregan el flanco. Hoy sólo lo consumen `menu_loop()` y `modo_hora_loop()` del
-   Poste 1 y **no mueve nada visible**, pero un llamador nuevo lo vuelve a hacer actuar sin tocar el cobre. **(b)** El
-   **menú del Poste 1** (`Maestro/src/menu.cpp`): su navegación no llega a ningún modo, pero `menu_setup()` es la
-   puerta del todo-rojo de las dos puntas que pide `SET_MODO:MENU`, y ese camino se conserva antes de retirarlo.
-   Cobre y regla de montaje, **SPEC 5 §3**; lo que ve el operador, **SPEC 4 §3.bis**.
+2. 🔴 **LA RETIRADA DE LA INTERFAZ VIEJA (`D-30`, `D-44`): el LCD y el mando YA SALIERON; la lectura de p5/p8
+   y el menú NO.** **Lo que el equipo HACE hoy** *(registro 1, medido el 15/09/2026 contra el fuente de las dos
+   puntas)*: **el LCD salió el 13/09** y **el mando A/B/C/D salió entero el 14/09** —primero el corte de sus pulsos
+   (`ccca294`), después el módulo, sus lectores y la señal que interceptaba las luces (`f57a401`)—. Ya no existen
+   `mando_ambarLocal()` ni `semaforo_senalEnCurso()`. ⬇️ ~~retirarlo toca la barrera de salidas o abre vetos~~ →
+   **medido: no abrió ninguno** (SPEC 5 §3). 🔴 **LO QUE FALTA — COLA DE TRABAJO DEL FIRMWARE** *(registro 2)*: **(a)**
+   la **lectura de `BOTON1`/`BOTON2`** (`J16` p5/p8), que `D-30` retira con el resto y **sigue viva**:
+   `botones_actualizar()` la antirrebota y `botonArriba()`/`botonAbajo()` entregan el flanco. Hoy sólo lo consumen
+   `menu_loop()` y `modo_hora_loop()` del Poste 1 y **no mueve nada visible**, pero un llamador nuevo lo vuelve a hacer
+   actuar sin tocar el cobre. **(b)** El **menú del Poste 1** (`Maestro/src/menu.cpp`): su navegación no llega a ningún
+   modo, pero `menu_setup()` es la puerta del todo-rojo de las dos puntas que pide `SET_MODO:MENU`, y ese camino se
+   conserva antes de retirarlo. 🟡 **DEBE (`D-44`, 02/10; sin construir): sale todo eso** —la lectura de p5/p8,
+   `botonAceptar`/`botonCancelar` y sus ramas, la navegación del menú, el Modo Hora (§12.7) y `semaforo_toggle()`
+   (§12.8)—; **`menu_setup()` se queda**. Cobre y regla de montaje, **SPEC 5 §3**; lo que ve el operador, **SPEC 4
+   §3.bis**.
 3. 🔴 **LOS HUECOS DE LUZ DEL DEGRADADO** *(el modo entero, SPEC 3)*. **(a)** El verde del Degradado
    (`DEG_VERDE_SEG`) **no pasa por el fichero de límites del ciclo**: es una constante propia del modo. ⬇️ ~~y queda
    muy por debajo del mínimo por sentido, y si ese mínimo alcanza al Degradado no está escrito en ninguna parte~~ →
@@ -382,10 +388,10 @@ Cada uno trae con qué reproducirlo.
 8. ⚠️ **El conmutador de luz** (`semaforo_toggle()`) **no tiene ningún llamador** y **contiene la única
    transición de fallo a verde** del firmware: hoy inerte, saca del ámbar intermitente sin pasar por rojo.
 9. 🟡 ~~EL ARRANQUE ENTRA EN MENÚ Y DEBE ENTRAR EN ÁMBAR (`D-40`, `N-169`)~~ → **construido en el Poste 1**
-   (§4.1), **sin banco ni tarjeta**. El Poste 2 no cambia por diseño (§4.1). **Riesgo abierto, decisión pendiente
-   del responsable:** un poste en rojo fijo por hora perdida en Degradado (`D-38`, SPEC 3 §5) que sufre un corte ya no
-   reanuda y arranca en ámbar mientras el otro sigue alternando por reloj: **verde contra ámbar** hasta que llegue
-   alguien.
+   (§4.1), **sin banco ni tarjeta**. El Poste 2 no cambia por diseño (§4.1). **Riesgo abierto, decidido por `D-47`
+   (02/10) y sin construir (`N-174`, §4.1):** un poste en rojo fijo por hora perdida en Degradado (`D-38`,
+   SPEC 3 §5) que sufre un corte ya no reanuda y arranca en ámbar mientras el otro sigue alternando por reloj: **verde
+   contra ámbar** hasta que llegue alguien.
 10. 🔴 **EL AMARILLO DE CIERRE (`D-45`, `N-174`): DECIDIDO EL 02/10, SIN CONSTRUIR** *(registro 2, cola del
    firmware; el comportamiento, §3.2 y SPEC 2 §2.2, §4, §7, §8 (e); la pluma, SPEC 8 §1)*. Censo de 02/10 sobre
    `0518bfe`, por símbolo:
@@ -423,6 +429,10 @@ Cada uno trae con qué reproducirlo.
    - **Comentarios del fuente que llevan la premisa derogada** (`CLAUDE.md` §11.7): el de `coordinador_pedirCambio()`
      (ámbar reservado al paso de rojo a verde), el del Poste 2 *«contra la Resolución (verde→rojo directo)»* y el de
      `Maestro/src/modo_degradado.cpp` sobre los 4 s de ámbar con que abre el Poste 2.
+11. 🔴 **SALEN DOS ÓRDENES (`D-46`, 02/10): DECIDIDO, SIN CONSTRUIR** *(registro 2)*. `SOLICITAR_PASO` del Poste 2 y
+   `SET_MODO:DEGRADADO` del Poste 1 siguen hoy en los dos `procesarComando()` (SPEC 4 §3.1-§3.2); la app ya no las
+   ofrece (`D-36`, `D-37`): el paso se da con Manual y DAR PASO (§8) y el Degradado con el testigo (SPEC 2 §7.bis).
+   **Se quedan** `J14`/`PB0` (reservada al fin de carrera), el andamio `SFTY-20` y los pines de peatón y zumbador.
 
 ## 13. QUIÉN EJERCE CADA BARRERA DE ESTE DOCUMENTO
 

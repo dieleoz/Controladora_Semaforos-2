@@ -12,9 +12,9 @@
 **La puerta de entrada.** Quien no ha visto este repositorio empieza aqui y sale sabiendo **que es el producto**, **como se
 opera un cruce de principio a fin** y **que NO hace el equipo**. Escrita el 13/09/2026 con **cuatro agentes escribiendo en el
 arbol a la vez**: todo lo medido esta fechado al commit **`ef3504c`** (`git show ef3504c:<fichero>`). **Mandan sobre este
-fichero** `DECISIONES.md` en lo decidido, `05_Funcional/17_...` en el cobre medido, y **cada una de las otras ocho spec en su
-materia** — aqui vive el puntero, nunca el desarrollo. Se cita el **SIMBOLO**, nunca la linea (`CLAUDE.md` §7.3), y **ninguna
-cifra vive aqui** (§14).
+fichero** `05_Funcional/17_...` en el cobre medido y **cada una de las otras ocho spec en su materia**; `DECISIONES.md`
+es su indice — aqui vive el puntero, nunca el desarrollo. Se cita el **SIMBOLO**, nunca la linea (`CLAUDE.md` §7.3),
+y **ninguna cifra vive aqui** (§14).
 
 ## 0. 🔴 LO QUE SALIO AL RECONSTRUIR LA OPERACION — y por eso va primero
 

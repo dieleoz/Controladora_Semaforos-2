@@ -4,10 +4,10 @@ Esta carpeta centraliza los manuales de operación, guía de cableado, protocolo
 
 **Última revisión de este índice: 7 de septiembre de 2026** *(11/09: tocado sólo para `D-27` —
 `J14` libre, cuatro cámaras compradas, la configuración de cámara sale del manual del modelo—)*.
-🔴 **Y la regla que hay que leer antes que ningún manual: manda [`DECISIONES.md`](../DECISIONES.md).**
+🔴 **Y la regla que hay que leer antes que ningún manual: mandan las `SPEC_0..SPEC_8` de esta carpeta.**
 Los documentos de esta carpeta congelan la foto del día en que se escribieron; esa tabla es la que se
-mantiene. **Donde un manual y `DECISIONES.md` no digan lo mismo, gana `DECISIONES.md`** — y si la
-contradicción es sobre **cobre, conectores o pines**, gana además
+mantiene. **Donde un manual y la SPEC no digan lo mismo, gana la SPEC** ([`DECISIONES.md`](../DECISIONES.md)
+es su índice) — y si la contradicción es sobre **cobre, conectores o pines**, gana además
 [`17_Arquitectura_28-08_y_Decisiones_Abiertas.md`](17_Arquitectura_28-08_y_Decisiones_Abiertas.md),
 que es donde se anotan las medidas.
 
@@ -15,9 +15,9 @@ que es donde se anotan las medidas.
 
 > ## 🚨 EMPIECE POR AQUÍ
 >
-> **0.** **Antes que nada, abra [`DECISIONES.md`](../DECISIONES.md).** Es la tabla que manda sobre
-> todos los documentos de esta carpeta: donde un manual y esa tabla no digan lo mismo, **gana la
-> tabla**.
+> **0.** **Antes que nada, abra la SPEC (`SPEC_0`).** Manda sobre todos los documentos de esta carpeta;
+> [`DECISIONES.md`](../DECISIONES.md) es su índice de lo ya contestado: donde un manual no diga lo mismo,
+> **gana la SPEC**.
 > **1.** Reconfigure las **2 radios** —enlace directo, **sin repetidor**— a `2.4 kbps` de Air Data
 > Rate → **[`4_Manual_Configuracion_Radios.md`](historico/4_Manual_Configuracion_Radios.md)**
 > *(~~«las 4 radios»~~ — **corregido el 07/09**: la configuración vigente son **2 radios en enlace

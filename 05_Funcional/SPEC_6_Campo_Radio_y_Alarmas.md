@@ -7,7 +7,7 @@ del silencio son SPEC 2, §§4 y 9 · la **hora** es SPEC 3 §7 · el **formato 
 SPEC 4 · el **cobre**, `J12` y las camaras son SPEC 5. Aqui va **lo que se TECLEA, lo que se CONFIGURA, lo que se
 HACE cuando salta una alarma — y el unico binario que hoy se puede cargar en el equipo montado (PARTE D).**
 
-**De donde sale cada linea.** Lo decidido manda en `DECISIONES.md` y el fuente en lo que el equipo HACE. **Los
+**De donde sale cada linea.** Manda la spec (`DECISIONES.md` es su indice) y el fuente dice lo que el equipo HACE. **Los
 manuales anteriores NO son fuente**: se abrieron para censar y **ninguna frase entro sin remedirla**. Se cita el
 **SIMBOLO**, nunca la linea, y **no se copia ninguna cifra que este fichero no pueda recalcular**. 🔴 **Un paso
 inventado es peor que un paso ausente, porque el instalador lo ejecuta:** donde el fuente no dice como se hace algo,

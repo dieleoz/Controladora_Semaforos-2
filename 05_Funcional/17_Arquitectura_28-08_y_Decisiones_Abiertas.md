@@ -2,8 +2,8 @@
 
 **Para:** el funcional y el auditor. **Fecha del documento:** 28 de agosto de 2026; vivo y en uso.
 
-**Esta es la SPEC DE COBRE.** Gana a `DECISIONES.md` y a `CLAUDE.md` en todo lo que sea **hardware
-medido** (`CLAUDE.md` §12) — y **no gana en nada mas**: lo decidido lo fija `DECISIONES.md`.
+**Esta es la SPEC DE COBRE.** Manda en todo lo que sea **hardware medido** (`CLAUDE.md` §12, §15) — y **en nada
+mas**: lo demas lo fijan `SPEC_0..SPEC_8`, y `DECISIONES.md` es su indice.
 
 > 🔴 **TOPE: 1.000 LINEAS. HOY NO SE CUMPLE, y se dice aqui para que nadie lo lea como cumplido —
 > `wc -l` da la cuenta de verdad.** El motivo, en dos lineas: **un fichero que no se puede leer

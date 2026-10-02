@@ -109,13 +109,13 @@ worktrees]`, asi que **queda huerfano**: lo hereda quien mantenga `HISTORIA.md`.
 ### 2.2 Jerarquia de documentos - quien gana a quien
 
 ```
-el FUENTE (los .cpp/.h)  >  05_Funcional/17_...  >  DECISIONES.md  >  ESTADO.md/roadmap.md
+05_Funcional/SPEC_0..8 (17_... en cobre)  >  el FUENTE (lo que HACE)  >  DECISIONES.md (indice)  >  ESTADO.md/roadmap.md
     >  OPTIMIZACIONES.md / INDICE_CRUZADO.md / README.md / CLAUDE.md / ARQUITECTURA.map
 ```
 
 "¿que hace el firmware?" lo gana el fuente. "¿que hay en un pin/conector?" lo gana
-`05_Funcional/17_...` (CLAUDE.md §3, §12 de este repositorio). "¿esta decidido?" lo gana
-`DECISIONES.md`. "¿cuanto mide / cuantos packs hay?" lo gana el acta mas reciente de
+`05_Funcional/17_...` (CLAUDE.md §3, §12 de este repositorio). "¿esta decidido?" lo gana la
+SPEC (`DECISIONES.md` es su indice). "¿cuanto mide / cuantos packs hay?" lo gana el acta mas reciente de
 `evidencia/`, nunca una copia a mano en este fichero.
 
 ### 2.3 Que requisito de la SPEC vive en que fichero de codigo

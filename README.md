@@ -205,7 +205,7 @@ como viejo, se lee como medida.)*
 **El documento con el detalle medido —`fichero:linea` en cada afirmación, las decisiones
 abiertas con dueño y las medidas de multímetro— es
 [`05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md`](05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md),
-y las decisiones vivas están en [`DECISIONES.md`](DECISIONES.md). Aquí va sólo el reparto,
+y manda la SPEC (`05_Funcional/SPEC_0..8`; [`DECISIONES.md`](DECISIONES.md) es su índice). Aquí va sólo el reparto,
 porque un README que describe el aparato anterior manda a cablear el aparato anterior.**
 
 ### El reparto, en una frase
