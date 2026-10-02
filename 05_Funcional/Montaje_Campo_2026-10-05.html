@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Montaje en campo 05-10</title>
+<style>
+:root{
+  --papel:#f6f5f2; --tarjeta:#ffffff; --tinta:#17191c; --tinta-2:#55555a;
+  --linea:#dedcd5; --acento:#c4520c; --ok:#1d7a48; --alto:#b52b26;
+  --info-bg:#e3ecf3; --campo:#fffdf8;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0; padding:12px 12px 40px; background:var(--papel); color:var(--tinta);
+  font-family:"Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+  font-size:17px; line-height:1.45;
+}
+h1{font-size:22px; margin:4px 0 12px;}
+h2{font-size:19px; margin:0 0 8px;}
+section.prueba{
+  background:var(--tarjeta); border:1px solid var(--linea); border-radius:10px;
+  padding:14px; margin-bottom:14px;
+}
+header.datos{
+  background:var(--tarjeta); border:1px solid var(--linea); border-radius:10px;
+  padding:14px; margin-bottom:16px;
+}
+label.campo{display:block; margin-bottom:10px; font-weight:600; font-size:15px;}
+input[type=text], input[type=date], textarea{
+  width:100%; font-size:16px; padding:8px; margin-top:4px;
+  border:1px solid var(--linea); border-radius:6px; background:var(--campo); color:var(--tinta);
+  font-family:inherit;
+}
+textarea{min-height:60px; resize:vertical;}
+ol{padding-left:22px; margin:8px 0;}
+li{margin-bottom:6px;}
+code{font-size:14px; word-break:break-all;}
+.espera{
+  background:var(--info-bg); border-left:4px solid var(--acento);
+  padding:8px 10px; margin:10px 0; border-radius:6px; font-size:16px;
+}
+.nota{
+  background:#fdf3e3; border-left:4px solid var(--acento);
+  padding:8px 10px; margin:10px 0; border-radius:6px; font-size:15px;
+}
+.resultado{margin:10px 0;}
+.resultado label{
+  display:block; padding:8px 6px; border:1px solid var(--linea); border-radius:6px;
+  margin-bottom:6px; font-size:16px;
+}
+.resultado input{margin-right:8px; transform:scale(1.3);}
+.print-only{display:none;}
+.recordatorio{
+  background:#fdf3e3; border:1px solid var(--acento); border-radius:10px;
+  padding:14px; margin-bottom:16px; font-size:16px;
+}
+.alto{
+  background:#fbe9e8; border:2px solid var(--alto); border-radius:10px;
+  padding:14px; margin-bottom:16px; font-size:16px;
+}
+.horas label.campo{font-weight:400;}
+footer{position:sticky; bottom:0; background:var(--papel); padding-top:10px;}
+button#btnPdf{
+  width:100%; font-size:18px; padding:14px; border:none; border-radius:8px;
+  background:var(--acento); color:#fff; font-weight:600;
+}
+.nota-impresion{font-size:14px; color:var(--tinta-2); text-align:center; margin:8px 0;}
+#estado{font-size:13px; color:var(--tinta-2); text-align:center;}
+@media print{
+  button#btnPdf, .nota-impresion, #estado{display:none;}
+  .resultado, textarea, .horas{display:none;}
+  .print-only{display:block; border:1px solid var(--linea); border-radius:6px; padding:8px; margin-top:8px; font-size:15px; background:#fafafa;}
+  section.prueba{break-inside:avoid; page-break-inside:avoid; border:1px solid #999;}
+}
+</style>
+</head>
+<body>
+<header class="datos">
+  <h1>Montaje en campo — 05/10</h1>
+  <label class="campo">Fecha
+    <input type="date" id="fecha">
+  </label>
+  <label class="campo">Nombre de quien monta
+    <input type="text" id="nombre">
+  </label>
+  <label class="campo">Sitio
+    <input type="text" id="sitio">
+  </label>
+  <label class="campo">Nombre del paquete (.zip)
+    <input type="text" id="paquete">
+  </label>
+  <label class="campo">Serie del Poste 1 (Maestro)
+    <input type="text" id="serieM">
+  </label>
+  <label class="campo">Serie del Poste 2 (Esclavo)
+    <input type="text" id="serieE">
+  </label>
+</header>
+
+<main>
+
+<div class="alto">
+  <strong>Avise de inmediato, sin esperar a terminar:</strong> cualquier momento en que los dos postes estén en
+  <strong>VERDE</strong> a la vez. Ponga los dos en ROJO TOTAL, anote la hora, exporte el diario de los dos postes y
+  mande los archivos.
+</div>
+
+<div class="recordatorio">
+  <strong>Siga el orden de las secciones.</strong> Primero se respalda lo que hay dentro, después se graba y
+  <strong>solo después</strong> se conecta nada en J16 y J15. Con el firmware viejo dentro, un cable en el sitio
+  equivocado puede mover el cruce. <strong>Anote siempre la hora del celular.</strong>
+</div>
+
+<section class="prueba" id="p0">
+  <h2>0. Antes de salir</h2>
+  <ol>
+    <li>Paquete .zip copiado en el PC. Anote su nombre arriba.</li>
+    <li>APK del paquete instalada en el celular (desinstale antes la vieja).</li>
+    <li>Programador ST-Link con su cable SWD, y el cable USB del módulo puente.</li>
+    <li>PC con STM32CubeProgrammer instalado.</li>
+    <li>Multímetro, destornillador, extractor de pines y cinta para rotular.</li>
+  </ol>
+  <div class="espera">Se espera: todo lo de la lista en la mochila. Si falta el programador, no se graba nada ese día: solo se mira y se anota.</div>
+  <div class="resultado">
+    <label><input type="radio" name="r0" value="Funcionó" data-txt="Funcionó"> Funcionó</label>
+    <label><input type="radio" name="r0" value="No funcionó" data-txt="No funcionó"> No funcionó</label>
+    <label><input type="radio" name="r0" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v0" placeholder="Qué faltó"></textarea>
+  <div class="print-only" id="pr0"></div>
+</section>
+
+<section class="prueba" id="p1">
+  <h2>1. Respaldo del firmware que hay dentro, ANTES de grabar</h2>
+  <ol>
+    <li>Si la app conecta, pestaña Técnico: <strong>"Consultar version del firmware"</strong> en cada poste. Anote lo que diga.</li>
+    <li>Conecte el ST-Link al conector SWD del controlador. <strong>Lea</strong> la memoria (no la borre):
+      <br><code>STM32_Programmer_CLI.exe --connect port=swd mode=UR --upload 0x08000000 0x10000 poste1_controlador.bin</code></li>
+    <li>Nombre del archivo: el poste y la pieza (por ejemplo <strong>poste1_controlador.bin</strong>, <strong>poste2_controlador.bin</strong>).</li>
+    <li>Saque su md5 en el PC: <code>certutil -hashfile poste1_controlador.bin MD5</code>. Anótelo abajo.</li>
+    <li>Repita en el Poste 2.</li>
+    <li>Puente (módulo ESP32): si va a grabarlo, lea antes su memoria completa por USB, guárdela con el mismo criterio de nombre y anote su md5.</li>
+  </ol>
+  <div class="nota"><strong>Si no se puede leer, NO grabe ese equipo y avise.</strong> Sin respaldo no hay vuelta atrás. Guarde los .bin en el PC y mándelos con este PDF.</div>
+  <div class="espera">Se espera: en el Poste 1 (serie 179DB0) lo último medido es la versión 7ff7d12. Del Poste 2 no se sabe: por eso se anota.</div>
+  <div class="horas">
+    <label class="campo">Poste 1 - versión que dijo la app <input type="text" id="h1a" class="hora"></label>
+    <label class="campo">Poste 1 - md5 controlador <input type="text" id="h1b" class="hora"></label>
+    <label class="campo">Poste 1 - md5 puente <input type="text" id="h1c" class="hora"></label>
+    <label class="campo">Poste 2 - versión que dijo la app <input type="text" id="h1d" class="hora"></label>
+    <label class="campo">Poste 2 - md5 controlador <input type="text" id="h1e" class="hora"></label>
+    <label class="campo">Poste 2 - md5 puente <input type="text" id="h1f" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r1" value="Funcionó" data-txt="Funcionó"> Funcionó</label>
+    <label><input type="radio" name="r1" value="No funcionó" data-txt="No funcionó"> No funcionó</label>
+    <label><input type="radio" name="r1" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v1" placeholder="Mensajes de error al leer, si los hubo"></textarea>
+  <div class="print-only" id="pr1"></div>
+</section>
+
+<section class="prueba" id="p2">
+  <h2>2. Grabar el paquete y comprobar la versión</h2>
+  <ol>
+    <li>Solo en los equipos con respaldo hecho en la sección 1.</li>
+    <li>Grabe el controlador con el ST-Link, siempre así:
+      <br><code>STM32_Programmer_CLI.exe --connect port=swd mode=UR -e all --write firmware.bin -rst</code>
+      <br>Si falla, repítalo igual. No cambie el modo de conexión.</li>
+    <li>Grabe el puente con el archivo del paquete.</li>
+    <li>Conéctese a cada poste. Pestaña Técnico: <strong>"Consultar version del firmware"</strong>. Copie las líneas de Eventos.</li>
+  </ol>
+  <div class="espera">Se espera: el mismo código en controlador y puente de los dos postes, y el mismo que figura en el nombre del .zip. Si no coincide, no siga: avise.</div>
+  <div class="horas">
+    <label class="campo">Poste 1 - Controlador: FW <input type="text" id="h2a" class="hora"></label>
+    <label class="campo">Poste 1 - Puente: FW <input type="text" id="h2b" class="hora"></label>
+    <label class="campo">Poste 2 - Controlador: FW <input type="text" id="h2c" class="hora"></label>
+    <label class="campo">Poste 2 - Puente: FW <input type="text" id="h2d" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r2" value="Funcionó" data-txt="Funcionó"> Funcionó</label>
+    <label><input type="radio" name="r2" value="No funcionó" data-txt="No funcionó"> No funcionó</label>
+    <label><input type="radio" name="r2" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v2" placeholder="Mensajes del programador y lo que vio distinto"></textarea>
+  <div class="print-only" id="pr2"></div>
+</section>
+
+<section class="prueba" id="p3">
+  <h2>3. Conectores, con el poste apagado</h2>
+  <ol>
+    <li><strong>J16 pin 1 lleva 12 V. Se tapa:</strong> retire el pin del cuerpo del conector volante. No basta con cinta ni termorretráctil.</li>
+    <li><strong>J14: no se conecta nada.</strong> Es una entrada de la tarjeta. Si hay un relé o un cable, quítelo antes de dar energía.</li>
+    <li><strong>J16 pines 5 y 8: vacíos.</strong> No se cablean ni se puentean para probar.</li>
+    <li><strong>J15</strong> (talanquera) va a la <strong>bobina de un relé</strong>: pin 1 son 12 V, pin 2 es la salida. El contacto del relé va a OPEN/COM de la centralita. <strong>Nunca J15 directo a la centralita.</strong></li>
+    <li><strong>J15 pin 2 NO es masa:</strong> en reposo marca unos 12 V. No lo use como masa de nada.</li>
+    <li>En J16 la única masa es el pin 2. Ningún cable de cámara va a masa.</li>
+  </ol>
+  <div class="espera">Se espera: J16 pin 1 sin pin, J14 y J16 pines 5 y 8 vacíos, J15 a la bobina del relé. Una foto de cada conector antes de cerrar.</div>
+  <div class="horas">
+    <label class="campo">Poste 1: J16 p1 tapado (sí/no) <input type="text" id="h3a" class="hora"></label>
+    <label class="campo">Poste 2: J16 p1 tapado (sí/no) <input type="text" id="h3b" class="hora"></label>
+    <label class="campo">J14 vacío en los dos (sí/no) <input type="text" id="h3c" class="hora"></label>
+    <label class="campo">J16 p5 y p8 vacíos en los dos (sí/no) <input type="text" id="h3d" class="hora"></label>
+    <label class="campo">J15 a relé en los dos (sí/no/sin talanquera) <input type="text" id="h3e" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r3" value="Funcionó" data-txt="Funcionó"> Funcionó</label>
+    <label><input type="radio" name="r3" value="No funcionó" data-txt="No funcionó"> No funcionó</label>
+    <label><input type="radio" name="r3" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v3" placeholder="Qué encontró cableado y qué cambió"></textarea>
+  <div class="print-only" id="pr3"></div>
+</section>
+
+<section class="prueba" id="p4">
+  <h2>4. Radios</h2>
+  <ol>
+    <li><strong>Nunca dé energía a una radio sin la antena conectada.</strong></li>
+    <li>Para configurar: radio sin energía, M0 en ON y M1 en OFF. Con el programa de la radio, lea primero lo que tiene.</li>
+    <li>Air Data Rate: <strong>2.4 kbps</strong>. Potencia: la máxima. FEC: activado. Modo: Transparent. UART: 9600 8N1.</li>
+    <li>El <strong>mismo canal</strong> en las dos radios. Anote cuál.</li>
+    <li>Al terminar: radio sin energía, <strong>M0 y M1 los dos en OFF</strong>. Repita en el otro poste.</li>
+  </ol>
+  <div class="espera">Se espera: las dos radios iguales, M0 y M1 en OFF, antena puesta. En la app, el enlace de radio entre postes en verde.</div>
+  <div class="horas">
+    <label class="campo">Canal de las dos radios <input type="text" id="h4a" class="hora"></label>
+    <label class="campo">M0 y M1 en OFF en las dos (sí/no) <input type="text" id="h4b" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r4" value="Funcionó" data-txt="Funcionó"> Funcionó</label>
+    <label><input type="radio" name="r4" value="No funcionó" data-txt="No funcionó"> No funcionó</label>
+    <label><input type="radio" name="r4" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v4" placeholder="Lo que tenía cada radio antes de tocarla"></textarea>
+  <div class="print-only" id="pr4"></div>
+</section>
+
+<section class="prueba" id="p5">
+  <h2>5. Cámaras</h2>
+  <ol>
+    <li>Cableado por poste, sin polaridad: <strong>cámara 1</strong> de su salida de alarma (1A/1B) a <strong>J16 pin 9 y pin 10</strong>; <strong>cámara 2</strong> a <strong>J16 pin 11 y pin 12</strong>.</li>
+    <li>Las cuatro cámaras igual: Detección de intrusión con la zona sobre el <strong>barrido de la pluma</strong>; objetivo ☑ Vehículo y ☑ Humano; sensibilidad <strong>50 %</strong>; vinculación a la salida de alarma 1.</li>
+    <li>La salida de alarma queda activa <strong>5 s</strong> después de la detección (valor de fábrica).</li>
+    <li>En el sitio: enfoque cada cámara y ajuste el punto de visión para que vea todo el barrido del brazo. Si detecta de más o de menos, ajuste la sensibilidad y anote el valor final.</li>
+    <li>Poste en Automático: un <strong>carro</strong> debajo del brazo al ponerse el rojo; después una <strong>persona</strong>.</li>
+  </ol>
+  <div class="espera">Se espera: con carro o persona debajo, la pluma no baja, y baja unos 5 s después de que se retiren. Con la zona libre baja unos 3 s después del rojo. En la app, CAM: deja de salir "?".</div>
+  <div class="horas">
+    <label class="campo">Sensibilidad final, cámara por cámara <input type="text" id="h5a" class="hora"></label>
+    <label class="campo">Zona libre: segundos del rojo a la bajada <input type="text" id="h5b" class="hora"></label>
+    <label class="campo">Tras retirarse: segundos hasta la bajada <input type="text" id="h5c" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r5" value="Funcionó" data-txt="Funcionó"> Funcionó</label>
+    <label><input type="radio" name="r5" value="No funcionó" data-txt="No funcionó"> No funcionó</label>
+    <label><input type="radio" name="r5" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v5" placeholder="Qué hizo la pluma con carro y con persona; ajustes de cada cámara"></textarea>
+  <div class="print-only" id="pr5"></div>
+</section>
+
+<section class="prueba" id="p6">
+  <h2>6. Modos en el sitio</h2>
+  <ol>
+    <li>Con la radio entre postes funcionando, pruebe uno a uno: <strong>AUTOMÁTICO</strong>, <strong>Modo Inteligente</strong>, <strong>Modo Manual</strong> con DAR PASO, <strong>ÁMBAR</strong> y <strong>ROJO TOTAL</strong>.</li>
+    <li>En cada uno, mire los dos postes y la pluma al menos un ciclo.</li>
+  </ol>
+  <div class="espera">Se espera: nunca los dos postes en verde. En Automático alternan solos. En Inteligente el paso lo pide la cámara. En Manual el paso lo da DAR PASO. En Ámbar, los dos en ámbar intermitente. En Rojo total, los dos en rojo. La pluma sube con el verde y con el ámbar intermitente, y baja unos 3 s después del rojo.</div>
+  <div class="horas">
+    <label class="campo">Automático <input type="text" id="h6a" class="hora"></label>
+    <label class="campo">Inteligente <input type="text" id="h6b" class="hora"></label>
+    <label class="campo">Manual <input type="text" id="h6c" class="hora"></label>
+    <label class="campo">Ámbar <input type="text" id="h6d" class="hora"></label>
+    <label class="campo">Rojo total <input type="text" id="h6e" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r6" value="Funcionó" data-txt="Funcionó"> Funcionó</label>
+    <label><input type="radio" name="r6" value="No funcionó" data-txt="No funcionó"> No funcionó</label>
+    <label><input type="radio" name="r6" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v6" placeholder="Hora y modo de cualquier cosa rara"></textarea>
+  <div class="print-only" id="pr6"></div>
+</section>
+
+<section class="prueba" id="p7">
+  <h2>7. Regla de operación hasta nueva orden</h2>
+  <ol>
+    <li><strong>No deje el cruce en Degradado sin alguien presente.</strong></li>
+    <li>En cada poste, pestaña Técnico, tarjeta <strong>"Degradado automático (sin radio)"</strong>: debe decir desactivado. Si no, pulse <strong>Desactivar</strong>.</li>
+    <li>Antes de irse, deje el cruce en el modo que le hayan indicado y anote cuál.</li>
+  </ol>
+  <div class="espera">Se espera: Degradado automático desactivado en los dos postes, y nadie se va con el cruce en Degradado.</div>
+  <div class="horas">
+    <label class="campo">Degradado automático desactivado en los dos (sí/no) <input type="text" id="h7a" class="hora"></label>
+    <label class="campo">Modo en que quedó el cruce y hora <input type="text" id="h7b" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r7" value="Funcionó" data-txt="Funcionó"> Funcionó</label>
+    <label><input type="radio" name="r7" value="No funcionó" data-txt="No funcionó"> No funcionó</label>
+    <label><input type="radio" name="r7" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v7" placeholder="Lo que dijo la app en cada poste"></textarea>
+  <div class="print-only" id="pr7"></div>
+</section>
+
+<section class="prueba" id="p8">
+  <h2>8. Exportar y enviar</h2>
+  <ol>
+    <li>En <strong>cada</strong> poste: pestaña <strong>Tramas</strong> &rarr; <strong>Diario de órdenes</strong> &rarr; <strong>"Exportar todo como archivo"</strong>, con el poste en el nombre (por ejemplo "montaje_poste1").</li>
+    <li>Exporte el log de la app.</li>
+    <li>Envíe juntos: los dos diarios, el log, los .bin del respaldo y este PDF.</li>
+  </ol>
+  <div class="espera">Se espera: dos diarios, un log, los respaldos y el PDF, en un mismo envío.</div>
+  <div class="resultado">
+    <label><input type="radio" name="r8" value="Funcionó" data-txt="Funcionó"> Funcionó</label>
+    <label><input type="radio" name="r8" value="No funcionó" data-txt="No funcionó"> No funcionó</label>
+    <label><input type="radio" name="r8" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v8" placeholder="Nombres de los archivos enviados"></textarea>
+  <div class="print-only" id="pr8"></div>
+</section>
+
+<section class="prueba" id="pF">
+  <h2>Algo más que haya visto</h2>
+  <textarea id="vF" placeholder="Cualquier otra cosa que quiera anotar"></textarea>
+  <div class="print-only" id="prF"></div>
+</section>
+
+</main>
+
+<footer>
+  <button id="btnPdf">Guardar en PDF</button>
+  <p class="nota-impresion">En el diálogo, elija "Guardar como PDF" y envíela por WhatsApp.</p>
+  <p id="estado"></p>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+  var estado = document.getElementById('estado');
+  var camposTexto = document.querySelectorAll('input[type=text], input[type=date], textarea');
+  var camposRadio = document.querySelectorAll('input[type=radio]');
+
+  function clave(id) { return 'mc05_' + id; }
+
+  try {
+    camposTexto.forEach(function (el) {
+      var v = localStorage.getItem(clave(el.id));
+      if (v !== null) el.value = v;
+    });
+    camposRadio.forEach(function (el) {
+      var v = localStorage.getItem(clave(el.name + '_' + el.value));
+      if (v === '1') el.checked = true;
+    });
+  } catch (e) { /* sin almacenamiento: la hoja se sigue rellenando y se imprime igual */ }
+
+  function guardarTexto(el) {
+    try {
+      localStorage.setItem(clave(el.id), el.value);
+      if (estado) estado.textContent = 'guardado ' + new Date().toLocaleTimeString();
+    } catch (e) {
+      if (estado) estado.textContent = 'este teléfono no guarda: imprima antes de cerrar';
+    }
+  }
+
+  function guardarRadio(grupo) {
+    try {
+      Array.prototype.forEach.call(grupo, function (el) {
+        localStorage.setItem(clave(el.name + '_' + el.value), el.checked ? '1' : '0');
+      });
+      if (estado) estado.textContent = 'guardado ' + new Date().toLocaleTimeString();
+    } catch (e) {
+      if (estado) estado.textContent = 'este teléfono no guarda: imprima antes de cerrar';
+    }
+  }
+
+  camposTexto.forEach(function (el) {
+    el.addEventListener('input', function () { guardarTexto(el); refrescarImpresion(); });
+  });
+  camposRadio.forEach(function (el) {
+    el.addEventListener('change', function () {
+      guardarRadio(document.getElementsByName(el.name));
+      refrescarImpresion();
+    });
+  });
+
+  // Para cada seccion, arma en el recuadro de impresion el resultado elegido y lo
+  // escrito, en texto llano. Asi, al imprimir, se ve la respuesta aunque el
+  // telefono no dibuje los controles marcados. Los campos anotados van tambien.
+  var ids = ['0', '1', '2', '3', '4', '5', '6', '7', '8'];
+  function refrescarImpresion() {
+    ids.forEach(function (n) {
+      var pr = document.getElementById('pr' + n);
+      if (!pr) return;
+      var marcado = document.querySelector('input[name=r' + n + ']:checked');
+      var resultado = marcado ? marcado.getAttribute('data-txt') : 'sin responder';
+      var texto = document.getElementById('v' + n);
+      var vio = (texto && texto.value.trim()) ? texto.value : '(sin escribir)';
+      var horas = '';
+      document.querySelectorAll('#p' + n + ' input.hora').forEach(function (h) {
+        var rot = h.parentNode.firstChild.textContent.trim();
+        horas += rot + ': ' + (h.value.trim() || '(vacío)') + '. ';
+      });
+      pr.textContent = horas + 'Resultado: ' + resultado + '. Qué vio: ' + vio;
+    });
+    var libre = document.getElementById('vF');
+    var prF = document.getElementById('prF');
+    if (prF) {
+      prF.textContent = (libre && libre.value.trim()) ? libre.value : '(sin escribir)';
+    }
+  }
+
+  window.addEventListener('beforeprint', refrescarImpresion);
+  document.getElementById('btnPdf').addEventListener('click', function () {
+    refrescarImpresion();
+    window.print();
+  });
+
+  refrescarImpresion();
+})();
+</script>
+</body>
+</html>
