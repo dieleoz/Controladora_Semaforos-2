@@ -11,7 +11,7 @@
 // adaptador_maestro_deg_auto.inc.
 // ---------------------------------------------------------------------------
 static long g_daEntradas = 0, g_daRechazos = 0, g_daEnlace = 0, g_daOtroPoste = 0;
-static long g_daLimite31 = 0, g_daRenovar = 0;
+static long g_daLimite31 = 0, g_daRenovar = 0, g_daRojoSinHora = 0;   // D-38: $ALARM ROJO_SIN_HORA
 static long g_daInicioS = -1;   // el inicio que publico AUTO_ENTRADA_INICIO_HH:MM:SS
 static char g_daUltRechazo[64] = "";   // la causa del ultimo AUTO_NO_, literal
 static char g_daUltAccion[32] = "";    // la ACCION del ultimo AUTO_NO_, literal (la app la traduce)
@@ -32,6 +32,7 @@ static void arnesDegAuto_notar(const char* origen, const char* detalle) {
   if (!strcmp(detalle, "OTRO_EN_DEGRADADO")) g_daOtroPoste++;
   if (!strcmp(detalle, "LIMITE_31D")) g_daLimite31++;
   if (!strcmp(detalle, "RENOVAR_TESTIGO")) g_daRenovar++;
+  if (!strcmp(detalle, "ROJO_SIN_HORA")) g_daRojoSinHora++;
 }
 
 // ---------------------------------------------------------------------------
@@ -55,7 +56,7 @@ void bluetooth_loop() {}
 bool bluetooth_ambarEmergencia() { return g_ambarEmergencia; }
 bool bluetooth_testLedsActivo() { return false; }
 void bluetooth_reportarAlarma(const char* evento, const char* causa, const char* accion) {
-  if (accion && !strncmp(causa, "AUTO_NO_", 8))
+  if (accion && (!strncmp(causa, "AUTO_NO_", 8) || !strcmp(causa, "CADUCADA")))
     snprintf(g_daUltAccion, sizeof(g_daUltAccion), "%s", accion);
   snprintf(g_ultimaAlarmaEvento, sizeof(g_ultimaAlarmaEvento), "%s", evento);
   snprintf(g_ultimaAlarmaCausa, sizeof(g_ultimaAlarmaCausa), "%s", causa);
@@ -144,10 +145,11 @@ static long arnesDegAuto_mando(const char* que, long arg) {
   if (!strcmp(que, "da_otro_poste"))  return g_daOtroPoste;
   if (!strcmp(que, "da_limite31"))    return g_daLimite31;
   if (!strcmp(que, "da_renovar"))     return g_daRenovar;
+  if (!strcmp(que, "da_rojo_sin_hora")) return g_daRojoSinHora;
   if (!strcmp(que, "da_en_degradado")) return degradado_gobiernaLuz() ? 1 : 0;
   // Bloque H, 29/09: rendicion y su pila, el ambar por ESTADO (el pin del intermitente se
   // apaga la mitad del tiempo), la entrada a mano por testigo y la ACCION literal.
-  if (!strcmp(que, "da_rendido"))     return degradado_estado() == DEG_RENDIDO ? 1 : 0;
+  if (!strcmp(que, "da_rojo_fijo"))   return degradado_estado() == DEG_ROJO_SIN_HORA ? 1 : 0;   // D-38
   if (!strcmp(que, "da_rendido_pila")) return respaldo_rendido() ? 1 : 0;
   if (!strcmp(que, "da_en_fallo"))    return semaforo_estado() == S_FALLO ? 1 : 0;
   if (!strcmp(que, "da_s2000"))       return (long)reloj_segundosDesde2000();

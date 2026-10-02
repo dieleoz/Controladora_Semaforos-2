@@ -148,7 +148,7 @@ static int  g_alarmasRelojNoCuenta = 0;
 static int  g_alarmasLimite48h = 0;
 static int  g_alarmasSyncSinFecha = 0;
 void bluetooth_reportarAlarma(const char* evento, const char* causa, const char* accion) {
-  if (accion && !strncmp(causa, "AUTO_NO_", 8))
+  if (accion && (!strncmp(causa, "AUTO_NO_", 8) || !strcmp(causa, "CADUCADA")))
     snprintf(g_daUltAccion, sizeof(g_daUltAccion), "%s", accion);   // bloque H
   snprintf(g_ultimaAlarmaEvento, sizeof(g_ultimaAlarmaEvento), "%s", evento);
   g_alarmasEmitidas++;
@@ -256,16 +256,10 @@ extern "C" {
 
 PUNTA_API const char* punta_nombre(void) { return "MAESTRO"; }
 
-// EL setup() REAL DE main.cpp, acotado a lo que esta DLL compila y EN SU ORDEN, que es
-// de fondo y no estetico:
-//
-//   respaldo_setup() DESPUES del reloj -mismo dominio de pila-, y
-//   modo_degradado_reanudarTrasCorte() ANTES de modo_degradado_publicarConfig(),
-//   porque publicar guarda el ciclo en la pila y despues respaldo_hayCiclo() seria
-//   cierto SIEMPRE: esa condicion dejaria de comprobar nada.
-//
-// El delay(2000) de N-22 se conserva: aqui no duerme, ADELANTA el reloj simulado, que
-// es lo que ese delay significa para todo lo que venga despues.
+// EL setup() REAL DE main.cpp, acotado a lo que esta DLL compila y EN SU ORDEN: respaldo_setup()
+// DESPUES del reloj (mismo dominio de pila) y la reanudacion ANTES de publicarConfig(), que guarda
+// el ciclo y haria cierto SIEMPRE respaldo_hayCiclo(). El delay(2000) de N-22 ADELANTA el reloj.
+// Las tres ramas del final son las de D-40; si main.cpp las mueve, esto se queda viejo.
 PUNTA_API void punta_arrancar(void) {
   for (int i = 0; i < 64; i++) { arnes_pines[i] = LOW; arnes_entradas[i] = LOW; }
   arnes_escrituras = 0;
@@ -274,6 +268,7 @@ PUNTA_API void punta_arrancar(void) {
   botones_setup();
   coordinador_setup();
   delay(2000);
+  respaldo_capturarAntesDelReloj();   // N-172 H-D: antes de reloj_setup(), como en main.cpp
   reloj_setup();
   respaldo_setup();
 
@@ -284,9 +279,14 @@ PUNTA_API void punta_arrancar(void) {
     modoActual_set(MODO_DEGRADADO);
     modo_degradado_setup();
     modoAnterior = MODO_DEGRADADO;
-  } else {
+  } else if (respaldo_degradadoActivo()) {   // D-29 pendiente: menu y espera
     modoActual_set(MENU);
     modoAnterior = MENU;
+    esperaReanudacion = true;
+  } else {                                   // ambar de arranque, MODO_AMBAR entero
+    entrarAmbarDeArranque();
+    modo_ambar_setup();
+    modoAnterior = MODO_AMBAR;
   }
 }
 

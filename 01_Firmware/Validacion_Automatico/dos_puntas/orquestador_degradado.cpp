@@ -565,6 +565,7 @@ static const unsigned long DELAY_ARRANQUE_MS = 2000;
 
 // 1.49b3 (G8): las dos puntas arrancan SIN CRISTAL -LSERDY nunca a 1-. Solo lo enciende G8.
 static bool g_sinCristalAlArrancar = false;
+static long MENU_V = -1, MODO_AMBAR_V = -1, g_modoAlArrancar = -1;   // D-40, de modos.h
 
 static void arrancarLasDos() {
   g_aire.clear();
@@ -588,16 +589,14 @@ static void arrancarLasDos() {
   ESCLAVO.arrancar();
   g_t += DELAY_ARRANQUE_MS;
 
-  // UNA VUELTA ANTES DE LA PRIMERA ORDEN (11/09, D-21 (1)). Recien cargada, cada DLL tiene
-  // millis() = DELAY_ARRANQUE_MS, no el reloj del banco: el primer tick lo pone. Hasta hoy
-  // la hora se sembraba ANTES de ese tick, con millis() = 2000, y en el tick siguiente
-  // saltaba hacia delante todo lo que el banco llevara corrido; el modelo del RTC no lo
-  // notaba porque el salto ocurria antes de sincronizar y la radio lo copiaba al Esclavo.
-  // Con el reloj.cpp real esa base nace con la edad del banco entero y CADUCA al instante:
-  // la puerta del Maestro la rechazaba y el barrido del bloque C medio un cruce con UNA
-  // sola punta en Degradado. Medido, no supuesto: 0 de los puntos del barrido con verde en
-  // las dos. El arnes estaba sembrando con un reloj que la tarjeta no tiene.
+  // UNA VUELTA ANTES DE LA PRIMERA ORDEN (11/09, D-21 (1)): recien cargada, la DLL tiene millis() =
+  // DELAY_ARRANQUE_MS y el primer tick pone el del banco. Sembrar antes hacia nacer la base con la edad
+  // del banco entero y caducar al instante (medido: 0 puntos del barrido C con verde en las dos).
   unTick();
+  // D-40: el Maestro arranca en el ambar de arranque (A3) y sale por orden del operario, este
+  // set_modo(MENU): sin ella el coordinador no habla y nada se sincroniza.
+  g_modoAlArrancar = MAESTRO.orden("modo_actual");
+  MAESTRO.orden("set_modo", MENU_V);
 }
 
 struct Escenario {
@@ -635,12 +634,9 @@ static Escenario prepararSincronizadas(uint8_t dia, uint8_t hh, uint8_t mm, uint
   e.configConfirmada  = MAESTRO.orden("config_confirmada") != 0;
   e.desfaseValido     = MAESTRO.orden("desfase_valido") != 0;
 
-  // D-21 (1): los dos ESP32 empiezan a sembrar, en ECO (ver la cabecera). NO ANTES: una
-  // siembra del Maestro con la radio viva propaga la hora al Esclavo (D-26 (2)) y cambiaria
-  // el residuo sub-segundo que miden C2..C4. El del Esclavo, detras de los 25 s de silencio
-  // que siguen al corte de entrarEnDegradadoLasDos(): con la radio mandando la ignoraria.
-  // Las dos primeras caen muy por dentro de HORA_CADUCA_MS desde la ultima hora que cada
-  // punta recibio; despues, una cada SIEMBRA_INTERVALO_MS.
+  // D-21 (1): los dos ESP32 empiezan a sembrar, en ECO (ver la cabecera), y NO ANTES: con la radio viva
+  // la siembra del Maestro llega al Esclavo (D-26 (2)) y cambiaria el residuo que miden C2..C4. La del
+  // Esclavo, tras los 25 s de silencio del corte. Despues, una cada SIEMBRA_INTERVALO_MS.
   g_esp32Ds3231 = false;
   g_esp32Vivo[0] = g_esp32Vivo[1] = true;
   g_proxSiembra[0] = g_t + 5000UL;
@@ -651,23 +647,15 @@ static Escenario prepararSincronizadas(uint8_t dia, uint8_t hh, uint8_t mm, uint
 // Mete a las dos en Degradado, corta la radio y aplica la deriva. Devuelve cuando el
 // escenario esta montado; la observacion la hace quien llama.
 //
-// EL ORDEN NO ES ARBITRARIO Y LO IMPUSO EL FIRMWARE, no una preferencia del arnes.
-// Esclavo/src/main.cpp:383 saca al Esclavo del Degradado en cuanto le llega una trama
-// de GOBIERNO -PING, GO_RED o GO_GREEN-, y con razon: "si vuelve el radio, el Maestro
-// manda". Meter al Esclavo primero, con el Maestro todavia en el menu latiendo cada
-// 3 s, lo expulsaba en el siguiente PING y el arnes media un cruce con UNA sola punta
-// en Degradado. El orden real de la calle es el otro:
-//
-//   1. El Maestro entra en Degradado y CALLA (main.cpp lo deja fuera del coordinador).
-//   2. Muere la radio.
-//   3. El operario sube al otro poste y entra alli.
+// EL ORDEN LO IMPUSO EL FIRMWARE: Esclavo/src/main.cpp saca al Esclavo del Degradado al recibir
+// una trama de GOBIERNO (PING, GO_RED, GO_GREEN); metido primero, el PING del Maestro en el menu lo
+// expulsaba. El de la calle: 1. el Maestro entra y CALLA; 2. muere la radio; 3. el operario entra
+// en el otro poste.
 static void entrarEnDegradadoLasDos(long desfaseSegEsclavo) {
   MAESTRO.orden("set_modo", MODO_DEGRADADO_V);
 
-  // Una vuelta para que pasoPrincipal() del Maestro dispare modo_degradado_setup() por
-  // el camino de main.cpp -no se llama a mano: eso seria saltarse la puerta-. En esa
-  // vuelta el Maestro manda su ultimo GO_RED (coordinador_forzarRojoTotal) y despues
-  // enmudece.
+  // Una vuelta para que pasoPrincipal() dispare modo_degradado_setup() por el camino de main.cpp (a
+  // mano seria saltarse la puerta); en ella el Maestro manda su ultimo GO_RED y enmudece.
   avanzar(2000);
 
   // Y AHORA se corta la radio. El Degradado se define por no tenerla; dejarla viva
@@ -816,6 +804,8 @@ int main() {
   const std::string M_SEM = RAIZ + "/Maestro/src/semaforo.cpp";
   const std::string E_SEM = RAIZ + "/Esclavo/src/semaforo.cpp";
   const std::string MODOS = RAIZ + "/Maestro/include/modos.h";
+  MENU_V = posicionEnEnum(MODOS, "ModoSistema", "MENU");
+  MODO_AMBAR_V = posicionEnEnum(MODOS, "ModoSistema", "MODO_AMBAR");
 
   const unsigned long DEG_VERDE_SEG =
       leerNumero(M_DEG, R"(DEG_VERDE_SEG\s*=\s*(\d+))", "DEG_VERDE_SEG");
@@ -899,10 +889,14 @@ int main() {
                      "DEG_RECHAZO_SIN_HORA");
   const long DEG_RENDIDO_V =
       posicionEnEnum(RAIZ + "/Esclavo/include/modo_degradado.h", "EstadoDegradado", "DEG_RENDIDO");
+  const long DEG_ROJO_SIN_HORA_V =   // D-38
+      posicionEnEnum(RAIZ + "/Esclavo/include/modo_degradado.h", "EstadoDegradado", "DEG_ROJO_SIN_HORA");
   const long S_FALLO_V =
       posicionEnEnum(RAIZ + "/Maestro/include/semaforo.h", "EstadoSemaforo", "S_FALLO");
   const long S_FALLO_E =
       posicionEnEnum(RAIZ + "/Esclavo/include/semaforo.h", "EstadoSemaforo", "S_FALLO");
+  const long S_ROJO_M = posicionEnEnum(RAIZ + "/Maestro/include/semaforo.h", "EstadoSemaforo", "S_ROJO");
+  const long S_ROJO_E = posicionEnEnum(RAIZ + "/Esclavo/include/semaforo.h", "EstadoSemaforo", "S_ROJO");
   const long S_AMARILLO_E =
       posicionEnEnum(RAIZ + "/Esclavo/include/semaforo.h", "EstadoSemaforo", "S_AMARILLO");
   (void)MDG_OK_V;
@@ -974,11 +968,12 @@ int main() {
     avanzar(3000);
     const long motivoSinNada = MAESTRO.orden("deg_evaluar");
     const long rechazoSinNada = ESCLAVO.orden("degradado_comprobar");
-    comprobar(motivoSinNada != 0 && rechazoSinNada != 0,
+    comprobar(motivoSinNada != 0 && rechazoSinNada != 0 && g_modoAlArrancar == MODO_AMBAR_V,
               "A3 (control negativo de las dos puertas): recien arrancadas y sin "
               "sincronizar, el Maestro RECHAZA la entrada al Degradado (motivo " +
               std::to_string(motivoSinNada) + ", 0 seria aceptar) y el Esclavo tambien "
-              "(rechazo " + std::to_string(rechazoSinNada) + ")");
+              "(rechazo " + std::to_string(rechazoSinNada) + "); y el Maestro arranco en el modo " +
+              std::to_string(g_modoAlArrancar) + " = MODO_AMBAR, no en el menu (D-40)");
   }
 
   // =========================================================================
@@ -1390,24 +1385,19 @@ int main() {
   //
   // H1 del veredicto del 11/09: con el J17 de una punta mudo, su hora corre sobre el HSI
   // -hasta 90 s por hora- mientras la otra se siembra de su DS3231. En Degradado eso es
-  // verde-verde en cada ciclo. D-21 (1) lo contesta con ambar en la punta que la tiene, y la
-  // caducidad de reloj.cpp -HORA_CADUCA_MS- es lo que la hace medible. Aqui corre el
-  // reloj.cpp REAL de las dos puntas, con el HSI de la punta afectada en el extremo rapido de
-  // su ficha (HSI_PPM_PEOR, releido) y cada DS3231 con su hora.
-  //
-  // LO QUE NO SE MIDE AQUI: el ambar en la OTRA punta. D-21 lo dice: en Degradado no hay
-  // radio y cada punta decide por su cuenta; la otra sigue ciclando, y eso se COMPRUEBA como
-  // lo que es -la asimetria aceptada (Riesgo 2)-, no como un fallo.
+  // verde-verde en cada ciclo. D-38 (30/09) lo contesta con ROJO FIJO en esa punta (D-21 (1): ambar);
+  // HORA_CADUCA_MS lo hace medible. Corre el reloj.cpp REAL de las dos, con el HSI de la afectada en
+  // su extremo rapido (HSI_PPM_PEOR, releido) y cada DS3231 con su hora. LA OTRA PUNTA sigue
+  // ciclando (sin radio cada una decide sola): es la asimetria que D-38 cierra en rojo (F2.3/F3.3).
+  const unsigned long AVISO_ROJO_MS = leerNumero(RAIZ + "/Maestro/src/modo_degradado.cpp",
+      R"(AVISO_ROJO_SIN_HORA_MS\s*=\s*(\d+)UL)", "AVISO_ROJO_SIN_HORA_MS");   // D-38: repite la $ALARM
   {
     const long CADUCA_M = MAESTRO.orden("hora_caduca_ms");
     const long CADUCA_E = ESCLAVO.orden("hora_caduca_ms");
     const long PPM = (long)leerNumero(RAIZ + "/Maestro/include/reloj.h",
                                       R"(HSI_PPM_PEOR\s*=\s*(\d+)UL)", "HSI_PPM_PEOR");
-    // La caducidad vista desde el BANCO con el HSI rapido: millis() cuenta (1 + ppm) veces
-    // lo que pasa de verdad, asi que la hora caduca ANTES en tiempo del banco.
-    // Una por punta: cada una se compara con SU constante compilada. Con una sola, un plazo
-    // distinto en el Maestro hacia caer la comprobacion del Esclavo -medido al inyectarlo- y
-    // la linea acusaba a la punta equivocada.
+    // La caducidad vista desde el BANCO con el HSI rapido (millis() cuenta 1 + ppm): caduca ANTES. Una
+    // por punta, contra SU constante: con una sola, un plazo distinto en el Maestro acusaba al Esclavo.
     const unsigned long CADUCA_BANCO_MS =
         (unsigned long)((long long)CADUCA_M * 1000000LL / (1000000LL + PPM));
     const unsigned long CADUCA_BANCO_E =
@@ -1547,50 +1537,61 @@ int main() {
 
       g_esp32Vivo[0] = false;
       const unsigned long tUltima = g_tUltimaSiembraBuena[0];
-      const long alarmas0 = MAESTRO.orden("alarmas_caducada");
+      const long alarmas0 = MAESTRO.orden("alarmas_caducada"), rojos0 = MAESTRO.orden("da_rojo_sin_hora");
       reiniciarObservacion();
-      unsigned long tAmbar = 0, tUltVerde = 0, verdeETrasAmbar = 0;
+      // D-38, el ORDEN: en la vuelta de la 1a ROJO_SIN_HORA ya salio la CADUCADA; despues, solo S_ROJO.
+      unsigned long tRojo = 0, tUltVerde = 0, verdeETrasRojo = 0, noRojo = 0;
+      long cadAlRojo = -1;
       for (unsigned long t = 0; t < 60UL * 60UL * 1000UL; t += PASO_MS) {
         unTick();
         if (MAESTRO.verde()) tUltVerde = g_t - PASO_MS;
-        if (tAmbar == 0 && MAESTRO.estado() == S_FALLO_V) tAmbar = g_t - PASO_MS;
-        if (tAmbar != 0 && ESCLAVO.verde()) verdeETrasAmbar++;
+        if (tRojo == 0 && MAESTRO.orden("da_rojo_sin_hora") > rojos0) {
+          tRojo = g_t - PASO_MS;
+          cadAlRojo = MAESTRO.orden("alarmas_caducada") - alarmas0;
+        }
+        if (tRojo != 0 && MAESTRO.estado() != S_ROJO_M) noRojo++;
+        if (tRojo != 0 && ESCLAVO.verde()) verdeETrasRojo++;
       }
       const long alarmas = MAESTRO.orden("alarmas_caducada") - alarmas0;
-      const unsigned long aAmbar = tAmbar ? tAmbar - tUltima : 0;
+      const long rojos = MAESTRO.orden("da_rojo_sin_hora") - rojos0;
+      const long rojosEsp = tRojo ? (long)((g_t - PASO_MS - tRojo) / AVISO_ROJO_MS) + 1 : 0;
+      const unsigned long aRojo = tRojo ? tRojo - tUltima : 0;
       comprobar(g_verdeSimultaneo == 0 && g_pegados == 0,
                 "F2.1 (H1 dentro del modo): en 60 min con el J17 del Maestro mudo y su HSI a +" +
                 std::to_string(PPM) + " ppm -a esa deriva el cruce se habria roto a los ~" +
                 std::to_string((long)(DESFASE_QUE_AGUANTA * 1000000L / PPM / 60L)) + " min- NO "
                 "hubo ni un instante con las dos en verde (" + std::to_string(g_verdeSimultaneo) +
                 ") ni un verde pegado al otro");
-      comprobar(tAmbar != 0 && MAESTRO.estado() == S_FALLO_V && alarmas == 1 &&
-                    aAmbar >= CADUCA_BANCO_MS && aAmbar <= (unsigned long)CADUCA_M + 2000UL + 2UL * PASO_MS &&
-                    tUltVerde <= tUltima + (unsigned long)CADUCA_M,
-                "F2.2: el Maestro paso a AMBAR a los " + std::to_string(aAmbar) + " ms de su "
-                "ultima siembra buena -la caducidad compilada, vista desde el banco con su HSI "
-                "rapido, mas los 2 s de rojo de irAAmbar()-, no volvio a dar verde despues y lo "
-                "PUBLICO: " + std::to_string(alarmas) + " $ALARM HORA_ESP32,CADUCADA");
-      comprobar(verdeETrasAmbar > 0,
-                "F2.3 (la asimetria de D-21, medida y no escondida): con el Maestro en ambar, el "
+      comprobar(tRojo != 0 && cadAlRojo == 1 && noRojo == 0 && alarmas == 1 &&
+                    MAESTRO.orden("da_accion_es:CAMBIO_A_ROJO") == 1 &&
+                    aRojo >= CADUCA_BANCO_MS && aRojo <= (unsigned long)CADUCA_M + 2UL * PASO_MS &&
+                    tUltVerde <= tUltima + (unsigned long)CADUCA_M &&
+                    rojos >= rojosEsp - 1 && rojos <= rojosEsp + 2,
+                "F2.2 (D-38): el Maestro paso a ROJO FIJO a los " + std::to_string(aRojo) + " ms de su ultima "
+                "siembra buena, en la vuelta de la $ALARM HORA_ESP32,CADUCADA,CAMBIO_A_ROJO (" +
+                std::to_string(cadAlRojo) + " antes del rojo, " + std::to_string(alarmas) + " en total); despues " +
+                std::to_string(noRojo) + " vueltas fuera de S_ROJO, ni un verde, y " + std::to_string(rojos) +
+                " $ALARM ROJO_SIN_HORA (una cada " + std::to_string(AVISO_ROJO_MS) + " ms: ~" +
+                std::to_string(rojosEsp) + ")");
+      comprobar(verdeETrasRojo > 0,
+                "F2.3 (la asimetria, medida y no escondida): con el Maestro en rojo fijo, el "
                 "Esclavo SIGUE en Degradado dando verdes por su reloj (" +
-                std::to_string(verdeETrasAmbar) + " instantes): en Degradado no hay radio con que "
-                "decirselo");
+                std::to_string(verdeETrasRojo) + " instantes): sin radio no hay con que decirselo, "
+                "y por eso D-38 cierra en rojo y no en ambar");
 
-      // NO SE REANUDA SOLO (D-21; correccion del orquestador del 11/09): vuelve el J17, la
-      // hora vuelve a ser fiable y el Maestro SIGUE en ambar. Se comprueba lo que el codigo
-      // hace hoy, no se cambia.
+      // NO SE REANUDA SOLO (D-21, que D-38 conserva): vuelve el J17 y el Maestro SIGUE en rojo fijo.
       g_esp32Vivo[0] = true;
       g_proxSiembra[0] = g_t + 1000UL;
       reiniciarObservacion();
       avanzar(10UL * 60UL * 1000UL);
       comprobar(MAESTRO.orden("hora_fiable") == 1 && g_ticksVerdeMaestro == 0 &&
-                    MAESTRO.estado() == S_FALLO_V &&
+                    MAESTRO.estado() == S_ROJO_M && MAESTRO.orden("da_en_degradado") == 1 &&
+                    MAESTRO.orden("respaldo_degradado") == 0 && MAESTRO.orden("da_rendido_pila") == 1 &&
                     MAESTRO.orden("alarmas_caducada") - alarmas0 == 1,
                 "F2.4 (NO se reanuda solo): vuelto el J17, la hora del Maestro vuelve a ser "
                 "fiable y en 10 min NO enciende verde (" + std::to_string(g_ticksVerdeMaestro) +
-                "): sigue en ambar hasta que una persona saque el Degradado (D-21: el equipo no "
-                "decide solo si sale del modo ni si vuelve a el)");
+                "): sigue en ROJO FIJO dentro del modo, sin permiso en la pila y con la rendicion "
+                "puesta, hasta que una persona lo saque (D-21/D-38)");
     }
 
     // --- F3: el simetrico, en el ESCLAVO -------------------------------------------------
@@ -1608,36 +1609,43 @@ int main() {
 
       g_esp32Vivo[1] = false;
       const unsigned long tUltima = g_tUltimaSiembraBuena[1];
-      const long alarmas0 = ESCLAVO.orden("alarmas_caducada");
+      const long alarmas0 = ESCLAVO.orden("alarmas_caducada"), rojos0 = ESCLAVO.orden("da_rojo_sin_hora");
       reiniciarObservacion();
-      unsigned long tAmbar = 0, tUltVerde = 0, verdeMTrasAmbar = 0;
+      unsigned long tRojo = 0, tUltVerde = 0, verdeMTrasRojo = 0, noRojo = 0;   // el orden, como F2.2
+      long cadAlRojo = -1;
       for (unsigned long t = 0; t < 60UL * 60UL * 1000UL; t += PASO_MS) {
         unTick();
         if (ESCLAVO.verde() || ESCLAVO.estado() == S_AMARILLO_E) {   // o el ambar que abre su verde
           tUltVerde = g_t - PASO_MS;
         }
-        if (tAmbar == 0 && ESCLAVO.estado() == S_FALLO_E) tAmbar = g_t - PASO_MS;
-        if (tAmbar != 0 && MAESTRO.verde()) verdeMTrasAmbar++;
+        if (tRojo == 0 && ESCLAVO.orden("da_rojo_sin_hora") > rojos0) {
+          tRojo = g_t - PASO_MS;
+          cadAlRojo = ESCLAVO.orden("alarmas_caducada") - alarmas0;
+        }
+        if (tRojo != 0 && ESCLAVO.estado() != S_ROJO_E) noRojo++;
+        if (tRojo != 0 && MAESTRO.verde()) verdeMTrasRojo++;
       }
       const long alarmas = ESCLAVO.orden("alarmas_caducada") - alarmas0;
-      const unsigned long aAmbar = tAmbar ? tAmbar - tUltima : 0;
-      const unsigned long DESPEJE_MS = DEG_DESPEJE_SEG * 1000UL;
+      const long rojos = ESCLAVO.orden("da_rojo_sin_hora") - rojos0;
+      const long rojosEsp = tRojo ? (long)((g_t - PASO_MS - tRojo) / AVISO_ROJO_MS) + 1 : 0;
+      const unsigned long aRojo = tRojo ? tRojo - tUltima : 0;
       comprobar(g_verdeSimultaneo == 0 && g_pegados == 0,
                 "F3.1 (el simetrico de H1): en 60 min con el J17 del ESCLAVO mudo y su HSI a +" +
                 std::to_string(PPM) + " ppm, ni un instante con las dos en verde (" +
                 std::to_string(g_verdeSimultaneo) + ")");
-      comprobar(tAmbar != 0 && ESCLAVO.estado() == S_FALLO_E &&
-                    ESCLAVO.orden("degradado_estado") == DEG_RENDIDO_V && alarmas == 1 &&
-                    aAmbar >= CADUCA_BANCO_E &&
-                    aAmbar <= (unsigned long)CADUCA_E + DESPEJE_MS + 2UL * PASO_MS &&
-                    tUltVerde <= tUltima + (unsigned long)CADUCA_E,
-                "F3.2: el Esclavo se RINDIO -todo-rojo el despeje entero y despues ambar, "
-                "DEG_RENDIDO- a los " + std::to_string(aAmbar) + " ms de su ultima siembra buena, "
-                "sin volver a encender, y lo PUBLICO: " + std::to_string(alarmas) +
-                " $ALARM HORA_ESP32,CADUCADA");
-      comprobar(verdeMTrasAmbar > 0,
-                "F3.3 (la asimetria de D-21): con el Esclavo en ambar, el Maestro sigue en "
-                "Degradado dando verdes (" + std::to_string(verdeMTrasAmbar) + " instantes)");
+      comprobar(tRojo != 0 && cadAlRojo == 1 && noRojo == 0 && alarmas == 1 &&
+                    ESCLAVO.orden("degradado_estado") == DEG_ROJO_SIN_HORA_V &&
+                    ESCLAVO.orden("da_accion_es:CAMBIO_A_ROJO") == 1 &&
+                    aRojo >= CADUCA_BANCO_E && aRojo <= (unsigned long)CADUCA_E + 2UL * PASO_MS &&
+                    tUltVerde <= tUltima + (unsigned long)CADUCA_E &&
+                    rojos >= rojosEsp - 1 && rojos <= rojosEsp + 2,
+                "F3.2 (D-38): el Esclavo paso a DEG_ROJO_SIN_HORA, sin despeje ni ambar, a los " +
+                std::to_string(aRojo) + " ms, tras " + std::to_string(cadAlRojo) + " de " + std::to_string(alarmas) +
+                " CADUCADA,CAMBIO_A_ROJO; " + std::to_string(noRojo) + " vueltas fuera de S_ROJO y " +
+                std::to_string(rojos) + " ROJO_SIN_HORA (~" + std::to_string(rojosEsp) + ")");
+      comprobar(verdeMTrasRojo > 0,
+                "F3.3 (la asimetria que D-38 cierra en rojo): con el Esclavo en rojo fijo, el Maestro "
+                "sigue en Degradado dando verdes (" + std::to_string(verdeMTrasRojo) + " instantes)");
 
       const long rechazo = ESCLAVO.orden("degradado_comprobar");
       g_esp32Vivo[1] = true;
@@ -1646,12 +1654,13 @@ int main() {
       avanzar(10UL * 60UL * 1000UL);
       const long tras = ESCLAVO.orden("degradado_comprobar");
       comprobar(rechazo == DEG_RECHAZO_SIN_HORA_V && tras == DEG_ACEPTADO_V &&
-                    ESCLAVO.orden("degradado_estado") == DEG_RENDIDO_V &&
-                    g_ticksVerdeEsclavo == 0,
+                    ESCLAVO.orden("degradado_estado") == DEG_ROJO_SIN_HORA_V &&
+                    ESCLAVO.estado() == S_ROJO_E && g_ticksVerdeEsclavo == 0,
                 "F3.4: con la hora caducada la puerta del Esclavo rechaza entrar (" +
                 std::to_string(rechazo) + " = DEG_RECHAZO_SIN_HORA) y, vuelto el J17, la "
-                "aceptaria (" + std::to_string(tras) + ") PERO NO ENTRA SOLA: sigue en "
-                "DEG_RENDIDO y en 10 min no enciende (" + std::to_string(g_ticksVerdeEsclavo) + ")");
+                "aceptaria (" + std::to_string(tras) + ") PERO NO VUELVE SOLA: sigue en "
+                "DEG_ROJO_SIN_HORA, en rojo, y en 10 min no enciende (" +
+                std::to_string(g_ticksVerdeEsclavo) + ")");
     }
 
     // --- F4: LOS BORDES DE D-26 (4), en las dos puntas y en los dos sentidos -------------
@@ -1872,27 +1881,15 @@ int main() {
   // =========================================================================
   std::printf("\n--- BLOQUE G: 1.49(b), EL MICROCORTE CON EL CRISTAL QUE NO CUENTA ---\n");
   //
-  // LA PREGUNTA: las dos puntas en Degradado, se va la luz de las dos, vuelve, y el cristal
-  // Y2 arranca pero NO cuenta (el tercer estado de F6). Tras el corte la reanudacion de D-29
-  // se decide con la hora del ESP32, que llega en el bucle; y la segunda puerta -la marca de
-  // 48 h de la pila- se fecha con un contador que el firmware tarda CNT_VENTANA_MS en declarar
-  // parado. Si la siembra cae DENTRO de esa ventana, la pila contesta "0 h" con un contador
-  // quieto. Medido el 15/09 sobre bff78e6, en copia: verde del poste 2 durante 273 s contra el
-  // ambar del poste 1.
-  //
-  // EL BORDE DE LA VENTANA ES EL DE F6 -dos flancos de 1 Hz inflados por el HSI-, y la
-  // siembra se pone a +1 s del arranque, DENTRO de el, a proposito: es el unico instante en
-  // el que la puerta puede leer un contador congelado como si contara. G4 la pone detras
-  // (+5 s) y es el caso que ya era correcto.
-  //
-  // EL CORTE SE HACE COMO EN LA TARJETA: la RAM se va (se recarga la DLL) y el dominio de la
-  // pila se conserva palabra a palabra. Y el reloj del banco vuelve a DELAY_ARRANQUE_MS
-  // porque el millis() de la DLL recien cargada es ese: las dos puntas arrancan A LA VEZ con
-  // sus ESP32, que es lo que D-29 da por hecho.
-  //
-  // LA ASIMETRIA DE D-21 SE CONSERVA Y SE DICE: la punta con el reloj que no cuenta no da
-  // verde; la otra, con el suyo sano, sigue en Degradado (F2.3/F3.3). Lo que este bloque
-  // prohibe es que la punta del CRISTAL PARADO de verde, y que una punta caiga a ambar muda.
+  // LA PREGUNTA: las dos en Degradado, se va la luz, vuelve, y el cristal Y2 arranca pero NO cuenta
+  // (tercer estado de F6). La reanudacion de D-29 se decide con la hora del ESP32, y la marca de 48 h
+  // de la pila se fecha con un contador que tarda CNT_VENTANA_MS en declararse parado: una siembra
+  // DENTRO de esa ventana leia "0 h" con el contador quieto (15/09, bff78e6: 273 s de verde del poste 2
+  // contra el ambar del poste 1). La siembra va a +1 s, dentro del borde de F6, a proposito; G4, a +5 s.
+  // EL CORTE ES EL DE LA TARJETA: la DLL se recarga, la pila se conserva palabra a palabra y el reloj
+  // del banco vuelve a DELAY_ARRANQUE_MS (las dos arrancan A LA VEZ con sus ESP32, como da D-29).
+  // La punta con el reloj parado no da verde y la otra sigue (asimetria de D-21, F2.3/F3.3): se
+  // prohibe que la del CRISTAL PARADO de verde y que una punta caiga a ambar muda.
   {
     const long DEG_ENTRANDO_V =
         posicionEnEnum(RAIZ + "/Esclavo/include/modo_degradado.h", "EstadoDegradado", "DEG_ENTRANDO");
@@ -1908,7 +1905,7 @@ int main() {
       unsigned long verdeM = 0, verdeE = 0, verdeEfrenteFalloM = 0, verdeMfrenteFalloE = 0, ambos = 0;
       unsigned long verdeEtrasCongelar = 0;
       bool reanudoM = false, reanudoE = false;
-      long pilaMfin = -1, pilaEfin = -1, degEfin = -1, estadoMfin = -1;
+      long pilaMfin = -1, pilaEfin = -1, degEfin = -1, estadoMfin = -1, modoMfin = -1;
       long alarmasDeg = 0, alarmasNoCuenta = 0;
       unsigned long verdeMantes = 0, verdeEantes = 0;
     };
@@ -1978,6 +1975,7 @@ int main() {
       r.pilaEfin = ESCLAVO.orden("respaldo_degradado");
       r.degEfin = ESCLAVO.orden("degradado_estado");
       r.estadoMfin = MAESTRO.estado();
+      r.modoMfin = MAESTRO.orden("modo_actual");
       r.alarmasDeg = MAESTRO.orden("alarmas_degradado");
       r.alarmasNoCuenta = MAESTRO.orden("alarmas_reloj_no_cuenta");
       return r;
@@ -2022,10 +2020,11 @@ int main() {
     // --- G3: el Maestro -------------------------------------------------------------------
     {
       const ResG r = microcorte(true, false, 1000, 1000, false, 0);
-      comprobar(r.verdeM == 0 && !r.reanudoM && r.pilaMfin == 0 && r.ambos == 0,
+      comprobar(r.verdeM == 0 && !r.reanudoM && r.pilaMfin == 0 && r.ambos == 0 && r.modoMfin == MODO_AMBAR_V,
                 "G3: Maestro con el cristal que no cuenta, siembra a +1 s: el Maestro NO reanuda "
-                "-antes reanudaba y caia a ambar a los 4,1 s sin decir nada-, no enciende verde y "
-                "tira el permiso (" + cifras(r) + ")");
+                "-antes reanudaba y caia a ambar a los 4,1 s sin decir nada-, no enciende verde, "
+                "tira el permiso y, decidida la espera en contra, pasa al ambar de arranque (modo " +
+                std::to_string(r.modoMfin) + ", D-40) (" + cifras(r) + ")");
       nota("G3: el Esclavo, con su cristal sano, sigue en Degradado frente al Maestro fuera de "
            "el: la asimetria de D-21 (F2.3), verde E frente a ambar M " +
            std::to_string(r.verdeEfrenteFalloM) + " ms");

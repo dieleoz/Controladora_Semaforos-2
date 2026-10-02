@@ -9,7 +9,7 @@ static bool hastaH(ObsH& o, unsigned long msMax, bool (*cond)()) {
   for (unsigned long t = 0; t < msMax && !cond(); t += PASO_MS) pasoH(o);
   return cond();
 }
-static bool rendidoE() { return ESCLAVO.orden("da_rendido") == 1; }
+static bool rendidoE() { return ESCLAVO.orden("da_rojo_fijo") == 1; }   // D-38: la hora va a rojo fijo
 static int g_hRech = 1;
 static bool rechazoX() { return puntaH(g_hRech).orden("da_rechazos") > 0; }
 static void correrMs(ObsH& o, unsigned long ms) { for (unsigned long t = 0; t < ms; t += PASO_MS) pasoH(o); }
@@ -20,7 +20,7 @@ static long inicioManual() { return (MAESTRO.orden("segundos_del_dia") + 719L) /
 static void bloqueH2(unsigned long VENTANA, unsigned long SIN_ENTRADA) {
   std::string ctl;
   bool ap = false;
-  // H10 (arquitecto 2): el Esclavo se rinde -su ESP32 calla y la hora caduca- y se reinicia con la
+  // H10 (arquitecto 2): el Esclavo cae a rojo fijo -su ESP32 calla, la hora caduca: D-38- y se reinicia con la
   // radio muerta. La rendicion queda en la pila y no reentra solo sin un intercambio sano.
   {
     CfgH c;

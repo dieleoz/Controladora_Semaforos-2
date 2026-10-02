@@ -71,17 +71,17 @@ SIN_SET_MODO_A_PROPOSITO = {
         "sincronizar.",
     "RENDIDO":
         "es el DEG_RENDIDO del Esclavo: el modo TERMINO SOLO y la luz quedo en ambar "
-        "intermitente. Y SON DOS LAS CAUSAS, no una -medido en degradado_actualizar(), "
-        "que tiene dos guardas llamando a iniciarSalida(true)-: vencer el limite duro de "
-        "48 h sin sincronizar (syncVencidaLatch), y que la hora deje de ser FIABLE en "
-        "marcha (!reloj_horaFiable(), D-21 (1) del 11/09). Cual fue lo dice la bandera "
-        "rendidoPorHora; el literal de telemetria es el mismo para las dos. Pedirlo seria "
-        "pedir que se agote una autorizacion o que caduque el reloj, que no significa "
+        "intermitente. Desde D-38 (30/09) LA CAUSA ES UNA -medido en degradado_actualizar(), "
+        "una sola guarda llama a iniciarSalida(true)-: vencer el limite duro de 48 h sin "
+        "sincronizar (syncVencidaLatch). La hora que deja de ser FIABLE en marcha va a "
+        "DEG_ROJO_SIN_HORA, que publica DEGRADADO: la luz, roja, la sigue gobernando el modo, "
+        "y no hace falta otro literal. Pedirlo seria "
+        "pedir que se agote una autorizacion, que no significa "
         "nada; y salir de el no es un modo: es degradado_registrarSync(), que devuelve "
-        "DEG_RENDIDO a DEG_INACTIVO sin mirar cual de las dos lo tumbo. Ademas la propia "
-        "degradado_comprobar() lo rechaza al reentrar -DEG_RECHAZO_SYNC_VENCIDA si fue el "
-        "limite, DEG_RECHAZO_SIN_HORA mientras la hora siga sin ser fiable-, para que "
-        "ninguna de las dos se convierta en un boton de posponer.",
+        "DEG_RENDIDO a DEG_INACTIVO. Ademas la propia "
+        "degradado_comprobar() lo rechaza al reentrar -DEG_RECHAZO_SYNC_VENCIDA-, "
+        "para que "
+        "no se convierta en un boton de posponer.",
     "HORA":
         "MODO_HORA es la pantalla AJUSTAR HORA (SFTY-18), que se edita DIGITO A "
         "DIGITO con los botones fisicos o el mando de reles y solo escribe al RTC "

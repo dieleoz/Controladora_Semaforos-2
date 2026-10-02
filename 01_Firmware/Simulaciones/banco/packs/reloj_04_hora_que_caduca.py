@@ -44,12 +44,10 @@
 #     apaga escribiendo lo que el instrumento quiere leer).
 #   - QUE LA REGLA TIENE SUJETO Y LLAMADOR (CLAUDE.md 6.1, N-96): la funcion existe en las dos
 #     puntas, compara contra la constante, la rejuvenece SOLO una siembra, y la preguntan la
-#     puerta y el bucle del Degradado de las dos, con el ambar que ya habia y la alarma.
-#   - NO MIDE EL TIEMPO. Un pack de texto no ve un defecto del tiempo (CLAUDE.md 6.3). Que la
-#     hora caduque de verdad en su frontera, que la punta pase a ambar sin verde-verde y que
-#     no vuelva sola lo EJECUTA el bloque F de Validacion_Automatico/dos_puntas/
-#     orquestador_degradado.cpp, sobre el reloj.cpp REAL de las dos puntas. Aqui solo se
-#     vigila que ese bloque siga ahi y que el arnes siga compilando el reloj real.
+#     puerta y el bucle del Degradado de las dos, con el rojo fijo de D-38 y la alarma.
+#   - NO MIDE EL TIEMPO (CLAUDE.md 6.3). Que la hora caduque en su frontera, que la punta pase a rojo
+#     fijo sin verde-verde y que no vuelva sola lo EJECUTA el bloque F de orquestador_degradado.cpp
+#     sobre el reloj.cpp REAL; aqui solo se vigila que ese bloque y el reloj real sigan ahi.
 #
 # SIN ETIQUETA SFTY: roza SFTY-18 y SFTY-21 pero lo que EJERCE la regla es el arnes, no este
 # pack. Una fila cubierta por una prueba que no la ejerce es peor que una vacia.
@@ -100,10 +98,9 @@ NOMBRA = {"HORA_RELEVO_MS": ("HORA_ESP32_CADENCIA_MS", "SFTY6_SILENCIO_MS"),
 # INCLUIR el protocolo.h de su punta. Sin el include, el numero seria una copia.
 RE_SFTY6 = r"#define\s+SFTY6_SILENCIO_MS\s+(\d+)UL"
 PROTOCOLO = {p: (p, "include", "protocolo.h") for p in PUNTAS}
-# Donde se pregunta, por punta: (funcion de la PUERTA, funcion del BUCLE, camino de ambar
-# que YA existia y que la guarda tiene que tomar).
-DONDE = {"Maestro": ("modo_degradado_evaluarEntrada", "modo_degradado_loop", "irAAmbar"),
-         "Esclavo": ("degradado_comprobar", "degradado_actualizar", "iniciarSalida")}
+# Por punta: (PUERTA, BUCLE, camino de la guarda). D-38: rojo fijo, no el ambar de D-21 (irAAmbar...).
+DONDE = {"Maestro": ("modo_degradado_evaluarEntrada", "modo_degradado_loop", "irARojoSinHora"),
+         "Esclavo": ("degradado_comprobar", "degradado_actualizar", "irARojoSinHora")}
 
 UINT32 = 1 << 32
 
@@ -274,8 +271,8 @@ def _relativa_s(plazo_ms, ppm):
 
 def _guarda_del_bucle(cuerpo_bucle, camino):
     """(ok, motivo): en el bucle, un `if (!reloj_horaFiable() ...) {` cuyo bloque publica la
-    alarma HORA_ESP32/CADUCADA DETRAS de `if (reloj_enHora())` y toma el camino de ambar que
-    ya habia."""
+    alarma HORA_ESP32/CADUCADA/CAMBIO_A_ROJO DETRAS de `if (reloj_enHora())` y, DESPUES de ella,
+    toma el camino del rojo fijo (D-38): el orden, no solo que esten."""
     m = re.search(r"if\s*\(\s*!\s*%s\s*\(\s*\)[^{]*\)\s*\{" % PREDICADO, cuerpo_bucle or "")
     if m is None:
         return False, "no hay `if (!%s() ...) {` en el bucle" % PREDICADO
@@ -283,11 +280,11 @@ def _guarda_del_bucle(cuerpo_bucle, camino):
     ma = re.search(r"if\s*\(\s*reloj_enHora\s*\(\s*\)\s*\)\s*\{", bloque)
     alarma = _bloque(bloque, ma.end() - 1) if ma else None
     if alarma is None or not re.search(
-            r'bluetooth_reportarAlarma\s*\(\s*"HORA_ESP32"\s*,\s*"CADUCADA"', alarma):
-        return False, ("la guarda no publica $ALARM HORA_ESP32,CADUCADA detras de "
+            r'bluetooth_reportarAlarma\s*\(\s*"HORA_ESP32"\s*,\s*"CADUCADA"\s*,\s*"CAMBIO_A_ROJO"', alarma):
+        return False, ("la guarda no publica $ALARM HORA_ESP32,CADUCADA,CAMBIO_A_ROJO detras de "
                        "`if (reloj_enHora())`")
-    if not re.search(r"\b%s\s*\(" % re.escape(camino), bloque):
-        return False, "la guarda no toma el camino de ambar que ya habia (%s())" % camino
+    if not re.search(r"\b%s\s*\(" % re.escape(camino), bloque[ma.end():]):
+        return False, "la guarda no toma, despues de la alarma, el rojo fijo de D-38 (%s())" % camino
     return True, "guarda -> alarma CADUCADA -> %s()" % camino
 
 
@@ -339,7 +336,7 @@ def correr(b, fw):
     # EL SUELO. Entre dos siembras el ESP32 cuenta SIEMBRA_INTERVALO_MS con su reloj (el de
     # un ESP32, que es de cristal); el STM32 lo cuenta con millis() sobre el HSI, que en su
     # extremo rapido cuenta (1 + ppm) veces mas. Una siembra normal tiene que llegar ANTES
-    # de que la hora caduque, o el Degradado caeria a ambar con el J17 sano.
+    # de que la hora caduque, o el Degradado caeria a rojo fijo con el J17 sano.
     suelo_ms = _suelo_ms(cad_ms, ppm)
     b.verificar(
         P_ms > suelo_ms,
@@ -347,7 +344,7 @@ def correr(b, fw):
         "STM32 con el HSI a +%d ppm cuenta como %.0f- llega antes de que la hora caduque"
         % (P_ms, suelo_ms, cad_ms, ppm, suelo_ms),
         "HORA_CADUCA_MS = %d ms y una siembra normal puede tardar %.0f ms en el reloj del STM32: "
-        "el Degradado se rendiria a ambar con el J17 sano, en cada cadencia" % (P_ms, suelo_ms))
+        "el Degradado caeria a rojo fijo con el J17 sano, en cada cadencia" % (P_ms, suelo_ms))
 
     # EL TECHO. Con la caducidad, una punta que da verdes tiene como mucho la deriva del
     # HSI durante P, mas el segundo entero de la siembra; las DOS en el peor caso, en sentidos
@@ -441,7 +438,7 @@ def correr(b, fw):
         "la punta -dos cadencias de %d ms con el HSI a +%d ppm- y el plazo es %d. Un ESP32 que "
         "se reinicia o un byte comido ya no cuestan el Degradado hasta que vuelva una persona"
         % (perdida_ms, cad_ms, ppm, P_ms),
-        "una siembra perdida (%.0f ms) pasa del plazo (%d ms): la punta se va a ambar y NO "
+        "una siembra perdida (%.0f ms) pasa del plazo (%d ms): la punta cae a rojo fijo y NO "
         "vuelve sola (D-21), asi que un byte comido cuesta el Degradado hasta que vaya alguien"
         % (perdida_ms, P_ms))
 
@@ -467,7 +464,7 @@ def correr(b, fw):
         "no declaran la hora caducada: esa punta se iba a ambar y NO volvia sola, y eso se paga "
         "con un viaje al poste" % (dos_perdidas_ms, cad_ms, ppm, P_ms),
         "dos siembras perdidas seguidas (%.0f ms) pasan del plazo (%d ms): la punta declara su "
-        "hora caducada, se va a ambar intermitente y NO vuelve sola (D-21). Es lo que D-28 (2) "
+        "hora caducada, cae a rojo fijo y NO vuelve sola (D-21/D-38). Es lo que D-28 (2) "
         "vino a comprar" % (dos_perdidas_ms, P_ms))
 
     # =====================================================================
@@ -578,14 +575,14 @@ def correr(b, fw):
          "concede %d s de deriva por punta y no los %d de UNA cadencia, asi que el margen que "
          "queda para lo que difieran los dos DS3231 baja de %d s a %d s (a %d ppm por reloj, de "
          "~%.0f dias sin tocarlos a ~%.0f). No es un descuido: es el precio de que una punta con "
-         "dos siembras perdidas seguidas no se rinda a un ambar del que no vuelve sola. Con la "
+         "dos siembras perdidas seguidas no caiga a un rojo fijo del que no vuelve sola. Con la "
          "derivacion del relevo -la de ayer- el margen eran %d s y el plazo %d ms."
          % (deriva_P, deriva_cad, aguante - _relativa_s(cad_ms, ppm), margen_hoy, DS3231_PPM,
             dias(aguante - _relativa_s(cad_ms, ppm)), dias(margen_hoy),
             aguante - _relativa_s(_deriva_cadencia_s(int(relevo_ms), ppm) * quantum_ms, ppm),
             _deriva_cadencia_s(int(relevo_ms), ppm) * quantum_ms),
-         "TRES SIEMBRAS PERDIDAS SEGUIDAS siguen mandando el Degradado a ambar, y el ambar no "
-         "se levanta solo (D-21): la cuarta cadencia llega a los %.0f ms y el plazo es %d. "
+         "TRES SIEMBRAS PERDIDAS SEGUIDAS siguen mandando el Degradado a rojo fijo, y el rojo no "
+         "se levanta solo (D-21/D-38): la cuarta cadencia llega a los %.0f ms y el plazo es %d. "
          "LO QUE HAY QUE DECIR AQUI, Y ES UNA PREGUNTA PARA EL RESPONSABLE, NO UNA "
          "DERIVACION: tolerarlas CABRIA. Un plazo de %d ms deja %d s de separacion contra %d "
          "de aguante -el mayor que cabe es %d ms, con %d s de margen-, asi que lo que lo impide "
@@ -598,7 +595,7 @@ def correr(b, fw):
             margen_hoy, aguante - _relativa_s(tres_perdidas_ms, ppm),
             dias(margen_hoy), dias(aguante - _relativa_s(tres_perdidas_ms, ppm))),
          "Y ESTO SIGUE SIN MEDIR EL TIEMPO. Que el plazo caduque de verdad en su frontera, que "
-         "el relevo quepa en el equipo y que la punta pase a ambar sin verde-verde lo EJERCE el "
+         "el relevo quepa en el equipo y que la punta pase a rojo fijo sin verde-verde lo EJERCE el "
          "bloque F del orquestador del Degradado sobre el reloj.cpp real (CLAUDE.md 6.3). Aqui "
          "solo se recalcula la aritmetica y se vigila que ese bloque siga ahi."])
 
@@ -690,16 +687,19 @@ def correr(b, fw):
         v == 271000 and not d and d2 and v2 != 6000,
         "el evaluador da 271000 con la forma del relevo que usa reloj.h y DETECTA el desborde "
         "de 32 bits de '2UL * 120000UL * 25000UL' (en la tarjeta daria %d, no 6000)" % v2)
-    # La 3 sabe caer: la guarda vieja -reloj_enHora() a secas, sin alarma- no pasa.
-    ok_v, _ = _guarda_del_bucle(
-        '{ if (!reloj_enHora()) { irAAmbar("x", "y"); return; } }', "irAAmbar")
-    ok_s, _ = _guarda_del_bucle(
-        '{ if (!reloj_horaFiable()) { bluetooth_reportarAlarma("HORA_ESP32", "CADUCADA", "A"); '
-        'irAAmbar("x", "y"); return; } }', "irAAmbar")
-    ok_b2, _ = _guarda_del_bucle(
-        '{ if (!reloj_horaFiable()) { if (reloj_enHora()) { bluetooth_reportarAlarma('
-        '"HORA_ESP32", "CADUCADA", "A"); } irAAmbar("x", "y"); return; } }', "irAAmbar")
+    # La 3 sabe caer: la guarda vieja -reloj_enHora() a secas-, la alarma sin `if (reloj_enHora())`,
+    # el ambar de D-21 que D-38 deroga y el rojo tomado ANTES de publicar; aprueba la de D-38.
+    R, A, G = "irARojoSinHora", '"HORA_ESP32", "CADUCADA", "CAMBIO_A_ROJO"); }', "{ if (!reloj_horaFiable()) { "
+    ok_v, _ = _guarda_del_bucle('{ if (!reloj_enHora()) { irARojoSinHora(); return; } }', R)
+    ok_s, _ = _guarda_del_bucle(G + 'bluetooth_reportarAlarma(' + A[:-2] + ' irARojoSinHora(); } }', R)
+    ok_amb, _ = _guarda_del_bucle(G + 'if (reloj_enHora()) { bluetooth_reportarAlarma(' + A.replace(
+        "ROJO", "AMBAR") + ' irAAmbar("x", "y"); return; } }', "irAAmbar")
+    ok_ord, _ = _guarda_del_bucle(G + 'irARojoSinHora(); if (reloj_enHora()) { '
+                                  'bluetooth_reportarAlarma(' + A + ' return; } }', R)
+    ok_b2, _ = _guarda_del_bucle(G + 'if (reloj_enHora()) { bluetooth_reportarAlarma(' + A +
+                                 ' irARojoSinHora(); return; } }', R)
     b.control_negativo(
-        not ok_v and not ok_s and ok_b2,
-        "la 3 acusa la guarda vieja (reloj_enHora() a secas) y una alarma que acusaria de "
-        "CADUCADA a una hora borrada por REINICIAR_RELOJ, y aprueba la forma buena")
+        not ok_v and not ok_s and not ok_amb and not ok_ord and ok_b2,
+        "la 3 acusa la guarda vieja (reloj_enHora() a secas), una alarma que acusaria de "
+        "CADUCADA a una hora borrada por REINICIAR_RELOJ, el ambar de D-21 (CAMBIO_A_AMBAR + "
+        "irAAmbar) y el rojo tomado ANTES de la alarma, y aprueba la forma de D-38")

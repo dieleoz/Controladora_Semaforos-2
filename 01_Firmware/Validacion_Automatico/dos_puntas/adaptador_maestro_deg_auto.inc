@@ -22,7 +22,7 @@
 // bluetooth_reportarAlarma()/bluetooth_reportarEvento() del adaptador.
 // ---------------------------------------------------------------------------
 static long g_daEntradas = 0, g_daRechazos = 0, g_daEnlace = 0, g_daOtroPoste = 0;
-static long g_daLimite31 = 0, g_daRenovar = 0;
+static long g_daLimite31 = 0, g_daRenovar = 0, g_daRojoSinHora = 0;   // D-38: $ALARM ROJO_SIN_HORA
 static long g_daInicioS = -1;   // el inicio que publico AUTO_ENTRADA_INICIO_HH:MM:SS
 static char g_daUltRechazo[64] = "";   // la causa del ultimo AUTO_NO_, literal
 static char g_daUltAccion[32] = "";    // la ACCION del ultimo AUTO_NO_, literal (la app la traduce)
@@ -43,6 +43,7 @@ static void arnesDegAuto_notar(const char* origen, const char* detalle) {
   if (!strcmp(detalle, "OTRO_EN_DEGRADADO")) g_daOtroPoste++;
   if (!strcmp(detalle, "LIMITE_31D")) g_daLimite31++;
   if (!strcmp(detalle, "RENOVAR_TESTIGO")) g_daRenovar++;
+  if (!strcmp(detalle, "ROJO_SIN_HORA")) g_daRojoSinHora++;
 }
 
 // ---------------------------------------------------------------------------
@@ -85,6 +86,8 @@ static const char* arnesDegAuto_fecha(const char* iso) {
 // lo transcrito, esto se queda viejo.
 // ---------------------------------------------------------------------------
 static ModoSistema modoAnterior = MENU;
+static bool esperaReanudacion = false;   // D-40, como main.cpp
+static void entrarAmbarDeArranque() { modo_ambar_fijarMotivoDeArranque(); modoActual_set(MODO_AMBAR); }
 
 static void pasoPrincipal() {
   reloj_actualizar();
@@ -94,6 +97,10 @@ static void pasoPrincipal() {
   // D-29 / 1.49(b): la reanudacion que main.cpp vuelve a preguntar en cada vuelta.
   if (modo_degradado_reanudarTrasCorte()) {
     modoActual_set(MODO_DEGRADADO);
+  }
+  if (esperaReanudacion && (modoActual_get() != MENU || !respaldo_degradadoActivo())) {   // D-40
+    esperaReanudacion = false;
+    if (modoActual_get() == MENU) entrarAmbarDeArranque();
   }
   degAuto_loop();   // A-15: cuenta, entrada automatica y PRESENTE en Degradado
 
@@ -147,6 +154,7 @@ static long arnesDegAuto_mando(const char* que, long arg) {
   if (!strcmp(que, "da_otro_poste"))  return g_daOtroPoste;
   if (!strcmp(que, "da_limite31"))    return g_daLimite31;
   if (!strcmp(que, "da_renovar"))     return g_daRenovar;
+  if (!strcmp(que, "da_rojo_sin_hora")) return g_daRojoSinHora;
   if (!strcmp(que, "da_en_degradado")) return modoActual_get() == MODO_DEGRADADO ? 1 : 0;
   if (!strcmp(que, "da_ms_desde_respuesta")) return (long)coordinador_msDesdeRespuesta();
   // Bloque H, 29/09: lo mismo que pide a la otra punta (ver adaptador_esclavo_deg_auto.inc).
