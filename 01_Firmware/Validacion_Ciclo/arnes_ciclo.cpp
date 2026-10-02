@@ -133,21 +133,34 @@ int main() {
     // 1. LA PROPIEDAD QUE IMPORTA: nunca se pasa de un verde al otro sin todo-rojo.
     //    Un verde que sucede a otro verde sin cierre deja el cruce abierto por los
     //    dos lados durante el instante de la transicion.
+    // D-45: EL ORDEN, no solo "nunca verde a verde". Todo verde acaba en el amarillo de SU
+    // punta, que dura AMARILLO_SEG enteros y acaba en despeje; ningun amarillo sin su verde
+    // delante. El viejo "de verde se pasa a despeje" es justo lo que esto hace fallar.
     long verde_a_verde = 0;
+    uint32_t tAmarillo = 0;
     FaseDegradado ant = ciclo_degradado_fase(0, v, d);
     for (uint32_t s = 1; s < SEGUNDOS_DEL_DIA; s++) {
       FaseDegradado f = ciclo_degradado_fase(s, v, d);
       if (f != ant) {
-        bool era_verde = (ant == FD_VERDE_MAESTRO || ant == FD_VERDE_ESCLAVO);
-        bool es_verde  = (f   == FD_VERDE_MAESTRO || f   == FD_VERDE_ESCLAVO);
-        if (era_verde && es_verde) verde_a_verde++;
+        const bool deVerde = (ant == FD_VERDE_MAESTRO || ant == FD_VERDE_ESCLAVO);
+        const bool aAmarillo = (f == FD_AMARILLO_MAESTRO || f == FD_AMARILLO_ESCLAVO);
+        const bool deAmarillo = (ant == FD_AMARILLO_MAESTRO || ant == FD_AMARILLO_ESCLAVO);
+        if (deVerde && f != (ant == FD_VERDE_MAESTRO ? FD_AMARILLO_MAESTRO : FD_AMARILLO_ESCLAVO))
+          verde_a_verde++;
+        if (aAmarillo && ant != (f == FD_AMARILLO_MAESTRO ? FD_VERDE_MAESTRO : FD_VERDE_ESCLAVO))
+          verde_a_verde++;
+        if (deAmarillo && ((f != FD_DESPEJE_A && f != FD_DESPEJE_B) || tAmarillo != AMARILLO_SEG))
+          verde_a_verde++;
+        tAmarillo = 0;
         ant = f;
       }
+      if (f == FD_AMARILLO_MAESTRO || f == FD_AMARILLO_ESCLAVO) tAmarillo++;
     }
     char msg[220];
     snprintf(msg, sizeof(msg),
-             "las 86.400 posiciones del dia: NUNCA se pasa de verde a verde sin "
-             "todo-rojo (transiciones malas: %ld)", verde_a_verde);
+             "las 86.400 posiciones del dia en ORDEN: verde -> amarillo de su punta (%lu s) "
+             "-> despeje, sin amarillo huerfano (transiciones malas: %ld)",
+             (unsigned long)AMARILLO_SEG, verde_a_verde);
     comprobar(verde_a_verde == 0, msg);
 
     // 3. La guarda de medianoche, en los dos sentidos. El dia no dura un numero

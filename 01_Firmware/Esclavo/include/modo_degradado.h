@@ -81,6 +81,8 @@ RechazoDegradado degradado_comprobar();
 // TODAS las condiciones: un reloj sin poner en hora o un ciclo desconocido harian
 // operar a ciegas, y ninguna de las dos se nota mirando el semaforo.
 RechazoDegradado degradado_entrar();
+// D-47: arranque en el rojo fijo por falta de hora que guardo la pila.
+void degradado_arrancarEnRojoSinHora();
 
 // Salida ordenada: pasa por todo-rojo antes de devolver el mando. La llama la
 // pantalla, y tambien main.cpp cuando vuelve el radio, porque el Maestro manda.

@@ -3,6 +3,7 @@
 #include "pines.h"
 // D-33: la pluma pregunta a las camaras antes de bajar. El porque, en escribirPines().
 #include "botones.h"
+#include "protocolo.h"   // D-45: AMARILLO_SEG, gemelo en las dos puntas
 
 static EstadoSemaforo estado = S_ROJO;
 static unsigned long tCambio = 0;
@@ -99,11 +100,8 @@ static void escribirPines(bool rojo, bool amarillo, bool verde) {
   // y la luz podrian decir cosas distintas sin que nadie lo hubiera decidido. Aqui no
   // puede: se escribe con el mismo 'verde' YA enclavado que acaba de encender la lampara.
   //
-  // ~~"una pluma arriba con la luz en rojo es PEOR que no tener barrera, porque el
-  // conductor confia en ella"~~ -> DEROGADO POR EL RESPONSABLE EL 14/09/2026, dentro de
-  // D-33, y se deja tachado en vez de borrado porque esa frase era el sosten del
-  // argumento que estuvo a punto de parar este cambio (CLAUDE.md 7.4). Sus palabras:
-  // "el veto es solo para la barrera con el problema... esas barreras son casi de
+  // D-33, palabras del responsable: "el veto es solo para la barrera con
+  // el problema... esas barreras son casi de
   // adorno, EL QUE MANDA ES EL SEMAFORO Y SU ESTADO". O sea: LA BARRERA NO ES PARTE DEL
   // ENCLAVAMIENTO. Quien reparte el paso es la luz; la pluma protege a quien esta
   // DEBAJO DE ELLA y a nadie mas, y por eso el veto es LOCAL a este poste, no para el
@@ -114,8 +112,10 @@ static void escribirPines(bool rojo, bool amarillo, bool verde) {
   // una averia -por eso PLUMA: se publica desde N-153-, y el operario tiene que poder
   // distinguirlo: lo dice el $EVENT de vigilante_tick() cuando el veto se sostiene.
   //
-  // Sube con verde. Rojo, ambar de transicion, todo-rojo de despeje y destellos del
-  // mando la dejan ABAJO.
+  // Sube con verde y SIGUE ARRIBA durante el amarillo de cierre (D-45, SPEC_8 1): el
+  // retardo de bajada de D-33 cuenta desde el ROJO, no desde el amarillo; si no, con los
+  // dos a 3 s la pluma bajaria en el instante del rojo. El amarillo del TEST de lamparas
+  // no cuenta: alli 'estado' sigue en S_ROJO. Rojo y todo-rojo de despeje la dejan ABAJO.
   //
   // Y SUBE TAMBIEN EN S_FALLO, que es una decision de operacion, no del firmware.
   // S_FALLO es el ambar intermitente de SFTY-6: el equipo se quedo sin enlace y ya no
@@ -202,7 +202,7 @@ static void escribirPines(bool rojo, bool amarillo, bool verde) {
   // un tope que baja igual devuelve el peligro que el veto evita; tope es ALARMA, no
   // accion-. Quien avisa es el vigilante de botones.cpp: CAM_PEGADA a los 20 min si el
   // contacto se queda cerrado, y el $EVENT del contador en cuanto el veto actua.
-  const bool luzPideArriba = (verde && !testLedsActivo) || estado == S_FALLO;
+  const bool luzPideArriba = (verde && !testLedsActivo) || estado == S_FALLO || estado == S_AMARILLO;
   bool plumaArriba;
   if (luzPideArriba) {
     plumaCierrePendiente = false;
@@ -290,31 +290,46 @@ void semaforo_apagarTodo() {
   aplicarSalidas(LOW, LOW, LOW);
 }
 
+// D-45 (02/10): ROJO - VERDE - AMARILLO - ROJO. LA BARRERA VIVE AQUI, Y ES UNA SOLA.
+//
+// "En ningun caso se podra cambiar de luz verde a luz roja sin que antes aparezca el
+// amarillo" (Manual de Senalizacion Vial 2024, 4.4.3). Ningun llamador tiene que
+// acordarse: S_VERDE solo se abandona por iniciarTransicionARojo() -amarillo SOLO en la
+// cara, AMARILLO_SEG, y despues rojo en semaforo_actualizar()- o por semaforo_iniciarFallo()
+// (ambar intermitente, que 4.4.3 no regula: SPEC_1 3.2 (6)). Y UN CIERRE EMPEZADO NO SE
+// REVIERTE: con S_AMARILLO, forzarRojo() no lo reinicia y forzarVerde() no lo reabre.
+// El rojo inmediato queda para lo que no es verde: rojo, fallo y apagado.
+static void iniciarTransicionARojo(bool nuevo) {   // false: repinta sin tocar su reloj
+  if (nuevo) {
+    estado = S_AMARILLO;
+    tCambio = millis();
+  }
+  aplicarSalidas(LOW, HIGH, LOW);
+}
+
 void semaforo_forzarRojo() {
+  if (estado == S_VERDE) {
+    iniciarTransicionARojo(true);
+    return;
+  }
+  if (estado == S_AMARILLO) return;
   estado = S_ROJO;
   aplicarSalidas(HIGH, LOW, LOW);
 }
 
+// D-45: se ABRE directo; el ambar previo al verde no es ninguna secuencia de 4.4.2.
 void semaforo_forzarVerde() {
+  if (estado == S_AMARILLO) return;
   estado = S_VERDE;
   aplicarSalidas(LOW, LOW, HIGH);
 }
 
-// OPT-6 (Manual de Señalización de Colombia): Eliminación de la transición Europea (Rojo+Amarillo).
-// Ver MANUAL_USUARIO.md - Sección 1 (Comportamiento Físico de las Luces).
-// Se usa semaforo_forzarVerde() para un salto directo y seguro a luz Verde.
-
-void semaforo_iniciarTransicionAVerde() {
-  estado = S_AMARILLO;
-  tCambio = millis();
-  aplicarSalidas(LOW, HIGH, LOW);
-}
-
+// Sin llamador. Ya no saca del ambar intermitente a verde: solo alterna rojo y verde.
 void semaforo_toggle() {
-  if (estado == S_ROJO || estado == S_FALLO) {
-    semaforo_iniciarTransicionAVerde();
+  if (estado == S_ROJO) {
+    semaforo_forzarVerde();
   } else if (estado == S_VERDE) {
-    semaforo_forzarRojo(); // Directo a rojo
+    semaforo_forzarRojo();
   }
 }
 
@@ -385,10 +400,10 @@ void semaforo_actualizar() {
   }
 
 
-  // Transición Rojo -> Amarillo -> Verde
-  if (estado == S_AMARILLO && (ahora - tCambio >= 4000)) { // 4s de Amarillo
-    estado = S_VERDE;
-    aplicarSalidas(LOW, LOW, HIGH);
+  // D-45: el amarillo de cierre acaba en ROJO.
+  if (estado == S_AMARILLO && (ahora - tCambio >= AMARILLO_SEG * 1000UL)) {
+    estado = S_ROJO;
+    aplicarSalidas(HIGH, LOW, LOW);
   } else if (estado == S_FALLO) {
     if (ahora - tCambio >= 500) {
       tCambio = ahora;

@@ -299,11 +299,10 @@ static FaseDegradado calcularFase() {
 static void aplicarLuz(bool verde) {
   if (verde == verdeAplicado) return;
   if (verde) {
-    // Misma secuencia que cuando la orden viene del Maestro (CMD_GO_GREEN):
-    // rojo -> ambar -> verde. El conductor debe ver siempre lo mismo, sin que
-    // importe quien decidio el cambio. Los 4 s de ambar se descuentan de NUESTRO
-    // verde, nunca del todo-rojo, asi que el margen de seguridad no encoge.
-    semaforo_iniciarTransicionAVerde();
+    // Misma secuencia que cuando la orden viene del Maestro (CMD_GO_GREEN): D-45, de rojo
+    // a verde DIRECTO. El conductor ve siempre lo mismo, decida quien decida el cambio.
+    // El cierre lo pone la fase FD_AMARILLO_ESCLAVO por el rojo de abajo (semaforo.cpp).
+    semaforo_forzarVerde();
   } else {
     semaforo_forzarRojo();
   }
@@ -342,11 +341,20 @@ static void irARojoSinHora() {
   rendicionEnCurso = false;
   rendidoPorHora = true;   // el motivo de la ultima caida, para quien lo pregunte
   respaldo_guardarDegradado(false);
+  respaldo_guardarRojoSinHora();   // D-47: DESPUES de bajar el Degradado, que lo borra
   respaldo_guardarRendido(true);
   bluetooth_reportarAlarma("DEGRADADO", "ROJO_SIN_HORA", "ROJO_FIJO");
   tAvisoRojo = millis();
   estado = DEG_ROJO_SIN_HORA;
   tCambioEstado = millis();
+}
+
+// D-47 (02/10): arranque tras un corte con el rojo fijo por falta de hora en la pila: rojo
+// fijo gobernando la luz, para que la orfandad no lo lleve a ambar. Se sale como hoy.
+void degradado_arrancarEnRojoSinHora() {
+  testigo = false;
+  reanudacionPorDecidir = false;
+  irARojoSinHora();
 }
 
 // ---------------------------------------------------------------------------
@@ -428,14 +436,6 @@ RechazoDegradado degradado_comprobar() {
   //
   // SOLO HAY UN LATCH QUE MIRAR, Y ES EL DE BLUETOOTH.
   //
-  // D-30 (14/09): aqui decia "no mando_ambarLocal(), y es deliberado" -el mando revocaba
-  // su propio ambar antes de llamar aqui, asi que anadirlo habria rechazado el A.B.A.B
-  // antes de que llegara a ejecutarse-. Retirado el mando esa cautela no tiene sujeto, y
-  // lo que queda es mas simple y mas seguro: la UNICA via de entrada es
-  // SET_MODO:DEGRADADO por app (D-18), que no revoca nada -pregunta-, de modo que con un
-  // ambar vigente esta puerta se cierra y el ambar SOBREVIVE. Ya no existe el hueco que
-  // dejaba el mando: quedarse sin ambar y sin Degradado porque las condiciones cayeron
-  // entre la comprobacion y la ejecucion.
   if (bluetooth_ambarEmergencia()) return DEG_RECHAZO_AMBAR_VIGENTE;
 
   return DEG_ACEPTADO;
@@ -575,7 +575,7 @@ RechazoTestigo degradado_entrarTestigo(uint32_t ahora, uint32_t inicio, int desp
   // renueva y sigue, sin volver a rojo. La flash solo se escribe con esta punta en rojo.
   if (estado == DEG_ACTIVO && cicloVerde() == TESTIGO_VERDE_SEG &&
       cicloDespeje() == (uint8_t)despeje) {
-    if (verdeAplicado) return DEG_RECHAZO_T_EN_VERDE;
+    if (verdeAplicado || semaforo_estado() == S_AMARILLO) return DEG_RECHAZO_T_EN_VERDE;
     if (!guardarTestigoFlash(ahoraS, ahoraS, (uint8_t)despeje)) return DEG_RECHAZO_T_NO_GUARDADO;
     testigo = true;
     testigoDespeje = (uint8_t)despeje;
@@ -639,20 +639,6 @@ bool degradado_reanudarTrasCorte() {
   // la fecha del DS3231, sin tope de edad (H9), sin CNT ni la sync de radio. Se espera la fecha de la
   // siembra dentro de la ventana de D-29, sin borrar nada.
   if (respaldo_testigoActivo()) return reanudarTestigo();
-
-  // D-30 (14/09): AQUI ESTABA LA GUARDA DEL AMBAR DEL MANDO QUE ANADIO D-29, Y SE VA CON
-  // SU SUJETO.
-  //
-  // Tiraba el permiso de reanudacion si mando_ambarLocal() estaba puesto. Su motivo
-  // escrito NO era un operario con el mando en la mano -ese ya no existia- sino EL COBRE:
-  // J16 p5/p8 vacios y pelados, leidos como entradas, de modo que un puente ahi componia
-  // secuencias que nadie pidio. Esa premisa se cayo el 14/09, cuando el firmware dejo de
-  // alimentar al reconocedor con los flancos de esos dos pines: hoy un puente en p5/p8 no
-  // puede armar ningun ambar, porque no hay nada que lo arme.
-  //
-  // Retirarla no abre nada: la bandera no podia valer true, asi que la guarda no disparaba
-  // y su modo de fallo declarado -no reanudar- era el de hoy. La SEGUNDA PUERTA, que es la
-  // que de verdad sujeta esto, sigue intacta justo debajo.
 
   // 1.49(b2) - LA SEGUNDA PUERTA NO SE PREGUNTA HASTA QUE EL CRISTAL TENGA VEREDICTO.
   //
@@ -757,6 +743,8 @@ void degradado_actualizar() {
   if (huboSyncAlguna && !syncVencidaLatch && msDesdeSyncEfectivo() >= LIMITE_SIN_SYNC_MS) {
     syncVencidaLatch = true;
   }
+  // D-45: los todo-rojo de entrada y de salida cuentan desde el ROJO ENCENDIDO.
+  if (semaforo_estado() == S_AMARILLO) tCambioEstado = ahora;
 
   // D-21: Si la hora deja de ser fiable en marcha (pila agotada o reloj invalido), no se
   // siguen dando verdes con hora falsa. D-38 (30/09): ROJO FIJO, no ambar (irARojoSinHora).
@@ -776,6 +764,13 @@ void degradado_actualizar() {
   // D-35: EL CERROJO DE 48 h NO ACTUA EN MODO TESTIGO -mide la sync de radio, que este modo
   // existe para no necesitar-; y desde el 29/09 (H9) el testigo no tiene tope: solo el aviso.
   if (!testigo && syncVencidaLatch && (estado == DEG_ENTRANDO || estado == DEG_ACTIVO)) {
+    // D-49 (02/10): si lo que vencio es un reloj que dejo de contar -la marca de la pila ya
+    // no se puede fechar-, ROJO FIJO como D-38, no la rendicion a ambar: el otro poste puede
+    // seguir alternando por reloj.
+    if (reloj_estadoCristal() == RELOJ_CRISTAL_CONGELADO) {
+      irARojoSinHora();
+      return;
+    }
     rendidoPorHora = false;
     iniciarSalida(true);
     return;
@@ -894,6 +889,7 @@ const char* degradado_textoFase() {
   switch (calcularFase()) {
     case FD_VERDE_MAESTRO: return "Verde Maestro";
     case FD_VERDE_ESCLAVO: return "VERDE AQUI";
+    case FD_AMARILLO_ESCLAVO: return "AMARILLO AQUI";
     default:               return "Todo rojo";
   }
 }

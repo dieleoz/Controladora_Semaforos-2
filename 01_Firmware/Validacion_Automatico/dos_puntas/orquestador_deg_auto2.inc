@@ -31,8 +31,12 @@ static void bloqueH2(unsigned long VENTANA, unsigned long SIN_ENTRADA) {
     reiniciarEsclavoH(o);
     const long pila = ESCLAVO.orden("da_rendido_pila");
     correrMs(o, H_ESPERA_MS + 600000UL);
-    comprobar(rindio && pila == 1 && !ESCLAVO.orden("da_en_degradado") && ESCLAVO.orden("da_entradas") == 0,
-              "H10 rendicion + reinicio del Esclavo sin radio: no reentra solo (se rindio " +
+    // D-47 (02/10): SE INVIERTE una mitad. Antes salia del Degradado al reiniciar; ahora el
+    // rojo fijo sobrevive al corte (gobierna la luz, en rojo). La otra mitad se conserva: no
+    // reentra solo.
+    comprobar(rindio && pila == 1 && ESCLAVO.orden("da_en_degradado") == 1 && ESCLAVO.rojo() &&
+                  !ESCLAVO.verde() && ESCLAVO.orden("da_entradas") == 0,
+              "H10 rendicion + reinicio del Esclavo sin radio: vuelve en ROJO FIJO y no reentra solo (se rindio " +
                   std::string(rindio ? "si" : "NO") + ", rendicion en la pila tras reiniciar " + std::to_string(pila) +
                   ", AUTO_ENTRADA tras reiniciar " + std::to_string(ESCLAVO.orden("da_entradas")) +
                   ", en Degradado " + std::to_string(ESCLAVO.orden("da_en_degradado")) + ")");

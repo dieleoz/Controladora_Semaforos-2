@@ -43,20 +43,6 @@
 // botones.cpp, que aqui NO se compila, y el cableado de J16 es cobre -M3-. Lo que se
 // mide es que hace una deteccion con el ciclo en marcha, no como se detecta.
 //
-// D-30 (14/09): AQUI VIVIA EL BLOQUE D -EL MANDO DE RELES (SFTY-21)- Y SE FUE ENTERO.
-//
-// Compilaba mando.cpp REAL y pulsaba las tres secuencias (A.A.A, B.B.B, A.B.A.B) para
-// ejercer senalActiva, el static de semaforo.cpp que congelaba escribirPines() mientras
-// duraban los destellos. Retiradas las botoneras, mando.cpp no existe y la interceptacion
-// salio entera de semaforo.cpp: no queda sujeto que medir.
-//
-// LO QUE SE REPARTIO EN VEZ DE BORRARSE (CLAUDE.md §9). El fuzz del Bloque D no solo
-// media el mando: era el barrido mas largo del arnes, y dentro llevaba cuatro
-// comprobaciones cuyo sujeto es D-33/N-153 -la pluma- y no el mando. Esas cuatro se
-// MUDARON con su bloque literal al resumen de invariantes del final de main(), que es
-// donde viven sus hermanas y donde siguen midiendo sobre TODO el barrido. Lo que se
-// perdio con el fuzz esta escrito alli mismo, sin disimular.
-
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -79,8 +65,6 @@
 #include "protocolo.h"
 #include "reloj.h"
 #include "respaldo.h"
-// D-30 (14/09): aqui se incluian mando.h, modo_ambar.h y modo_degradado.h. La primera
-// ya no existe; las otras dos solo hacian falta por los stubs que enlazaban mando.cpp.
 #include "modo_inteligente.h" // A-12: real, y su .cpp SI se compila (Bloque E)
 #include "demanda.h"          // A-12: real, y su .cpp tambien -- entra en el OR
 
@@ -285,9 +269,11 @@ static void vigilarEnclavamiento() {
       (arnes_pines[ROJO2] == HIGH && arnes_pines[VERDE2] == HIGH)) {
     violacionesEnclavamiento++;
   }
+  // D-45: el amarillo de cierre es la otra luz que pide la pluma arriba (SPEC_8 1); la
+  // ventana del retardo se abre con el ROJO. Que la pluma no baje ANTES lo mide el bloque A.
   if (arnes_pines[MOTOR_TALANQUERA] == TALANQUERA_ABRIR &&
       arnes_pines[VERDE1] != HIGH && arnes_pines[VERDE2] != HIGH &&
-      semaforo_estado() != S_FALLO) {
+      semaforo_estado() != S_FALLO && semaforo_estado() != S_AMARILLO) {
     // D-33: la ventana se abre en el primer tick sin luz y se cierra sola. Se fecha con
     // el reloj del arnes, no con una bandera del firmware.
     if (g_plumaSinVerdeDesde == 0) {
@@ -321,27 +307,6 @@ static void vigilarEnclavamiento() {
 }
 
 // ---------------------------------------------------------------------------
-// D-30 (14/09): AQUI VIVIA EL VIGILANTE DE LA SENAL DE N-52, Y SALE ENTERO.
-//
-// Media, en cada tick de cualquier bloque, cuanto llevaba encendida
-// semaforo_senalEnCurso() sin que nadie la bajara, contra un presupuesto leido del C++.
-// Su sujeto era ESA funcion y nada mas: salio de semaforo.cpp con la interceptacion de
-// SFTY-21, no queda ninguna otra bandera con esa forma -una que el firmware encienda y
-// tenga que apagar sola- y por tanto no hay nada a lo que reapuntarlo. Se retira con sus
-// globales (g_senalEnCursoAnt, g_peorDuracionSenalMs, g_senalExcedioPresupuesto,
-// PRESUPUESTO_SENAL_MS), con la lectura de su presupuesto y con lo que lo imprimia.
-// ---------------------------------------------------------------------------
-
-// D-30 (14/09): AQUI VIVIA pinesCoincidenConEstado(), Y SE QUEDO SIN LLAMADOR.
-//
-// Comparaba los PINES que semaforo.cpp escribio contra lo que semaforo_estado() dice
-// que deberia haber. Sus UNICOS llamadores eran los escenarios D1-D6, que la usaban
-// como "requisito b": al terminar una senal del mando, los pines tenian que volver a
-// coincidir con la logica en vez de quedarse congelados en el patron de destellos. Sin
-// interceptacion no hay nada que pueda descongelar mal, y fuera del Bloque D nadie la
-// llamaba nunca. Se retira en vez de dejarla huerfana (CLAUDE.md §6.1: una huerfana
-// NUEVA es senal de defecto, y ademas el compilador la delata con -Wunused-function).
-
 // ---------------------------------------------------------------------------
 // LOS BOTONES YA NO SE SIMULAN: botones.cpp REAL SE COMPILA AQUI (D-13, 05/09).
 //
@@ -762,9 +727,10 @@ int main() {
   // propiedad de ESTE arnes -su paso de muestreo- y no del firmware; vive en
   // MARGEN_MUESTREO_MS, con el porque escrito al lado de su declaracion.
 
-  long AMBAR_MS = leerConstante("semaforo.cpp",
-      R"(S_AMARILLO\s*&&\s*\(ahora\s*-\s*tCambio\s*>=\s*(\d+)\))",
-      "la duracion del amarillo fijo Rojo->Verde (SFTY-5)");
+  // D-45: el amarillo de cierre, en segundos y en el contrato de las dos puntas.
+  long AMBAR_MS = 1000L * leerConstante("../include/protocolo.h",
+      R"(#define\s+AMARILLO_SEG\s+(\d+)UL)",
+      "el amarillo de cierre Verde->Rojo (D-45, AMARILLO_SEG)");
 
   long FALLO_PERIODO_MS = leerConstante("semaforo.cpp",
       R"(S_FALLO\)\s*\{\s*if\s*\(ahora\s*-\s*tCambio\s*>=\s*(\d+)\))",
@@ -810,7 +776,7 @@ int main() {
   (void)MIN_ROJO_DEFECTO;
 
   std::printf("\nConstantes releidas del C++ real (Maestro/src), no escritas a mano:\n");
-  std::printf("   amarillo fijo (SFTY-5) ......... %ld ms\n", AMBAR_MS);
+  std::printf("   amarillo de cierre (D-45) ...... %ld ms\n", AMBAR_MS);
   std::printf("   periodo del ambar de fallo ..... %ld ms\n", FALLO_PERIODO_MS);
   std::printf("   orfandad (SFTY-6) .............. %ld ms\n", ORFANDAD_MS);
   std::printf("   timeout de ACK (SFTY-7) ........ %ld ms\n", TIMEOUT_ACK_MS);
@@ -865,29 +831,50 @@ int main() {
     arnes_millis_valor = 1000000UL;   // arranca lejos de 0 a proposito
     unsigned long t0 = arnes_millis_valor;
 
-    semaforo_iniciarTransicionAVerde();
+    // D-45 (02/10): SE INVIERTE. Aqui se exigia rojo->AMARILLO->verde y verde->rojo directo,
+    // que es justo lo que la norma prohibe (4.4.3). Se mira el ORDEN entero, no el final:
+    // rojo -> verde directo; verde -> amarillo SOLO en la cara; el cierre no se reabre ni se
+    // reinicia; rojo al vencer AMARILLO_SEG; y la pluma arriba hasta el retardo DESDE EL ROJO.
+    semaforo_forzarVerde();
     vigilarEnclavamiento();
-    comprobar(semaforo_estado() == S_AMARILLO,
-              "Rojo->Verde pasa SIEMPRE por AMARILLO, nunca salta a VERDE directo");
+    comprobar(semaforo_estado() == S_VERDE && arnes_pines[AMARILLO1] == LOW,
+              "Rojo->Verde es DIRECTO: una sola llamada, sin amarillo previo (D-45)");
 
+    t0 = arnes_millis_valor;
+    semaforo_forzarRojo();
+    vigilarEnclavamiento();
+    comprobar(semaforo_estado() == S_AMARILLO && arnes_pines[AMARILLO1] == HIGH &&
+              arnes_pines[ROJO1] == LOW && arnes_pines[VERDE1] == LOW &&
+              arnes_pines[MOTOR_TALANQUERA] == TALANQUERA_ABRIR,
+              "Verde->Rojo pasa SIEMPRE por AMARILLO, solo en la cara, con la pluma arriba");
+
+    arnes_millis_valor = t0 + 1000UL;
+    semaforo_forzarVerde();
+    semaforo_forzarRojo();
+    semaforo_actualizar();
     arnes_millis_valor = t0 + (unsigned long)AMBAR_MS - 1UL;
     semaforo_actualizar();
     vigilarEnclavamiento();
     comprobar(semaforo_estado() == S_AMARILLO,
-              "un ms antes del limite leido del C++ real, el amarillo AUN no cedio el paso");
+              "un cierre empezado no se revierte: una orden de verde no lo reabre, una de "
+              "rojo no lo reinicia, y un ms antes de AMARILLO_SEG sigue en amarillo");
 
     arnes_millis_valor = t0 + (unsigned long)AMBAR_MS;
     semaforo_actualizar();
     vigilarEnclavamiento();
-    comprobar(semaforo_estado() == S_VERDE,
-              "en el limite EXACTO leido del C++ real, el amarillo cede el paso al verde "
-              "(fila 9 del README medida sobre el binario, no sobre la tabla)");
+    comprobar(semaforo_estado() == S_ROJO && arnes_pines[ROJO1] == HIGH &&
+              arnes_pines[AMARILLO1] == LOW,
+              "en el limite EXACTO de AMARILLO_SEG, leido del contrato, el amarillo cede al ROJO");
 
-    semaforo_forzarRojo();
+    arnes_millis_valor = t0 + (unsigned long)AMBAR_MS + g_retardoPlumaMs - 1UL;
+    semaforo_actualizar();
+    const bool arribaAntes = arnes_pines[MOTOR_TALANQUERA] == TALANQUERA_ABRIR;
+    arnes_millis_valor = t0 + (unsigned long)AMBAR_MS + g_retardoPlumaMs;
+    semaforo_actualizar();
     vigilarEnclavamiento();
-    comprobar(semaforo_estado() == S_ROJO,
-              "Verde->Rojo es DIRECTO: una sola llamada basta, sin amarillo intermedio "
-              "(fila 8 del README: 0s)");
+    comprobar(arribaAntes && arnes_pines[MOTOR_TALANQUERA] == TALANQUERA_CERRAR,
+              "la pluma baja PLUMA_RETARDO_BAJADA_MS despues del ROJO, no del amarillo "
+              "(SPEC_8 1): arriba un ms antes, abajo en el limite");
   }
 
   std::printf("\n-- Bloque A2: parpadeo de FALLO (ambar intermitente) --\n");
@@ -950,11 +937,13 @@ int main() {
         [](){ return semaforo_estado() == S_VERDE; });
     comprobar(msHastaVerde >= 0,
               "EL MODO AUTOMATICO ARRANCA EL CICLO: el Maestro llega a VERDE tras el "
-              "todo-rojo inicial y el amarillo, dentro del presupuesto de tiempo");
+              "todo-rojo inicial, dentro del presupuesto de tiempo");
 
-    comprobar(coordinador_listoParaContar(),
+    // D-45: el verde abre directo dentro del case del despeje y el coordinador lo recoge
+    // en la vuelta siguiente: se le da UNA vuelta, no un plazo.
+    comprobar(bombear(200, 200, [](){ return coordinador_listoParaContar(); }) >= 0,
               "tras llegar a VERDE, el coordinador queda listo para contar la duracion "
-              "(C_IDLE): modo_automatico.cpp puede empezar a medir el minuto de verde");
+              "(C_IDLE) en la vuelta siguiente: modo_automatico.cpp puede empezar a medir");
 
     // El propio modo_automatico.cpp es quien cuenta minVerde y pide el cambio: se
     // avanza esa duracion y se comprueba que el Maestro suelta el verde SOLO -si el
@@ -967,9 +956,15 @@ int main() {
               "agotado el minuto de VERDE configurado, el Maestro suelta el verde solo, "
               "sin intervencion externa -el sintoma de campo era exactamente que esto NO "
               "pasaba-");
-    comprobar(semaforo_estado() == S_ROJO,
-              "Verde->Rojo del Maestro es DIRECTO (0s): en el mismo tick cae a ROJO, "
-              "nunca pasa por AMARILLO (fila 8 del README, SFTY-5)");
+    // D-45: SE INVIERTE. El ciclo real cierra el verde por su amarillo y no se cuenta la
+    // fase mientras dura: el coordinador no esta listo hasta que el rojo y el despeje pasen.
+    const bool amarilloAlSoltar = semaforo_estado() == S_AMARILLO && !coordinador_listoParaContar();
+    long msHastaRojoTras = bombear(50, (unsigned long)AMBAR_MS + 500UL,
+        [](){ return semaforo_estado() == S_ROJO; });
+    comprobar(amarilloAlSoltar && msHastaRojoTras >= (long)AMBAR_MS - 250 &&
+              msHastaRojoTras <= (long)AMBAR_MS + 50,
+              "Verde->Rojo del Maestro en el ciclo pasa por AMARILLO_SEG de amarillo y "
+              "despues ROJO, con el coordinador fuera de reposo mientras dura (D-45)");
 
     // Y el turno pasa al Esclavo: el Maestro vuelve a quedar listo para contar,
     // con su propia luz en ROJO -senal de que concedio el verde al otro lado tras
@@ -1157,26 +1152,28 @@ int main() {
     // sigue valiendo -no hay atajo que se salte el amarillo con el despeje a cero- se queda
     // entero; el plazo se cuenta desde el ACK_RED, que el Esclavo simulado entrega a
     // g_latenciaEsclavoMs, y se exige tambien que NO llegue antes.
-    long msHastaAmarillo = bombearGenerico(1, 200,
+    // D-45: SE INVIERTE la primera mitad (el verde abre DIRECTO desde el ACK_RED, sin
+    // amarillo) y se REPARTE la segunda: con la configuracion imposible el amarillo de
+    // CIERRE sigue durando AMARILLO_SEG -el contrato no depende de que la UI valide-.
+    long msHastaVerdeDirecto = bombearGenerico(1, 200,
         [](){ coordinador_actualizar(); },
-        [](){ return semaforo_estado() == S_AMARILLO; });
-    const std::string queAmarillo =
+        [](){ return semaforo_estado() != S_ROJO; });
+    const std::string queVerde =
         "CONTROL NEGATIVO: con despeje=0 el todo-rojo se salta casi al instante DESDE EL "
-        "ACK_RED (" + std::to_string(msHastaAmarillo) + " ms, acuse a " +
-        std::to_string(g_latenciaEsclavoMs) + " ms) y no antes, pero "
-        "coordinador_actualizar() SIGUE llamando a semaforo_iniciarTransicionAVerde(): no "
-        "hay un atajo que se salte el aviso de amarillo por tener el despeje a cero";
-    comprobar(msHastaAmarillo >= (long)g_latenciaEsclavoMs &&
-              msHastaAmarillo <= (long)g_latenciaEsclavoMs + 5,
-              queAmarillo.c_str());
+        "ACK_RED (" + std::to_string(msHastaVerdeDirecto) + " ms, acuse a " +
+        std::to_string(g_latenciaEsclavoMs) + " ms) y no antes, y abre en VERDE DIRECTO";
+    comprobar(msHastaVerdeDirecto >= (long)g_latenciaEsclavoMs &&
+              msHastaVerdeDirecto <= (long)g_latenciaEsclavoMs + 5 &&
+              semaforo_estado() == S_VERDE, queVerde.c_str());
 
-    long msHastaVerde = bombearGenerico(1, (unsigned long)AMBAR_MS + 500UL,
+    bombearGenerico(1, 50, [](){ coordinador_actualizar(); }, [](){ return false; });
+    coordinador_pedirCambio();
+    long msHastaRojo = bombearGenerico(1, (unsigned long)AMBAR_MS + 500UL,
         [](){ coordinador_actualizar(); },
-        [](){ return semaforo_estado() == S_VERDE; });
-    comprobar(msHastaVerde >= (long)AMBAR_MS - 2 && msHastaVerde <= (long)AMBAR_MS + 2,
-              "CONTROL NEGATIVO: aun con la configuracion imposible, el amarillo "
-              "dura EXACTAMENTE lo que el C++ real dice que dura -SFTY-5 no depende "
-              "de que la UI haya validado el despeje-");
+        [](){ return semaforo_estado() == S_ROJO; });
+    comprobar(msHastaRojo >= (long)AMBAR_MS - 2 && msHastaRojo <= (long)AMBAR_MS + 2,
+              "CONTROL NEGATIVO: aun con la configuracion imposible, el amarillo de cierre "
+              "dura EXACTAMENTE AMARILLO_SEG -no depende de que la UI valide el despeje-");
   }
 
   // ===========================================================================
@@ -1761,6 +1758,7 @@ int main() {
       cerrarContacto(CAM_D_PIN, camD);
       arnes_millis_valor += 60000UL;
       botones_setup();
+      semaforo_actualizar();   // D-45: un cierre que quedara de antes acaba aqui, en rojo
       semaforo_forzarVerde();
       semaforo_actualizar();
       correrG(2000UL);
@@ -1769,6 +1767,13 @@ int main() {
       g_alarmasEmitidas = 0;
     };
 
+    // D-45: el rojo llega tras el amarillo de cierre, y el retardo cuenta desde ESE rojo.
+    // Cada escenario cierra su verde por la puerta real y espera al rojo antes de medir.
+    auto cerrarHastaRojo = [&]() {
+      semaforo_forzarRojo();
+      semaforo_actualizar();
+      while (semaforo_estado() == S_AMARILLO) correrG(PASO_G);
+    };
     const unsigned long RETARDO = g_retardoPlumaMs;
     const unsigned long TOL_G = 3UL * PASO_G;
 
@@ -1786,8 +1791,7 @@ int main() {
     comprobar(semaforo_plumaArriba(),
               "G1a: con un verde real la pluma esta ARRIBA -medido sobre el pin que "
               "escribio semaforo.cpp-, o sea que el escenario parte de donde dice");
-    semaforo_forzarRojo();
-    semaforo_actualizar();
+    cerrarHastaRojo();
     vigilarEnclavamiento();
     char g1b[320];
     std::snprintf(g1b, sizeof(g1b),
@@ -1811,8 +1815,7 @@ int main() {
 
     // -- G2: CON PRESENCIA, LA PLUMA NO BAJA, Y SE DICE ------------------------------
     plumaArribaCon(true, false);
-    semaforo_forzarRojo();
-    semaforo_actualizar();
+    cerrarHastaRojo();
     long noBaja = msHastaQueBaje(RETARDO * 6UL);
     char g2[380];
     std::snprintf(g2, sizeof(g2),
@@ -1861,8 +1864,7 @@ int main() {
     // nadie; el precio es que deja de proteger, y por eso tiene que VERSE. Este caso mide
     // las dos mitades: que NO baja, y que se dice.
     plumaArribaCon(true, false);
-    semaforo_forzarRojo();
-    semaforo_actualizar();
+    cerrarHastaRojo();
     long pegada = msHastaQueBaje(VETO_SOSTENIDO_G_MS * 2UL);
     char g4[400];
     std::snprintf(g4, sizeof(g4),
@@ -1890,8 +1892,7 @@ int main() {
     // para quien este debajo, y por eso se mide en vez de suponerse: es el unico caso en
     // que D-33 no protege a nadie, y quien monte el equipo tiene que saberlo.
     plumaArribaCon(false, false);
-    semaforo_forzarRojo();
-    semaforo_actualizar();
+    cerrarHastaRojo();
     long ciega = msHastaQueBaje(RETARDO * 4UL);
     char g5[380];
     std::snprintf(g5, sizeof(g5),
@@ -1907,8 +1908,7 @@ int main() {
     // SENSOR". Se mide con la SEGUNDA camara sola, porque el defecto que esto caza -un
     // veto escrito solo sobre CAM_J16[0]- pasaria todos los casos de arriba.
     plumaArribaCon(false, true);
-    semaforo_forzarRojo();
-    semaforo_actualizar();
+    cerrarHastaRojo();
     long soloD = msHastaQueBaje(RETARDO * 6UL);
     char g6[360];
     std::snprintf(g6, sizeof(g6),

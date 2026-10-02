@@ -3,22 +3,6 @@
 // EL INSTRUMENTO QUE FALTABA: LAS DOS PUNTAS, EL C++ REAL DE LAS DOS, EJECUTANDOSE A
 // LA VEZ, Y UN OBSERVADOR QUE MIRA LOS DOCE PINES EN EL MISMO INSTANTE.
 //
-// La auditoria del 31/08 lo dejo por escrito y se verifico: NINGUN instrumento ejecuta
-// el C++ real de las dos puntas a la vez y comprueba que nunca dan verde las dos. Lo
-// que cerraba ese lazo era una copia del firmware escrita a mano en Python -la prueba
-// 5 de simulador_sistema_v7_6-, que es justo lo que el apartado 8 de CLAUDE.md avisa
-// que NO prueba el codigo. Y de los otros dos candidatos:
-//
-//   barrera_02_dos_puntas   compara el enclavamiento como TEXTO. Buen proxy. Dos
-//                           ficheros identicos pueden estar identicamente mal, y
-//                           ademas la barrera no es lo unico que decide un verde:
-//                           esta quien la llama.
-//   Validacion_Automatico   compila C++ real... SOLO DEL MAESTRO. Su Esclavo es un
-//                           switch de veinte lineas en el propio arnes.
-//
-// Verde contra verde en un cierre de carril es un choque frontal. Es la propiedad de
-// seguridad mas cara del equipo y era la peor cubierta.
-//
 // ===========================================================================
 // EL PROBLEMA TECNICO: LOS SIMBOLOS CHOCAN. COMO SE RESOLVIO Y QUE SE DESCARTO
 // ===========================================================================
@@ -55,35 +39,6 @@
 //      una persona, y una variable olvidada convertiria el escenario en un fraude
 //      silencioso. Aqui la garantia la da el cargador del sistema.
 //      (El arnes exige ademas que ese reinicio HAYA ocurrido: ver el bloque E.)
-//
-// SE DESCARTARON, y por que:
-//
-//   (a) DOS PROCESOS QUE SE HABLAN (tuberia o socket). Habria hecho falta serializar el
-//       estado de cada punta en cada tick y un protocolo propio para el reloj comun. El
-//       instante de observacion pasaria a depender del orden en que llegan los mensajes
-//       -exactamente la clase de cosa que "funciona por accidente" (N-89)- y una
-//       carrera dentro del arnes se leeria como un hallazgo de firmware. Ademas, un
-//       microcorte seria matar y relanzar un proceso: correcto, pero mas lento y con la
-//       misma necesidad de repescar el dominio de respaldo.
-//
-//   (b) PREFIJAR SIMBOLOS AL COMPILAR (-Dsemaforo_setup=esclavo_semaforo_setup...).
-//       Exige una LISTA de macros escrita a mano, una por funcion publica. Una funcion
-//       nueva en el firmware no aparece en la lista, no se renombra, y el choque
-//       reaparece -o peor: enlaza contra la punta equivocada y el arnes mide el Maestro
-//       creyendo medir el Esclavo-. Es un modelo mantenido a mano de la superficie del
-//       firmware: la misma forma del defecto que este banco lleva tres anos pagando.
-//
-//   (b') Su variante mecanica, objcopy --prefix-symbols sobre un enlace parcial, no
-//       necesita lista... pero renombra TAMBIEN los simbolos no definidos, asi que
-//       memcpy y snprintf pasan a ser esclavo_memcpy y esclavo_snprintf y no enlaza
-//       nada. Desenredarlo pide una segunda pasada de --redefine-sym dependiente de la
-//       libc del dia. Se descarta por fragil, no por imposible.
-//
-//   (c) ESPACIOS DE NOMBRES, incluyendo el .cpp dentro de un namespace. Cambia el orden
-//       y el alcance de los #include del firmware, de modo que lo que se compila deja
-//       de ser letra por letra lo que va a la tarjeta -que es el unico motivo por el que
-//       este arnes vale mas que un modelo-. Y basta un extern "C" o un #pragma once
-//       resuelto antes para que se caiga de formas dificiles de leer.
 //
 // ===========================================================================
 // QUE SE MIDE, Y SOBRE QUE
@@ -381,7 +336,9 @@ struct Punta {
     return reinterpret_cast<T>(reinterpret_cast<void*>(p));
   }
 
+  int cargas = 0;   // D-45: un microcorte (DLL recargada) no es una transicion de la luz
   void cargar() {
+    cargas++;
     h = LoadLibraryA(ruta.c_str());
     if (!h) abortar("no se pudo cargar " + ruta + " (LoadLibrary devolvio NULL, error " +
                     std::to_string((unsigned long)GetLastError()) + ")");
@@ -609,12 +566,18 @@ static unsigned long g_escVerdeRojoLargo = 0;
 static unsigned long g_escVerdeRojoDesde = 0;
 static bool g_escVerdeRojoEnCurso = false;
 
-// N-162 (bloque F): el Esclavo pasando de VERDE a AMARILLO. La Resolucion da verde->rojo
-// DIRECTO, y el unico camino que escribe S_AMARILLO en el Esclavo es
-// semaforo_iniciarTransicionAVerde(); de verde solo se puede llegar ahi por una orden de
-// verde repetida que reinicie la transicion. Se cuenta en TODO el barrido, no solo en F.
+// N-162 (bloque F): el Esclavo pasando de VERDE a AMARILLO. D-45 (02/10): ese paso ES el
+// cierre, y en F -donde nadie manda GO_RED- solo puede salir de una orden de verde repetida
+// que tocara la luz. Se cuenta en todo el barrido y se exige cero DENTRO de F.
 static unsigned long g_escVerdeAAmbar = 0;
 static int g_estadoEscAnt = -1;
+// D-45: EL ORDEN de la luz en las dos puntas, en todo el barrido. Lo cuenta vigilarOrden().
+static unsigned long g_ordenRoto = 0;
+static unsigned long g_cierresVistos = 0;
+static int g_luzAnt[2] = { -1, -1 };
+static int g_cargasVistas[2] = { 0, 0 };
+static unsigned long g_tAmarilloDesde[2] = { 0, 0 };
+static void vigilarOrden();
 
 // El detector, aislado en una funcion para que el control negativo del bloque E pueda
 // ejercerlo con valores sinteticos. Un detector que solo se prueba a si mismo cuando
@@ -659,6 +622,7 @@ static void vigilar(unsigned long t) {
     g_escVerdeRojoEnCurso = false;
   }
 
+  vigilarOrden();
   // N-162: verde -> ambar en el Esclavo.
   const int eAhora = ESCLAVO.estado();
   if (g_estadoEscAnt == S_VERDE_V && eAhora == S_AMARILLO_V) g_escVerdeAAmbar++;
@@ -675,9 +639,10 @@ static void vigilar(unsigned long t) {
     // SFTY-28 con la derogacion parcial de D-33: pluma arriba sin verde. La excepcion de
     // S_FALLO va por nombre, y la del retardo va CRONOMETRADA -no por nombre-: se cuenta
     // violacion solo cuando la ventana ya paso del plazo que el C++ declara.
+    // D-45: y el amarillo de cierre, que pide la pluma arriba como el verde (SPEC_8 1).
     if (p->pin(MOTOR_TALANQUERA) == TALANQUERA_ABRIR &&
         p->pin(VERDE1) != HIGH && p->pin(VERDE2) != HIGH &&
-        p->estado() != S_FALLO) {
+        p->estado() != S_FALLO && p->estado() != S_AMARILLO_V) {
       if (g_plumaSinVerdeDesde[i] == 0) g_plumaSinVerdeDesde[i] = g_t + 1;
       const unsigned long dur = g_t - (g_plumaSinVerdeDesde[i] - 1);
       if (dur > g_peorVentanaPlumaMs[i]) g_peorVentanaPlumaMs[i] = dur;
@@ -694,6 +659,27 @@ static void vigilar(unsigned long t) {
 // EL BUCLE. Un tick = el MISMO millis() en las dos puntas.
 // ---------------------------------------------------------------------------
 static const unsigned long PASO_MS = 50;
+
+// D-45 (02/10): de VERDE solo se sale a AMARILLO (o al ambar intermitente, que 4.4.3 no
+// regula), y el AMARILLO dura AMARILLO_SEG -un tick de tolerancia- y acaba en ROJO (o en
+// fallo). Un microcorte -la DLL recargada- no es una transicion y no cuenta.
+static void vigilarOrden() {
+  Punta* dos[2] = { &MAESTRO, &ESCLAVO };
+  for (int i = 0; i < 2; i++) {
+    const int e = dos[i]->estado(), a = g_luzAnt[i];
+    const bool misma = g_cargasVistas[i] == dos[i]->cargas;
+    if (misma && a == S_VERDE_V && e != S_VERDE_V && e != S_AMARILLO_V && e != S_FALLO_V)
+      g_ordenRoto++;
+    if (misma && a == S_AMARILLO_V && e != S_AMARILLO_V && e != S_FALLO_V) {
+      const unsigned long d = g_t - g_tAmarilloDesde[i];
+      if (e != S_ROJO_V || d < AMBAR_ESCLAVO_MS_V || d > AMBAR_ESCLAVO_MS_V + PASO_MS) g_ordenRoto++;
+      else g_cierresVistos++;
+    }
+    if (e == S_AMARILLO_V && (a != S_AMARILLO_V || !misma)) g_tAmarilloDesde[i] = g_t;
+    g_luzAnt[i] = e;
+    g_cargasVistas[i] = dos[i]->cargas;
+  }
+}
 
 static void unTick() {
   bool pongAvisoEsteTick = false;   // D-34
@@ -1074,8 +1060,9 @@ static void pasoG(CorridaG& c) {
     c.tFallo = t;
   }
   if (c.tAperturaM < 0) {
-    if (vE) c.tUltVerdeE = (long)t;
-    if (vM || MAESTRO.estado() == S_AMARILLO_V) c.tAperturaM = (long)t;
+    // D-45: el todo-rojo cuenta desde el ROJO del Esclavo: su amarillo de cierre es paso.
+    if (vE || ESCLAVO.estado() == S_AMARILLO_V) c.tUltVerdeE = (long)t;
+    if (vM) c.tAperturaM = (long)t;   // D-45: abre directo; el amarillo es cierre
   }
   if (c.tSueltaE < 0 && !vE) c.tSueltaE = (long)t;
   const bool mFallo = (MAESTRO.estado() == S_FALLO_V);
@@ -1301,12 +1288,9 @@ int main() {
     }
     g_retardoPlumaMs = rM;
   }
-  // N-162 (bloque F): el ambar de transicion rojo->verde del ESCLAVO. Es un literal dentro
-  // de la condicion de semaforo_actualizar(), sin nombre; se lee de esa misma condicion,
-  // que es la que decide cuando la luz pasa a verde.
-  AMBAR_ESCLAVO_MS_V = leerNumero(RAIZ + "/Esclavo/src/semaforo.cpp",
-      R"(estado\s*==\s*S_AMARILLO\s*&&\s*\(ahora\s*-\s*tCambio\s*>=\s*(\d+)\))",
-      "el ambar de transicion del Esclavo");
+  // D-45: el amarillo de CIERRE, del contrato de las dos puntas (AMARILLO_SEG, en s).
+  AMBAR_ESCLAVO_MS_V = 1000UL * leerNumero(RAIZ + "/Esclavo/include/protocolo.h",
+      R"(#define\s+AMARILLO_SEG\s+(\d+)UL)", "el amarillo de cierre (AMARILLO_SEG)");
 
   LATIDO_MS_V = leerNumero(COORD, R"(const\s+unsigned\s+long\s+LATIDO_MS\s*=\s*(\d+))", "LATIDO_MS");
   RETARDO_RESPUESTA_MS_V = leerNumero(RAIZ + "/Esclavo/src/main.cpp",
@@ -2234,7 +2218,7 @@ int main() {
     }
 
     struct Fase {
-      bool pilladoAmbar = false, pilladoVerde = false;
+      bool pilladoAmbar = false, pilladoVerde = false, abrioDirecto = false;
       unsigned long tAmbar = 0, tVerde = 0;
       unsigned long ackPerdidos = 0, goPerdidos = 0;
       unsigned long entregadoEn[4] = { 0, 0, 0, 0 };
@@ -2254,11 +2238,15 @@ int main() {
       const unsigned long va0 = g_escVerdeAAmbar, sim0 = g_verdeSimultaneo;
       const unsigned long sr0 = g_verdeSinRojoEnfrente;
 
-      // 1. Hasta que el Esclavo ENTRA en ambar: el primer GO_GREEN de su fase.
+      // 1. Hasta que el Esclavo SALE del rojo: el primer GO_GREEN de su fase. D-45: tiene
+      //    que salir directo a VERDE.
       for (unsigned long gastado = 0; gastado < 400000; gastado += PASO_MS) {
         const unsigned long t = g_t;
+        const int antes = ESCLAVO.estado();
         unTick();
-        if (ESCLAVO.estado() == S_AMARILLO_V) { f.pilladoAmbar = true; f.tAmbar = t; break; }
+        if (antes == S_ROJO_V && ESCLAVO.estado() != S_ROJO_V) {
+          f.pilladoAmbar = true; f.tAmbar = t; f.abrioDirecto = ESCLAVO.verde(); break;
+        }
       }
       // 2. Hasta VERDE en los pines. El presupuesto cubre el peor caso del DEFECTO -cada
       //    reintento reinicia el ambar- para poder decir cuanto se alarga, no solo que falla.
@@ -2299,7 +2287,6 @@ int main() {
     const Fase fa = correrFase(ACK_A, 0, 0);
     const Fase fb = correrFase(ACK_B, N_GO_B ? 2 : 0, N_GO_B ? 1 + N_GO_B : 0);
 
-    const unsigned long dAmbarA = fa.pilladoVerde ? fa.tVerde - fa.tAmbar : 0;
     const unsigned long repetidosA = fa.entregadoEn[S_AMARILLO_V] + fa.entregadoEn[S_VERDE_V];
 
     comprobar(fa.pilladoAmbar && fa.ackPerdidos == (unsigned long)ACK_A && repetidosA >= 1 &&
@@ -2311,14 +2298,15 @@ int main() {
               std::to_string(fa.entregadoEn[S_AMARILLO_V]) + " en ambar, " +
               std::to_string(fa.entregadoEn[S_VERDE_V]) + " en verde), sin agotar reintentos");
 
-    comprobar(fa.pilladoVerde && dAmbarA >= AMBAR && dAmbarA <= AMBAR + PASO_MS,
-              "F2 (a): con esos acuses perdidos, el ambar del Esclavo antes de VERDE midio " +
-              std::to_string(dAmbarA) + " ms; se exige [" + std::to_string(AMBAR) +
-              ", " + std::to_string(AMBAR + PASO_MS) + "] (ambar releido + un tick). Si cada "
-              "GO_GREEN reiniciara el ambar, seria del orden de " + std::to_string(ACK_A) +
-              " x timeout + ambar = " + std::to_string((unsigned long)ACK_A * TOUT + AMBAR) +
-              " ms, con el Maestro en rojo 'en transicion' todo ese tiempo" +
-              (fa.pilladoVerde ? "" : " -NO LLEGO A VERDE en el presupuesto-"));
+    // D-45: SE INVIERTE. Aqui se exigia AMBAR ms de ambar antes del verde; ahora el verde
+    // abre DIRECTO y, con los acuses perdidos, las repeticiones no lo cierran ni lo reabren.
+    comprobar(fa.pilladoVerde && fa.abrioDirecto && fb.abrioDirecto &&
+                  fa.verdeAAmbar + fb.verdeAAmbar == 0,
+              "F2 (a): con " + std::to_string(fa.ackPerdidos) + " acuses perdidos el Esclavo "
+              "pasa de ROJO a VERDE DIRECTO en el primer GO_GREEN (F-a " +
+              std::to_string(fa.abrioDirecto) + ", F-b " + std::to_string(fb.abrioDirecto) +
+              ") y ninguna repeticion lo lleva a amarillo (" +
+              std::to_string(fa.verdeAAmbar + fb.verdeAAmbar) + ")");
 
     comprobar(fb.pilladoVerde && fb.ackPerdidos == (unsigned long)ACK_B &&
               fb.goPerdidos == N_GO_B && fb.entregadoEn[S_VERDE_V] >= 1,
@@ -2328,13 +2316,14 @@ int main() {
               std::to_string(fb.entregadoEn[S_VERDE_V]) + " GO_GREEN llegaron con el Esclavo "
               "YA EN VERDE: el caso del reintento tardio se ejercio de verdad");
 
-    comprobar(g_escVerdeAAmbar == 0,
-              "F4 (b): en TODO el barrido (bloques A a F) el Esclavo nunca paso de VERDE a "
-              "AMARILLO -la Resolucion da verde->rojo directo-. En F-a y F-b llegaron " +
-              std::to_string(fa.entregadoEn[S_VERDE_V] + fb.entregadoEn[S_VERDE_V]) +
-              " GO_GREEN con el Esclavo en verde. Transiciones verde->ambar: " +
-              std::to_string(g_escVerdeAAmbar) + " (en F: " +
-              std::to_string(fa.verdeAAmbar + fb.verdeAAmbar) + ")");
+    // D-45: SE INVIERTE. Exigia cero pasos de verde a amarillo en el Esclavo -"la Resolucion
+    // da verde->rojo directo"-, que es lo que la norma prohibe (4.4.3). Ahora se exige el
+    // ORDEN en las dos puntas y en todo el barrido (vigilarOrden()), con cierres de verdad.
+    comprobar(g_ordenRoto == 0 && g_cierresVistos > 0,
+              "F4 (b): en TODO el barrido (bloques A a F), en las dos puntas, de VERDE solo se "
+              "salio a AMARILLO, y cada AMARILLO duro AMARILLO_SEG y acabo en ROJO: " +
+              std::to_string(g_cierresVistos) + " cierres, " + std::to_string(g_ordenRoto) +
+              " fuera de orden");
 
     comprobar(fa.maestroAcuso && fb.maestroAcuso && !fa.maestroFallo && !fb.maestroFallo,
               "F5: el GO_GREEN repetido SE RE-ACUSA: en F-a y en F-b el Maestro salio de la "
@@ -2527,7 +2516,7 @@ int main() {
     comprobar(g2d.tAperturaM >= 0 && todoRojoMsG(g2d) >= (long)DESPEJE_MS,
               "G2-d (control de la inversion): el Maestro SI se abre despues -no se queda en rojo "
               "con la radio viva- y con el todo-rojo entero: " + std::to_string(todoRojoMsG(g2d)) +
-              " ms entre el ultimo verde del Esclavo y el ambar del Maestro; despeje " +
+              " ms entre el rojo del Esclavo y el verde del Maestro; despeje " +
               std::to_string(DESPEJE_MS) + " ms (-1 = no se abrio en " +
               std::to_string(TRAS_VERDE) + " ms)");
 
@@ -2725,8 +2714,8 @@ int main() {
                  " ms contando con una trama que no llego"));
     comprobar(g5.tAperturaM >= 0 && todoRojoMsG(g5) >= (long)DESPEJE_MS,
               "G5 (control de la inversion): el Maestro SI se abre despues y con el todo-rojo "
-              "entero: " + std::to_string(todoRojoMsG(g5)) + " ms entre el ultimo verde del "
-              "Esclavo y el ambar del Maestro; despeje " + std::to_string(DESPEJE_MS) +
+              "entero: " + std::to_string(todoRojoMsG(g5)) + " ms entre el rojo del "
+              "Esclavo y el verde del Maestro; despeje " + std::to_string(DESPEJE_MS) +
               " ms (-1 = no se abrio en " + std::to_string(TRAS_VERDE) + " ms)");
 
     // ---- G6: ROJO TOTAL con el Esclavo en verde y su GO_RED perdido --------------------
@@ -3416,7 +3405,9 @@ int main() {
     // GO_RED con su ACK_RED, y el despeje desde ese acuse (N-162).
     {
       const unsigned long LAT_BASE = g_latenciaMs;
-      const unsigned long MARGEN = AVISO_AMBAR_TIMEOUT_MS_V;
+      // D-45: la suelta del Esclavo EMPIEZA un amarillo antes (Esclavo/src/main.cpp,
+      // SUELTA_VERDE_MS), asi que el hueco que se clasifica empieza ahi.
+      const unsigned long MARGEN = AVISO_AMBAR_TIMEOUT_MS_V + AMBAR_ESCLAVO_MS_V;
       const unsigned long LATS_VUELTA[] = { LAT_BASE, 450, 1000, 1500 };
       const unsigned nLats = (unsigned)(sizeof(LATS_VUELTA) / sizeof(LATS_VUELTA[0]));
       const unsigned long OBJ[] = { SIL - MARGEN - LATIDO_MS_V, SIL - MARGEN,
@@ -3469,9 +3460,7 @@ int main() {
             }
             if (t - g_tGobiernoEsclavo > SIL) orfE = true;
             if (t - g_tRxMaestro > SIL) orfM = true;
-            if (tVuelta >= 0 && tAbre < 0 &&
-                (MAESTRO.verde() || MAESTRO.estado() == S_AMARILLO_V))
-              tAbre = (long)t;
+            if (tVuelta >= 0 && tAbre < 0 && MAESTRO.verde()) tAbre = (long)t;
             if (tAbre >= 0 && MAESTRO.verde()) break;
           }
           finG(c);
@@ -3566,9 +3555,9 @@ int main() {
           for (unsigned long g = 0; g < VERDE_MS + 60000; g += PASO_MS) {
             const unsigned long t = g_t;
             pasoG(c);
-            if (!MAESTRO.verde()) { tRojoM = (long)t; break; }
+            if (!MAESTRO.verde() && MAESTRO.rojo()) { tRojoM = (long)t; break; }   // D-45
           }
-          if (tRojoM < 0 || !MAESTRO.rojo()) { ejercido = false; continue; }
+          if (tRojoM < 0) { ejercido = false; continue; }
           const unsigned long tFin = (unsigned long)tRojoM + DESPEJE_MS;
           g_pongPerderDesdeT = tFin - VENT[iv];
           g_pongPerderHastaT = (VENT[iv] == 0) ? 0 : tFin;

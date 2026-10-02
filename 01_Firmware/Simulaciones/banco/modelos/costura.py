@@ -172,10 +172,11 @@ INTERVALO_SYNC_MS = num(T_M_COORD_C, r"INTERVALO_SYNC_MS\s*=\s*(\d+)", "INTERVAL
 BACKOFF_SYNC_MS = num(T_M_COORD_C, r"BACKOFF_SYNC_MS\s*=\s*(\d+)", "BACKOFF_SYNC_MS")
 BAUD_CABLE = num(T_M_PROTO_C, r"Bus\.begin\((\d+)\)", "baudios del bus al modulo")
 
-# --- Amarillo fijo de la transicion a verde, en las dos puntas -------------
-PAT_AMARILLO = r"estado\s*==\s*S_AMARILLO\s*&&\s*\(ahora\s*-\s*tCambio\s*>=\s*(\d+)\)"
-M_AMARILLO_MS = num(T_M_SEM_C, PAT_AMARILLO, "amarillo fijo (Maestro)")
-E_AMARILLO_MS = num(T_E_SEM_C, PAT_AMARILLO, "amarillo fijo (Esclavo)")
+# --- D-45: el amarillo de CIERRE, del contrato de cada punta (AMARILLO_SEG, en s) ---
+PAT_AMARILLO = r"#define\s+AMARILLO_SEG\s+(\d+)UL"
+M_AMARILLO_MS = 1000 * num(T_M_PROTO_H, PAT_AMARILLO, "amarillo de cierre (Maestro)")
+E_AMARILLO_MS = 1000 * num(texto(E_PROTO_H), PAT_AMARILLO, "amarillo de cierre (Esclavo)")
+AMARILLO_S = M_AMARILLO_MS // 1000
 
 
 # --------------------------------------------------------------------------
@@ -195,46 +196,80 @@ E_AMARILLO_MS = num(T_E_SEM_C, PAT_AMARILLO, "amarillo fijo (Esclavo)")
 # importarse decide el veredicto de quien lo use, y ademas lo cuenta una vez por cada
 # pack que lo importe.
 # --------------------------------------------------------------------------
-FD_VERDE_MAESTRO, FD_DESPEJE_A, FD_VERDE_ESCLAVO, FD_DESPEJE_B = 0, 1, 2, 3
+# D-45 (02/10): seis fases, el amarillo de cierre entre cada verde y su despeje.
+(FD_VERDE_MAESTRO, FD_AMARILLO_MAESTRO, FD_DESPEJE_A,
+ FD_VERDE_ESCLAVO, FD_AMARILLO_ESCLAVO, FD_DESPEJE_B) = 0, 1, 2, 3, 4, 5
+
+
+def _cruda(pos, v, d, a):
+    if pos < v:
+        return FD_VERDE_MAESTRO
+    if pos < v + a:
+        return FD_AMARILLO_MAESTRO
+    if pos < v + a + d:
+        return FD_DESPEJE_A
+    if pos < 2 * v + a + d:
+        return FD_VERDE_ESCLAVO
+    if pos < 2 * (v + a) + d:
+        return FD_AMARILLO_ESCLAVO
+    return FD_DESPEJE_B
 
 
 def fase(seg_dia, verde, despeje):
-    """Espejo EXACTO de ciclo_degradado_fase() de ciclo_degradado.h.
-
-    Se copia la estructura linea por linea, incluida la guarda de medianoche en
-    los dos sentidos. Mas abajo se comprueba contra el C++ que el espejo sigue
-    correspondiendose, para que este espejo no envejezca en silencio.
-    """
+    """Espejo EXACTO de ciclo_degradado_fase() de ciclo_degradado.h, con las dos guardas
+    de medianoche y las dos reglas del amarillo de D-45. Mas abajo se comprueba contra el
+    C++ que el espejo sigue correspondiendose."""
     if verde == 0 or despeje == 0:
         return FD_DESPEJE_A
-    ciclo = 2 * (verde + despeje)
-    if seg_dia < despeje:
-        return FD_DESPEJE_B
-    if SEGUNDOS_DEL_DIA - seg_dia <= despeje:
+    a = AMARILLO_S
+    ciclo = 2 * (verde + a + despeje)
+    fin_dia = SEGUNDOS_DEL_DIA - despeje
+    if seg_dia < despeje or seg_dia >= fin_dia:
         return FD_DESPEJE_B
     pos = seg_dia % ciclo
-    if pos < verde:
-        return FD_VERDE_MAESTRO
-    if pos < verde + despeje:
-        return FD_DESPEJE_A
-    if pos < 2 * verde + despeje:
-        return FD_VERDE_ESCLAVO
-    return FD_DESPEJE_B
+    f = _cruda(pos, verde, despeje, a)
+    if f in (FD_AMARILLO_MAESTRO, FD_AMARILLO_ESCLAVO):
+        inicio = verde if f == FD_AMARILLO_MAESTRO else 2 * verde + a + despeje
+        if seg_dia - (pos - inicio) <= despeje:
+            return FD_DESPEJE_A if f == FD_AMARILLO_MAESTRO else FD_DESPEJE_B
+    if seg_dia + a >= fin_dia:
+        f0 = _cruda((fin_dia - a) % ciclo, verde, despeje, a)
+        if f0 == FD_VERDE_MAESTRO:
+            return FD_AMARILLO_MAESTRO
+        if f0 == FD_VERDE_ESCLAVO:
+            return FD_AMARILLO_ESCLAVO
+        if f == FD_VERDE_MAESTRO:
+            return FD_DESPEJE_B
+        if f == FD_VERDE_ESCLAVO:
+            return FD_DESPEJE_A
+        if f != f0:
+            return FD_DESPEJE_A if f == FD_AMARILLO_MAESTRO else FD_DESPEJE_B
+    return f
 
 
 # --- 2a. El espejo no puede envejecer sin que nadie lo note ----------------
 cuerpo_fase = re.search(r"ciclo_degradado_fase\(uint32_t segDia.*?\n\}", T_M_CICLO_H, re.S)
+cuerpo_cruda = re.search(r"ciclo_degradado_faseCruda\(uint32_t pos.*?\n\}", T_M_CICLO_H, re.S)
 huellas_c = [
     r"if\s*\(verdeSeg\s*==\s*0\s*\|\|\s*despejeSeg\s*==\s*0\)\s*return\s+FD_DESPEJE_A",
-    r"ciclo\s*=\s*2UL\s*\*\s*\(\(uint32_t\)verdeSeg\s*\+\s*\(uint32_t\)despejeSeg\)",
+    r"ciclo\s*=\s*2UL\s*\*\s*\(\(uint32_t\)verdeSeg\s*\+\s*a\s*\+\s*\(uint32_t\)despejeSeg\)",
+    r"finDia\s*=\s*SEGUNDOS_DEL_DIA\s*-\s*despejeSeg",
     r"if\s*\(segDia\s*<\s*despejeSeg\)\s*return\s+FD_DESPEJE_B",
-    r"if\s*\(SEGUNDOS_DEL_DIA\s*-\s*segDia\s*<=\s*despejeSeg\)\s*return\s+FD_DESPEJE_B",
+    r"if\s*\(segDia\s*>=\s*finDia\)\s*return\s+FD_DESPEJE_B",
     r"pos\s*=\s*segDia\s*%\s*ciclo",
-    r"if\s*\(pos\s*<\s*\(uint32_t\)verdeSeg\)\s*return\s+FD_VERDE_MAESTRO",
-    r"if\s*\(pos\s*<\s*\(uint32_t\)verdeSeg\s*\+\s*despejeSeg\)\s*return\s+FD_DESPEJE_A",
-    r"if\s*\(pos\s*<\s*2UL\s*\*\s*verdeSeg\s*\+\s*despejeSeg\)\s*return\s+FD_VERDE_ESCLAVO",
+    r"if\s*\(segDia\s*-\s*\(pos\s*-\s*inicio\)\s*<=\s*despejeSeg\)",
+    r"if\s*\(segDia\s*\+\s*a\s*>=\s*finDia\)",
 ]
-espejo_ok = cuerpo_fase is not None and all(re.search(p, cuerpo_fase.group(0)) for p in huellas_c)
+huellas_cruda = [
+    r"if\s*\(pos\s*<\s*v\)\s*return\s+FD_VERDE_MAESTRO",
+    r"if\s*\(pos\s*<\s*v\s*\+\s*a\)\s*return\s+FD_AMARILLO_MAESTRO",
+    r"if\s*\(pos\s*<\s*v\s*\+\s*a\s*\+\s*d\)\s*return\s+FD_DESPEJE_A",
+    r"if\s*\(pos\s*<\s*2UL\s*\*\s*v\s*\+\s*a\s*\+\s*d\)\s*return\s+FD_VERDE_ESCLAVO",
+    r"if\s*\(pos\s*<\s*2UL\s*\*\s*\(v\s*\+\s*a\)\s*\+\s*d\)\s*return\s+FD_AMARILLO_ESCLAVO",
+]
+espejo_ok = (cuerpo_fase is not None and cuerpo_cruda is not None and
+             all(re.search(p, cuerpo_fase.group(0)) for p in huellas_c) and
+             all(re.search(p, cuerpo_cruda.group(0)) for p in huellas_cruda))
 
 def simbolos(m):
     """Quita los casts y se queda con los identificadores que se pasan."""
@@ -264,18 +299,20 @@ ROJO, AMBAR_FIJO, VERDE, AMBAR_INTERMITENTE = 0, 1, 2, 3
 
 
 def luz_maestro(seg_dia, verde, despeje):
-    """modo_degradado.cpp (Maestro), DEG_ACTIVO: verde SOLO en FD_VERDE_MAESTRO.
-    Usa semaforo_forzarVerde(), que es un salto DIRECTO a verde."""
-    return VERDE if fase(seg_dia, verde, despeje) == FD_VERDE_MAESTRO else ROJO
+    """modo_degradado.cpp (Maestro), DEG_ACTIVO: verde SOLO en FD_VERDE_MAESTRO; fuera,
+    semaforo_forzarRojo(), que sobre el verde da el amarillo de cierre (D-45)."""
+    f = fase(seg_dia, verde, despeje)
+    return VERDE if f == FD_VERDE_MAESTRO else (AMBAR_FIJO if f == FD_AMARILLO_MAESTRO else ROJO)
 
 
-def luz_esclavo(seg_dia, verde, despeje, amarillo_s):
-    """modo_degradado.cpp (Esclavo), DEG_ACTIVO: aplicarLuz(fase == FD_VERDE_ESCLAVO).
-    Pero pasa por semaforo_iniciarTransicionAVerde(): amarillo fijo y despues verde.
-    Los segundos de amarillo se comen SU verde, nunca el todo-rojo."""
-    if fase(seg_dia, verde, despeje) != FD_VERDE_ESCLAVO:
-        return ROJO
-    ciclo = 2 * (verde + despeje)
-    pos = seg_dia % ciclo
-    inicio_verde_esclavo = verde + despeje
-    return AMBAR_FIJO if (pos - inicio_verde_esclavo) < amarillo_s else VERDE
+def luz_esclavo(seg_dia, verde, despeje, amarillo_s=None):
+    """modo_degradado.cpp (Esclavo), DEG_ACTIVO: aplicarLuz(fase == FD_VERDE_ESCLAVO). D-45:
+    abre DIRECTO y cierra por su amarillo; amarillo_s queda por compatibilidad: ya no hay
+    ambar que se coma el principio del verde."""
+    f = fase(seg_dia, verde, despeje)
+    return VERDE if f == FD_VERDE_ESCLAVO else (AMBAR_FIJO if f == FD_AMARILLO_ESCLAVO else ROJO)
+
+
+def paso(luz):
+    """D-45: el amarillo de cierre es paso abierto -quien no puede parar, entra-."""
+    return luz in (VERDE, AMBAR_FIJO)

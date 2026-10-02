@@ -56,12 +56,10 @@ DESCRIPCION = "el arnes de las dos puntas cubre todo lo que puede encender un ve
 
 PUNTAS = ("Maestro", "Esclavo")
 
-# Las tres puertas publicas al verde. Si alguna se renombra, el censo se queda ciego y
-# este pack aborta en vez de aprobar: un patron que no encuentra nada NO demuestra que
-# no haya nada (regla 4).
+# Las puertas publicas al verde. D-45 retiro semaforo_iniciarTransicionAVerde: el verde
+# abre directo por semaforo_forzarVerde (y el toggle, sin llamador, la usa).
 PUERTAS_AL_VERDE = (
     "semaforo_forzarVerde",
-    "semaforo_iniciarTransicionAVerde",
     "semaforo_toggle",
 )
 
@@ -111,7 +109,7 @@ def _lee(fw, *partes):
 
 
 def _enciende_verde(codigo):
-    """True si este codigo puede encender un verde por alguna de las tres puertas."""
+    """True si este codigo puede encender un verde por alguna de las puertas."""
     return any(re.search(r"\b%s\s*\(" % re.escape(p), codigo) for p in PUERTAS_AL_VERDE)
 
 

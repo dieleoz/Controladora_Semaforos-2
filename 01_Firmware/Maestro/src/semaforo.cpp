@@ -9,6 +9,7 @@
 // sobre el modo. El porque, en testLedsAdmitido().
 #include "modos.h"
 #include "coordinador.h"
+#include "protocolo.h"   // D-45: AMARILLO_SEG, gemelo en las dos puntas
 
 static EstadoSemaforo estado = S_ROJO;
 static unsigned long tCambio = 0;
@@ -18,10 +19,6 @@ static unsigned long tCambio = 0;
 // cuando la pluma tiene un cierre pendiente -ver el bloque de D-33 mas abajo-. Sin
 // el, en rojo estable nadie volveria a escribir un pin y la pluma se quedaria arriba
 // hasta el proximo cambio de luz.
-//
-// Lo escribia tambien la senal del mando (SFTY-21), que guardaba aqui las salidas
-// mientras los destellos ocupaban las lampara; esa mitad se fue con el mando el
-// 14/09 (D-30) y este registro se queda porque D-33 lo usa por su cuenta.
 static bool ultR = false, ultA = false, ultV = false;
 
 // --- N-82: test de lamparas ------------------------------------------------
@@ -120,11 +117,8 @@ static void escribirPines(bool rojo, bool amarillo, bool verde) {
   // y la luz podrian decir cosas distintas sin que nadie lo hubiera decidido. Aqui no
   // puede: se escribe con el mismo 'verde' YA enclavado que acaba de encender la lampara.
   //
-  // ~~"una pluma arriba con la luz en rojo es PEOR que no tener barrera, porque el
-  // conductor confia en ella"~~ -> DEROGADO POR EL RESPONSABLE EL 14/09/2026, dentro de
-  // D-33, y se deja tachado en vez de borrado porque esa frase era el sosten del
-  // argumento que estuvo a punto de parar este cambio (CLAUDE.md 7.4). Sus palabras:
-  // "el veto es solo para la barrera con el problema... esas barreras son casi de
+  // D-33, palabras del responsable: "el veto es solo para la barrera con
+  // el problema... esas barreras son casi de
   // adorno, EL QUE MANDA ES EL SEMAFORO Y SU ESTADO". O sea: LA BARRERA NO ES PARTE DEL
   // ENCLAVAMIENTO. Quien reparte el paso es la luz; la pluma protege a quien esta
   // DEBAJO DE ELLA y a nadie mas, y por eso el veto es LOCAL a este poste, no para el
@@ -135,8 +129,10 @@ static void escribirPines(bool rojo, bool amarillo, bool verde) {
   // una averia -por eso PLUMA: se publica desde N-153-, y el operario tiene que poder
   // distinguirlo: lo dice el $EVENT de vigilante_tick() cuando el veto se sostiene.
   //
-  // Sube con verde. Rojo, ambar de transicion, todo-rojo de despeje y destellos del
-  // mando la dejan ABAJO.
+  // Sube con verde y SIGUE ARRIBA durante el amarillo de cierre (D-45, SPEC_8 1): el
+  // retardo de bajada de D-33 cuenta desde el ROJO, no desde el amarillo; si no, con los
+  // dos a 3 s la pluma bajaria en el instante del rojo. El amarillo del TEST de lamparas
+  // no cuenta: alli 'estado' sigue en S_ROJO. Rojo y todo-rojo de despeje la dejan ABAJO.
   //
   // Y SUBE TAMBIEN EN S_FALLO, que es una decision de operacion, no del firmware.
   // S_FALLO es el ambar intermitente de SFTY-6: el equipo se quedo sin enlace y ya no
@@ -223,7 +219,7 @@ static void escribirPines(bool rojo, bool amarillo, bool verde) {
   // un tope que baja igual devuelve el peligro que el veto evita; tope es ALARMA, no
   // accion-. Quien avisa es el vigilante de botones.cpp: CAM_PEGADA a los 20 min si el
   // contacto se queda cerrado, y el $EVENT del contador en cuanto el veto actua.
-  const bool luzPideArriba = (verde && !testLedsActivo) || estado == S_FALLO;
+  const bool luzPideArriba = (verde && !testLedsActivo) || estado == S_FALLO || estado == S_AMARILLO;
   bool plumaArriba;
   if (luzPideArriba) {
     plumaCierrePendiente = false;
@@ -269,13 +265,6 @@ static void aplicarSalidas(bool rojo, bool amarillo, bool verde) {
   // D-33: lo que la logica quiere se guarda SIEMPRE, y DESPUES del enclavamiento de
   // arriba a proposito: lo que queda aqui ya viene saneado, de modo que la reentrada
   // de la pluma no puede reintroducir una combinacion prohibida.
-  //
-  // AQUI ESTABA LA INTERCEPCION DE SFTY-21 -un 'if (senalActiva) return;' que desviaba
-  // la escritura mientras los destellos del mando ocupaban las lamparas-. Salio con el
-  // mando el 14/09 (D-30): sus unicos armadores eran mando.cpp, asi que la bandera ya
-  // no podia volver a valer true y la guarda solo sabia dar una respuesta
-  // (CLAUDE.md 6.2). Ahora no hay desvio: lo que la logica pide se escribe en el mismo
-  // paso, que es el camino normal y el unico.
   ultR = rojo; ultA = amarillo; ultV = verde;
 
   escribirPines(rojo, amarillo, verde);
@@ -311,31 +300,46 @@ void semaforo_apagarTodo() {
   aplicarSalidas(LOW, LOW, LOW);
 }
 
+// D-45 (02/10): ROJO - VERDE - AMARILLO - ROJO. LA BARRERA VIVE AQUI, Y ES UNA SOLA.
+//
+// "En ningun caso se podra cambiar de luz verde a luz roja sin que antes aparezca el
+// amarillo" (Manual de Senalizacion Vial 2024, 4.4.3). Ningun llamador tiene que
+// acordarse: S_VERDE solo se abandona por iniciarTransicionARojo() -amarillo SOLO en la
+// cara, AMARILLO_SEG, y despues rojo en semaforo_actualizar()- o por semaforo_iniciarFallo()
+// (ambar intermitente, que 4.4.3 no regula: SPEC_1 3.2 (6)). Y UN CIERRE EMPEZADO NO SE
+// REVIERTE: con S_AMARILLO, forzarRojo() no lo reinicia y forzarVerde() no lo reabre.
+// El rojo inmediato queda para lo que no es verde: rojo, fallo y apagado.
+static void iniciarTransicionARojo(bool nuevo) {   // false: repinta sin tocar su reloj
+  if (nuevo) {
+    estado = S_AMARILLO;
+    tCambio = millis();
+  }
+  aplicarSalidas(LOW, HIGH, LOW);
+}
+
 void semaforo_forzarRojo() {
+  if (estado == S_VERDE) {
+    iniciarTransicionARojo(true);
+    return;
+  }
+  if (estado == S_AMARILLO) return;
   estado = S_ROJO;
   aplicarSalidas(HIGH, LOW, LOW);
 }
 
+// D-45: se ABRE directo; el ambar previo al verde no es ninguna secuencia de 4.4.2.
 void semaforo_forzarVerde() {
+  if (estado == S_AMARILLO) return;
   estado = S_VERDE;
   aplicarSalidas(LOW, LOW, HIGH);
 }
 
-// OPT-6 (Manual de Señalización de Colombia): Eliminación de la transición Europea (Rojo+Amarillo).
-// Ver MANUAL_USUARIO.md - Sección 1 (Comportamiento Físico de las Luces).
-// Se usa semaforo_forzarVerde() para un salto directo y seguro a luz Verde.
-
-void semaforo_iniciarTransicionAVerde() {
-  estado = S_AMARILLO;
-  tCambio = millis();
-  aplicarSalidas(LOW, HIGH, LOW);
-}
-
+// Sin llamador. Ya no saca del ambar intermitente a verde: solo alterna rojo y verde.
 void semaforo_toggle() {
-  if (estado == S_ROJO || estado == S_FALLO) {
-    semaforo_iniciarTransicionAVerde();
+  if (estado == S_ROJO) {
+    semaforo_forzarVerde();
   } else if (estado == S_VERDE) {
-    semaforo_forzarRojo(); // Directo a rojo
+    semaforo_forzarRojo();
   }
 }
 
@@ -379,7 +383,7 @@ static void terminarTestLeds() {
   switch (estado) {
     case S_ROJO:     semaforo_forzarRojo(); break;
     case S_VERDE:    semaforo_forzarVerde(); break;
-    case S_AMARILLO: semaforo_iniciarTransicionAVerde(); break;
+    case S_AMARILLO: iniciarTransicionARojo(false); break;   // el cierre sigue su reloj
     case S_FALLO:    semaforo_iniciarFallo(); break;
   }
 }
@@ -426,9 +430,6 @@ void semaforo_actualizar() {
   // registro de ultR/ultA/ultV. "Todo pasa por una funcion" solo es una barrera si la
   // barrera esta EN esa funcion; aqui estaba un nivel por encima y bastaba llamar al
   // nivel de abajo para rodearla.
-  // D-30 (14/09): AQUI ESPERABA EL TEST A QUE LA SENAL DEL MANDO SOLTARA LAS LUCES.
-  // Con el mando fuera ya no hay quien ocupe las lamparas por encima de la logica, y
-  // la rama de espera solo sabia dar una respuesta: el test corre siempre entero.
   // N-82.bis: si el equipo SALE de fuera de servicio con el test en curso -un SET_MODO,
   // el menu, el ambar del Esclavo- o la luz deja de estar en rojo, el test se corta en
   // esta vuelta y la lampara vuelve a su estado. Sin esto, un test pedido en MENU
@@ -452,10 +453,10 @@ void semaforo_actualizar() {
     return;
   }
 
-  // Transición Rojo -> Amarillo -> Verde
-  if (estado == S_AMARILLO && (ahora - tCambio >= 4000)) { // 4s de Amarillo
-    estado = S_VERDE;
-    aplicarSalidas(LOW, LOW, HIGH);
+  // D-45: el amarillo de cierre acaba en ROJO.
+  if (estado == S_AMARILLO && (ahora - tCambio >= AMARILLO_SEG * 1000UL)) {
+    estado = S_ROJO;
+    aplicarSalidas(HIGH, LOW, LOW);
   } else if (estado == S_FALLO) {
     if (ahora - tCambio >= 500) {
       tCambio = ahora;

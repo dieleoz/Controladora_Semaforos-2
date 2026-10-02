@@ -6,19 +6,6 @@
 //     ?CUANTOS SEGUNDOS DE DESFASE ENTRE LOS DOS RELOJES AGUANTA EL CRUCE ANTES DE
 //     QUE LOS DOS VERDES SE TOQUEN, Y CUANTO PUEDE DERIVAR EL EQUIPO DE VERDAD?
 //
-// El Modo Degradado es el modo que se usa cuando la radio MUERE. Ahi el verde de cada
-// punta sale de SU PROPIO RELOJ y no hay nadie que coordine: es el unico modo del
-// equipo en el que un choque frontal depende de una desigualdad numerica y no de un
-// enclavamiento. Hasta hoy esa desigualdad -despeje ampliado contra deriva acumulada-
-// la recalculaba UNICAMENTE costura_02_fase_ciclo.py, o sea un modelo de Python
-// escrito a mano; y ademas la recalculaba en UNA SOLA DIRECCION (ver el hallazgo del
-// bloque C).
-//
-// Este arnes es hermano de orquestador.cpp y NO lo sustituye. Aquel monta el Maestro
-// en Modo Automatico gobernando por radio y mide 42 comprobaciones que este no repite.
-// Aquel declara ademas, en la cabecera de adaptador_maestro.cpp, el hueco que este
-// viene a tapar: "en este arnes el MODO DEGRADADO del Maestro no existe".
-//
 // ===========================================================================
 // LAS DOS RAZONES POR LAS QUE EL HUECO SEGUIA ABIERTO, Y COMO SE CIERRAN
 // ===========================================================================
@@ -396,6 +383,10 @@ static void reiniciarObservacion() {
   g_solapeMax = 0;
 }
 
+// D-45: el amarillo de CIERRE sigue siendo paso -quien no puede parar, entra- y por eso el
+// solape se cuenta con PASO ABIERTO en las dos puntas (verde o ese amarillo), no solo verde:
+// SPEC_2 8 (e.bis), "el margen frente al amarillo del otro es el despeje". Indice releido.
+static int g_sAmarillo = -1;
 static void vigilar() {
   g_instantes++;
   const bool vM = MAESTRO.verde();
@@ -404,7 +395,8 @@ static void vigilar() {
   if (vE) g_ticksVerdeEsclavo++;
   vigilarH(vM, vE);
 
-  if (hayVerdeSimultaneo(vM, vE)) {
+  if (hayVerdeSimultaneo(vM || MAESTRO.estado() == g_sAmarillo,
+                         vE || ESCLAVO.estado() == g_sAmarillo)) {
     g_verdeSimultaneo++;
     g_solapeRacha++;
     if (g_solapeRacha > g_solapeMax) g_solapeMax = g_solapeRacha;
@@ -430,9 +422,10 @@ static void vigilar() {
         (p->pin(ROJO2) == HIGH && p->pin(VERDE2) == HIGH)) {
       g_enclavamientoRoto++;
     }
+    // D-45: el amarillo de cierre pide la pluma arriba como el verde (SPEC_8 1).
     if (p->pin(MOTOR_TALANQUERA) == TALANQUERA_ABRIR &&
         p->pin(VERDE1) != HIGH && p->pin(VERDE2) != HIGH &&
-        p->estado() != S_FALLO) {
+        p->estado() != S_FALLO && p->estado() != g_sAmarillo) {
       if (g_plumaSinVerdeDesde[i] == 0) g_plumaSinVerdeDesde[i] = g_t + 1;
       const unsigned long dur = g_t - (g_plumaSinVerdeDesde[i] - 1);
       if (dur > g_peorVentanaPlumaMs[i]) g_peorVentanaPlumaMs[i] = dur;
@@ -819,12 +812,12 @@ int main() {
   const unsigned long LIMITE_SIN_SYNC_H_E =
       leerNumero(E_DEG, R"(LIMITE_SIN_SYNC_MS\s*=\s*(\d+)UL\s*\*\s*3600UL\s*\*\s*1000UL)",
                  "LIMITE_SIN_SYNC_MS del Esclavo");
-  const unsigned long M_AMARILLO_MS =
-      leerNumero(M_SEM, R"(estado\s*==\s*S_AMARILLO\s*&&\s*\(ahora\s*-\s*tCambio\s*>=\s*(\d+)\))",
-                 "amarillo fijo del Maestro");
-  const unsigned long E_AMARILLO_MS =
-      leerNumero(E_SEM, R"(estado\s*==\s*S_AMARILLO\s*&&\s*\(ahora\s*-\s*tCambio\s*>=\s*(\d+)\))",
-                 "amarillo fijo del Esclavo");
+  // D-45: el amarillo de CIERRE vive en el contrato de cada punta (AMARILLO_SEG, en s).
+  const unsigned long M_AMARILLO_MS = 1000UL * leerNumero(RAIZ + "/Maestro/include/protocolo.h",
+      R"(#define\s+AMARILLO_SEG\s+(\d+)UL)", "amarillo de cierre del Maestro");
+  const unsigned long E_AMARILLO_MS = 1000UL * leerNumero(RAIZ + "/Esclavo/include/protocolo.h",
+      R"(#define\s+AMARILLO_SEG\s+(\d+)UL)", "amarillo de cierre del Esclavo");
+  (void)M_SEM; (void)E_SEM;
 
   // LA DERIVA POR DIA NO ES UNA CONSTANTE DEL FIRMWARE: VIVE EN UN COMENTARIO.
   // Se lee IGUAL del comentario, y con patron estricto, por dos motivos. Uno, para no
@@ -899,9 +892,11 @@ int main() {
   const long S_ROJO_E = posicionEnEnum(RAIZ + "/Esclavo/include/semaforo.h", "EstadoSemaforo", "S_ROJO");
   const long S_AMARILLO_E =
       posicionEnEnum(RAIZ + "/Esclavo/include/semaforo.h", "EstadoSemaforo", "S_AMARILLO");
+  g_sAmarillo = (int)S_AMARILLO_E;
   (void)MDG_OK_V;
 
-  const unsigned long CICLO_S = 2UL * (DEG_VERDE_SEG + DEG_DESPEJE_SEG);
+  // D-45: el amarillo de cierre se ANADE antes de cada despeje (ciclo_degradado.h).
+  const unsigned long CICLO_S = 2UL * (DEG_VERDE_SEG + E_AMARILLO_MS / 1000UL + DEG_DESPEJE_SEG);
 
   std::printf("\n Constantes releidas del C++ real:\n");
   std::printf("   ciclo degradado: verde %lu s, despeje %lu s -> ciclo %lu s\n",
@@ -1130,8 +1125,8 @@ int main() {
   //
   // Quitado el residuo, las dos fronteras ESTRUCTURALES son:
   //     Esclavo atrasado   -> el despeje ampliado
-  //     Esclavo adelantado -> el despeje MAS el amarillo del Esclavo, que se come el
-  //                           principio de su verde y protege solo en ese sentido
+  //     Esclavo adelantado -> el despeje ampliado TAMBIEN (D-45: las dos abren directo y
+  //                           su amarillo de cierre es paso; SPEC_2 8 (e.bis))
   const long SUMA_RESIDUOS = (long)(solapeMsPositivo + solapeMsNegativo);
   comprobar(SUMA_RESIDUOS >= 1000 - 2 * (long)PASO_MS &&
             SUMA_RESIDUOS <= 1000 + 2 * (long)PASO_MS,
@@ -1150,14 +1145,14 @@ int main() {
             "la constante del ciclo con lo que el firmware hace en los pines, y se mueve "
             "con ella si alguien la toca");
 
-  comprobar(primerSolapePositivo - primerSolapeNegativo ==
-                (long)(E_AMARILLO_MS / 1000UL) + 1,
+  // D-45: SE INVIERTE. Exigia que el sentido adelantado aguantara los segundos del ambar
+  // con que el Esclavo abria; ese ambar salio y las dos fronteras son el mismo despeje.
+  comprobar(primerSolapePositivo - primerSolapeNegativo == 1,
             "C4: con el Esclavo ADELANTADO aguanta " +
             std::to_string(primerSolapePositivo - primerSolapeNegativo) + " s mas, que "
-            "son los " + std::to_string(E_AMARILLO_MS / 1000UL) + " s de amarillo con "
-            "que esa punta empieza su verde mas el segundo del residuo. EL MARGEN REAL "
-            "ES EL DEL SENTIDO MALO: cual de los dos cristales adelanta no lo elige "
-            "nadie");
+            "es SOLO el segundo del residuo: sin el ambar que abria el verde del Esclavo "
+            "(D-45) los dos sentidos chocan contra el mismo despeje, contando el amarillo "
+            "de cierre del otro como paso abierto"); (void)E_AMARILLO_MS;
 
   nota("C4.bis: costura_02_fase_ciclo.py barre el desfase en UN SOLO SENTIDO y publica "
        "los " + std::to_string(primerSolapePositivo) + " s del sentido bueno como 'el "
@@ -1549,7 +1544,9 @@ int main() {
           tRojo = g_t - PASO_MS;
           cadAlRojo = MAESTRO.orden("alarmas_caducada") - alarmas0;
         }
-        if (tRojo != 0 && MAESTRO.estado() != S_ROJO_M) noRojo++;
+        // D-45: si estaba en verde, primero su amarillo de cierre, AMARILLO_SEG y ni uno mas.
+        if (tRojo != 0 && MAESTRO.estado() != S_ROJO_M &&
+            !(MAESTRO.estado() == g_sAmarillo && g_t - tRojo <= M_AMARILLO_MS + PASO_MS)) noRojo++;
         if (tRojo != 0 && ESCLAVO.verde()) verdeETrasRojo++;
       }
       const long alarmas = MAESTRO.orden("alarmas_caducada") - alarmas0;
@@ -1615,7 +1612,7 @@ int main() {
       long cadAlRojo = -1;
       for (unsigned long t = 0; t < 60UL * 60UL * 1000UL; t += PASO_MS) {
         unTick();
-        if (ESCLAVO.verde() || ESCLAVO.estado() == S_AMARILLO_E) {   // o el ambar que abre su verde
+        if (ESCLAVO.verde() || ESCLAVO.estado() == S_AMARILLO_E) {   // D-45: o su amarillo de cierre
           tUltVerde = g_t - PASO_MS;
         }
         if (tRojo == 0 && ESCLAVO.orden("da_rojo_sin_hora") > rojos0) {
@@ -2062,18 +2059,20 @@ int main() {
       comprobar(r.reanudoM && r.reanudoE && r.verdeMantes > 0 && r.verdeEantes > 0,
                 "G7.0 (control del escenario): con los cristales sanos al arrancar las dos "
                 "reanudan y dan verde antes de pararse el reloj (" + cifras(r) + ")");
+      // D-49 (02/10): SE INVIERTE el destino. El reloj que se congela en marcha va a ROJO FIJO
+      // como D-38, no a la rendicion a ambar (aqui se median 274 s de verde contra ese ambar).
       comprobar(r.verdeEtrasCongelar == 0 && r.verdeEfrenteFalloM == 0 && r.ambos == 0 &&
-                    r.degEfin == DEG_RENDIDO_V,
-                "G7.1 (b1): parado el contador, el Esclavo NO sigue dando verde con la marca de "
-                "la pila copiada en RAM: se rinde (estado " + std::to_string(r.degEfin) +
-                " = DEG_RENDIDO) y 0 ms de verde E frente a ambar M (" +
+                    r.degEfin == DEG_ROJO_SIN_HORA_V,
+                "G7.1 (b1, D-49): parado el contador, el Esclavo NO sigue dando verde con la marca "
+                "de la pila copiada en RAM: pasa a ROJO FIJO (estado " + std::to_string(r.degEfin) +
+                " = DEG_ROJO_SIN_HORA) y 0 ms de verde E frente a ambar M (" +
                 std::to_string(r.verdeEfrenteFalloM) + "; verde E tras declararlo parado " +
                 std::to_string(r.verdeEtrasCongelar) + " ms)");
-      comprobar(r.estadoMfin == S_FALLO_V && r.alarmasNoCuenta == 1 && r.alarmasDeg == 1,
-                "G7.2 (b3): el Maestro cae a ambar (estado " + std::to_string(r.estadoMfin) +
-                ") y LO PUBLICA con la causa verdadera: " + std::to_string(r.alarmasNoCuenta) +
-                " $ALARM DEGRADADO,RELOJ_NO_CUENTA de " + std::to_string(r.alarmasDeg) +
-                " del Degradado");
+      comprobar(r.estadoMfin == S_ROJO_M && r.alarmasNoCuenta == 1 && r.modoMfin == MODO_DEGRADADO_V,
+                "G7.2 (b3, D-49): el Maestro pasa a ROJO FIJO dentro del Degradado (estado " +
+                std::to_string(r.estadoMfin) + ") y LO PUBLICA con la causa verdadera: " +
+                std::to_string(r.alarmasNoCuenta) + " $ALARM DEGRADADO,RELOJ_NO_CUENTA de " +
+                std::to_string(r.alarmasDeg) + " del Degradado (las demas, ROJO_SIN_HORA cada minuto)");
     }
     // --- G8: EL LIMITE DE VERDAD EN UNA TARJETA SIN CRISTAL (1.49b3) ---------------------
     //

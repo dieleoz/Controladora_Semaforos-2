@@ -305,6 +305,8 @@ void setup() {
   // la funcion puede dejar la decision pendiente y el bucle vuelve a preguntarsela. La
   // ventana y su borde viven alli; aqui sigue sin decidirse nada.
   degradado_reanudarTrasCorte();
+  // D-47: el rojo fijo por falta de hora sobrevive al corte; desde ahi se sale como hoy.
+  if (respaldo_rojoSinHora()) degradado_arrancarEnRojoSinHora();
 
   tArranque = millis();
 }
@@ -370,7 +372,7 @@ void loop() {
 
   RF_Packet pkt;
   static unsigned long tUltimoComando = millis();
-  static bool ackRojoEnviado = false, ackVerdeEnviado = false;
+  static bool ackRojoPendiente = false, ackVerdeEnviado = false;
   // D-34 (15/09): esta punta apago su verde porque se le agotaba el margen de SFTY-6 y el
   // Maestro todavia no lo sabe. Viaja en el param del PONG (PONG_VERDE_SOLTADO) y la bajan
   // las ordenes de luz -GO_RED, GO_GREEN, GO_AMBAR: cualquiera de ellas redefine lo que el
@@ -465,12 +467,6 @@ void loop() {
       // Lo que quedaba del bloqueo -no poder llegar al Esclavo para cancelar- era de la
       // app, y se cerro el mismo dia: discoverUnpaired() y la reconexion sin reiniciar.
 
-      // SFTY-21: con el ambar pedido desde el mando (B.B.B) no se obedece NI SE
-      // ACUSA RECIBO. Ver mando.h: acusar sin encender la luz dejaria al Maestro
-      // dando verde a su lado convencido de que aqui hay rojo. Callando, agota sus
-      // reintentos, cae a C_FALLO en ~12,5 s y el cruce entero termina en ambar,
-      // que es lo que el operario pidio.
-      //
       // N-83: Y CON EL PEDIDO POR BLUETOOTH, IGUAL. Esta es la guarda que revocaba el
       // ambar de la app: llega un CMD_GO_RED -o sea, cada pocos segundos- y este
       // semaforo_forzarRojo() saca la luz de S_FALLO. Sin ella, las otras dos no
@@ -492,9 +488,13 @@ void loop() {
       // nada. El veto que protege a quien esta en la calzada es el de la app, y se
       // queda entero -D-8 sigue en pie: no se toca el cerrojo de bluetooth-.
       if (!bluetooth_ambarEmergencia()) {
-        semaforo_forzarRojo(); // Directo a rojo
-        ackRojoEnviado = true;
-        programarRespuesta(CMD_ACK_RED);
+        // D-45: sobre un verde arranca el amarillo de cierre; con el cierre en curso no lo
+        // reinicia. CMD_ACK_RED acusa el ROJO ENCENDIDO, no la orden (SPEC_2 2.2.bis): ya en
+        // rojo se acusa al momento; si no, al acabar el amarillo, al final del bucle. Una
+        // orden repetida durante el amarillo no se acusa todavia.
+        semaforo_forzarRojo();
+        if (semaforo_estado() == S_ROJO) programarRespuesta(CMD_ACK_RED);
+        else ackRojoPendiente = true;
       }
     } else if (pkt.command == CMD_GO_GREEN) {
       // D-34 (15/09): LA REPETICION DE UN GO_GREEN NO REFRESCA EL SILENCIO.
@@ -533,41 +533,31 @@ void loop() {
       if (!bluetooth_ambarEmergencia()) {
         // N-162 (11/09): LA ORDEN DE VERDE ES IDEMPOTENTE. SE REPITE, NO SE REINICIA.
         //
-        // El Maestro repite GO_GREEN cada TIMEOUT_ACK_MS mientras no le llega el
-        // ACK_GREEN. Aqui se llamaba a semaforo_iniciarTransicionAVerde() en cada orden, y
-        // esa funcion pone S_AMARILLO y rearma tCambio este donde este la luz. Una
-        // repeticion que caia dentro del ambar lo REINICIABA: perdidos unos cuantos
-        // acuses, el Esclavo no llegaba a verde mientras duraran los reintentos, el Maestro
-        // seguia en rojo "en transicion" y la app decia "repita" (banco del 04/09, Sisga
-        // del 10/09). Y una que caia con el verde ya encendido lo DEVOLVIA a ambar, contra
-        // la Resolucion (verde->rojo directo). Las dos cosas las ejerce el bloque F del
-        // arnes de las dos puntas, con las constantes releidas del C++.
+        // El Maestro repite GO_GREEN cada TIMEOUT_ACK_MS mientras no le llega el ACK_GREEN.
+        // Con la luz ya en S_VERDE la orden no es nueva: no se toca la luz y se RE-ACUSA, que
+        // es lo unico que el Maestro esta pidiendo al repetir. Callar lo dejaria reintentando
+        // a ciegas hasta C_FALLO. Lo ejerce el bloque F del arnes de las dos puntas.
         //
-        // Por eso solo arranca la transicion desde una luz que NO la tiene en curso. Con
-        // S_AMARILLO o S_VERDE la orden ya esta cumpliendose o cumplida: no se toca la luz
-        // y se RE-ACUSA, que es lo unico que el Maestro esta pidiendo al repetir. Callar
-        // seria peor: lo dejaria reintentando a ciegas hasta C_FALLO.
+        // D-45 (02/10): EL VERDE ABRE DIRECTO y S_AMARILLO ES EL CIERRE DE UN VERDE. Sobre el
+        // la orden de verde ni lo reabre ni se acusa: un cierre empezado no se revierte, y el
+        // ACK_GREEN diria "verde encendido" con el amarillo puesto. Acabado en rojo, la
+        // siguiente repeticion se trata como siempre. (Aqui decia que volver de verde a ambar
+        // era "contra la Resolucion (verde->rojo directo)": era una afirmacion normativa sin
+        // verificar, y la norma pide lo contrario, 4.4.3.)
         //
-        // S_AMARILLO AQUI SOLO PUEDE SER ESTA TRANSICION. Lo escribe una sola funcion,
-        // semaforo_iniciarTransicionAVerde(), y la llaman esta rama, el Modo Degradado y
-        // semaforo_toggle() -que no tiene ningun llamador-. El ambar del Degradado no
-        // llega hasta aqui: la cabecera de este mismo bloque llama a degradado_salir() con
-        // un GO_GREEN, y la salida fuerza rojo antes de que se evalue esta rama.
-        //
-        // ackVerdeEnviado no se toca en la repeticion: significa "ya se acuso que ESTE
-        // verde esta encendido", y una orden repetida no crea un verde nuevo. En ambar
-        // sigue en false desde que esta rama arranco la transicion, asi que el acuse de
-        // llegada a verde sale igual; en verde ya salio, o sale al final de esta misma
-        // vuelta por el mismo hueco unico de programarRespuesta().
+        // ackVerdeEnviado no se toca en la repeticion: significa "ya se acuso que ESTE verde
+        // esta encendido", y una orden repetida no crea un verde nuevo.
         const EstadoSemaforo luz = semaforo_estado();
-        if (luz != S_AMARILLO && luz != S_VERDE) {
-          semaforo_iniciarTransicionAVerde(); // Transición Rojo -> Amarillo -> Verde
-          // El backstop de verde maximo ya no se rearma aqui: lo hace el vigilante
-          // del final del bucle, que mira la LUZ en vez de la orden. Ver alli el
-          // motivo -el verde del Modo Degradado no lo ordena nadie por radio-.
-          ackVerdeEnviado = false;
+        if (luz != S_AMARILLO) {
+          if (luz != S_VERDE) {
+            semaforo_forzarVerde();
+            // El backstop de verde maximo lo rearma el vigilante del final del bucle, que
+            // mira la LUZ y no la orden: el verde del Degradado no lo ordena nadie por radio.
+            ackVerdeEnviado = false;
+            ackRojoPendiente = false;
+          }
+          programarRespuesta(CMD_ACK_GREEN);
         }
-        programarRespuesta(CMD_ACK_GREEN);
       }
 
     // --- SFTY-23: sincronizacion horaria y configuracion del ciclo -----------
@@ -749,21 +739,21 @@ void loop() {
   // viaje de radio con margen", el mismo que usa N-163 en el Maestro-; que sigan siendo el
   // mismo numero lo comprueba un static_assert en coordinador.cpp.
   //
-  // Verde -> rojo DIRECTO por semaforo_forzarRojo(), que es la unica puerta de semaforo.cpp
-  // para eso (SFTY-2, barrera de salidas): no se inventa una luz nueva ni un ambar. El
-  // ambar sigue llegando exactamente cuando llegaba, por la guarda de debajo, que no se
-  // toca. Y se dice por el PONG, porque el Maestro no tiene otra forma de saberlo.
+  // Por semaforo_forzarRojo(), la unica puerta de semaforo.cpp (SFTY-2): D-45 lo cierra por
+  // el amarillo, y por eso la suelta empieza un AMARILLO_SEG antes, para que el ROJO caiga
+  // donde caia el rojo directo. El ambar sigue llegando exactamente cuando llegaba, por la
+  // guarda de debajo. Y se dice por el PONG, porque el Maestro no tiene otra forma de saberlo.
   //
   // El punto de suelta va con nombre propio y no escrito dentro del 'if': la guarda de
   // debajo es la UNICA condicion de este fichero que nombra SFTY6_SILENCIO_MS, y asi la
   // reconocen los instrumentos que la leen por texto (costura_13, esp32_01, reloj_03).
   // Es la misma cuenta -silencio + margen > umbral- restada al otro lado, y la resta no
   // puede dar la vuelta porque el static_assert lo impide.
-  static_assert(AVISO_AMBAR_TIMEOUT_MS < SFTY6_SILENCIO_MS,
+  static_assert(AVISO_AMBAR_TIMEOUT_MS + AMARILLO_SEG * 1000UL < SFTY6_SILENCIO_MS,
                 "D-34: el margen para soltar el verde no cabe dentro de SFTY6_SILENCIO_MS");
-  static constexpr unsigned long SUELTA_VERDE_MS = SFTY6_SILENCIO_MS - AVISO_AMBAR_TIMEOUT_MS;
-  if (!degradado_gobiernaLuz() &&
-      (semaforo_estado() == S_VERDE || semaforo_estado() == S_AMARILLO) &&
+  static constexpr unsigned long SUELTA_VERDE_MS =
+      SFTY6_SILENCIO_MS - AVISO_AMBAR_TIMEOUT_MS - AMARILLO_SEG * 1000UL;
+  if (!degradado_gobiernaLuz() && semaforo_estado() == S_VERDE &&
       millis() - tUltimoComando > SUELTA_VERDE_MS) {
     semaforo_forzarRojo();
     verdeSoltadoPorMargen = true;
@@ -814,8 +804,8 @@ void loop() {
     }
   }
 
-  // Rearme del backstop: se cuenta desde que la LUZ arranca hacia verde, sin
-  // mirar quien lo pidio.
+  // Rearme del backstop: se cuenta desde que la LUZ se pone en verde, sin mirar quien lo
+  // pidio. D-45: solo el verde; el amarillo es ya el cierre.
   //
   // Antes se anotaba al recibir CMD_GO_GREEN, y eso deja de valer con el Modo
   // Degradado: alli el verde no lo ordena nadie por radio. Un backstop anclado a
@@ -829,7 +819,7 @@ void loop() {
     static EstadoSemaforo estadoLuzAnt = S_ROJO;
     EstadoSemaforo luzAhora = semaforo_estado();
     if (luzAhora != estadoLuzAnt) {
-      if (luzAhora == S_AMARILLO || luzAhora == S_VERDE) tInicioVerdeEsclavo = millis();
+      if (luzAhora == S_VERDE) tInicioVerdeEsclavo = millis();
       estadoLuzAnt = luzAhora;
     }
   }
@@ -843,7 +833,14 @@ void loop() {
   // configuración legítima. La protección real de H-1 son las otras dos vías: el Maestro
   // emite CMD_GO_RED estando en C_FALLO, y este nodo cae a ámbar a los 12s sin recibir nada.
   if (semaforo_estado() == S_VERDE && (millis() - tInicioVerdeEsclavo > MAX_VERDE_BACKSTOP_MS)) {
-    semaforo_forzarRojo();
+    semaforo_forzarRojo();   // D-45: tambien por el amarillo
+  }
+
+  // D-45: el ACK_RED pendiente sale cuando el amarillo de cierre acabo EN ROJO. Si acabo en
+  // otra cosa -ambar de emergencia u orfandad-, no hay rojo que acusar y se olvida.
+  if (ackRojoPendiente && semaforo_estado() != S_AMARILLO) {
+    if (semaforo_estado() == S_ROJO) programarRespuesta(CMD_ACK_RED);
+    ackRojoPendiente = false;
   }
 
   // SFTY-17: el ACK de verde se emite cuando la luz ya esta estable en verde.
@@ -855,7 +852,7 @@ void loop() {
   if (!degradado_gobiernaLuz() &&
       semaforo_estable() && semaforo_estado() == S_VERDE && !ackVerdeEnviado) {
     programarRespuesta(CMD_ACK_GREEN);   // SFTY-17
-    ackVerdeEnviado = true; ackRojoEnviado = false;
+    ackVerdeEnviado = true;
   }
 
   // N-16: interfaz, siempre al final del bucle.

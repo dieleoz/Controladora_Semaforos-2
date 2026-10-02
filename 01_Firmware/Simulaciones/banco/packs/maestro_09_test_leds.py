@@ -62,17 +62,6 @@ RUTA = ("Maestro", "src", "semaforo.cpp")
 # absoluto: una funcion NUEVA aqui es un camino nuevo a los pines y tiene que
 # discutirse, no colarse.
 #
-# D-30 (14/09): ERAN CINCO Y AHORA ES UNA, y eso es lo que compro retirar el mando.
-# Las otras cuatro -terminarSenal, actualizarSenal, semaforo_destellosRojos y
-# semaforo_ambarRapido- eran los caminos de la senal SFTY-21, que interceptaba la
-# salida a proposito y por eso estaba autorizada a escribir pines por su cuenta.
-# Con ellas dentro, cuatro caminos a la lampara estaban pre-aprobados POR NOMBRE y
-# nadie volvia a mirarlos. Hoy cualquier funcion que no sea aplicarSalidas() da
-# FALLA, que es una barrera estrictamente mas fuerte que la de ayer.
-#
-# El nombre de la constante cambia con su sujeto a proposito: llamarla
-# INTERCEPTAN_SFTY21 cuando ya no hay interceptacion mandaria a buscar algo que no
-# existe (CLAUDE.md 14).
 PUEDEN_ESCRIBIR_PINES = {
     "aplicarSalidas",          # el camino bueno: la barrera esta dentro
 }
@@ -134,16 +123,18 @@ def _condicion_pluma(cuerpo):
     return m.group(1).strip(), m.group(2), m.group(3)
 
 
-def _evaluar_pluma(cond, bandera, verde, test, fallo):
+def _evaluar_pluma(cond, bandera, verde, test, fallo, amarillo=False):
     """Evalua la condicion REAL del C++ con la tabla de verdad dada.
 
     No se reescribe la logica en Python -eso seria una segunda copia que alguien
     tendria que sincronizar, que es el defecto que este banco persigue-: se traduce
     la expresion y se evalua tal cual esta escrita en el fuente."""
     py = re.sub(r"estado\s*==\s*S_FALLO", "ES_FALLO", cond)
+    py = re.sub(r"estado\s*==\s*S_AMARILLO", "ES_AMARILLO", py)   # D-45: el cierre
     py = py.replace("&&", " and ").replace("||", " or ").replace("!", " not ")
     return bool(eval(py, {"__builtins__": {}},  # noqa: S307
-                     {"verde": verde, bandera: test, "ES_FALLO": fallo}))
+                     {"verde": verde, bandera: test, "ES_FALLO": fallo,
+                      "ES_AMARILLO": amarillo}))
 
 
 def correr(b, fw):
@@ -362,7 +353,7 @@ def correr(b, fw):
         expr = d33["tabla"]
 
     desconocidos = sorted(set(_IDENT.findall(expr)) -
-                          {"verde", bandera, "estado", "S_FALLO"})
+                          {"verde", bandera, "estado", "S_FALLO", "S_AMARILLO"})
     if desconocidos:
         raise fw.Abortado(
             "la condicion de la pluma menciona %s, que este pack no sabe evaluar. Una "
@@ -396,8 +387,10 @@ def correr(b, fw):
         "paso: eso es un corredor de obra sin salida")
 
     b.verificar(
-        not pluma(False, False, False) and not pluma(False, True, False),
-        "sin verde y sin fallo la pluma esta abajo, haya test o no",
+        not pluma(False, False, False) and not pluma(False, True, False) and
+        _evaluar_pluma(expr, bandera, False, False, False, True),
+        "sin verde y sin fallo la pluma esta abajo, haya test o no; y con el amarillo de "
+        "CIERRE sigue arriba (D-45, SPEC_8 1: el retardo cuenta desde el rojo)",
         "la pluma abre sin verde y sin S_FALLO. Es la direccion peligrosa: una barrera "
         "levantada invitando a pasar con la luz en rojo")
 
@@ -514,9 +507,13 @@ def correr(b, fw):
     # que esta devuelva CADA estado por su propio setter.
     fin = _cuerpo(codigo, "terminarTestLeds")
     pares = dict(re.findall(r"case\s+(S_\w+)\s*:\s*(semaforo_\w+)\s*\(\s*\)\s*;", fin or ""))
+    # D-45: el amarillo ya no es la apertura sino el cierre, y su setter (forzarRojo) no lo
+    # repinta -un cierre en curso no se reinicia-: se devuelve el amarillo en la cara y el
+    # cierre sigue con su reloj.
     esperado = {"S_ROJO": "semaforo_forzarRojo", "S_VERDE": "semaforo_forzarVerde",
-                "S_AMARILLO": "semaforo_iniciarTransicionAVerde",
                 "S_FALLO": "semaforo_iniciarFallo"}
+    amarilloOk = re.search(r"case\s+S_AMARILLO\s*:\s*iniciarTransicionARojo\s*\(\s*false\s*\)\s*;",
+                           fin or "") is not None
     def _final_bueno(bloque):
         f = [g for g in re.findall(r"\baplicarSalidas\s*\(([^)]*)\)", bloque)]
         return "terminarTestLeds" in bloque and len(f) == 3
@@ -533,7 +530,7 @@ def correr(b, fw):
             "test, se detecta")
 
     b.verificar(
-        fin is not None and pares == esperado and _final_bueno(bloqueTest),
+        fin is not None and pares == esperado and amarilloOk and _final_bueno(bloqueTest),
         "al acabar el test la lampara vuelve a la luz de `estado` por su propio setter "
         "(%d estados): luz, estado y PLUMA: dicen lo mismo" % len(pares),
         "el final del test no devuelve la luz del estado (fases=%s, pares=%s). Es el "

@@ -132,6 +132,12 @@ void setup() {
     menu_setup();
     modoAnterior = MENU;
     esperaReanudacion = true;
+  } else if (respaldo_rojoSinHora()) {
+    // D-47: el rojo fijo por falta de hora (D-38) sobrevive al corte. Ambar aqui seria
+    // verde contra ambar con el otro poste alternando por reloj. Se sale como de ese rojo.
+    modoActual_set(MODO_DEGRADADO);
+    modo_degradado_arrancarEnRojoSinHora();
+    modoAnterior = MODO_DEGRADADO;
   } else {
     // D-40 (SPEC_1 12, hueco 9): tras un corte o un reinicio, AMBAR INTERMITENTE
     // -fuera de servicio- hasta una orden del operario, no el menu. Es MODO_AMBAR

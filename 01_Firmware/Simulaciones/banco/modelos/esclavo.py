@@ -32,24 +32,8 @@ _ESC_PROTO = ("Esclavo", "include", "protocolo.h")
 _ESC_CICLO = ("Esclavo", "include", "ciclo_degradado.h")
 _MAE_COORD = ("Maestro", "src", "coordinador.cpp")
 
-# D-30 (14/09): AQUI SE LEIAN SEIS CONSTANTES DE mando.cpp -las dos ventanas, los
-# tres recuentos de destellos y el ambar rapido de rechazo- y tres de la senal de
-# semaforo.cpp. El mando salio del firmware con sus ficheros, asi que no habia fuente
-# que leer: _fw.constante() ABORTA cuando no encuentra la constante -sin valor por
-# defecto, nunca- y los cuatro packs que importan este modelo habrian caido en
-# ABORTADO, que no dice nada del firmware.
-AMARILLO_A_VERDE_MS = _fw.constante(_ESC_SEM, r"estado\s*==\s*S_AMARILLO\s*&&\s*\(ahora\s*-\s*tCambio\s*>=\s*(\d+)\)", "amarillo previo al verde")
-
-# D-32 (1), 13/09: aqui se leian del menu.cpp del Esclavo INACTIVIDAD_MS (regreso
-# automatico al listado), REFRESCO_MS (repintado periodico) y RECHAZO_MS (duracion del
-# cartel de rechazo). Las tres eran de la NAVEGACION de la pantalla y se van con ella.
-#
-# ERAN LA CASCADA MAS CARA DE ESTE CAMBIO, y por eso queda escrito: se leian A NIVEL DE
-# MODULO y sin valor por defecto, asi que en cuanto dejaran de estar en el C++ el propio
-# `import banco.modelos.esclavo` habria lanzado Abortado y habria tumbado en ABORTADO a
-# los CINCO packs que importan este modelo -esclavo_01, _02, _03, _04 y _05, 31
-# comprobaciones-. ABORTADO no dice nada del firmware: habria sido una puerta abierta,
-# no una casilla pendiente.
+AMARILLO_CIERRE_MS = 1000 * _fw.constante(_ESC_PROTO, r"#define\s+AMARILLO_SEG\s+(\d+)UL",
+                                          "amarillo de cierre (D-45)")
 
 VENTANA_HORA_MS = _fw.constante(_ESC_MAIN, r"VENTANA_HORA_MS\s*=\s*(\d+)", "caducidad del buffer de hora")
 
@@ -151,13 +135,23 @@ class Semaforo:
         self._escribir_pines(r, a, v)
 
     def forzar_rojo(self):
+        # D-45: sobre un verde arranca el amarillo de cierre; un cierre en curso no se reinicia.
+        if self.estado == "S_VERDE":
+            self.estado = "S_AMARILLO"
+            self.tCambio = self.nodo.t
+            self._aplicar(False, True, False)
+            return
+        if self.estado == "S_AMARILLO":
+            return
         self.estado = "S_ROJO"
         self._aplicar(True, False, False)
 
-    def iniciar_transicion_a_verde(self):
-        self.estado = "S_AMARILLO"
-        self.tCambio = self.nodo.t
-        self._aplicar(False, True, False)
+    def forzar_verde(self):
+        # D-45: directo; con el cierre en curso no se reabre.
+        if self.estado == "S_AMARILLO":
+            return
+        self.estado = "S_VERDE"
+        self._aplicar(False, False, True)
 
     def iniciar_fallo(self):
         self.estado = "S_FALLO"
@@ -169,9 +163,9 @@ class Semaforo:
 
     def actualizar(self):
         ahora = self.nodo.t
-        if self.estado == "S_AMARILLO" and (ahora - self.tCambio) >= AMARILLO_A_VERDE_MS:
-            self.estado = "S_VERDE"
-            self._aplicar(False, False, True)
+        if self.estado == "S_AMARILLO" and (ahora - self.tCambio) >= AMARILLO_CIERRE_MS:
+            self.estado = "S_ROJO"
+            self._aplicar(True, False, False)
         elif self.estado == "S_FALLO":
             if ahora - self.tCambio >= 500:
                 self.tCambio = ahora
@@ -179,13 +173,15 @@ class Semaforo:
                 self._aplicar(False, self.nodo._ambar_status, False)
 
 
+_NOMBRES_FASE = ("FD_VERDE_MAESTRO", "FD_AMARILLO_MAESTRO", "FD_DESPEJE_A",
+                 "FD_VERDE_ESCLAVO", "FD_AMARILLO_ESCLAVO", "FD_DESPEJE_B")
+
+
 def ciclo_degradado_fase(seg_dia, verde, despeje):
-    """Puerto literal de include/ciclo_degradado.h (identico en las dos puntas)."""
-    if verde == 0 or despeje == 0:
-        return "FD_DESPEJE_A"
-    ciclo = 2 * (verde + despeje)
-    if seg_dia < despeje:
-        return "FD_DESPEJE_B"
+    """Puerto de include/ciclo_degradado.h: el MISMO espejo de costura (que lo contrasta
+    contra el C++ huella a huella), con los nombres de la fase en vez de su indice."""
+    from banco.modelos.costura import fase as _fase
+    return _NOMBRES_FASE[_fase(seg_dia, verde, despeje)]
     if SEGUNDOS_DEL_DIA - seg_dia <= despeje:
         return "FD_DESPEJE_B"
     pos = seg_dia % ciclo
@@ -229,7 +225,7 @@ class ModoDegradado:
         if verde == self.verde_aplicado:
             return
         if verde:
-            self.nodo.semaforo.iniciar_transicion_a_verde()
+            self.nodo.semaforo.forzar_verde()   # D-45: directo
         else:
             self.nodo.semaforo.forzar_rojo()
         self.verde_aplicado = verde
@@ -322,23 +318,6 @@ class ModoDegradado:
     def gobierna_luz(self):
         return self.estado in ("DEG_ENTRANDO", "DEG_ACTIVO", "DEG_SALIENDO")
 
-
-# D-32 (1), 13/09: AQUI VIVIA `class Menu`, el puerto en Python de src/menu.cpp del
-# Esclavo: las cinco pantallas (P_MENU, P_ESTADO, P_DEGRADADO, P_CONFIRMAR, P_RECHAZO),
-# el cursor, el regreso automatico al listado y el repintado periodico. Se va entera
-# porque su sujeto ya no existe: de menu.cpp solo queda menu_estaAbierto().
-#
-# LO QUE ESE MODELO SOSTENIA: le daba sujeto a esclavo_02_inhibicion_menu (7
-# comprobaciones, `# EJERCE SFTY-21: el mando queda inhibido con el menu abierto`), que
-# se retiro con ella.
-#
-# D-30 (14/09): Y LA FRASE QUE SEGUIA A ESTA -"SFTY-21 no se queda sin ejercicio:
-# quedan once packs etiquetados"- YA NO ES CIERTA, asi que se corrige en vez de
-# heredarse. Retirado el mando entero, lo que quedaba de SFTY-21 en esta punta es el
-# LATCH DE AMBAR, y hoy lo arma la app en vez del gabinete: es `ambarEmergencia` de
-# bluetooth.cpp, lo ejerce esclavo_01 sobre el modelo reapuntado y lo leen en el texto
-# esclavo_07 y costura_14. Lo que NADIE ejerce ya -y se dice para que su ausencia no se
-# lea como cobertura- son las secuencias de pulsos y la senal de destellos: no existen.
 
 
 class AmbarEmergencia:
@@ -592,16 +571,23 @@ class Esclavo:
             self.tUltimoComando = self.t
             self.verde_soltado_por_margen = False   # D-34
             if not self._ambar_emergencia():
+                # D-45: el ACK_RED acusa el ROJO ENCENDIDO; tras el amarillo, en loop().
                 self.semaforo.forzar_rojo()
-                self.programar_respuesta(CMD["CMD_ACK_RED"])
+                if self.semaforo.estado == "S_ROJO":
+                    self.programar_respuesta(CMD["CMD_ACK_RED"])
+                else:
+                    self.ack_rojo_pendiente = True
         elif cmd == CMD["CMD_GO_GREEN"]:
             # D-34: la repeticion (luz ya en ambar o verde) no refresca el silencio
             if self.semaforo.estado not in ("S_AMARILLO", "S_VERDE"):
                 self.tUltimoComando = self.t
             self.verde_soltado_por_margen = False   # D-34
-            if not self._ambar_emergencia():
-                self.semaforo.iniciar_transicion_a_verde()
-                self.ack_verde_enviado = False
+            # D-45: con el cierre en curso ni se reabre ni se acusa; en verde, se re-acusa.
+            if not self._ambar_emergencia() and self.semaforo.estado != "S_AMARILLO":
+                if self.semaforo.estado != "S_VERDE":
+                    self.semaforo.forzar_verde()
+                    self.ack_verde_enviado = False
+                    self.ack_rojo_pendiente = False
                 self.programar_respuesta(CMD["CMD_ACK_GREEN"])
         elif cmd == CMD["CMD_HORA_H"]:
             if param <= 23:
@@ -669,9 +655,11 @@ class Esclavo:
         if self.rx:
             self._procesar(self.rx.pop(0))
 
-        # D-34: el verde se suelta AVISO_AMBAR_TIMEOUT_MS antes que el ambar, directo a rojo
-        if (not self.degradado.gobierna_luz() and self.semaforo.estado in ("S_VERDE", "S_AMARILLO")
-                and (self.t - self.tUltimoComando) + AVISO_AMBAR_TIMEOUT_MS > SILENCIO_A_AMBAR_MS):
+        # D-34: el verde se suelta antes que el ambar; D-45: por su amarillo, que empieza un
+        # AMARILLO_SEG antes para que el rojo caiga donde caia
+        if (not self.degradado.gobierna_luz() and self.semaforo.estado == "S_VERDE"
+                and (self.t - self.tUltimoComando) + AVISO_AMBAR_TIMEOUT_MS + AMARILLO_CIERRE_MS
+                > SILENCIO_A_AMBAR_MS):
             self.semaforo.forzar_rojo()
             self.verde_soltado_por_margen = True
         if not self.degradado.gobierna_luz() and (self.t - self.tUltimoComando) > SILENCIO_A_AMBAR_MS:
@@ -681,9 +669,14 @@ class Esclavo:
 
         luz = self.semaforo.estado
         if luz != self.estado_luz_ant:
-            if luz in ("S_AMARILLO", "S_VERDE"):
+            if luz == "S_VERDE":
                 self.tInicioVerde = self.t
             self.estado_luz_ant = luz
+
+        if getattr(self, "ack_rojo_pendiente", False) and self.semaforo.estado != "S_AMARILLO":
+            if self.semaforo.estado == "S_ROJO":
+                self.programar_respuesta(CMD["CMD_ACK_RED"])
+            self.ack_rojo_pendiente = False
 
         if not self.degradado.gobierna_luz() and self.semaforo.estable() and \
                 self.semaforo.estado == "S_VERDE" and not self.ack_verde_enviado:
@@ -815,7 +808,7 @@ def _llevar_a(e, estado):
         e.correr(1000)
     elif estado == "verde":
         e.rx.append((CMD["CMD_GO_GREEN"], 0))
-        e.correr(AMARILLO_A_VERDE_MS + 1000)
+        e.correr(AMARILLO_CIERRE_MS + 1000)
     elif estado == "degradado_activo":
         e.degradado.entrar()
         e.correr(e.config_despeje_segundos() * 1000 + 2000, paso=100)

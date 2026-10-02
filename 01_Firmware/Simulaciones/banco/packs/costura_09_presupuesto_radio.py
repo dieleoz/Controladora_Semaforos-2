@@ -75,10 +75,13 @@ def correr(b, fw):
                       "CICLO_MAX_REINTENTOS")
     sync_intentos = _num(fw, COORD, r"SYNC_MAX_INTENTOS\s*=\s*(\d+)",
                          "SYNC_MAX_INTENTOS")
+    # D-45/D-48: el ACK_RED de un verde llega tras el amarillo de cierre del Esclavo, y ese
+    # amarillo entra UNA vez en el peor caso del ciclo; la suelta del verde empieza otro antes.
+    amarillo_s = _num(fw, PROTO, r"#define\s+AMARILLO_SEG\s+(\d+)UL", "AMARILLO_SEG")
 
     techo = techo_ms / 1000.0
     paso = timeout_ms / 1000.0 + ENVIO_S
-    peor_ciclo = latido_ms / 1000.0 + reintentos * paso
+    peor_ciclo = latido_ms / 1000.0 + amarillo_s + reintentos * paso
     peor_sync = latido_ms / 1000.0 + sync_intentos * paso
 
     b.verificar(
@@ -95,8 +98,9 @@ def correr(b, fw):
     b.verificar(
         peor_ciclo <= techo,
         "los %d reintentos del ciclo caben bajo el techo: %.1f s de peor caso contra "
-        "%.1f s, margen %.1f s" % (reintentos, peor_ciclo, techo, techo - peor_ciclo),
-        "el peor caso del ciclo son %.1f s (%.1f s de cadencia de latido + %d x %.2f s) "
+        "%.1f s, margen %.1f s (con %d s de amarillo del Esclavo)" % (
+            reintentos, peor_ciclo, techo, techo - peor_ciclo, amarillo_s),
+        "el peor caso del ciclo son %.1f s (%.1f s de cadencia de latido + amarillo + %d x %.2f s) "
         "y el techo de orfandad son %.1f s. El ambar por orfandad salta ANTES de que el "
         "ciclo agote sus reintentos: los ultimos NO SE EJECUTAN NUNCA, y ninguna prueba "
         "lo delata porque el equipo hace algo razonable -irse a ambar-. Es la forma de "
@@ -124,11 +128,12 @@ def correr(b, fw):
     # que suelta el verde -techo menos TIMEOUT_ACK_MS, N-163- corre sin renovarse. El
     # static_assert de coordinador.cpp junto a SYNC_MAX_INTENTOS dice lo mismo; aqui se
     # recalcula desde las constantes, como el resto del presupuesto (CLAUDE.md 4).
-    suelta = techo - timeout_ms / 1000.0
+    suelta = techo - timeout_ms / 1000.0 - amarillo_s
     b.verificar(
         peor_sync <= suelta,
         "los %d intentos de sincronizacion caben antes de que el Maestro suelte su verde: "
-        "%.2f s contra %.2f s (techo - TIMEOUT_ACK_MS)" % (sync_intentos, peor_sync, suelta),
+        "%.2f s contra %.2f s (techo - TIMEOUT_ACK_MS - AMARILLO_SEG)" % (sync_intentos, peor_sync,
+                                                                           suelta),
         "el intercambio de sincronizacion puede durar %.2f s sin renovar el silencio del "
         "Maestro y el verde se suelta a los %.2f s: un intercambio con lluvia apagaria el "
         "verde con el Esclavo contestando" % (peor_sync, suelta))

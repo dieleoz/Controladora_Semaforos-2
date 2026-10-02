@@ -164,11 +164,11 @@ FALLBACK_S = _leer_constante_cpp(
     r"#define\s+SFTY6_SILENCIO_MS\s+(\d+)UL",
     12000, obligatorio=True) / 1000.0
 
-# SFTY-5: Amarillo fijo en la transicion Rojo -> Verde (Resolucion 2024).
+# D-45: el amarillo de CIERRE, verde -> amarillo -> rojo; el verde abre directo.
 AMARILLO_FIJO_S = _leer_constante_cpp(
-    _ruta_firmware("Maestro", "src", "semaforo.cpp"),
-    r"estado\s*==\s*S_AMARILLO\s*&&\s*\(ahora\s*-\s*tCambio\s*>=\s*(\d+)\)",
-    4000, obligatorio=True) / 1000.0
+    _ruta_firmware("Maestro", "include", "protocolo.h"),
+    r"#define\s+AMARILLO_SEG\s+(\d+)UL",
+    3, obligatorio=True) * 1.0
 
 print(f"   Tiempos de seguridad leidos del C++: despeje={DESPEJE_S}s  "
       f"fallback={FALLBACK_S}s  amarillo={AMARILLO_FIJO_S}s")
@@ -423,9 +423,9 @@ class SemafaroMaestro:
             self.estado_c = "C_INICIAL_ESPERA_ESTATICO"
             return b""
         elif self.quien_verde == "QV_MASTER":
-            self.luz_local = "S_ROJO"
+            self.luz_local = "S_AMARILLO"      # D-45: el cierre, y el despeje desde el rojo
             self.t_ref = current_time
-            self.estado_c = "C_ESPERA_ESTATICO_TRAS_MASTER"
+            self.estado_c = "C_MASTER_A_ROJO"
             return b""
         elif self.quien_verde == "QV_ESCLAVO":
             self.t_esperando_ack = current_time
@@ -498,17 +498,17 @@ class SemafaroMaestro:
                 tx_bytes += self.enviar_paquete(RF_Packet.CMD_GO_RED)
 
         # Transiciones de la máquina de estados
-        if self.estado_c == "C_INICIAL_ESPERA_ESTATICO":
+        if self.estado_c in ("C_INICIAL_ESPERA_ESTATICO", "C_ESPERA_ESTATICO_TRAS_ESCLAVO"):
             if current_time - self.t_ref >= self.tiempo_despeje_s:
-                self.luz_local = "S_AMARILLO"
-                self.t_ref = current_time
-                self.estado_c = "C_INICIAL_MASTER_A_VERDE"
-
-        elif self.estado_c == "C_INICIAL_MASTER_A_VERDE":
-            if current_time - self.t_ref >= AMARILLO_FIJO_S: # 4s Amarillo
-                self.luz_local = "S_VERDE"
+                self.luz_local = "S_VERDE"          # D-45: directo
                 self.quien_verde = "QV_MASTER"
                 self.estado_c = "C_IDLE"
+
+        elif self.estado_c == "C_MASTER_A_ROJO":
+            if current_time - self.t_ref >= AMARILLO_FIJO_S:
+                self.luz_local = "S_ROJO"
+                self.t_ref = current_time
+                self.estado_c = "C_ESPERA_ESTATICO_TRAS_MASTER"
 
         elif self.estado_c == "C_ESPERA_ESTATICO_TRAS_MASTER":
             # D-34: literal de coordinador.cpp -"millis() - tRef >= tiempoDespejeMs &&
@@ -537,7 +537,9 @@ class SemafaroMaestro:
                     self.t_esperando_ack = current_time
 
         elif self.estado_c == "C_ESPERANDO_ACK_RED":
-            if current_time - self.t_esperando_ack > self.timeout_ack_s:
+            # D-45: la primera espera lleva el amarillo de cierre del Esclavo (coordinador.cpp)
+            plazo = self.timeout_ack_s + (AMARILLO_FIJO_S if self.retry_count == 0 else 0.0)
+            if current_time - self.t_esperando_ack > plazo:
                 self.retry_count += 1
                 if self.retry_count >= 5:
                     self.estado_c = "C_FALLO"
@@ -546,17 +548,6 @@ class SemafaroMaestro:
                     tx_bytes += self.enviar_paquete(RF_Packet.CMD_GO_RED)
                     self.t_esperando_ack = current_time
 
-        elif self.estado_c == "C_ESPERA_ESTATICO_TRAS_ESCLAVO":
-            if current_time - self.t_ref >= self.tiempo_despeje_s:
-                self.luz_local = "S_AMARILLO"
-                self.t_ref = current_time
-                self.estado_c = "C_MASTER_A_VERDE"
-
-        elif self.estado_c == "C_MASTER_A_VERDE":
-            if current_time - self.t_ref >= AMARILLO_FIJO_S: # 4s Amarillo
-                self.luz_local = "S_VERDE"
-                self.quien_verde = "QV_MASTER"
-                self.estado_c = "C_IDLE"
 
         elif self.estado_c == "C_FALLO":
             # Literal del "case C_FALLO" de coordinador.cpp: la luz de fallo la pone el
@@ -612,8 +603,8 @@ class SemaforoEsclavo:
 
         # Actualizar transición de luz local
         if self.luz_local == "S_AMARILLO" and (current_time - self.t_ref >= AMARILLO_FIJO_S):
-            self.luz_local = "S_VERDE"
-            self.ack_verde_enviado = False
+            self.luz_local = "S_ROJO"           # D-45: el cierre acaba en rojo, y se acusa
+            self.ack_rojo_enviado = False
 
         if len(rx_bytes) >= 4:
             for i in range(len(rx_bytes) - 3):
@@ -630,12 +621,16 @@ class SemaforoEsclavo:
                     if pkt.command == RF_Packet.CMD_PING:
                         self._programar_respuesta(RF_Packet.CMD_PONG, current_time)
                     elif pkt.command == RF_Packet.CMD_GO_RED:
-                        self.luz_local = "S_ROJO"
-                        self.ack_rojo_enviado = False
-                        self._programar_respuesta(RF_Packet.CMD_ACK_RED, current_time)
-                    elif pkt.command == RF_Packet.CMD_GO_GREEN:
-                        self.luz_local = "S_AMARILLO"
-                        self.t_ref = current_time
+                        # D-45: sobre un verde, el amarillo; el ACK_RED sale con el ROJO.
+                        if self.luz_local == "S_VERDE":
+                            self.luz_local = "S_AMARILLO"
+                            self.t_ref = current_time
+                        elif self.luz_local != "S_AMARILLO":
+                            self.luz_local = "S_ROJO"
+                            self.ack_rojo_enviado = False
+                            self._programar_respuesta(RF_Packet.CMD_ACK_RED, current_time)
+                    elif pkt.command == RF_Packet.CMD_GO_GREEN and self.luz_local != "S_AMARILLO":
+                        self.luz_local = "S_VERDE"      # D-45: directo
                         self.ack_verde_enviado = False
                         self._programar_respuesta(RF_Packet.CMD_ACK_GREEN, current_time)
                     break

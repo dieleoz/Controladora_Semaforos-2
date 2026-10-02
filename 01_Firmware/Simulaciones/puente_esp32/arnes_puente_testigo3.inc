@@ -11,4 +11,5 @@ bool testigoFlash_escribir(const TestigoFlash*, uint32_t* us) { if (us) *us = 0;
 // rendicion no se guarda (sin memoria, como el testigo) y el reloj de arnes no tiene fecha
 // que anclar: fecharDesdeEsp32 devuelve false, como reloj_guardarFechaEsp32 de testigo2.
 void respaldo_guardarRendido(bool) {}
+void respaldo_guardarRojoSinHora() {}   // D-47: sin memoria, como la rendicion
 bool reloj_fecharDesdeEsp32(const char*) { return false; }

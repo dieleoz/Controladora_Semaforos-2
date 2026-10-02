@@ -97,6 +97,11 @@ static const uint16_t FLAG_OTRO_APTO = 0x0020;
 static const uint16_t FLAG_RENDIDO   = 0x0040;
 // A-15 (29/09): el ECO del otro -si me oyo APTO-. Solo entra sola si el otro la oyo apta.
 static const uint16_t FLAG_APTO_DADO = 0x0080;
+// D-47 (02/10): esta punta esta en ROJO FIJO POR FALTA DE HORA (D-38) y debe arrancar asi tras
+// un corte, no en el ambar de arranque (D-40). Mismo molde. Lo bajan las dos formas de
+// respaldo_guardarDegradado() y respaldo_guardarTestigo(): toda entrada y toda salida del
+// Degradado, sin que cada camino tenga que saber que existe.
+static const uint16_t FLAG_ROJO_SIN_HORA = 0x0100;
 
 static bool contenidoValido = false;
 
@@ -353,7 +358,7 @@ void respaldo_guardarDegradado(bool activo) {
   // que hoy llaman aqui -main.cpp, irAAmbar, pedirSalida, iniciarSalida- lo borran sin
   // tener que saber que existe.
   f = activo ? (uint16_t)(f | FLAG_DEGRADADO) : (uint16_t)(f & ~FLAG_DEGRADADO);
-  f = (uint16_t)(f & ~FLAG_TESTIGO);
+  f = (uint16_t)(f & ~(FLAG_TESTIGO | FLAG_ROJO_SIN_HORA));
   escribirReg(REG_FLAGS, f);
   escribirReg(REG_FIRMA, FIRMA);
   sellar();
@@ -364,7 +369,8 @@ bool respaldo_degradadoActivo() {
 }
 
 void respaldo_guardarTestigo() {
-  escribirReg(REG_FLAGS, (uint16_t)(leerReg(REG_FLAGS) | FLAG_DEGRADADO | FLAG_TESTIGO));
+  const uint16_t f = (uint16_t)(leerReg(REG_FLAGS) & ~FLAG_ROJO_SIN_HORA);
+  escribirReg(REG_FLAGS, (uint16_t)(f | FLAG_DEGRADADO | FLAG_TESTIGO));
   escribirReg(REG_FIRMA, FIRMA);
   sellar();
 }
@@ -393,3 +399,7 @@ void respaldo_guardarRendido(bool rendido) { ponerFlag(FLAG_RENDIDO, rendido); }
 bool respaldo_rendido() { return contenidoValido && (leerReg(REG_FLAGS) & FLAG_RENDIDO) != 0; }
 void respaldo_guardarAptoDado(bool apto) { ponerFlag(FLAG_APTO_DADO, apto); }
 bool respaldo_aptoDado() { return contenidoValido && (leerReg(REG_FLAGS) & FLAG_APTO_DADO) != 0; }
+void respaldo_guardarRojoSinHora() { ponerFlag(FLAG_ROJO_SIN_HORA, true); }
+bool respaldo_rojoSinHora() {
+  return contenidoValido && (leerReg(REG_FLAGS) & FLAG_ROJO_SIN_HORA) != 0;
+}

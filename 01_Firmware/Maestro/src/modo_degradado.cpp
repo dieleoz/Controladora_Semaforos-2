@@ -46,8 +46,9 @@
 //   MARGEN                       8,8 s  ->  factor 1,44, NO 2
 //
 // La frontera del sentido malo -Esclavo atrasado- es EXACTAMENTE este despeje de 30 s, y
-// el segundo entero con que viaja la hora la deja en 29. El sentido favorable aguanta 35
-// porque los 4 s de ambar con que el Esclavo abre su verde protegen SOLO en un sentido.
+// el segundo entero con que viaja la hora la deja en 29. D-45: las dos puntas abren su
+// verde directo y lo cierran por su amarillo, que se ANADE antes del despeje; el ambar con
+// que el Esclavo abria y que favorecia un sentido ya no existe (lo mide el arnes).
 //
 // Se deja escrito con el numero y no se toca el despeje: subirlo es una decision vial
 // -alarga el todo-rojo que ve el conductor- y no la toma el firmware. Lo que si cambia
@@ -337,11 +338,6 @@ static const unsigned long VENTANA_REANUDACION_MS = HORA_ESP32_ESPERA_MAX_MS;
 // en cualquiera de sus sentidos, de modo que la reanudacion sigue siendo UNA por
 // arranque: lo unico que D-29 cambia es que puede tardar unas vueltas.
 static bool reanudacionPorDecidir = true;
-
-// Ultimo dibujado, para no repintar sin necesidad: volcar el buffer de 1 KB por SPI
-// software bloquea el bucle unas decenas de ms.
-// D-32 (1), 13/09: aqui vivian ultFase/ultRestante/ultEstadoPintado, los tres
-// static que evitaban repetir el volcado del framebuffer. Se van con la pantalla.
 
 // Declarada aqui porque la puerta la necesita y su cuerpo vive mas abajo, junto al
 // resto de la logica del limite duro.
@@ -718,7 +714,7 @@ static void irAAmbar(const char* l1, const char* l2) {
   respaldo_guardarRendido(true);   // arquitecto 29/09: sin reentrada automatica hasta un PONG
 
   // Se pasa por rojo antes del ambar: nunca se salta de verde a otra cosa sin cerrar
-  // el paso primero. El ambar se enciende un par de segundos despues, ya en DEG_AMBAR.
+  // el paso primero. D-45: amarillo, ese rojo y, un par de segundos despues, el ambar.
   semaforo_forzarRojo();
 
   // FASE 4: el motivo se fija por el setter publico de modo_ambar.cpp, que hace
@@ -736,12 +732,24 @@ static void irAAmbar(const char* l1, const char* l2) {
 // reentra sola. Se sale por pedirSalida() (boton 4 o SET_MODO:MENU), por su todo-rojo.
 static void irARojoSinHora() {
   respaldo_guardarDegradado(false);
+  respaldo_guardarRojoSinHora();   // D-47: DESPUES de bajar el Degradado, que lo borra
   respaldo_guardarRendido(true);
   semaforo_forzarRojo();
   bluetooth_reportarAlarma("DEGRADADO", "ROJO_SIN_HORA", "ROJO_FIJO");
   tAvisoRojo = millis();
   estado = DEG_ROJO_SIN_HORA;
   tEstado = millis();
+}
+
+// D-47 (02/10): arranque tras un corte con el rojo fijo por falta de hora en la pila. El
+// modo vuelve en DEG_ROJO_SIN_HORA, no en el ambar de arranque de D-40: el otro poste puede
+// seguir alternando por reloj. Se sale como de ese estado hoy: pedirSalida().
+void modo_degradado_arrancarEnRojoSinHora() {
+  testigo = false;
+  motivo = MDG_OK;
+  reanudacionPendiente = false;
+  reanudacionPorDecidir = false;
+  irARojoSinHora();
 }
 
 void modo_degradado_setup() {
@@ -883,7 +891,7 @@ MotivoTestigo modo_degradado_entrarTestigo(uint32_t ahora, uint32_t inicio, int 
   // (su despeje es 30). La flash solo se escribe con esta punta en rojo; en su verde se
   // rechaza y se repite en rojo. Lo guardado lleva inicio = ahora: ya empezo.
   if (enModo && estado == DEG_ACTIVO && despejeEnUso() == (uint8_t)despeje) {
-    if (faseAhora() == FD_VERDE_MAESTRO) return MDT_EN_VERDE;
+    if (faseAhora() == FD_VERDE_MAESTRO || semaforo_estado() == S_AMARILLO) return MDT_EN_VERDE;
     if (!guardarTestigoFlash(ahoraS, ahoraS, (uint8_t)despeje)) return MDT_NO_GUARDADO;
     testigo = true;
     testigoDespeje = (uint8_t)despeje;
@@ -938,6 +946,9 @@ void modo_degradado_loop() {
   // Aqui, y no en el coordinador: en este modo no se llama al coordinador, y sin esto
   // ni el ambar parpadearia ni se animarian los destellos del mando.
   semaforo_actualizar();
+  // D-45: los todo-rojo de este modo -entrada, salida, el rojo previo al ambar- cuentan desde
+  // el ROJO ENCENDIDO: mientras dure un amarillo de cierre, su reloj no empieza.
+  if (semaforo_estado() == S_AMARILLO) tEstado = millis();
 
   // El flanco se lee UNA sola vez y se guarda. Consultarlo dos veces lo consumiria en
   // la primera y la segunda comprobacion no lo veria nunca: el boton parece que no
@@ -1034,27 +1045,15 @@ void modo_degradado_loop() {
   // de Degradado sobre una hora que lleva dos dias sin cuadrarse, y el tope dejaria de
   // ser un tope.
   //
-  // 1.49(b3) - Y LA CAIDA SE DICE, CON SU CAUSA VERDADERA. Hasta el 15/09 esta rama iba a
-  // ambar sin $ALARM -irAAmbar() no emite nada- y con un rotulo que no siempre era cierto:
-  // msDesdeSyncEfectivo() devuelve el centinela 0xFFFFFFFF, que supera el limite, tambien
-  // cuando la marca NO SE PUEDE FECHAR. Medido en el bloque G del arnes del Degradado: tras
-  // un corte, con el cristal parado, esta punta caia aqui a los pocos segundos con "48h" y
-  // en silencio. Son tres averias que mandan a tres sitios:
-  //   RELOJ_NO_CUENTA   el contador del RTC no cuenta (reloj_estadoCristal() CONGELADO): la
-  //                     marca de la pila no se puede fechar con el. No es la radio.
-  //                     1.49b3: SOLO CONGELADO -arranco y se paro-. SIN_CRISTAL -no arranco,
-  //                     el caso de las tarjetas de campo (SPEC_7 5.1)- NO entra aqui: la
-  //                     sync vive en RAM y cuenta con millis(), y a las 48 h el plazo es de
-  //                     verdad. Medido el 15/09 (G8 del arnes del Degradado): con "!rtcOperativo
-  //                     -> CONGELADO" ese limite salia "Reloj sin contar / No es la radio".
-  //                     SIN_CRISTAL sigue a las dos de abajo con su condicion de siempre.
-  //   SYNC_SIN_FECHA    el contador cuenta, pero la pila dice CADUCADA (reloj movido hacia
-  //                     atras, dominio borrado): no se sabe cuanto hace.
+  // 1.49(b3) - LA CAIDA SE DICE, CON SU CAUSA VERDADERA. msDesdeSyncEfectivo() devuelve el
+  // centinela 0xFFFFFFFF tambien cuando la marca NO SE PUEDE FECHAR, y son tres averias:
+  //   RELOJ_NO_CUENTA   el contador del RTC arranco y se paro (CONGELADO): la marca no se
+  //                     fecha con el. D-49: ROJO FIJO como D-38, no ambar. SIN_CRISTAL -no
+  //                     arranco, SPEC_7 5.1- no entra aqui: la sync cuenta con millis().
+  //   SYNC_SIN_FECHA    el contador cuenta, pero la pila dice CADUCADA: no se sabe cuanto hace.
   //   LIMITE_48H        lo demas, que es el plazo de verdad: la radio.
-  // El orden es el de la causa mas concreta primero. El centinela NO decide la causa: la
-  // pila tambien lo devuelve con mas de 48 h bien fechadas, y alli el rotulo "48h" es cierto.
-  // Se publica UNA vez: irAAmbar() deja el modo en DEG_AMBAR y de ahi no se vuelve aqui. Los
-  // rotulos no nombran ninguna pieza, por lo mismo que N-45 quito "Es Y2: toca hardware".
+  // La causa mas concreta primero; se publica UNA vez (el modo sale de aqui). Los rotulos no
+  // nombran ninguna pieza, por lo mismo que N-45 quito "Es Y2: toca hardware".
   // D-35: CON TESTIGO NO HAY TOPE DE 48 h: mide la sync de radio, que este modo existe para no
   // necesitar. Y desde el 29/09 (responsable, H9) tampoco el de 31 dias: solo el aviso.
   if (testigo) {
@@ -1063,8 +1062,9 @@ void modo_degradado_loop() {
   unsigned long desdeSync = msDesdeSyncEfectivo();
   if (desdeSync >= LIMITE_DURO_MS) {
     if (reloj_estadoCristal() == RELOJ_CRISTAL_CONGELADO) {
-      bluetooth_reportarAlarma("DEGRADADO", "RELOJ_NO_CUENTA", "CAMBIO_A_AMBAR");
-      irAAmbar("Reloj sin contar", "No es la radio");
+      // D-49 (02/10): ROJO FIJO como D-38, no ambar: el otro poste puede seguir alternando.
+      bluetooth_reportarAlarma("DEGRADADO", "RELOJ_NO_CUENTA", "CAMBIO_A_ROJO");
+      irARojoSinHora();
     } else if (respaldo_horasDesdeSync(reloj_contadorSegundos()) == RESPALDO_SYNC_CADUCADA &&
                desdeSync == 0xFFFFFFFFUL) {
       bluetooth_reportarAlarma("DEGRADADO", "SYNC_SIN_FECHA", "CAMBIO_A_AMBAR");

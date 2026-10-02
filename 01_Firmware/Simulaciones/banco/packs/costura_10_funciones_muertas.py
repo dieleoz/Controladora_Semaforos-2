@@ -171,9 +171,10 @@ CONOCIDAS = {
         #      dos APIs del reloj por un getter.
         # Si gana un llamador en el Esclavo, este pack lo dira: es el trinquete.
         "reloj_dia",
-        # El Esclavo NO enciende luces por su cuenta: rechaza TEST_LEDS y no fuerza
-        # verde. Que estas dos no tengan llamador es la barrera funcionando.
-        "semaforo_iniciarTestLeds", "semaforo_forzarVerde",
+        # El Esclavo rechaza TEST_LEDS: que no tenga llamador es la barrera funcionando.
+        # D-45: semaforo_forzarVerde SALE de la lista -gano llamador-: el verde abre directo
+        # y lo piden las dos puertas de siempre, la orden de verde y el Degradado.
+        "semaforo_iniciarTestLeds",
         # ==================================================================
         # D-32 (1), 13/09 — LAS DOCE QUE PIERDEN SU UNICO LLAMADOR AL RETIRAR EL
         # menu.cpp DE ESTA PUNTA. Todas tenian por lector el menu_loop() del Esclavo y

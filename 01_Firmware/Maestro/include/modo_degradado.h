@@ -138,6 +138,8 @@ bool modo_degradado_syncVencida();
 bool modo_degradado_reanudarTrasCorte();
 
 void modo_degradado_setup();
+// D-47: arranque en el rojo fijo por falta de hora que guardo la pila.
+void modo_degradado_arrancarEnRojoSinHora();
 void modo_degradado_loop();
 
 // Pide la salida del modo: arranca el todo-rojo obligatorio y, cumplido, devuelve el

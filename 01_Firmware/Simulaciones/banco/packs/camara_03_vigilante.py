@@ -78,7 +78,7 @@ LEE_DEL_SEMAFORO = {"semaforo_plumaArriba", "semaforo_plumaVetada"}
 # barrera -exactamente lo que SFTY-28 prohibe- por mucho que el veto ya este decidido.
 ORDENAN = ("coordinador_pedirCambio", "coordinador_configurar", "coordinador_iniciarModo",
            "semaforo_forzarRojo", "semaforo_forzarVerde", "semaforo_iniciarFallo",
-           "semaforo_toggle", "semaforo_iniciarTransicionAVerde", "digitalWrite",
+           "semaforo_toggle", "digitalWrite",
            "MOTOR_TALANQUERA", "TALANQUERA_ABRIR", "TALANQUERA_CERRAR")
 
 # Los cuatro valores del campo CAM: de D-13. Un getter que solo supiera decir "OK" seria

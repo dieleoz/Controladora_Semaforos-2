@@ -6,9 +6,10 @@ enum EstadoSemaforo { S_ROJO, S_VERDE, S_AMARILLO, S_FALLO };
 
 void semaforo_setup();
 void semaforo_apagarTodo();
+// D-45: sobre un VERDE, forzarRojo() arranca el amarillo de cierre (AMARILLO_SEG) y el
+// rojo llega despues; con el cierre en curso no lo reinicia, y forzarVerde() no lo reabre.
 void semaforo_forzarRojo();
 void semaforo_forzarVerde();
-void semaforo_iniciarTransicionAVerde();
 void semaforo_toggle();
 void semaforo_iniciarFallo();
 void semaforo_actualizar();

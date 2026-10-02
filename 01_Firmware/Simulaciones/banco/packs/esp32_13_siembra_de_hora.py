@@ -53,8 +53,8 @@
 
 import re
 
-from banco.modelos.costura import (luz_maestro, luz_esclavo, VERDE, SEGUNDOS_DEL_DIA,
-                                   E_AMARILLO_MS, DEG_VERDE_SEG, DEG_DESPEJE_SEG)
+from banco.modelos.costura import (luz_maestro, luz_esclavo, VERDE, SEGUNDOS_DEL_DIA, paso,
+                                   AMARILLO_S, E_AMARILLO_MS, DEG_VERDE_SEG, DEG_DESPEJE_SEG)
 
 NOMBRE = "esp32_13_siembra_de_hora"
 DESCRIPCION = ("la siembra de hora ESP32->STM32: cadencia de D-26 contra el margen del cruce, "
@@ -243,17 +243,17 @@ def _suplantacion_primero(atender, marca_fn, token):
 
 
 def _primer_solape(sentido, verde, despeje, amarillo_s):
-    """Primer desfase, en segundos, con las DOS puntas en verde a la vez.
+    """Primer desfase, en s, con PASO ABIERTO en las dos (verde o amarillo de cierre, D-45).
 
     BLOQUE LITERAL de costura_12_margen_deriva, sobre luz_maestro() y luz_esclavo() del
     modelo de costura -las que costura_02 contrasta contra ciclo_degradado.h-: el margen
     del cruce no se escribe aqui, se barre igual que alli."""
-    ciclo = 2 * (verde + despeje)
+    ciclo = 2 * (verde + AMARILLO_S + despeje)
     for skew in range(1, ciclo):
         for s in range(3600, 3600 + ciclo):
             otro = (s + sentido * skew) % SEGUNDOS_DEL_DIA
-            if (luz_maestro(s, verde, despeje) == VERDE and
-                    luz_esclavo(otro, verde, despeje, amarillo_s) == VERDE):
+            if (paso(luz_maestro(s, verde, despeje)) and
+                    paso(luz_esclavo(otro, verde, despeje, amarillo_s))):
                 return skew
     return None
 

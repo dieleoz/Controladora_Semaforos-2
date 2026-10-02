@@ -118,6 +118,10 @@ bool respaldo_rendido();
 // A-15 (29/09): el ultimo ECO oido del otro (bit7): si el otro oyo APTO a esta punta.
 void respaldo_guardarAptoDado(bool apto);
 bool respaldo_aptoDado();
+// D-47: el rojo fijo por falta de hora (bit8). Lo baja cualquier respaldo_guardarDegradado()
+// o respaldo_guardarTestigo(); se pone DESPUES de bajar el Degradado.
+void respaldo_guardarRojoSinHora();
+bool respaldo_rojoSinHora();
 
 // Borra todo. Deja el respaldo como en un equipo nuevo.
 void respaldo_borrar();

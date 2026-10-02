@@ -120,7 +120,7 @@ def correr(b, fw):
     e.ambar.pedir()                       # sin correr un solo tick despues
     armado_al_instante = e.ambar.armado
     e.rx.append((CMD["CMD_GO_GREEN"], 0))
-    e.correr(AMARILLO_A_VERDE_MS + 3000)
+    e.correr(AMARILLO_CIERRE_MS + 3000)
     acks = [c for (_, c, _) in e.tx[marca:] if c == CMD["CMD_ACK_GREEN"]]
     verificar(armado_al_instante and not acks and not e.verde_encendido(),
               "El ambar de la app queda armado en la misma llamada que lo pide: una orden de "
@@ -219,7 +219,7 @@ def correr(b, fw):
     e.cancelar_ambar_emergencia()
     latch_bajado = not e.ambar.armado
     e.rx.append((CMD["CMD_GO_GREEN"], 0))
-    e.correr(AMARILLO_A_VERDE_MS + 2000)
+    e.correr(AMARILLO_CIERRE_MS + 2000)
     verificar(latch_bajado and e.verde_encendido(),
               "CANCELAR_AMBAR revoca el latch y la siguiente orden de verde del Maestro se "
               "obedece: el nodo vuelve a estar bajo mando.",

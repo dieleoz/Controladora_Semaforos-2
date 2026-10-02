@@ -142,31 +142,25 @@
 //   dentro del mecanismo de recuperacion, y su comentario -"Fallo tras 5 reintentos
 //   (12.5s)"- venia de un TIMEOUT_ACK_MS de 2500 ms que dejo de existir el 31/07.
 //
-// 25 s cubren los 20,8 s del peor caso con 4,2 s de margen, y de paso dejan sitio a
-// los 3 intentos de sincronizacion horaria (13,7 s) que antes no cabian.
+// D-48 (02/10): DE 25 s A 28 s, para que quepa el amarillo de cierre del Esclavo (D-45)
+// con los 5 reintentos. El acuse del rojo de un verde llega ahora tras AMARILLO_SEG, y ese
+// tiempo entra una vez en el peor caso del ciclo: 3 + 3 + 5 x 3,56 = 23,8 s, y con el
+// margen de la suelta (TIMEOUT_ACK_MS) 27,3 s. Los static_assert de coordinador.cpp y
+// costura_09_presupuesto_radio lo recalculan desde las constantes.
 //
-// LO QUE CUESTA SUBIRLO, dicho sin adornos: el cruce puede quedarse hasta 25 s en
-// la fase que tuviera cuando cayo el enlace, en vez de 12. NO puede aparecer un
-// verde nuevo en ese rato -ninguna punta enciende verde sin el ACK de la otra-. A
-// cambio se evita el ambar espurio, que segun el reporte de campo del 27/08 aparece
-// "cada nada cuando llueve": una lluvia que tumba tramas sueltas consumia el techo
-// antes de que los reintentos tuvieran ocasion de recuperarlas.
-//
-// D-34 (15/09): ~~lo que se alarga es una espera, no un riesgo de verde simultaneo~~
-// -> FALSO, y derogado. Verde contra verde no, pero un verde YA DADO si sobrevive al
-// ambar de la otra punta: cada punta cuenta este silencio desde un instante distinto
-// -el Maestro desde lo ultimo que OYO, el Esclavo desde la ultima orden que RECIBIO- y
-// medido en el arnes de las dos puntas (G12, roadmap 1.39) el Esclavo seguia en verde
-// hasta 23 s frente al ambar del Maestro, con la pluma de aquel poste arriba. Lo cierran
-// las dos mitades de D-34: el Esclavo suelta su verde AVISO_AMBAR_TIMEOUT_MS antes de
-// este umbral, y el Maestro no entrega un GO_GREEN sin un PONG de menos de LATIDO_MS.
-// Este numero NO cambia con eso: sigue en 25 s y N-163 sigue en pie.
-//
-// OJO AL LIMITE SUPERIOR: subirlo mas no es gratis ni indefinido. Es el tiempo que
-// una punta sigue con la configuracion vieja creyendo que la otra la acompana.
-// costura_09_presupuesto_radio recalcula la desigualdad desde las constantes del
-// C++ y falla si alguien toca un reintento o un timeout sin mirar este techo.
-#define SFTY6_SILENCIO_MS   25000UL
+// LO QUE CUESTA: el cruce puede quedarse hasta 28 s en la fase que tuviera cuando cayo el
+// enlace. NO puede aparecer un verde nuevo en ese rato -ninguna punta enciende verde sin
+// el ACK de la otra- y cada punta suelta su verde un margen antes (D-34, N-163). Subirlo
+// mas no es gratis: es el tiempo que una punta sigue creyendo que la otra la acompana.
+#define SFTY6_SILENCIO_MS   28000UL
+
+// D-45 (02/10): EL AMARILLO DE CIERRE. ROJO - VERDE - AMARILLO - ROJO en todos los caminos
+// de verde a rojo (Manual de Senalizacion Vial 2024, 4.4.3; 3 s del rotulo de la Fig. 4-9).
+// FIJO y NO CONFIGURABLE: no entra en limites_ciclo.h, ni en SET_TIEMPOS, ni en el
+// respaldo. Vive aqui, una vez y gemelo en las dos puntas, porque entra en el presupuesto
+// de radio (el acuse del rojo del Esclavo llega tras el) y en la fase del Degradado
+// (ciclo_degradado.h). Lo enciende solo semaforo.cpp: semaforo_forzarRojo() sobre un verde.
+#define AMARILLO_SEG        3UL
 
 #define CMD_DEMANDA        0x11
 #define CMD_ACK_DEMANDA    0x12

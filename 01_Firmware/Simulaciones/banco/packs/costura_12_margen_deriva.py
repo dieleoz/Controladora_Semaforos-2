@@ -58,7 +58,8 @@ def _lee(fw, *partes):
 
 
 def _primer_solape(sentido, verde, despeje, amarillo_s):
-    """Primer desfase, en segundos, con las DOS puntas en verde a la vez.
+    """Primer desfase, en segundos, con PASO ABIERTO en las dos puntas a la vez: verde o
+    amarillo de cierre, que tambien es paso (D-45; SPEC_2 8 (e.bis)).
 
     sentido = +1 Esclavo adelantado, -1 Esclavo atrasado.
 
@@ -67,12 +68,12 @@ def _primer_solape(sentido, verde, despeje, amarillo_s):
     ciclo_degradado.h. Escribir aqui una tercera version del ciclo seria la segunda
     copia del firmware a mano que este banco lleva un mes retirando.
     """
-    ciclo = 2 * (verde + despeje)
+    ciclo = 2 * (verde + AMARILLO_S + despeje)
     for skew in range(1, ciclo):
         for s in range(SEGUNDO_DE_REFERENCIA, SEGUNDO_DE_REFERENCIA + ciclo):
             otro = (s + sentido * skew) % SEGUNDOS_DEL_DIA
-            if (luz_maestro(s, verde, despeje) == VERDE and
-                    luz_esclavo(otro, verde, despeje, amarillo_s) == VERDE):
+            if (paso(luz_maestro(s, verde, despeje)) and
+                    paso(luz_esclavo(otro, verde, despeje, amarillo_s))):
                 return skew
     return None
 
@@ -159,39 +160,18 @@ def correr(b, fw):
         f"{DEG_DESPEJE_SEG} s. El colchon del ciclo degradado no es el que dice el "
         "diseno, y toda la cuenta de las 48 h se apoya en el")
 
+    # D-45 (02/10): SE INVIERTE. Exigia la asimetria del ambar con que el Esclavo abria su
+    # verde; ese ambar salio y las dos puntas abren directo y cierran por su amarillo.
     b.verificar(
-        adelantado - atrasado == AMARILLO_S,
-        f"los dos sentidos NO son simetricos, y la diferencia es exactamente el amarillo "
-        f"del Esclavo ({AMARILLO_S} s): esa punta empieza su verde por ambar, asi que el "
-        "ambar le come el principio de su verde y protege SOLO cuando va adelantada",
-        f"la asimetria entre sentidos ({adelantado - atrasado} s) no coincide con el "
-        f"amarillo del Esclavo ({AMARILLO_S} s): la explicacion de por que un sentido "
-        "aguanta mas que el otro ya no es la que dice este pack, y el numero publicado "
-        "podria salir de otra cosa")
+        adelantado == atrasado,
+        f"los dos sentidos son SIMETRICOS ({adelantado} s): sin el ambar que abria el verde "
+        f"del Esclavo, los dos chocan contra el mismo despeje (D-45)",
+        f"la asimetria entre sentidos ({adelantado - atrasado} s) no es cero: queda algo "
+        "que protege un solo sentido, y D-45 dice que las dos puntas abren igual")
 
-    # --- El hallazgo: el barrido que ya existia solo miraba a un lado --------
-    #
-    # costura_02_fase_ciclo.py hace este mismo barrido con `for skew in range(...)`, o
-    # sea SOLO con el Esclavo adelantado, y publica ese numero como "el margen real
-    # contra la deriva entre relojes... el colchon que justifica el limite de 48 h".
-    # Es el sentido BUENO, el que el amarillo protege.
-    # costura_02 se archivo el 28/09 (su barrido lo ejecutan los arneses reales de
-    # Validacion_Automatico sobre el C++); este hallazgo sigue leyendo el fichero donde vive.
-    t_costura = _lee(fw, "Simulaciones", "banco", "historico", "costura_02_fase_ciclo.py")
-    barrido_una_direccion = bool(
-        re.search(r"for\s+skew\s+in\s+range\(0,\s*2\s*\*\s*\(DEG_VERDE_SEG", t_costura))
-    b.hallazgo(
-        barrido_una_direccion and adelantado > atrasado,
-        "el barrido de deriva que ya existia solo mira un sentido, y publica el bueno",
-        [f"costura_02_fase_ciclo.py barre `for skew in range(0, ...)` -solo el Esclavo "
-         f"adelantado- y llama a esos {adelantado} s 'el margen real contra la deriva "
-         f"entre relojes'.",
-         f"Con el Esclavo ATRASADO, que es igual de probable, el solape aparece a los "
-         f"{atrasado} s: {adelantado - atrasado} s antes.",
-         "EN LA CALLE: el numero que sostiene la eleccion de las 48 h estaba tomado del "
-         "sentido favorable. Sigue habiendo margen -lo dice la comprobacion de abajo-, "
-         "pero es menor del publicado, y quien decidiera alargar el plazo apoyandose en "
-         "el numero grande se quedaria corto."])
+    # D-45: AQUI HABIA UN HALLAZGO -el barrido archivado de costura_02 miraba solo el
+    # sentido bueno-. Sin asimetria (arriba) los dos sentidos dan lo mismo y el hallazgo se
+    # queda sin sujeto: se borra (CLAUDE.md 9).
 
     # =======================================================================
     # 3. EL RESIDUO SUB-SEGUNDO DE LA SINCRONIZACION
