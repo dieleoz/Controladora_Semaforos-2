@@ -9,8 +9,17 @@
 # no rompe ninguna compilacion, y un ancla de una DEROGADA se queda ahi para que el
 # siguiente agente la lea como vigente.
 #
-# QUE MIDE, Y SOLO ESTO: que todo D-x VIGENTE de la tabla tenga AL MENOS UNA ancla en el
-# fuente, y que todo D-x DEROGADO -tachado con ~~ en esa misma tabla- no tenga ninguna.
+# QUE MIDE, Y SOLO ESTO: que todo D-x VIGENTE de superficie FIRMWARE tenga AL MENOS UNA
+# ancla en el fuente, y que todo D-x DEROGADO -su Id en la linea «Derogadas:» del indice-
+# no tenga ninguna.
+#
+# 02/10 (fase H): DECISIONES.md paso a ser un INDICE (la cronica, literal, a
+# 05_Funcional/historico/DECISIONES_hist.md). Derogar ya no es tachar con ~~: es borrar la
+# fila y llevar su Id a «Derogadas:». Y cada fila declara su SUPERFICIE: solo la de
+# `firmware` tiene donde anclarse en src; una de camara, campo, compra o app no (D-39 o
+# D-42 viven en la configuracion de la camara). Para que esa columna no sea una puerta
+# de escape, una superficie que no este en SUPERFICIES aborta el pack: un «frimware» no
+# puede eximir a nadie en silencio.
 #
 # QUE NO MIDE, y no es pereza: es la linea que este repositorio no puede cruzar. NO juzga
 # si la decision es buena -eso lo decide el responsable- ni si el codigo la implementa bien.
@@ -50,9 +59,13 @@ RX_COMENTARIO = re.compile(r"/\*.*?\*/|//[^\n]*", re.S)
 # sin verificar es una lista de defectos con permiso (N-122): esta se RECALCULA abajo.
 EXCEPCIONES = ("D-10",)
 
+# Las superficies que el indice admite. Solo «firmware» exige ancla.
+SUPERFICIES = ("firmware", "camara", "campo", "compra", "app")
+COL_SUPERFICIE = 4   # | Id | Respuesta | Vive en | Superficie | Deroga |
+
 
 def _filas(texto):
-    """La tabla de DECISIONES.md -> [(id, derogada)]. Solo la seccion Vigentes."""
+    """El indice DECISIONES.md -> [(id, superficies)]. Solo la seccion Vigentes, solo D-x."""
     m = re.search(r"^##\s+Vigentes\s*$(.*?)^---\s*$", texto, re.S | re.M)
     if not m:
         return None
@@ -61,8 +74,22 @@ def _filas(texto):
         celdas = linea.strip().split("|")
         ident = RX_FILA.search(celdas[1]) if linea.strip()[:1] == "|" and len(celdas) > 2 else None
         if ident:
-            filas.append((ident.group(1), "~~" in celdas[1]))
+            sup = celdas[COL_SUPERFICIE] if len(celdas) > COL_SUPERFICIE else ""
+            filas.append((ident.group(1),
+                          tuple(s.strip() for s in sup.split(",") if s.strip())))
     return filas
+
+
+def _derogadas(texto):
+    """La linea «Derogadas: D-6, ...» -> [ids]; None si no existe."""
+    m = re.search(r"^Derogadas:(.*)$", texto, re.M)
+    if not m:
+        return None
+    return re.findall(r"\bD-\d+(?:\.bis)?\b", m.group(1))
+
+
+def _exigen_ancla(filas):
+    return [d for d, sup in filas if "firmware" in sup]
 
 
 def _sin_ancla(vigentes, censo):
@@ -82,8 +109,26 @@ def correr(b, fw):
             "decisiones hay ni cuales estan derogadas, y escribir la lista a mano seria el valor "
             "por defecto que este banco no admite"
             % ("seccion no hallada" if filas is None else "%d filas" % len(filas)))
-    vigentes = [d for d, dero in filas if not dero]
-    derogadas = [d for d, dero in filas if dero]
+    raras = ["%s:%s" % (d, ",".join(sup) or "(vacia)") for d, sup in filas
+             if not sup or any(s not in SUPERFICIES for s in sup)]
+    if raras:
+        raise fw.Abortado(
+            "superficie ausente o desconocida en %s (admitidas: %s). La columna decide quien "
+            "necesita ancla: una superficie mal escrita eximiria a esa decision en silencio"
+            % (", ".join(raras), ", ".join(SUPERFICIES)))
+    derogadas = _derogadas(texto)
+    if derogadas is None:
+        raise fw.Abortado(
+            "no hay linea «Derogadas:» en DECISIONES.md: sin ella el control de que una "
+            "decision muerta no deja ancla viva se queda vacio, y pasaria en verde sin mirar")
+    vigentes = [d for d, _ in filas]
+    exigen = _exigen_ancla(filas)
+    b.titulo("el indice no da una decision por vigente y por derogada a la vez")
+    dobles = sorted(set(vigentes) & set(derogadas))
+    b.verificar(not dobles,
+                "ninguna de las %d derogadas tiene fila en Vigentes" % len(derogadas),
+                "%s esta en Vigentes y en «Derogadas:» a la vez: derogar es BORRAR la fila"
+                % ", ".join(dobles))
 
     # ---- CENSO: comentarios del fuente, el borde declarado en la cabecera ----
     censo, crudo = {}, {}
@@ -97,8 +142,9 @@ def correr(b, fw):
                     censo.setdefault("D-" + m.group(1), set()).add(ruta)
 
     # ---- 1. Cada vigente tiene ancla ----
-    b.titulo("las %d decisiones VIGENTES estan ancladas en el fuente" % len(vigentes))
-    for d in vigentes:
+    b.titulo("las %d decisiones VIGENTES de superficie firmware estan ancladas en el fuente"
+             % len(exigen))
+    for d in exigen:
         if d in EXCEPCIONES:
             continue
         donde = sorted(censo.get(d, ()))
@@ -183,14 +229,14 @@ def correr(b, fw):
 
     # ---- 5. CONTROLES NEGATIVOS: las dos direcciones, con parche EN MEMORIA ----
     b.titulo("controles negativos")
-    victima = next((d for d in vigentes if d not in EXCEPCIONES and censo.get(d)), None)
+    victima = next((d for d in exigen if d not in EXCEPCIONES and censo.get(d)), None)
     if victima is None:
         raise fw.Abortado("ninguna vigente tiene ancla: no hay caso bueno que romper, y un "
                           "control negativo sobre el vacio no demuestra nada")
     roto = dict(censo)
     roto.pop(victima)
     b.control_negativo(
-        victima in _sin_ancla(vigentes, roto) and victima not in _sin_ancla(vigentes, censo),
+        victima in _sin_ancla(exigen, roto) and victima not in _sin_ancla(exigen, censo),
         "quitando en memoria el ancla de %s -sin tocar el fuente en disco- el pack pasa a "
         "acusarlo, y antes no lo acusaba" % victima)
 
@@ -212,8 +258,13 @@ def correr(b, fw):
         "y NO acusa al caso bueno -vigente con ancla, derogado sin ella-. Un detector que "
         "acusa siempre es una alarma apagada")
 
+    sintetico = ("## Vigentes\n\n| Id | R | V | S | D |\n|---|---|---|---|---|\n"
+                 "| **D-97** | r | v | firmware, app | - |\n| **D-98** | r | v | camara | - |\n"
+                 "\nDerogadas: D-99, D-17.bis\n\n---\n")
     b.control_negativo(
-        _filas("## Vigentes\n\n| # |\n|---|\n| **D-98** |\n| ~~**D-99**~~ |\n---\n")
-        == [("D-98", False), ("D-99", True)],
-        "el parseo distingue una fila vigente de una tachada con ~~. Sin eso contaria las "
-        "derogadas como vigentes y pediria anclas de decisiones muertas")
+        _filas(sintetico) == [("D-97", ("firmware", "app")), ("D-98", ("camara",))]
+        and _exigen_ancla(_filas(sintetico)) == ["D-97"]
+        and _derogadas(sintetico) == ["D-99", "D-17.bis"],
+        "el parseo lee la superficie de cada fila, exige ancla solo a la que dice firmware "
+        "-aunque traiga otra al lado- y lee las derogadas de su linea. Sin eso pediria anclas "
+        "a una camara, o dejaria de pedirselas a un firmware compartido con la app")

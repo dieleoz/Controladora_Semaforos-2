@@ -50,7 +50,7 @@ nada** — las dos cuentas estan publicadas al final de aquel fichero.
 
 | | |
 |---|---|
-| **la decision vigente** | [`DECISIONES.md`](DECISIONES.md) — **una fila suya gana a cualquier parrafo de aqui** |
+| **la decision vigente** | la SPEC (`05_Funcional/SPEC_0..SPEC_8`) — **manda la SPEC; [`DECISIONES.md`](DECISIONES.md) es su indice; derogar es borrar la fila** |
 | **el hardware medido** | `05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md` — gana a `DECISIONES.md` y a `CLAUDE.md` en cobre, pines y conectores |
 | **las reglas permanentes** | [`CLAUDE.md`](CLAUDE.md) |
 | **el estado de hoy** | [`ESTADO.md`](ESTADO.md) |
@@ -193,7 +193,9 @@ Fases de organizacion del repo: 0 paquetes a `entregas/` · 1 inventarios · 2 `
 > |  | **talanquera por rele y centralita como en la guia del Sisga**, y la lista de |  |
 > |  | compras se ajusta; los `.docx`, pendientes |  |
 >
-> **Si un manual, una guia o un comentario del fuente dice otra cosa, ESE DOCUMENTO esta caducado: se tacha y se corrige hacia la decision, nunca al reves. Cambiar una de estas tres exige una fila nueva en DECISIONES.md firmada por el responsable.**
+> **Si un manual, una guia o un comentario del fuente dice otra cosa, ESE DOCUMENTO esta caducado: se corrige hacia
+> la SPEC, nunca al reves: manda la SPEC; DECISIONES.md es indice; derogar es borrar. Cambiar una de estas tres exige
+> que el responsable cambie la SPEC y su fila del indice en el mismo commit.**
 >
 > ⚠️ *Medido al alinear `D-27` (11/09), para que nadie lo lea de mas:* el manual del modelo **fija
 > el objetivo** (☑ Vehiculo · ☐ Humano, si la casilla existe) y **no fija** `Threshold`,
@@ -510,7 +512,8 @@ el problema que aquel fichero vino a resolver.
 > ⚠️ **`A-2` NO va en esta lista: la cerraste tu el 05/09.** `J16` p5/p8 son el mando con su codigo
 > intacto (`D-1`) ~~y el fin de carrera va a `J14`/`PB0`~~ *(11/09, `D-27`: `J14` queda LIBRE y sin
 > cablear; el fin de carrera no se instala en este despliegue)*. ~~**`DECISIONES.md` la sigue listando abierta
-> con urgencia media, y su fila «Filas que chocan nº 2» describe un conflicto que ya no existe**
+> con urgencia media, y su fila «Filas que chocan nº 2» (hoy en `05_Funcional/historico/DECISIONES_hist.md`) describe
+> un conflicto que ya no existe**
 > —`A-11` se resolvio por app en `D-18`—. Ver §3.2.~~ *(11/09: el indice ya la da cerrada, y «Filas
 > que chocan nº 2» se tacho hoy como resuelta.)* ~~🔴 **Pero su mitad de `J14` choca con el CODIGO**
 > —el recuadro de arriba y la fila 2.1 de §0—: **eso si es una decision tuya, y abierta.**~~

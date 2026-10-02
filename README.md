@@ -86,7 +86,7 @@ entonces cada lector deriva su propia versión.
 >
 > *(El cuarto de aquella lista, **N-118** —«el mando A/B no responde, 0,6 V en reposo»—, quedó
 > **REFUTADO el 05/09**: el propio banco había medido las dos ramas del experimento en la misma
-> tabla. Mismo cobre, distinto `pinMode`, distinta tensión. Ver `DECISIONES.md`, cerradas.)*
+> tabla. Mismo cobre, distinto `pinMode`, distinta tensión. Ver `05_Funcional/historico/DECISIONES_hist.md`, cerradas.)*
 
 **Verificación actual** — cifras **copiadas del acta**
 [`evidencia/2026-09-30_compuerta.txt`](evidencia/2026-09-30_compuerta.txt), que genera

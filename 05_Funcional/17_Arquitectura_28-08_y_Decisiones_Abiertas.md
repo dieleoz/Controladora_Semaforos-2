@@ -440,7 +440,8 @@ puede tumbar al que manda.
 >
 > **Consecuencia operativa, y es una regla de montaje, no una cautela: NADA se cablea en `J16` p5 ni
 > p8.** Un fin de carrera de talanquera que suba y baje tres veces dentro de la ventana **es una
-> secuencia del mando**. Eso es lo que `A-2` de `DECISIONES.md` esta decidiendo, y por eso alli
+> secuencia del mando**. Eso es lo que `A-2` (cerrada; `05_Funcional/historico/DECISIONES_hist.md`) decidia, y por
+> eso alli
 > figura como decision **de seguridad** y no de reparto de pines.
 
 > El parrafo del 31/08 —*«el mando vive entero en `A` y `B`»*— y su caveat de re-medida estan en el
