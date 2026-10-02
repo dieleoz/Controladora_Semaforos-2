@@ -84,7 +84,9 @@ python 01_Firmware/Simulaciones/banco/correr.py   # solo los packs. Sirve para i
 ### Lo siguiente, en orden (el estado de cada punto, en `ESTADO.md`)
 
 Reordenado el 02/10. Se cierra por fases: ninguna empieza sin cerrar la anterior. **Orden de ejecucion (02/10):
-A1-A2 hechos -> H e I en paralelo -> UN solo runbook A3-A6 sobre la candidata con I -> G -> F.** Al acabar solo quedan C
+A1-A2 y H hechos -> I (en curso) -> G (legacy, D-44/D-46, y el ancla de D-24) -> UN solo runbook A3-A6
+sobre la candidata con I y G -> F.** El pack de anclas da rojo legitimo mientras haya decisiones sin construir. Al
+acabar solo quedan C
 (decisiones) y D (cintas de campo).
 Contestado pieza a pieza por el responsable el 02/10: `FORZAR_ROJO` tambien pasa por amarillo (`D-45`); la
 tanda 2 de G retira `SOLICITAR_PASO` y `SET_MODO:DEGRADADO`; `J14`, SFTY-20 y los pines de peaton se quedan (`D-46`).
