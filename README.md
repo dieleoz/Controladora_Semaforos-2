@@ -21,7 +21,8 @@ se probó el del 10/09 (`b354fe9`)—. Su cinta y su diario están en `evidencia
 308 checksums que casan). Lo que se reportó allí, lo que dice la cinta y la rama que salió de
 ahí, validada por el diff, están en `roadmap.md` §3.16 (`N-162`). 🔴 **Con `7ff7d12`, el
 Maestro 179DB0 se declara en hora con el reloj parado: no se usa el Modo Degradado allí.**
-**Nada de lo arreglado después de la cinta del 05/09 ha pasado un banco.**
+**Desde el 29/09 el funcional prueba en banco las candidatas** (`a505fa2`, `6bd1e4f`, `d3606be`; cintas en
+`evidencia/300920261130/`, `011020260934/`, `021020260914/`), **pero ninguna ha pasado banco completo.**
 
 **La razon lineas de instrumento / lineas de producto la mide el pre-commit en cada commit**
 (`.githooks/trinquete.sh`, contra el techo `RAZON_TECHO` de `.topes`): si sube por encima del techo, el
@@ -39,11 +40,13 @@ La tabla de abajo es verdad. **Lee lo que mide antes de lo que puntúa.**
 
 ---
 
-## 📐 LA SPEC — empieza por aquí, y son seis ficheros
+## 📐 LA SPEC — empieza por aquí, y son nueve ficheros (`SPEC_0` a `SPEC_8`)
 
-**Escritas el 12–13/09 desde `DECISIONES.md` vigente y desde el fuente, verificando cada afirmación contra el
-código.** Sustituyen a ~17.000 líneas de manuales que describían un sistema que ha cambiado cuatro veces.
-**Ninguna pasa de 300 líneas a propósito:** un fichero que no se puede leer entero no lo lee nadie entero, y
+**Escritas el 12–13/09 desde el fuente, verificando cada afirmación contra el código; manda la SPEC y
+`DECISIONES.md` es su índice.** `SPEC_0` es la vista del sistema y `SPEC_7` el modo sin reloj. Sustituyen a ~17.000
+líneas de manuales que describían un sistema que ha cambiado cuatro veces.
+**Nacieron por debajo de 300 líneas a propósito** (hoy `SPEC_1` y `SPEC_2` lo pasan): un fichero que no se puede leer
+entero no lo lee nadie entero, y
 entonces cada lector deriva su propia versión.
 
 | | qué contesta |

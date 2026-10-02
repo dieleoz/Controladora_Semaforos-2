@@ -95,3 +95,31 @@ sin su visto bueno.
   solo dice ABORTADO.
 - **Que hacer en el siguiente:** grep de los dobles y del arnes afectado en el mismo commit que la funcion o la guarda.
 - **Destino:** SE QUEDA.
+
+## L-12 — Un arreglo en el arranque no cubre lo que pasa en marcha (02/10)
+- **Paso:** `N-172` (el Maestro no reanuda el Degradado tras un corte) se "arreglo" copiando DR6/DR7 antes de
+  `reloj_setup()` (`d3606be`) y el banco del 02/10 siguio igual. El arquitecto y dos modelos externos coincidieron:
+  la libreria del RTC reescribe DR6/DR7 tambien en marcha (`getDay`, `getMonth`, `rtc.begin` del reintento).
+- **Leccion:** un recurso compartido con una libreria se mide en TODO su ciclo de vida, no solo en el arranque; y un
+  arreglo que no cambia el resultado de campo se marca REFUTADO, no "insuficiente".
+- **Que hacer en el siguiente:** antes de compartir registros o memoria con una libreria, grep de TODAS sus
+  escrituras en `.pio/libdeps`, no solo de la llamada que se ve.
+- **Destino:** SUBE a metodo (perifericos compartidos con librerias).
+
+## L-13 — Una inversion de prueba se hace en TODOS los detectores, no en el que fallo (02/10)
+- **Paso:** con `D-45` el amarillo paso a ser paso abierto; se invirtieron los contadores de despeje pero no el
+  detector de ventanas G del arnes de dos puntas, que solo contaba el verde. El arquitecto encontro 3 s de amarillo
+  del Esclavo contra el ambar del Maestro que la compuerta daba en verde.
+- **Leccion:** cuando cambia lo que significa un estado, se censan todos los instrumentos que lo clasifican, no solo
+  los que salieron en rojo.
+- **Que hacer en el siguiente:** grep del estado (`verde()`, `S_VERDE`) en todo `Validacion_*`/packs en el mismo
+  encargo que cambia su significado.
+- **Destino:** SE QUEDA.
+
+## L-14 — Con el funcional en banco, el paquete va primero; el runbook, despues y entero (30/09-02/10)
+- **Paso:** dos paquetes sin runbook (`6bd1e4f`, `d3606be`) para que Marco probara; despues un solo runbook sobre la
+  candidata completa, que el arquitecto dio NO APTO con dos defectos graves que el banco no habia visto.
+- **Leccion:** el paquete rapido sirve para medir en tarjeta, no para dar por bueno: el runbook encuentra lo que el
+  banco no ejerce.
+- **Que hacer en el siguiente:** el paquete rapido sale `_SIN_BANCO` con la deuda escrita en ESTADO el mismo dia.
+- **Destino:** SE QUEDA.

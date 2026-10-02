@@ -94,22 +94,25 @@ Todo cambio de firmware respeta las E/S y pines que fijan las guias de campo `.h
 **`N-175` Modo nocturno (SFTY-20, diseno en `OPTIMIZACIONES.md`):** se construira; antes, decidir que hace en un
 paso alterno de un carril (ambar en los dos extremos = nadie gobierna el tramo).
 
-**A. `N-173` Runbook de la candidata `d3606be`** (se salto para mandar a Marco; ahora entero, para dejar `main` ok)
+**A. `N-173` Runbook de la candidata** (se salto para mandar a Marco; ahora entero, para dejar `main` ok). La
+candidata crecio con I (`cda33df`) y G (`f9cad1f`): un solo runbook sobre todo.
 
-| # | paso | quien | sale | estado |
-|---|---|---|---|---|
-| A1 | SPEC_1/2/3/4/6 al comportamiento construido: `D-38` (`N-168`), `D-40` (`N-169`, solo Maestro y por que), aviso de radio cada 60 s, DR6/DR7 (`N-172` H-D), carteles `N-170` | agente SPEC | SPEC al dia | en curso |
-| A2 | Pruebas que celebran lo viejo (§9): `orquestador_degradado` F2/F3, `reloj_04`, H8 de `deg_auto`, `adaptador_maestro_deg` sin `D-40`; inyeccion vista en rojo | agente instrumentos | arneses al dia | en curso |
-| A3 | Compuerta completa 2x en el arbol principal, arbol quieto | orquestador | acta | tras A1+A2 |
-| A4 | Arquitecto sobre SPEC y codigo (opus) | `arquitecto-iot` | veredicto | tras A3 |
-| A5 | QA sobre el binario (opus) | `qa-istqb` | veredicto | tras A4 |
-| A6 | Paquete validado `SIN_BANCO` a `entregas/`; `.docx` de las SPEC tocadas | orquestador | `.zip` | tras A5 |
+| # | paso | sale | estado |
+|---|---|---|---|
+| A1 | SPEC al comportamiento construido (`D-38`, `D-40`, aviso de radio, DR6/DR7, carteles) | SPEC al dia | hecho (`709c0c3`) |
+| A2 | Pruebas que celebraban lo viejo (§9), inyeccion vista en rojo | arneses al dia | hecho (`7603afc`) |
+| A3 | Compuerta completa en el arbol principal | acta | hecho: converge en 4 pasadas, 18 PASS y 1 FALLA = `D-22` (pide tarjeta) (`ae9a018`) |
+| A4 | Arquitecto (opus) | veredicto | **NO APTO** (`3d16b39`): amarillo del Esclavo contra el ambar del Maestro; `FORZAR_ROJO` en Degradado acusa y el verde vuelve; `D-47` sin prueba; la libreria RTC pisa DR6/DR7 en marcha (causa probable de `N-172`, coincide con DeepSeek y Nemotron) |
+| A4.bis | Correccion de las cuatro, SPEC -> prueba en rojo -> codigo | candidata nueva | **en curso** (agente) |
+| A3.bis-A4.ter | Compuerta otra vez y arquitecto otra vez | veredicto | tras A4.bis |
+| A5 | QA sobre el binario (opus) | veredicto | tras APTO |
+| A6 | Paquete validado `SIN_BANCO` a `entregas/`, hoja de pruebas de lo nuevo, `.docx` de las SPEC tocadas | `.zip` | tras A5 |
 
 **B. Lo que se cierra en paralelo a A, con ficheros disjuntos**
 
 | # | tarea | quien | sale |
 |---|---|---|---|
-| B1 | Lista de montaje del lunes 05/10 en `.html` que da PDF: respaldo md5 del firmware del Sisga, grabar, `J16` p1 tapado, `J14`/p5/p8 vacios, radios 2,4 kbps M0/M1 OFF, camaras `D-39`, sin Degradado desatendido | agente campo | `.html` |
+| ~~B1~~ | Hecho (`8378a84`): lista de montaje del lunes 05/10 en `.html` que da PDF: respaldo md5 del firmware del Sisga, grabar, `J16` p1 tapado, `J14`/p5/p8 vacios, radios 2,4 kbps M0/M1 OFF, camaras `D-39`, sin Degradado desatendido | agente campo | `.html` |
 | B2 | `N-166` colision de nombre `A-15` | orquestador | una renombrada |
 | B3 | Metodo atrasado (`4e8e898` -> `cd3c71b`): actualizar plugin y primera linea de `CLAUDE.md` | orquestador | metodo al dia |
 
