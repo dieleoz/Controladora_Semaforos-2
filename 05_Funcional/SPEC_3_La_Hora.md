@@ -155,15 +155,20 @@ CAUSA:ROJO_SIN_HORA,...,ACCION:ROJO_FIJO` al entrar y cada `AVISO_ROJO_SIN_HORA_
 
 **No se vuelve solo.** Del rojo fijo se sale **por una orden del operario**, por el todo-rojo de la salida:
 el Maestro con `SET_MODO:MENU`; el Esclavo con las tramas de gobierno del Maestro ya fuera de Degradado, o
-con `AMBAR_EMERGENCIA`. Una siembra fresca no devuelve el modo. 🔴 **Riesgo abierto, decidido por `D-47`
-y sin construir:** esa punta, si sufre un corte, hoy ya no reanuda: el Maestro arranca en ambar (`D-40`,
-SPEC 1 §4.1) y el Esclavo cae a ambar por orfandad, **verde contra ambar** mientras la otra alterna.
+con `AMBAR_EMERGENCIA`. Una siembra fresca no devuelve el modo. Si el poste estaba en verde al caer, el
+cierre lleva su amarillo de 3 s (`D-45`, `semaforo_forzarRojo()`; SPEC 1 §3.2).
 
-🟡 **DEBE (02/10; sin construir, `N-174`), las dos cosas que este rojo fijo aun no alcanza:**
-- **`D-47`: sobrevive a un corte.** Al volver la luz ese poste arranca en rojo fijo, no en ambar (`D-40` exceptua
-  al Degradado); si estaba en verde al perder la hora, antes 3 s de amarillo (`D-45`).
-- **`D-49`: el reloj que se congela en marcha** (cristal que deja de oscilar) va a ROJO FIJO como `D-38`, no a
-  ambar como hoy; antes 3 s de amarillo si estaba en verde. El arnes midio contra ese ambar el verde del otro poste.
+**Desde `cda33df` (`N-174`; sin banco), este rojo fijo alcanza dos casos mas:**
+- **`D-47`: sobrevive a un corte.** `irARojoSinHora()` pone `FLAG_ROJO_SIN_HORA` en la pila
+  (`respaldo_guardarRojoSinHora()`), y al volver la luz el poste arranca en ese rojo fijo, no en ambar: el
+  Maestro por `modo_degradado_arrancarEnRojoSinHora()` desde `setup()`, el Esclavo por
+  `degradado_arrancarEnRojoSinHora()`. Toda entrada y salida del Degradado borra la marca (SPEC 1 §4.1). 🔴 **El
+  arranque del Maestro no lo ejerce ningun arnes**; el del Esclavo, la fila 19 (`H10`).
+- **`D-49`: el reloj que se congela en marcha** (`reloj_estadoCristal() == RELOJ_CRISTAL_CONGELADO` cuando vence el
+  limite de 48 h sin sincronizar) va a ROJO FIJO por `irARojoSinHora()`, no a ambar. El Maestro publica antes
+  `$ALARM ...CAUSA:RELOJ_NO_CUENTA,...,ACCION:CAMBIO_A_ROJO` y despues la de `ROJO_SIN_HORA`; el Esclavo, en
+  `DEG_ENTRANDO` o `DEG_ACTIVO` y sin testigo, solo la de `ROJO_SIN_HORA`: **no dice que el cristal se paro**.
+  `RELOJ_CRISTAL_SIN_CRISTAL` —el que no arranco— no entra en este camino. Lo ejerce la fila 19 (`G7.1`, `G7.2`).
 
 **El salto de hora pasa por ROJO** (`D-26` (4)). Cada siembra mueve la fase de golpe lo que el oscilador
 derivo. El umbral **no se escogio: se deriva del despeje** —es el rojo que separa los dos verdes, menos un
@@ -260,7 +265,7 @@ inundacion (`N-73`). **Cada linea sale de lo que la llamada devolvio**, nunca de
 | **`D-28`** (12/09) | **la mas nueva, y manda sobre las otras cuatro en esto:** (1) la cadencia queda fijada **al segundo** —el responsable la cerro para que nadie derivase su propia cifra—; (2) el plazo pasa a derivarse de **dos siembras perdidas** | de `D-26` (2), el «~» que dejaba la cadencia aproximada; **de `D-21` (1), que el plazo se derive del relevo** |
 | **`D-29`** (12/09) | el indicador de la pila no se borra hasta que la primera siembra del arranque haya podido llegar | que `N-20` hubiera muerto en el Esclavo — que era el estado de hecho, sin que nadie lo decidiera |
 | **`D-38`** (30/09) | en Degradado, la punta que pierde la hora fiable pasa a **rojo fijo** (§5) | de `D-21` (1), el ambar, solo dentro del Degradado |
-| **`D-47`**, **`D-49`** (02/10) | el rojo fijo sobrevive a un corte y alcanza al reloj congelado; **sin construir** (§5) | de `D-38`, la excepcion implicita del reloj que no cuenta |
+| **`D-47`**, **`D-49`** (02/10) | el rojo fijo sobrevive a un corte y alcanza al reloj congelado; **construidas en `cda33df`, sin banco** (§5) | de `D-38`, la excepcion implicita del reloj que no cuenta |
 
 **No hay contradiccion viva entre ellas.** Las que parecen chocar se resuelven por fecha, y lo dicen
 en su propia fila. Y la del ambar por hora que miente lleva **su propia premisa tumbada** —«tendrian que
@@ -305,7 +310,8 @@ sincronizar», y tras un reset eso abria la puerta de FRESCURA de la entrada del
   «ponga la hora» hasta ver contar (SPEC 4 §3.1); la reanudacion tras corte de las dos puntas (§6); y la caida del
   Degradado del Maestro por su limite, que ahora **se publica con su causa** —`$ALARM DEGRADADO` con
   `RELOJ_NO_CUENTA`, `SYNC_SIN_FECHA` o `LIMITE_48H`, en ese orden de preferencia— en vez de caer a ambar mudo con
-  el rotulo del plazo (que hace el tecnico con cada una: SPEC 6 PARTE C).
+  el rotulo del plazo (que hace el tecnico con cada una: SPEC 6 PARTE C). Desde `D-49` (`cda33df`) la primera
+  causa ya no cae a ambar sino a ROJO FIJO (`ACCION:CAMBIO_A_ROJO`, §5); las otras dos siguen en ambar.
 - **Ejercido:** el bloque G del arnes del Degradado (`orquestador_degradado.cpp`) recorre la reanudacion con la
   siembra dentro de la ventana y, en `G7`, la marca copiada de la pila y la alarma `RELOJ_NO_CUENTA`, con controles
   negativos vistos fallar. ⚠️ **Implementado SIN EJERCER:** las causas `SYNC_SIN_FECHA` y `LIMITE_48H` no las cuenta
@@ -328,7 +334,9 @@ sincronizar», y tras un reset eso abria la puerta de FRESCURA de la entrada del
      decide el cristal, que en esa tarjeta no informa de nada. **Lo que pide, sin fila todavia: esa causa solo cuando la
      marca no se pudo fechar**, como `SYNC_SIN_FECHA`. *(Lectura del fuente; ningun arnes recorre ese caso.)*
    - **La rendicion del Esclavo por su limite sigue MUDA:** baja `rendidoPorHora` y se rinde sin `$ALARM`; lo unico
-     que queda es el parte periodico de sincronizacion con su vencido. Las dos puntas no avisan igual de la misma caida.
+     que queda es el parte periodico de sincronizacion con su vencido. Con el cristal CONGELADO ya no se rinde: va
+     al rojo fijo (`D-49`, §5) con la alarma `ROJO_SIN_HORA`, que tampoco nombra el cristal. Las dos puntas no avisan
+     igual de la misma caida.
    - **La app no traduce las tres causas del limite:** `js/avisos_equipo.js` solo tiene, de `$ALARM DEGRADADO`, la de
      `ROJO_SIN_HORA`; las otras tres se pintan en crudo (SPEC 4 §7, hueco 11).
    - El contador congelado sigue saliendo como no nulo durante la ventana (`return v == 0 ? 1UL : v;` sigue en el

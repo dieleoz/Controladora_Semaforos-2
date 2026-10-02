@@ -84,7 +84,8 @@ arranque lo exige, la tarjeta queda **a oscuras**. **Nada de esta spec supone qu
 
 **El aguante del cruce** —cuanto pueden separarse las dos puntas antes de que los verdes se
 solapen— **no se escribe: se BARRE** con el modelo de costura (`_aguante()` de `esp32_13`) sobre
-`DEG_VERDE_SEG`, `DEG_DESPEJE_SEG` y el ambar. **Las dos puntas pueden irse en sentidos
+`DEG_VERDE_SEG`, `DEG_DESPEJE_SEG` y el amarillo de cierre (`D-45`, que cuenta como paso abierto). **Las dos puntas
+pueden irse en sentidos
 CONTRARIOS**, asi que lo que se compara contra el aguante es siempre la separacion RELATIVA:
 `2 x deriva_de_una_punta + 2 x el residuo de segundo entero de cada siembra` (`_relativa_s()` de
 `reloj_04`).
@@ -162,10 +163,12 @@ decidio **no cruzar** el 13/09.
 
 🟢 **EL TOPE EXISTE Y ES DURO.** Pasado `LIMITE_DURO_MS` (Maestro) / `LIMITE_SIN_SYNC_MS`
 (Esclavo) **desde la ultima sincronizacion confirmada con la otra punta**, el Degradado termina:
-el Maestro va a ambar **publicando la causa** —`$ALARM DEGRADADO` con `RELOJ_NO_CUENTA`, `SYNC_SIN_FECHA` o
-`LIMITE_48H`, y solo esta ultima lleva el rotulo «Limite 48h sin sync / Revise el radio» (1.49 (b), `622a20b`; que
-hace el tecnico: SPEC 6 PARTE C)— y el Esclavo se **rinde** por todo-rojo hasta `DEG_RENDIDO`, que es ambar
-intermitente, **sin `$ALARM`**. **El motivo esta en el fuente y es
+el Maestro va a ambar **publicando la causa** —`$ALARM DEGRADADO` con `SYNC_SIN_FECHA` o `LIMITE_48H`, y solo
+esta ultima lleva el rotulo «Limite 48h sin sync / Revise el radio» (1.49 (b), `622a20b`; que hace el tecnico: SPEC 6
+PARTE C)— y el Esclavo se **rinde** por todo-rojo hasta `DEG_RENDIDO`, que es ambar intermitente, **sin `$ALARM`**.
+**Con el reloj de la tarjeta CONGELADO no hay ambar sino ROJO FIJO** en las dos (`D-49`, `cda33df`, sin banco;
+`$ALARM ...RELOJ_NO_CUENTA,...,CAMBIO_A_ROJO` solo en el Maestro, y `ROJO_SIN_HORA` en las dos; SPEC 3 §5). **El
+motivo esta en el fuente y es
 la frase que gobierna esta spec entera:** *«EL ESTADO SEGURO NO PUEDE DEPENDER DE QUE ALGUIEN SE
 ACUERDE»*. Y la puerta de entrada del Maestro es aun mas estrecha: exige sincronizacion
 **fresca** (`SYNC_FRESCA_MS`) y desfase dentro de `TOLERANCIA_DESFASE_S`, las dos **por radio**.
@@ -241,7 +244,7 @@ meta el cruce en Degradado solo. Asi que «por que esta en Degradado» son **tre
 |---|---|---|
 | **por que lo pusieron** (la radio se cayo) | `$ALARM FALLO_RF` con su causa, y el `$EVENT ENLACE_RF` | 🟢 **sale**, pero como **evento pasado**: el tecnico que llega DESPUES depende de la bitacora |
 | **por que NO puede entrar** | `MDG_FALTA_HORA`, `MDG_NUNCA_SYNC`, `MDG_SYNC_VIEJA`, `MDG_SIN_DESFASE`, `MDG_DESFASE_ALTO`, `MDG_SIN_CONFIG` (Maestro) · `DEG_RECHAZO_SIN_HORA`, `SIN_CONFIG`, `CICLO_NULO`, `SIN_SYNC`, `SYNC_VENCIDA`, `AMBAR_VIGENTE` (Esclavo) | 🟡 **solo como `$ERR` a quien mando la orden**. Quien se conecta despues no lo ve |
-| **por que se SALIO** (rojo fijo o ambar) | `irARojoSinHora()` en las dos puntas (rojo fijo) · el limite del Maestro, en tres ramas · la rendicion del Esclavo (ambar) | 🟡 el `$ALARM HORA_ESP32/CADUCADA` y el `$ALARM DEGRADADO/ROJO_SIN_HORA`, repetido, si salen; ~~el vencimiento del tope no publica causa propia~~ → **en el Maestro si, desde 1.49 (b): `$ALARM DEGRADADO` con su causa**, como instante y no en el diario. **El Esclavo sigue sin publicarla** |
+| **por que se SALIO** (rojo fijo o ambar) | `irARojoSinHora()` en las dos puntas (rojo fijo; desde `D-49` tambien el reloj congelado al vencer el limite) · el limite del Maestro, en tres ramas (la de `RELOJ_NO_CUENTA`, a rojo fijo) · la rendicion del Esclavo (ambar) | 🟡 el `$ALARM HORA_ESP32/CADUCADA` y el `$ALARM DEGRADADO/ROJO_SIN_HORA`, repetido, si salen; ~~el vencimiento del tope no publica causa propia~~ → **en el Maestro si, desde 1.49 (b): `$ALARM DEGRADADO` con su causa**, como instante y no en el diario. **El Esclavo sigue sin publicarla** |
 
 ⚠️ **Y LO QUE LA APP HACE HOY ES PEOR QUE UN HUECO: AFIRMA LA CAUSA SIN QUE NADIE SE LA MANDE.**
 Medido sobre `app.js`: el badge de `DEGRADADO` dice *«SIN ENLACE ENTRE POSTES»* y el de `RENDIDO`

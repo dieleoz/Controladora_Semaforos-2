@@ -154,10 +154,11 @@ configuracion** (`SPEC_6` HUECO 3), y si no se hizo el sintoma no dira «radio m
    que dispara sola **dan el mismo contacto cerrado**, asi que ante la duda **no baja y avisa** —y quien decide si eso es
    una averia o trafico es una persona, no el equipo—. Y **los ultimos metros de la bajada no los ve nadie**: no hay fin
    de carrera, y esta **sin preguntar al fabricante** si la centralita trae fotocelula o borde sensible.
-4. **NO HAY AMBAR AL CERRAR EL VERDE: salta de VERDE a ROJO.** **El conductor no recibe ningun aviso de que el verde se
-   acaba**; en su lugar hay un margen, no un aviso: el todo-rojo de despeje (`SPEC_1` §3.1). La pluma **no** baja con el
-   rojo: espera unos segundos y, pasados, no baja mientras una camara vea algo debajo (`SPEC_8` §1). **Ni ese retardo
-   ni el veto de camara son un AVISO al conductor de que el verde se acaba**, y ese aviso es lo que falta.
+4. 🟢 ~~**NO HAY AMBAR AL CERRAR EL VERDE: salta de VERDE a ROJO.**~~ → **construido en `cda33df` (`D-45`), sin banco
+   ni tarjeta:** todo verde se cierra por 3 s de amarillo (`AMARILLO_SEG`) antes del rojo, en las dos puntas y en todos
+   los modos, y el verde se abre directo (`SPEC_1` §3.2). La pluma sigue arriba durante el amarillo, baja unos segundos
+   despues del rojo y no baja mientras una camara vea algo debajo (`SPEC_8` §1). **Lo que los equipos de campo hacen lo
+   dice `ESTADO.md`**: hasta cargar este firmware, siguen saltando de verde a rojo.
 5. **EL PIN VIAJA EN CLARO Y CUATRO ORDENES NO LO PIDEN.** El transporte es Bluetooth SPP **sin cifrar**; las cuatro que
    **cambian algo** sin clave estan contadas en `SPEC_4` §7.1. Y **`SET_RTC` con un PIN falso pone la hora** — riesgo
    **aceptado** por el responsable, `D-26` (1).

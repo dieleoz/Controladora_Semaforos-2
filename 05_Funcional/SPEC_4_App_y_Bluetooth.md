@@ -303,15 +303,16 @@ corrida, **y la cuenta no se copia aqui** (§14).
 | bateria `BAT:` | **`--` FIJO** en las dos puntas: el equipo declara que **no la mide** —falta el divisor y la entrada analogica—, y la app lo dice con esas palabras en vez de pintar un numero |
 | boton de emergencia | `FORZAR_ROJO` | `AMBAR_EMERGENCIA` + `CANCELAR_AMBAR` |
 
-🟡 **`D-45` (`N-174`, sin construir) cambia lo que significa `ESTADO:AMARILLO`, no el formato.** Hoy sale al ABRIR
-(de rojo a verde); con `D-45` sale al CERRAR, durante `AMARILLO_SEG` al final de cada verde, y despues `ROJO`
-(SPEC 1 §3.2). Tres consecuencias para la app: **(1)** su frase *«AMARILLO, este poste esta cerrando su paso»*,
-hoy falsa, pasa a ser cierta; **(2)** la frase de la pluma con la luz en `AMARILLO` (*«NO es averia: no baja
-mientras haya alguien debajo»*) deja de valer: con `D-45` la pluma esta arriba en el amarillo por diseno, no por un
-veto (SPEC 8 §1); **(3)** `FORZAR_ROJO` contesta `$ACK` al aceptar la orden y el `ROJO` llega tras el amarillo.
-`ESC:` publica lo ultimo que consta del Poste 2 y hoy dice `VERDE` hasta el `ACK_RED`; con `D-45` ese tramo es su
-amarillo. Propuesta, **sin decidir**: `ESC:AMARILLO` desde la orden de rojo que cierra un verde del Poste 2 hasta
-su acuse.
+**`D-45` (`N-174`; construido en `cda33df`, sin banco) cambio lo que significa `ESTADO:AMARILLO`, no el formato.**
+Hasta `cda33df` salia al ABRIR (de rojo a verde); ahora sale al CERRAR, durante `AMARILLO_SEG` al final de cada
+verde, y despues `ROJO` (`semaforo_nombreEstado()`; SPEC 1 §3.2). Consecuencias para la app: **(1)** su frase
+*«AMARILLO, este poste esta cerrando su paso»* (`app.js`) es ahora cierta; **(2)** 🔴 **la app no cambio:** con la luz
+en `AMARILLO` sigue pintando la frase de la pluma *«NO es averia: no baja mientras haya alguien debajo»*, que ya no
+vale —en el amarillo la pluma esta arriba por diseno (`luzPideArriba`), no por un veto (SPEC 8 §1)—; **(3)**
+`FORZAR_ROJO` contesta `$ACK` al aceptar la orden y el `ROJO` llega tras el amarillo.
+🔴 **ABIERTO: `ESC:AMARILLO` no se construyo.** `coordinador_estadoEsclavo()` publica lo ultimo que consta del Poste
+2 y dice `VERDE` hasta el `CMD_ACK_RED`, tambien durante su amarillo de cierre (SPEC 2 §2.2.bis). La propuesta
+—`ESC:AMARILLO` desde la orden de rojo que cierra un verde del Poste 2 hasta su acuse— sigue **sin decidir**.
 
 ⚠️ **Los cuatro campos fijos del Esclavo —`T`, `RF`, `RTT`, `BAT`— NO SE RETIRAN, y el motivo es de la
 app, no del firmware.** La app escribe `state.countdown` dentro de `if (data.T !== undefined)` y
