@@ -1,0 +1,163 @@
+Veredicto: NO APTO
+
+Revisión adversaria de arquitectura de HEAD 7edadb0 (cambios desde a505fa2: D-40, D-38/DR6-DR7, D-45/N-174, D-47, D-48, D-49, G = D-44/D-46).
+Autor de lo revisado: no soy yo. Solo lectura del repo y nada compilado.
+Primera pasada fuera de Claude: segunda-opinion con deepseek-flash sobre extractos de semaforo.cpp, coordinador.cpp,
+Esclavo/main.cpp y ciclo_degradado.h. qwen devolvió 429. Resultado: 2 hallazgos; el 1 se reproduce (es la condición 1)
+y el 2 se descarta, porque el aviso de ámbar sí se reintenta (Esclavo/src/bluetooth.cpp:1386-1389, AVISO_AMBAR_REINTENTOS).
+
+## 1. Contradicciones con el encargo
+
+- **"D-45 es imposible por construcción":** se confirma en la luz de cada punta y se desmiente en el par.
+  - MEDIDO, en la luz de cada punta: de S_VERDE solo se sale a S_AMARILLO o a S_FALLO.
+    - Maestro: semaforo.cpp:320-335. Esclavo: semaforo.cpp:301-316.
+    - apagarTodo() solo lo llama setup().
+    - Fuera de semaforo.cpp no hay ningún digitalWrite a pines de luz ni de pluma (grep en las dos puntas: 0).
+  - Se desmiente en el par: ver la condición 1, que es amarillo o verde contra ámbar.
+- **"El presupuesto (B), 27,3 s contra 30,3 s":** no se objeta la cifra, y no encuentro escenario que falle (MEDIDO).
+  - El peor caso del ciclo (C_ESPERANDO_ACK_RED/GREEN) solo corre con el Maestro en rojo.
+  - El ACK_RED renueva tUltimaRespuestaEsclavo en ese estado (coordinador.cpp, esRespuesta).
+  - El verde propio solo se abre con puedeSostenerVerde() recién renovado.
+  - Con el verde propio puesto solo coexiste el intercambio de hora, y su static_assert ya mide contra el ARRANQUE de la suelta.
+  - El borde abierto de (B) es, por tanto, documental: no hay ámbar por orfandad en falso ni verde sostenido de más.
+  - El margen del ACK_RED, 0,1 s en los reintentos, es real pero inocuo (Bajo 2).
+- **"FORZAR_ROJO acusa al aceptar y el rojo llega a los 3 s":** el texto se confirma; el efecto, no en todos los modos.
+  - El $ACK es neutro (`RESULT:OK`). La app dice «deja las dos vías en rojo fijo» (app.js:2490, 2588) y no promete inmediatez.
+  - En Degradado la orden se acusa y no se cumple (condición 2).
+
+## 2. Condiciones
+
+1. **Verde y amarillo del Poste 2 contra el ámbar del Poste 1 al caer la subida (Alto, MEDIDO).**
+   - Escenario: el Esclavo tiene el verde (QV_ESCLAVO, C_IDLE) y muere el enlace Esclavo→Maestro. La bajada sigue viva.
+     - Los PING le siguen refrescando la orfandad (Esclavo/src/main.cpp:392-395), así que su suelta no actúa nunca.
+     - A los 28 s el Maestro entra en C_FALLO (coordinador.cpp:1215).
+     - En la misma vuelta pasa a S_FALLO, con ámbar intermitente y pluma arriba (case C_FALLO, coordinador.cpp:1448-1452).
+     - Envía el GO_RED (coordinador.cpp:1227).
+     - Con D-45 ese GO_RED abre el amarillo de 3 s del Esclavo (main.cpp:476-478).
+   - Resultado: un viaje de radio en verde y 3 s en amarillo frente al ámbar intermitente del otro poste, con las dos plumas
+     arriba. Antes de cda33df era solo el viaje (~0,3 s).
+   - Rompe SPEC_2 §4: «un amarillo contra el ámbar intermitente del otro poste es paso abierto» (SPEC_2:161-162).
+   - Rompe también D-34, «el sentido contrario se cierra igual».
+   - La suelta adelantada de D-45 cubre el verde propio, pero no este camino.
+   - El instrumento no lo ve: el detector de ventanas G cuenta solo `verde()`.
+     - Referencias: orquestador.cpp:955 `hayVerdeFrenteASinRojo` y 1041-1042.
+     - G1 (2435) sale en PASS con el amarillo contra el ámbar dentro.
+     - La inversión de D-45 marcó el amarillo como paso en los contadores de despeje y en el arnés del Degradado
+       (orquestador_degradado.cpp:383), pero no en este detector: es una inversión incompleta (CLAUDE.md §9).
+   - Cómo se cierra, en este orden:
+     1. SPEC_2 §4 decide qué hace el Poste 1 con QV_ESCLAVO al acercarse al silencio. Por ejemplo:
+        - pedir el rojo AMARILLO_MS + TIMEOUT_ACK_MS antes de los 28 s; o
+        - retrasar su S_FALLO hasta que el rojo del otro conste o venza su amarillo.
+     2. El detector G cuenta el amarillo como paso y G1 se ve en ROJO sobre el HEAD actual.
+     3. Después, el código.
+
+2. **FORZAR_ROJO en Degradado se acusa OK y el verde vuelve (Alto, MEDIDO). Rompe CLAUDE.md §2 y la secuencia de 4.4.2.**
+   - FORZAR_ROJO entra sin PIN en cualquier modo (bluetooth.cpp:612-617 y 878-881). La app lo envía también en Degradado
+     (tests/dom_aviso_degradado.js:66-70).
+   - En FD_VERDE_MAESTRO pasa esto:
+     1. coordinador_forzarRojoTotal() arranca el amarillo.
+     2. DEG_ACTIVO llama a semaforo_forzarVerde() en cada vuelta (modo_degradado.cpp:1082). La orden se ignora mientras dura el
+        amarillo (semaforo.cpp:332).
+     3. Al vencer el amarillo, en la misma vuelta pasa a rojo durante microsegundos y vuelve a VERDE.
+   - Lo que ve el conductor: verde, amarillo 3 s, verde. No es ninguna secuencia de 4.4.2.
+   - El operario tiene un $ACK OK de un «rojo total» que no existe.
+   - Además, el GO_RED que sale por radio saca al Esclavo de su Degradado (Esclavo/src/main.cpp:386-389).
+     - El Maestro sigue alternando por reloj y ya no manda PING.
+     - A los 28 s el Esclavo cae a ámbar por orfandad frente a los verdes por reloj del Maestro.
+     - Esto es SOSPECHA en campo: requiere radio viva durante el Degradado. En el fuente es MEDIDO.
+     - Lo previo a D-45 era un parpadeo de rojo de una vuelta; el envío de GO_RED ya existía.
+   - Cómo se cierra: SPEC_4 (§3 y tabla de FORZAR_ROJO) dice qué hace en Degradado, con una de estas dos salidas:
+     - $ERR que remita a SET_MODO:MENU; o
+     - salir del modo por su todo-rojo.
+   - Va con una prueba que ejecute FORZAR_ROJO en DEG_ACTIVO y se vea en rojo. Después, el código.
+
+3. **D-47 sin prueba que lo ejecute (Medio; la regla escrita es «sin pruebas, no se aprueba»).**
+   - Nada arranca setup() con FLAG_ROJO_SIN_HORA puesto en ninguna punta.
+     - El arnés del puente lo deja vacío: arnes_puente_testigo3.inc:14 `respaldo_guardarRojoSinHora() {}`.
+     - SPEC_2 hueco 10 y SPEC_1 §4.1 lo declaran así.
+   - Cómo se cierra:
+     - Una prueba del orden de setup() con la bandera puesta, en las dos puntas, vista en rojo.
+     - Un caso con degradadoActivo y la bandera a la vez, para fijar la precedencia de main.cpp:110-139.
+
+4. **La compuerta está en rojo, y el rojo bloquea el paquete (regla global).**
+   - evidencia/2026-10-02_compuerta.txt (HEAD 7edadb0) da «banco por packs 1353/1354, 1 FALLA» (D-22, sin construir).
+   - Cómo se cierra: decidir D-22 (construir o retirar la fila; no escribir un ancla) y repetir la compuerta completa.
+   - Si no, lo que sale es un encargo de medida `_SIN_BANCO`, no una entrega.
+   - Todo D-45, D-47, D-48 y D-49 está además «sin banco».
+
+## 3. Hallazgos
+
+**Alto**
+- Condiciones 1 y 2.
+
+**Medio**
+1. **La reposición de DR6/DR7 solo cubre el arranque (MEDIDO en la librería; el efecto en tarjeta, SOSPECHA).**
+   - STM32duino RTC 1.9.0 escribe DR6/DR7 en marcha por dos vías:
+     - `STM32RTC::syncDate()` → `RTC_StoreDate()` en cada getDay/getMonth/getYear (.pio/.../STM32RTC.cpp:1359-1364).
+     - `RTC_GetTime()` al pasar de día (rtc.c:781-828).
+   - Con tBaseMillis == 0 (sin siembra del ESP32) el firmware llama a esas funciones:
+     - reloj_fijarEnero() → getMonth(), cada 10 min (coordinador.cpp:600; reloj.cpp, reloj_fijarEnero).
+     - reloj_dia() → getDay().
+     - reloj_segundosDelDia() → getHours().
+   - Consecuencias:
+     - REG_SYNC_BAJA y REG_SUMA_BAJA quedan pisados con contenidoValido en true, y el siguiente sellar() re-sella la basura.
+     - En el siguiente arranque, la copia de respaldo_capturarAntesDelReloj() es la fecha de la librería: no cuadra y se
+       borra la pila. Con eso cae D-29 en la configuración sin ESP32.
+     - Al revés también: tras una reposición buena, rtc.begin() lee como fecha los datos del respaldo (rtc.c:514-579).
+       getYear() pasa a ser SYNC_BAJA>>8, y `horaValida` del arranque (reloj.cpp, reloj_setup: getYear() >= 26) queda
+       pseudoaleatoria.
+   - N-20 no se rompe: la captura solo lee, antes de reloj_setup().
+2. **No hay prueba de la pareja D-45 en el camino de fallo del coordinador**: C_FALLO con QV_ESCLAVO. Es la misma causa que la
+   condición 1, vista como hueco del instrumento.
+
+**Bajo**
+1. ESC:AMARILLO sin construir: el Poste 1 publica `ESC:VERDE` durante el amarillo del Poste 2. Está declarado abierto en
+   SPEC_2 §2.2.bis.
+2. Reintentos del ACK_RED.
+   - El ACK llega a ~3,4 s más el viaje (3000 + RETARDO_RESPUESTA_MS 200 + ida y vuelta) contra una ventana de 3,5 s.
+   - Si la primera orden se pierde, el acuse puede llegar tarde: gasta un reintento y, en el último, provoca un tick de
+     C_FALLO con recuperación SFTY-9 (configConfirmada = false, pendConfig).
+   - No cambia la luz ni produce ámbar (coordinador.cpp:1407-1432).
+3. FORZAR_ROJO en AUTO no deja «rojo fijo»: el ciclo vuelve a pedir paso. Ya existía (SPEC_4 §403). Aun así, el texto de la
+   app «deja las dos vías en rojo fijo» es inexacto fuera de MENU/MANUAL.
+4. Arranque del Maestro: coordinador_setup() → semaforo_apagarTodo() deja las lámparas apagadas durante delay(2000) y la
+   espera del LSE hasta modo_ambar_setup() (main.cpp:50-147). Son 2 a 4 s a oscuras en cada watchdog. Ya existía; D-40 no lo
+   menciona.
+5. ciclo_degradado_fase(): si un verde empieza justo en finDia−AMARILLO_SEG, sale AMARILLO_MAESTRO/ESCLAVO sin verde delante.
+   Es rojo→«amarillo» de cierre sin paso; el firmware pinta rojo porque forzarRojo desde S_ROJO no enciende amarillo. Sin
+   efecto en la luz.
+
+**Revisado sin objeción**
+- Ciclo, MANUAL/DAR PASO y GO_RED/ACK_RED.
+- Suelta N-163/D-34 adelantada AMARILLO_MS.
+- Backstop del Poste 2.
+- coordinador_forzarMenu/RojoTotal/iniciarModo; tRef renovado al final del amarillo.
+- Ningún estado C_*_A_VERDE queda atascado por un forzarVerde() ignorado (DESPEJE_SEG_MIN > AMARILLO_SEG y tRef ≥ fin del
+  amarillo en todos los caminos).
+- Degradado de seis fases con su guarda de medianoche (el despeje absorbe la deriva).
+- tEstado renovado durante el amarillo (modo_degradado.cpp:926).
+- FLAG_ROJO_SIN_HORA: se pone después de bajar el Degradado y lo borran guardarDegradado/guardarTestigo y la salida del
+  operario. No queda pegado.
+- G (D-44/D-46):
+  - Ninguna guarda siempre falsa ni veto abierto; sin funciones huérfanas (demanda_solicitar, degradado_entrar y
+    evaluarEntrada siguen con llamador).
+  - menu_setup() → coordinador_forzarMenu() se mantiene.
+  - Pines y guías coinciden: J14/PB0 leído y vacío en campo; J16 p10/p12 = CAM_C/CAM_D (Montaje_Campo, Pruebas_Funcional,
+    Guía de banco); J15 = MOTOR_TALANQUERA.
+- Instrumentos:
+  - barrera_02, que pasa a comparar conjuntos, mide la misma propiedad escrita.
+  - costura_12 es más estricta (el amarillo cuenta como paso).
+  - decisiones_01: ninguna fila con comportamiento en el firmware se exime por la columna de superficie.
+  - app_02 (DEGRADADO) está justificado por D-46.
+  - El hueco real de instrumentos es el de la condición 1.
+
+## 4. Lo que no revisé
+
+- No compilé ni ejecuté nada, por orden del encargo: hay una compuerta corriendo.
+- No vi las pruebas invertidas «vistas en rojo» de cda33df.
+- Tarjeta, radio y cableado: nada de esto se cierra en papel.
+- No medí la latencia real del ACK_RED con repetidor (Bajo 2), ni el efecto de la librería RTC sobre DR6/DR7 en una placa
+  sin ESP32 (Medio 1).
+- La app (textos de pluma en amarillo, cartel LA RADIO VOLVIO) y los .docx/manuales: la revisión cubre el firmware, no lo que
+  ve una persona.
+- ESP32_Expansion: sin cambios funcionales en esta tanda.
