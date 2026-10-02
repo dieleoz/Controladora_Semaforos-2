@@ -72,10 +72,12 @@ leyendo **los dos despachadores** y prohibe que una lista reclame una orden que 
 
 | solo el MAESTRO | solo el ESCLAVO | el PUENTE de cada poste |
 |---|---|---|
-| `SET_MODO:` AUTO · MANUAL · AMBAR · MENU · ALCANCE · INTELIGENTE · DEGRADADO · `MANUAL:CAMBIAR_TURNO` · `SET_TIEMPOS` · `TEST_LEDS` · `DEMANDA` · `REINICIAR_RELOJ` · `FORZAR_ROJO` | `AMBAR_EMERGENCIA` · `CANCELAR_AMBAR` · `SOLICITAR_PASO` · `SET_MODO:DEGRADADO` | `LEER_RTC` · `SET_RTC` |
+| `SET_MODO:` AUTO · MANUAL · AMBAR · MENU · ALCANCE · INTELIGENTE · `MANUAL:CAMBIAR_TURNO` · `SET_TIEMPOS` · `TEST_LEDS` · `DEMANDA` · `REINICIAR_RELOJ` · `FORZAR_ROJO` | `AMBAR_EMERGENCIA` · `CANCELAR_AMBAR` | `LEER_RTC` · `SET_RTC` |
 
-⚠️ **`SET_MODO:DEGRADADO` la atienden las DOS y no hacen lo mismo:** en el Maestro es el modo del cruce;
-en el Esclavo es la llave que `D-18` abrio para esa punta (cierra `A-11`).
+Las dos puntas atienden `SET_MODO:DEG_T`, `SET_DEG_AUTO` y `CONSULTA_DEG_AUTO` (§3.1, §3.2). ⬇️ ~~`SET_MODO:DEGRADADO`
+la atienden las DOS~~ → **salio de las dos con `D-46` (`f9cad1f`, 02/10; sin banco)**, y `SOLICITAR_PASO` del
+Esclavo con ella: las dos caen en el `else` final de `procesarComando()` y contestan
+`$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO` (`..._EN_ESCLAVO` en el Poste 2).
 
 ⚠️ **`FORZAR_ROJO` no significa lo mismo en las dos puntas, y por eso el Esclavo ya no lo acepta:** alli
 prometia rojo y hacia ambar con la talanquera arriba. Lo rechaza **nombrando el literal nuevo**
@@ -99,13 +101,13 @@ prometia rojo y hacia ambar con la talanquera arriba. Lo rechaza **nombrando el 
 | `SET_MODO:MENU` | **no** | **tres**: en `MODO_DEGRADADO` depende del bool de `modo_degradado_pedirSalida()` — `RESULT:SALIENDO_TODO_ROJO` si arranco la salida, `$ERR ... YA_VUELVE_AL_MENU` si ya estaba en marcha. **En ninguno de los dos se contesta OK**: el menu tarda el todo-rojo entero. Fuera del Degradado, `RESULT:OK` |
 | `SET_MODO:ALCANCE` | **no** | `$ERR ... EN_MARCHA_PARE_EL_MODO` si `modoActual_get()` es `MODO_DEGRADADO`; si no, `RESULT:OK` **incondicional** — ver §7 |
 | `SET_MODO:INTELIGENTE` | si | igual que la anterior, y con la misma reserva de §7 |
-| `SET_MODO:DEGRADADO` | si | **Sin boton en la app desde `D-37`; DEBE salir del firmware (`D-46`, 02/10; sin construir).** depende del `MotivoDegradado` que devuelve `modo_degradado_evaluarEntrada()`: `$ERR ... DESC:<motivoL1> <motivoL2>` con **los mismos dos textos** que ensenaba el gabinete, o `RESULT:OK` solo si `MDG_OK` |
-| `SET_MODO:DEG_T:ahora,inicio,verde,despeje` | si | Construido (`990c278`; `D-35`, SPEC 2 §7.bis). Puerta PARALELA a la de arriba, sin sync de radio: `MotivoTestigo` — `$ERR ... DESC:<texto>` (`modo_degradado_textoTestigo()`) por `MDT_FALTA_HORA` / `MDT_AHORA_DESFASADO` (`ahora` vs `reloj_segundosDelDia()`, tolerancia `TOLERANCIA_TESTIGO_S`) / `MDT_DESPEJE_RANGO` / `MDT_INICIO_VENCIDO` / `MDT_AMBAR_VIGENTE`, o `RESULT:OK` si `MDT_OK`, `RESULT:RENOVADO` si `MDT_RENOVADO`. No depende de que haya habido `SET_RTC` antes |
+| ~~`SET_MODO:DEGRADADO`~~ | — | **Salio con `D-46` (`f9cad1f`; sin banco):** `$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO`. Su puerta, `modo_degradado_evaluarEntrada()` con `DEG_RECHAZO`, queda en el fuente sin llamador que la alcance y se conserva |
+| `SET_MODO:DEG_T:ahora,inicio,verde,despeje` | si | Construido (`990c278`; `D-35`, SPEC 2 §7.bis). **La unica orden de entrada al Degradado.** Puerta PARALELA a `modo_degradado_evaluarEntrada()`, sin sync de radio: `MotivoTestigo` — `$ERR ... DESC:<texto>` (`modo_degradado_textoTestigo()`) por `MDT_FALTA_HORA` / `MDT_AHORA_DESFASADO` (`ahora` vs `reloj_segundosDelDia()`, tolerancia `TOLERANCIA_TESTIGO_S`) / `MDT_DESPEJE_RANGO` / `MDT_INICIO_VENCIDO` / `MDT_AMBAR_VIGENTE`, o `RESULT:OK` si `MDT_OK`, `RESULT:RENOVADO` si `MDT_RENOVADO`. No depende de que haya habido `SET_RTC` antes |
 | `SET_DEG_AUTO:1` / `SET_DEG_AUTO:0` | si | Construido (`A-15`, SPEC 2 §7.ter (a)). **El `$ACK` sale DIFERIDO**, cuando el `ECO` del otro poste refleja el cambio: `RESULT:ON_EFECTIVO` (el otro tambien apto) / `RESULT:ON_FALTA_EL_OTRO_POSTE` / `RESULT:OFF`. Rechazos: `$ERR ... SIN_ENLACE_CON_EL_OTRO_POSTE` · `EN_DEGRADADO_SALGA_PRIMERO` · `FORMATO_INVALIDO`; sin `ECO` en `DEG_AUTO_ACUSE_MS`, `$ERR ... CAMBIADO_AQUI_SIN_ACUSE_DEL_OTRO_POSTE` (el cambio queda y se sigue publicando). Maestro en `MENU`: siempre ese `$ERR` (SPEC 2 §7.ter (a)). Misma orden y mismos literales en el Esclavo |
 | `CONSULTA_DEG_AUTO` | no (es una consulta) | Construido. `RESULT:ESTE_<ON/OFF>_OTRO_<ON/OFF>_APTO_<SI/NO>`: la opcion propia, el ultimo `APTO` oido del otro y el `APTO` propio. Igual en el Esclavo |
 | `FORZAR_ROJO` | **no** (y con PIN tambien) | `RESULT:OK` incondicional. `coordinador_forzarRojoTotal()` es `void` y no tiene guarda: no hay nada que mirar |
 | `MANUAL:CAMBIAR_TURNO` | si | **tres, y el ORDEN importa** (`N-151`): `$ERR ... MODO_SIN_CICLO_SALGA_PRIMERO` si `modoMueveElCoordinador()` es falso; si no, `RESULT:OK` cuando `pedirCambioVerificado()` devuelve true, y `$ERR ... EN_TRANSICION_REINTENTE` cuando no |
-| `TEST_LEDS` | si | **solo FUERA DE SERVICIO** (`N-82.bis`, cinta del 28/09): decide `testLedsAdmitido()` de `semaforo.cpp` —modo `MENU`, `HORA` o `ALCANCE` (los que dejan los dos postes en rojo fijo), luz en `S_ROJO` **y** `ACK_RED` del Esclavo recibido (`coordinador_rojoEsclavoConfirmado()`)—, porque la fase verde del test encenderia el verde de este poste contra el otro sentido y `SFTY-2` solo enclava el mismo poste. El despachador pregunta `semaforo_testLedsEnCurso()` DESPUES de llamar: `RESULT:STARTING_6S` si quedo armado; `$ERR ... SIN_ENLACE_AMBAR_NO_SE_PRUEBA` si la luz esta en `S_FALLO`; `$ERR ... ESPERANDO_ROJO_DEL_ESCLAVO` en esos tres modos sin el acuse; `$ERR ... EN_SERVICIO_PASE_A_MENU` en el resto |
+| `TEST_LEDS` | si | Solo fuera de servicio (`N-82.bis`): `testLedsAdmitido()` exige modo `MENU` o `ALCANCE`, luz en `S_ROJO` y `ACK_RED` del Esclavo (`coordinador_rojoEsclavoConfirmado()`). `RESULT:STARTING_6S` si quedo armado; `$ERR` `SIN_ENLACE_AMBAR_NO_SE_PRUEBA` en `S_FALLO`, `ESPERANDO_ROJO_DEL_ESCLAVO` sin acuse, `EN_SERVICIO_PASE_A_MENU` en el resto |
 | `SET_TIEMPOS:v,r,d` | si | **EL MOLDE. Cuatro respuestas, una por motivo:** `$ERR ... FORMATO_INVALIDO` si el `sscanf` con el `%c` centinela no convierte 3 exactos —dos ordenes pegadas convierten 4—; `$ERR ... EN_MARCHA_PARE_EL_MODO` si `modoAutomatico_enMarcha()`; `$ERR ... RANGO` si `modoAutomatico_fijarTiempos()` devuelve false; `RESULT:OK` **solo** si devolvio true |
 | `REINICIAR_RELOJ` | si | **cuatro, y el `$ACK` NO sale en la rama** (1.49 (a), `622a20b`). ~~depende del bool de `reloj_reiniciarDominioRespaldo()`: `RESULT:CRISTAL_OK_PONGA_LA_HORA` o ...~~ → el bool solo decide si hay algo que verificar. `$ERR ... REPITA_EN_UNOS_SEGUNDOS` si ya hay una orden esperando veredicto —sin tocar nada: reiniciar otra vez abriria otra ventana y dejaria dos ordenes para un veredicto—; `$ERR ... SIGUE_PARADO_VEA_CONSULTA_RELOJ` si el oscilador no arranca, con el `$EVENT` `ORIGEN:RELOJ` de `reportarBitsDelReloj()`; y si arranca, **no contesta todavia**: publica `$EVENT ... ORIGEN:APP_BLUETOOTH, DETALLE:RELOJ_REINICIADO_VERIFICANDO` y deja la orden pendiente. **El veredicto sale despues, una sola vez**, desde `bluetooth_loop()` cuando `reloj_estadoCristal()` deja de decir VIGILANDO: `RESULT:CRISTAL_OK_PONGA_LA_HORA` **solo** con CUENTA, o `$ERR ... ARRANCA_Y_NO_CUENTA_VEA_CONSULTA_RELOJ` con CONGELADO, otra vez con los bits. **Llega unos segundos despues de pulsar**: el plazo es la ventana de vigilancia del cristal y no se copia aqui. La app traduce los tres `DESC` |
 | `DEMANDA` | si | **tres**: `$ERR ... SOLO_EN_MODO_INTELIGENTE` fuera del modo —registrar una peticion que ningun ciclo va a mirar es fingirla—; `RESULT:REGISTRADA` si `demanda_solicitar()` devuelve true; `$ERR ... REPITA_EN_UNOS_SEGUNDOS` si devuelve false |
@@ -121,9 +123,8 @@ que viviera en una funcion comun los dejaria midiendo un bloque vacio (`N-89`).
 | `AMBAR_EMERGENCIA` | **no** | **seis literales, y ninguno promete de mas.** Con la luz libre (`!degradado_gobiernaLuz()`) el ambar se enciende ya; lo que el `RESULT` anade es **si el aviso al Poste 1 puede haber sido oido**, y eso NO sale de `protocolo_enviarPaquete()` —que es `void`— sino de dos banderas: `enlaceCaidoAnunciado` (esta punta ya declaro que se quedo sin radio) y `avisoAmbarConfirmado` (`D-31`: el Poste 1 acuso un aviso anterior de ESTE ambar). De ahi `OK`, `OK_SIN_RADIO`, `OK_POSTE1_AVISADO` y sus tres gemelos `YA_EN_AMBAR_LATCH_PUESTO...` cuando la luz ya estaba en ambar y lo unico nuevo es el latch. **`SIN_RADIO` gana a `POSTE1_AVISADO`**: el acuse es de hace un rato, la caida es de ahora |
 | `AMBAR_EMERGENCIA` (con el Degradado gobernando) | — | `RESULT:SALIENDO_TODO_ROJO` si hay salida iniciada y `RESULT:SALIDA_YA_EN_CURSO` si es una rendicion (`degradado_rendicionEnCurso()`) — **no `OK`**, porque el ambar tarda el todo-rojo entero. Y si la salida en curso termina en ROJO porque la pidio otro: `$ERR ... SALIDA_A_ROJO_EN_CURSO_REPITA`, **sin armar el latch** |
 | `CANCELAR_AMBAR` | si | **PIDE PIN al reves que armar**, y es deliberado: quitar el ambar devuelve el cruce a dar verdes, o sea **abre paso**. Depende de `ambarEmergencia`: con latch puesto lo retira, avisa al Poste 1 y contesta `RESULT:RETIRADO` (la rama del mando salio con el, `D-30`). Sin latch, `RESULT:REENVIADO_AL_MAESTRO` si esta punta **sigue** en `S_FALLO` (la red de la trama perdida, `N-152`), y `$ERR ... NO_HAY_AMBAR_VIGENTE` si no |
-| `SOLICITAR_PASO` | si | depende del bool de `demanda_solicitar()`: `RESULT:PEDIDO_AL_MAESTRO` o `$ERR ... REPITA_EN_UNOS_SEGUNDOS`. **El Esclavo PIDE; no ordena** (SFTY-27). **Sin boton en la app desde `D-36`:** solo por terminal serie. **DEBE salir del firmware (`D-46`, 02/10; sin construir)** |
-| `SET_MODO:DEGRADADO` | si | **Sin boton en la app desde `D-37`; DEBE salir del firmware (`D-46`; sin construir).** depende del `RechazoDegradado` que devuelve `degradado_entrar()` —**no de un bool**—: `$ERR ... DESC:<degradado_textoRechazo(r)>`, un motivo por rama, con la MISMA tabla que ensenaba el gabinete. Si acepto, **`RESULT:YA_ACTIVO`** cuando el modo ya gobernaba (`antesDeg` leido antes de la llamada) y `RESULT:OK` cuando esta pulsacion lo encendio |
-| `SET_MODO:DEG_T:ahora,inicio,verde,despeje` | si | Construido (`990c278`; `D-35`, SPEC 2 §7.bis). Misma orden, `RechazoTestigo` propio (como ya pasa con `SET_MODO:DEGRADADO`): `DEG_RECHAZO_T_SIN_HORA` / `_AHORA_DESFASADO` / `_INICIO_VENCIDO` —texto «repita el testigo en el Maestro»— / `_DESPEJE_RANGO` / `_AMBAR_VIGENTE`, o `RESULT:OK` / `RESULT:RENOVADO` |
+| ~~`SOLICITAR_PASO`~~ · ~~`SET_MODO:DEGRADADO`~~ | — | **Salieron con `D-46` (`f9cad1f`; sin banco):** `$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO_EN_ESCLAVO`. La app ya no las ofrecia (`D-36`, `D-37`). El paso se da desde el Maestro (Manual y DAR PASO, SPEC 1 §8); al Degradado se entra por el testigo |
+| `SET_MODO:DEG_T:ahora,inicio,verde,despeje` | si | Construido (`990c278`; `D-35`, SPEC 2 §7.bis). Misma orden, `RechazoTestigo` propio: `DEG_RECHAZO_T_SIN_HORA` / `_AHORA_DESFASADO` / `_INICIO_VENCIDO` —texto «repita el testigo en el Maestro»— / `_DESPEJE_RANGO` / `_AMBAR_VIGENTE`, o `RESULT:OK` / `RESULT:RENOVADO` |
 | `SET_DEG_AUTO:1` / `SET_DEG_AUTO:0` · `CONSULTA_DEG_AUTO` | si · no | Construidos. Los del Maestro (§3.1); aqui el enlace es una orden de gobierno del Maestro en los ultimos `SFTY6_SILENCIO_MS`, y el `ECO` llega en su `PING` |
 | `FORZAR_ROJO` | las dos formas | `$ERR ... RENOMBRADO_USE_AMBAR_EMERGENCIA`. **Se rechaza ensenando el nombre bueno**, no en silencio: quien lo manda tiene una app o un manual anteriores al cambio |
 | `TEST_LEDS` | si | `$ERR ... NO_EN_SERVICIO_USE_EL_MAESTRO`, **rechazado a proposito**: la secuencia enciende VERDE sin mirar nada, y ese verde saldria mientras el Maestro da paso al otro sentido |
@@ -159,7 +160,7 @@ es** — dos frases que lo frenaban y son falsas:
 | lo que se decia | lo medido el 14/09 |
 |---|---|
 | *«retirar el mando se lleva por delante parte de la barrera de salidas»* | **No.** La bandera que intercepta las luces la arman **dos** funciones y sus **unicos** llamadores son el mando. Sin ellos la bandera se queda en falso para siempre y la guarda que cuelga de ella **no dispara**: el equipo escribe las luces por el camino normal. **No deja ningun veto abierto — deja codigo muerto** |
-| *«borrar el menu borra el todo-rojo de las dos puntas»* | **Tampoco.** Ese todo-rojo tiene **tres** llamadores: el menu, el Modo Alcance y el Modo Hora, **y los dos ultimos se alcanzan desde la app** |
+| *«borrar el menu borra el todo-rojo de las dos puntas»* | **Tampoco.** Ese todo-rojo tiene **tres** llamadores: el menu, el Modo Alcance y el Modo Hora, **y los dos ultimos se alcanzan desde la app**. ⬇️ Con `D-44` el Modo Hora salio y `menu_setup()` **se quedo**: es la puerta que piden `SET_MODO:MENU` y la salida de cada modo |
 
 ✅ **Y la condicion que puso el responsable se cumplio: el camino de interceptar las luces SALIO
 ENTERO con el mando**, en vez de quedarse dentro sin nadie que lo ejerza. Con el fuera, `semaforo.cpp`
@@ -167,14 +168,16 @@ escribe los pines por un solo sitio —`aplicarSalidas()`, donde vive el enclava
 lista de funciones autorizadas a saltarselo **baja de cinco a una**: cualquier camino nuevo a una
 lampara es ahora un rojo del banco en vez de una excepcion ya aprobada por su nombre.
 
-🟡 **DEBE (`D-44`, 02/10; sin construir):** el mando salio, pero `botones_actualizar()` aun antirrebota `J16` p5/p8 y
-`botonArriba()`/`botonAbajo()` entregan el flanco al menu (SPEC 1 §12.2). Salen esa lectura, `botonAceptar`/`Cancelar`,
-la navegacion del menu, el Modo Hora y `semaforo_toggle()`; `menu_setup()` se queda.
+✅ **Y CON `D-44` (`f9cad1f`, 02/10; sin banco) SALIO EL RESTO** (SPEC 1 §12.2): `J16` p5/p8 son `J16_P5_SIN_USO` y
+`J16_P8_SIN_USO`, `INPUT` sin lector (`botones_actualizar()` solo llama a `camaras_actualizar()`); salieron
+`botonArriba`/`Abajo`/`Aceptar`/`Cancelar`, la navegacion del menu, el Modo Hora y `semaforo_toggle()`.
+`menu_setup()` se queda: es el todo-rojo de `SET_MODO:MENU`.
 
 ## 3.ter EL DEGRADADO CON TESTIGO EN LA APP — flujo (`D-35`, SPEC 2 §7.bis; construido en `11b57b3`)
 
 **Boton nuevo, en LAS DOS pantallas** —Maestro y Esclavo—, gobernado por `puntaCorrecta()` igual que los demas
-(`app.js`, §7 hueco nuevo abajo): «Degradado con testigo». Aparece junto a `SET_MODO:DEGRADADO`, no en su lugar.
+(`app.js`, §7 hueco nuevo abajo): «Degradado con testigo». ~~Aparece junto a `SET_MODO:DEGRADADO`~~ → desde `D-46` es
+la unica entrada al Degradado: `SET_MODO:DEGRADADO` salio del firmware.
 
 **En el Maestro (primera punta que se toca):**
 1. El operario escribe el **traslado** —minutos hasta el Esclavo, por defecto **20**— y el **despeje** —30 a 255 s,
@@ -296,7 +299,7 @@ corrida, **y la cuenta no se copia aqui** (§14).
 |---|---|---|
 | rotulo en Android | `<prefijo><serie>-M` | `<prefijo><serie>-E` (o el provisional en la primera arrancada del modulo) |
 | cabecera | `MAESTRO (POSTE 1)` | `ESCLAVO (POSTE 2)` — lo decide `NODE:`, no lo que el operario suponga |
-| `MODO:` | `MENU` `MANUAL` `AUTO` `INTELIGENTE` `ALCANCE` `HORA` `DEGRADADO` `AMBAR` | `SUBORDINADO` `DEGRADADO` `RENDIDO` — el campo dice si esta punta esta obedeciendo o gobernando |
+| `MODO:` | `MENU` `MANUAL` `AUTO` `INTELIGENTE` `ALCANCE` `DEGRADADO` `AMBAR` (~~`HORA`~~, `D-44`) | `SUBORDINADO` `DEGRADADO` `RENDIDO` — el campo dice si esta punta esta obedeciendo o gobernando |
 | `ESTADO:` | `ROJO` `VERDE` `AMARILLO` `FALLO COM` (con espacio) | los mismos cuatro |
 | cuenta atras `T:` | numero o `--` | **`--` FIJO** |
 | enlace `RF:` `RTT:` | medidos | **`--` FIJOS** |
@@ -391,7 +394,8 @@ el modo vive en `modoAlcance_setup()` y `modoInteligente_setup()`, y `Maestro/sr
 **solo bajo `if (modo != modoAnterior)`**: repetida la orden con el modo ya puesto, el equipo contesta OK
 y **no corre nada**. Es la **misma forma** que `N-146` reparo en `SET_MODO:AMBAR` —capturando `yaEnModo`
 y contestando `REARMADO`— y que el Esclavo reparo en su `SET_MODO:DEGRADADO` —capturando `antesDeg` y contestando
-`YA_ACTIVO`—; las dos unicas ramas de modo que **no** tienen la forma son `AUTO` y `MANUAL`, que son justo las que
+`YA_ACTIVO`; esa orden salio con `D-46`—;
+las dos unicas ramas de modo que **no** tienen la forma son `AUTO` y `MANUAL`, que son justo las que
 llaman al coordinador **dentro** de la rama. **Lo que cada una se deja, medido:** en `ALCANCE`,
 `modoAlcance_setup()` es el **unico llamador** de `protocolo_reiniciarContadores()` en el Maestro, o sea que **la
 puesta a cero de SFTY-15 no ocurre en la segunda pulsacion**; en `INTELIGENTE`, no se re-ejecuta
@@ -405,10 +409,10 @@ mismo `RF:`/`RTT:` que cualquier otro modo —vienen de la ventana de latidos de
 contadores que ese modo pone a cero—. Es un modo de medida sin nadie que lea la medida, y es `D-16` en su
 forma mas simple.
 
-⚠️ **6 · `menu.cpp` NO ES SOLO PANTALLA, y por eso `D-30` toca a esta spec** (`D-32` (1) la recorta: sale solo el
-LCD — SPEC 1 §12.2). `menu_setup()` llama a `coordinador_forzarMenu()`, el todo-rojo de las dos puntas,
-**alcanzable HOY desde la app** con `SET_MODO:MENU` (§3.1, y es una de las cuatro ordenes sin PIN del hueco 1).
-**Si `menu.cpp` cae con el LCD, ese todo-rojo necesita otra puerta EN EL MISMO COMMIT.**
+🟢 **6 · CERRADO POR `D-44` (`f9cad1f`) — `menu.cpp` NO ERA SOLO PANTALLA.** `menu_setup()` llama a
+`coordinador_forzarMenu()`, el todo-rojo de las dos puntas, alcanzable desde la app con `SET_MODO:MENU` (§3.1, una de
+las cuatro ordenes sin PIN del hueco 1). `D-44` saco la navegacion y **dejo `menu_setup()`** con ese nombre: la puerta
+no se movio.
 
 ⚠️ **7 · Una ventana de ~1 s por conexion en la que una orden de Maestro puede salir contra un Esclavo.**
 `SOLO_MAESTRO` pregunta `=== 'ESCLAVO'`, asi que con `state.node` en `null` —entre que el socket abre y

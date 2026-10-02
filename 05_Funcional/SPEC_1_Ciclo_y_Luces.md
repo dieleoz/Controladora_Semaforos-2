@@ -147,18 +147,18 @@ las pruebas que celebraban lo contrario invertidas y vistas en rojo con el defec
 
 ## 4. Los modos que existen HOY
 
-**Poste 1 (Maestro).** Ocho modos declarados en su cabecera de modos; el estado vive fuera de la pantalla, en
-su propio fichero, y se lee y escribe con un par de funciones (`modoActual_get()` / `modoActual_set()`).
+**Poste 1 (Maestro).** Siete modos en el enum `ModoSistema` de `modos.h` (`MODO_HORA` salió con `D-44`); el
+estado vive fuera de la pantalla, en su propio fichero, y se lee y escribe con un par de funciones
+(`modoActual_get()` / `modoActual_set()`).
 
 | modo | qué hace con las luces | cómo se llega hoy |
 |---|---|---|
-| Menú | **rojo fijo** en las dos puntas; ámbar intermitente si no hay enlace | `SET_MODO:MENU`; el arranque sólo mientras espera la reanudación del Degradado (§4.1) |
+| Menú | **rojo fijo** en las dos puntas; ámbar intermitente si no hay enlace. **Sin navegación** (`D-44`): de `menu.cpp` sólo queda `menu_setup()` | `SET_MODO:MENU`; la salida de cada modo; el arranque sólo mientras espera la reanudación del Degradado (§4.1) |
 | Manual | todo-rojo al entrar y **ningún cambio programado**: la fase acaba cuando alguien pulsa | `SET_MODO:MANUAL`; también al cancelarse un ámbar del Poste 2 |
 | Automático | cicla por tiempo | `SET_MODO:AUTO` ~~; secuencia `A.A.A` del mando~~ *(salió el 14/09)* |
 | Inteligente | cicla por tiempo **con suelo y techo**, y las cámaras sólo pueden ALARGAR | `SET_MODO:INTELIGENTE` |
 | Alcance | **no arranca ciclos**: mantiene lo que haya (rojo fijo con enlace) | `SET_MODO:ALCANCE` |
-| Hora | no toca las luces | 🔴 **INALCANZABLE** — ver Huecos |
-| Degradado | todo-rojo de entrada y luego verde/amarillo/rojo por reloj | `SET_MODO:DEGRADADO` (sale, `D-46`, §12.11); `SET_MODO:DEG_T` (testigo); reanudación tras corte |
+| Degradado | todo-rojo de entrada y luego verde/amarillo/rojo por reloj | `SET_MODO:DEG_T` (testigo); reanudación tras corte. ~~`SET_MODO:DEGRADADO`~~ salió (`D-46`, §12.11) |
 | Ámbar | **ámbar intermitente**, pedido o de arranque | `SET_MODO:AMBAR`; ~~`B.B.B`;~~ aviso del Poste 2; salida del Degradado; **arranque** (§4.1) |
 
 **El modo Ámbar es una salida de emergencia y por eso no tiene condiciones**: funciona desde cualquier modo en
@@ -307,7 +307,8 @@ lleva amarillo (§3.2 (6)).
 → **salieron con el mando el 14/09** (`D-30`): ya no queda nada que ocupe las lámparas por encima de la lógica, y la
 puerta única escribe siempre lo que decide. **Test de lámparas** (`CMD:TEST_LEDS`): tres fases —rojo, ámbar, verde— que
 **entran por la puerta única** y por tanto por el enclavamiento, y **la pluma no sigue a ese verde**. **Solo corre
-fuera de servicio** (`N-82.bis`): modo `MENU`, `HORA` o `ALCANCE`, luz en `S_ROJO` **y el rojo del Esclavo
+fuera de servicio** (`N-82.bis`): modo `MENU` o `ALCANCE` (~~`HORA`~~ salió con `D-44`), luz en `S_ROJO`
+**y el rojo del Esclavo
 confirmado** —su `ACK_RED` a la orden de rojo de esa entrada al menú (`coordinador_rojoEsclavoConfirmado()`)—; en
 cualquier otro caso `TEST_LEDS` se rechaza con `$ERR` (`ESPERANDO_ROJO_DEL_ESCLAVO` mientras no llega el acuse),
 porque el enclavamiento no conoce el otro poste y ese verde saldría contra el paso del otro sentido. La condición se
@@ -320,14 +321,15 @@ de verde del Maestro con el Esclavo en verde. ⚠️ **Residual, no construido:*
 emergencia del Esclavo durante el test, el Maestro solo lo corta cuando lo sabe por radio y pasa a `MODO_AMBAR`;
 en esa ventana la fase verde del Maestro puede coincidir con el ámbar intermitente del Esclavo.
 ~~Con una señal del mando en curso el test espera y se rearma~~ → **corre siempre entero**: la espera se fue con la señal.
-**El Poste 2 lo rechaza.**
+**El Poste 2 lo rechaza** (`NO_EN_SERVICIO_USE_EL_MAESTRO`): su test salió con `D-44` (`testLedsActivo` vale `false`).
 
 ## 11. Decisiones vigentes que gobiernan este documento
 
 El mínimo por sentido · `DAR PASO` en Manual · los vetos del ámbar de emergencia (§4) · que aplicar tiempos no
 arranque el ciclo · el suelo y el techo del Inteligente, **con condición sin cumplir** · la reanudación del Degradado,
 que **no es manual** · y la retirada de la interfaz vieja (`D-30`), ~~recortada el 13/09 a que salga sólo el LCD y el mando se quede (`D-32`)~~
-→ **reafirmada entera el 14/09**: el LCD y el mando ya salieron; faltan la lectura de p5/p8 y el menú (§12.2). ⬇️ Y ~~`A-1.bis` abierta~~ → **el 14/09 el responsable SÍ deroga la mitad de «nunca al revés» de la
+→ **reafirmada entera el 14/09**: el LCD y el mando salieron; la lectura de p5/p8 y el menú, con `D-44` (§12.2).
+⬇️ Y ~~`A-1.bis` abierta~~ → **el 14/09 el responsable SÍ deroga la mitad de «nunca al revés» de la
 regla de la pluma** (`D-33`). La pluma **sigue a la luz para SUBIR**; lo que la cámara puede hacer es **retener la
 bajada**, nunca provocar una subida. La conducta entera, en **SPEC 5 pág. 1 §4**.
 🔴 **DOS CONDUCTAS DE LA PLUMA Y LA LUZ SIN FILA QUE LAS RESPALDE**, y son de las que hieren a alguien: **(a)** que la
@@ -352,20 +354,14 @@ Cada uno trae con qué reproducirlo.
    rojo quedan los tres segundos y el veto de cámara (SPEC 8 §1).
    ⚠️ **Y el contador que medía esto cambió de significado con la obra:** ya no dice «habría actuado» —esa
    transición dejó de ocurrir el día que el veto existe— sino **cuántos vetos ACTUARON de verdad**.
-2. 🔴 **LA RETIRADA DE LA INTERFAZ VIEJA (`D-30`, `D-44`): el LCD y el mando YA SALIERON; la lectura de p5/p8
-   y el menú NO.** **Lo que el equipo HACE hoy** *(registro 1, medido el 15/09/2026 contra el fuente de las dos
-   puntas)*: **el LCD salió el 13/09** y **el mando A/B/C/D salió entero el 14/09** —primero el corte de sus pulsos
-   (`ccca294`), después el módulo, sus lectores y la señal que interceptaba las luces (`f57a401`)—. Ya no existen
-   `mando_ambarLocal()` ni `semaforo_senalEnCurso()`. ⬇️ ~~retirarlo toca la barrera de salidas o abre vetos~~ →
-   **medido: no abrió ninguno** (SPEC 5 §3). 🔴 **LO QUE FALTA — COLA DE TRABAJO DEL FIRMWARE** *(registro 2)*: **(a)**
-   la **lectura de `BOTON1`/`BOTON2`** (`J16` p5/p8), que `D-30` retira con el resto y **sigue viva**:
-   `botones_actualizar()` la antirrebota y `botonArriba()`/`botonAbajo()` entregan el flanco. Hoy sólo lo consumen
-   `menu_loop()` y `modo_hora_loop()` del Poste 1 y **no mueve nada visible**, pero un llamador nuevo lo vuelve a hacer
-   actuar sin tocar el cobre. **(b)** El **menú del Poste 1** (`Maestro/src/menu.cpp`): su navegación no llega a ningún
-   modo, pero `menu_setup()` es la puerta del todo-rojo de las dos puntas que pide `SET_MODO:MENU`, y ese camino se
-   conserva antes de retirarlo. 🟡 **DEBE (`D-44`, 02/10; sin construir): sale todo eso** —la lectura de p5/p8,
-   `botonAceptar`/`botonCancelar` y sus ramas, la navegación del menú, el Modo Hora (§12.7) y `semaforo_toggle()`
-   (§12.8)—; **`menu_setup()` se queda**. Cobre y regla de montaje, **SPEC 5 §3**; lo que ve el operador, **SPEC 4
+2. 🟢 **CERRADO POR `D-44` (`f9cad1f`, 02/10; sin banco) — LA RETIRADA DE LA INTERFAZ VIEJA (`D-30`).** El LCD
+   salió el 13/09, el mando A/B/C/D el 14/09 (`ccca294`, `f57a401`) y el resto con `D-44`. **Lo que el equipo HACE**
+   *(registro 1, contra el fuente de las dos puntas)*: `J16` p5/p8 (`PB9`/`PB13`) son `J16_P5_SIN_USO` y
+   `J16_P8_SIN_USO`, declarados `INPUT` en `botones_setup()` y **sin lector**: `botones_actualizar()` sólo llama a
+   `camaras_actualizar()`. Ya no existen `botonArriba()`/`botonAbajo()`/`botonAceptar()`/`botonCancelar()`, la
+   navegación del menú (`menu_loop()`), el Modo Hora (§12.7) ni `semaforo_toggle()` (§12.8). **`menu_setup()` se
+   queda**: es la puerta del todo-rojo de las dos puntas (`coordinador_forzarMenu()`) que piden `SET_MODO:MENU`, la
+   salida de cada modo y el arranque (§4.1). Cobre y regla de montaje, **SPEC 5 §3**; lo que ve el operador, **SPEC 4
    §3.bis**.
 3. 🔴 **LOS HUECOS DE LUZ DEL DEGRADADO** *(el modo entero, SPEC 3)*. **(a)** El verde del Degradado
    (`DEG_VERDE_SEG`) **no pasa por el fichero de límites del ciclo**: es una constante propia del modo. ⬇️ ~~y queda
@@ -389,12 +385,10 @@ Cada uno trae con qué reproducirlo.
 6. ⚠️ **El backstop de verde máximo está dimensionado contra un máximo que ya no existe.** Su comentario lo justifica
    *«por encima del máximo configurable (99 min)»* y el máximo real hoy es el del rango vial: protege en la dirección
    segura, pero mucho más laxo de lo que su razón pide — una razón caducada (`CLAUDE.md` §6).
-7. ⚠️ **El Modo Hora es inalcanzable, y de ningún modo se sale por botón.** Los botones de aceptar y cancelar
-   devuelven `false` **siempre** en las dos puntas desde que sus pines pasaron a ser cámaras: **todas** las
-   ramas que los consultan son código muerto, sólo se sale por app ~~o por mando~~, y no hay `SET_MODO:HORA`.
-   `grep -n "bool boton" 01_Firmware/{Maestro,Esclavo}/src/botones.cpp`
-8. ⚠️ **El conmutador de luz** (`semaforo_toggle()`) **no tiene ningún llamador.** Desde `cda33df` sólo alterna
-   rojo y verde, por `semaforo_forzarVerde()` y `semaforo_forzarRojo()`: ya no saca del ámbar intermitente a verde.
+7. 🟢 **CERRADO POR `D-44` (`f9cad1f`) — ~~el Modo Hora es inalcanzable~~.** Salió entero: `modo_hora.cpp` y
+   `modo_hora.h` borrados y `MODO_HORA` fuera del enum. Nunca tuvo `SET_MODO:HORA`; su único armador era la navegación
+   del menú. El andamio de `SFTY-20` (horario nocturno) vive en `reloj.*` (`reloj_esHorarioNocturno()`).
+8. 🟢 **CERRADO POR `D-44` (`f9cad1f`) — ~~`semaforo_toggle()` sin llamador~~.** Salió de las dos puntas.
 9. 🟡 ~~EL ARRANQUE ENTRA EN MENÚ Y DEBE ENTRAR EN ÁMBAR (`D-40`, `N-169`)~~ → **construido en el Poste 1**
    (§4.1), **sin banco ni tarjeta**. El Poste 2 no cambia por diseño (§4.1). ~~Riesgo abierto: un poste
    en rojo fijo por hora perdida que sufre un corte arranca en ámbar, verde contra ámbar~~ → **cerrado por `D-47` en
@@ -427,10 +421,12 @@ Cada uno trae con qué reproducirlo.
      app no cambió: su frase de la pluma con la luz en `AMARILLO` sigue diciendo *«NO es avería»* (SPEC 4 §6);
      **(4)** comentarios caducados en el fuente: la cabecera de `modo_manual.cpp` (*«los 4 s de ambar»*) y los
      *«25 s»* de `modo_ambar.cpp` y del bucle del Poste 2.
-11. 🔴 **SALEN DOS ÓRDENES (`D-46`, 02/10): DECIDIDO, SIN CONSTRUIR** *(registro 2)*. `SOLICITAR_PASO` del Poste 2 y
-   `SET_MODO:DEGRADADO` del Poste 1 siguen hoy en los dos `procesarComando()` (SPEC 4 §3.1-§3.2); la app ya no las
-   ofrece (`D-36`, `D-37`): el paso se da con Manual y DAR PASO (§8) y el Degradado con el testigo (SPEC 2 §7.bis).
-   **Se quedan** `J14`/`PB0` (reservada al fin de carrera), el andamio `SFTY-20` y los pines de peatón y zumbador.
+11. 🟢 **CERRADO POR `D-46` (`f9cad1f`, 02/10; sin banco) — SALEN DOS ÓRDENES.** `SOLICITAR_PASO` del Poste 2 y
+   `SET_MODO:DEGRADADO` de las dos puntas ya no tienen rama en `procesarComando()`: caen en el `else` final y
+   responden `$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO` (`..._EN_ESCLAVO` en el Poste 2). El paso se da con
+   Manual y DAR PASO (§8) y el Degradado se pide con el testigo `SET_MODO:DEG_T` (SPEC 2 §7.bis). La puerta
+   `modo_degradado_evaluarEntrada()` y su `DEG_RECHAZO` del Poste 1 quedan inalcanzables y se conservan. **Se
+   quedan** `J14`/`PB0` (reservada al fin de carrera), el andamio `SFTY-20` y los pines de peatón y zumbador.
 
 ## 13. QUIÉN EJERCE CADA BARRERA DE ESTE DOCUMENTO
 
@@ -445,7 +441,7 @@ Cada uno trae con qué reproducirlo.
 | **La pluma dentro de la puerta única** (`SFTY-28`) | ✅ **filas 17, 18 y 19** (miran la salida de motor; la 17 además el publicador de pluma arriba) · `barrera_03_talanquera` por texto |
 | **El todo-rojo de despeje** (`SFTY-4`) · **el ámbar por silencio y orfandad** (§9) | ✅ el despeje, **filas 17 y 18**, que corren el ciclo sobre el coordinador real; el silencio, **fila 18** (detalle en SPEC 2 §9) |
 | **El watchdog** (`SFTY-1`, §9) | 🟡 **PARTIDA: el reinicio no lo ejerce nadie.** El bucle del Maestro sólo lo cruza PlatformIO; la fila 18 cuenta las recargas del bucle del Esclavo contra un watchdog **simulado** |
-| **Menú en rojo fijo** (`SFTY-12`) · **el test de lámparas** (§10) | 🔴 **NADIE las dos.** El forzado de menú y el arranque del test **no aparecen en ningún arnés**; el menú sólo lo compila la fila 14, y `maestro_09_test_leds` lee texto |
+| **Menú en rojo fijo** (`SFTY-12`) · **el test de lámparas** (§10) | 🔴 **NADIE las dos.** El forzado de menú y el arranque del test **no aparecen en ningún arnés**; ~~el menú sólo lo compila la fila 14~~ → `menu.cpp` (desde `D-44`, sólo `menu_setup()`) no lo compila nadie: los arneses lo sustituyen por un `menu_setup()` propio, y `maestro_09_test_leds` lee texto |
 | ~~**Los destellos INTERCEPTAN** la escritura de pines (§10)~~ | ~~fila 17~~ → **sin sujeto desde el 14/09**: la interceptación salió con el mando (§10). No cuenta abajo |
 | **El backstop de verde máximo** (§9) · **el rango duro de tiempos** (`D-5`) · **no reconfigurar en marcha** (`D-11`, §5) | ✅ el backstop, **fila 18**; el rango y la reconfiguración, **fila 17**, y el rango también la 18 |
 | **`DAR PASO` en Manual** (`D-7`, §8) | 🟡 **PARTIDA:** el acuse de `MANUAL:CAMBIAR_TURNO` sí (**fila 18**), pero **el Modo Manual del Maestro no lo compila ningún arnés** — sólo PlatformIO |

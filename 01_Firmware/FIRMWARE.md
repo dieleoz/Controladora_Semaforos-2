@@ -1,3 +1,5 @@
+> **CADUCADO (02/10/2026):** describe la V7.6, no el fuente de hoy; manda `05_Funcional/SPEC_0..SPEC_8`.
+
 # Arquitectura del Firmware V7.6 Definitivo - Controladora de Semáforos
 
 Este documento desglosa la arquitectura de software del código fuente alojado en `01_Firmware/`, analizando la estructura de proyectos PlatformIO, los módulos principales y el ciclo de vida del sistema.

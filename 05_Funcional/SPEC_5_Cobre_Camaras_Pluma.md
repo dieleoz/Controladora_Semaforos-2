@@ -58,10 +58,10 @@ bornera: antirrebote RC de 1 ms **en la placa**). `J14` p2 son **3,3 V**, el nud
 - ⚠️ **`J15` p2 NO es masa**, aunque un esquema de guia lo rotulara «GND (Q10)»: con `Q10` abierto
   esta a **~12 V** (`D-25`).
 
-## 3. `J16` p5 y p8 estan VACIOS: el firmware los sigue LEYENDO, ya sin nada que ejecute — y NO se cablean
+## 3. `J16` p5 y p8 estan VACIOS: desde `D-44` el firmware ya NO los lee — y NO se cablean
 
 > 🔴 **Regla de montaje, no cautela: NADA se cablea en `J16` p5 ni p8, y no se puentean «para
-> probar».** La regla **sigue en pie**; lo que cambio el 14/09 es **el motivo**, y son tres:
+> probar».** La regla **sigue en pie**; lo que cambio el 14/09 y el 02/10 es **el motivo**, y son dos:
 >
 > 1. **El firmware que hay DENTRO del poste puede ser anterior a la retirada.** Un equipo sin carga
 >    verificada de un firmware posterior al 14/09 **sigue componiendo secuencias con un puente**:
@@ -69,23 +69,23 @@ bornera: antirrebote RC de 1 ms **en la placa**). `J14` p2 son **3,3 V**, el nud
 >    `A.B.A.B` mete al poste en Degradado. **Que firmware lleva cada equipo lo dice `ESTADO.md`, no
 >    esta spec**, y el instalador no lo puede ver desde la bornera (`CLAUDE.md` §3: se exige la CARGA,
 >    no el commit).
-> 2. **El pin sigue LEIDO en el firmware de hoy**, aunque ya no ejecute nada (tabla de abajo). Un
->    llamador nuevo de `botonArriba()` o `botonAbajo()` lo vuelve a convertir en una entrada que
->    actua **sin tocar el cobre**. El pin no esta cerrado hasta que salga la lectura, y eso **no esta
->    construido**: es `SPEC_1` §12.2.
+> 2. ~~**El pin sigue LEIDO en el firmware de hoy**~~ → **cerrado por `D-44` (`f9cad1f`, 02/10; sin banco):**
+>    en el fuente ya no hay lector (tabla de abajo, `SPEC_1` §12.2). **En campo manda lo CARGADO:** el
+>    motivo 1 sigue mientras un equipo lleve firmware anterior.
 > 3. **Es una entrada directa a una pata del micro, sin nada en medio** (§5), **a poco mas de un
 >    milimetro de la red de 12 V** (§1).
 
 **Lo que el firmware del arbol HACE con esos dos bornes** — MEDIDO leyendo el fuente de las dos puntas el
-15/09/2026; **no ejercido en ninguna tarjeta**:
+02/10/2026 sobre `f9cad1f`; **no ejercido en ninguna tarjeta**:
 
 | | simbolo | que produce un flanco en p5/p8 |
 |---|---|---|
-| la lectura | `botones_setup()` configura `BOTON1`/`BOTON2` (`PB9`/`PB13`) como entrada pelada; `botones_actualizar()` los antirrebota y deja un flanco por vuelta | nada por si sola |
+| la lectura | `botones_setup()` declara `J16_P5_SIN_USO`/`J16_P8_SIN_USO` (`PB9`/`PB13`, antes `BOTON1`/`BOTON2`) como `INPUT` pelado; el reposo lo fija el pull-down de la placa. **Nadie los lee**: `botones_actualizar()` solo llama a `camaras_actualizar()` | **nada**: no hay lector |
 | ~~las secuencias del mando~~ | ~~`mando_registrarPulso()` desde `botones_actualizar()`~~ — la llamada se corto el 14/09 (`ccca294`) y el modulo del mando salio entero de las dos puntas ese mismo dia (`f57a401`) | **ninguna secuencia**: no queda reconocedor |
-| lo que queda consumiendo el flanco | `botonArriba()` / `botonAbajo()`. **Maestro:** los llaman `menu_loop()` y `modo_hora_loop()`. **Esclavo:** ningun llamador | **Maestro en menu:** mueve un cursor interno, y la confirmacion que lo convertiria en un modo (`botonAceptar()`) devuelve `false` siempre. **Modo Hora:** inalcanzable (`SPEC_1` §12.7). **Ni luz, ni pluma, ni trama, ni campo de la app** |
+| ~~lo que queda consumiendo el flanco~~ | ~~`botonArriba()` / `botonAbajo()`, `menu_loop()`, `modo_hora_loop()`~~ — salieron con `D-44` (`f9cad1f`), con `botonAceptar()`/`botonCancelar()` y el Modo Hora | **nada** |
 
-Ya no existen en el fuente `mando_registrarPulso()`, `mando_ambarLocal()` ni `semaforo_senalEnCurso()`.
+Ya no existen en el fuente `mando_registrarPulso()`, `mando_ambarLocal()`, `semaforo_senalEnCurso()`,
+`botonArriba()`, `botonAbajo()`, `menu_loop()` ni `modo_hora_loop()`.
 
 > ⬇️ ~~De `mando_ambarLocal()` cuelgan tres vetos en `Esclavo/src/main.cpp`; retirar su armador los dejaria ABIERTOS, y por eso el codigo no se toca~~
 > → **MEDIDO el 15/09 sobre los dos commits: ningun veto quedo abierto.** La bandera **solo** se armaba
@@ -123,7 +123,7 @@ de `semaforo.cpp`.
 | `J12` | `PB10` TX · `PB11` RX · `PB12` DE/~RE | Radio LoRa (`USART3`) | 🟢 vivo — SPEC 2 |
 | `J10` | `PA9` `PA10` · `PA8` DE/~RE | RS485 «IN» / telemetria | 🟡 vacio hoy |
 | `J14` | `PB0` | **ENTRADA** — `CAM_DEMANDA_PIN` | 🟡 **LIBRE, sin cablear** (`D-27`) — pero **leido** |
-| `J16` | ver abajo | ~~mando `A`/`B`~~ p5/p8 vacios + **las dos camaras** | mitad vivo, mitad libre (y leido, §3) |
+| `J16` | ver abajo | ~~mando `A`/`B`~~ p5/p8 vacios + **las dos camaras** | mitad vivo, mitad libre (sin lector desde `D-44`, §3) |
 | `J17` | `PB3`-`PB7` | LCD retirada -> **ESP32** (p2 = `PB7` RX, p3 = `PB6` TX) | 🟢 vivo |
 | `J1` · `J2` | — | alimentacion · **SWD** | — |
 
@@ -150,8 +150,8 @@ de `semaforo.cpp`.
 | p2 | `GND` | — | **la unica masa del conector** | — |
 | p3 · p6 | **sin red** | — | — | — |
 | p4 · p7 · p9 · p11 | `3,3 V` | — | el borne contra el que se cierra el contacto | mismo nudo que `J14` p2 |
-| p5 | `/Boton1` | `PB9` | 🟡 **LIBRE, y el firmware lo lee** (`botonArriba()`; ~~`MANDO_A`~~) — **no se cablea**, §3 | **9,92 kOhm** a masa · 11,28 kOhm a 3,3 V · **0,6 V** |
-| p8 | `/Boton2` | `PB13` | 🟡 **LIBRE, y el firmware lo lee** (`botonAbajo()`; ~~`MANDO_B`~~) — **no se cablea**, §3 | **9,92 kOhm** · 11,28 kOhm · **0,6 V** |
+| p5 | `/Boton1` | `PB9` | 🟡 **LIBRE y sin lector** (`J16_P5_SIN_USO`, `D-44`; ~~`botonArriba()`~~) — **no se cablea**, §3 | **9,92 kOhm** a masa · 11,28 kOhm a 3,3 V · **0,6 V** |
+| p8 | `/Boton2` | `PB13` | 🟡 **LIBRE y sin lector** (`J16_P8_SIN_USO`, `D-44`; ~~`botonAbajo()`~~) — **no se cablea**, §3 | **9,92 kOhm** · 11,28 kOhm · **0,6 V** |
 | p10 | `/Boton3` | `PB14` | 🎯 **`CAM_C_PIN` — CAMARA 1 del poste** (`D-25`) | **9,93 kOhm** · 11,29 kOhm · **0 V** |
 | p12 | `/Boton4` | `PB15` | 🎯 **`CAM_D_PIN` — CAMARA 2 del poste** (`D-25`) | **9,94 kOhm** · 11,31 kOhm · **0 V** |
 | p13-p16 | sin red | — | pads que existen en el cobre y no en el esquema | — |

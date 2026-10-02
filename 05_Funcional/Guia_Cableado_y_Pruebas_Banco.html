@@ -584,6 +584,8 @@
              llamadores vivos (menu.cpp, modo_hora.cpp de las dos puntas). VIVOS.
        Decir "los cuatro botones estan fuera" habria borrado un aviso de
        seguridad que sigue siendo cierto. Es un .parar normal: se imprime.
+       02/10, D-44 (f9cad1f): salieron los cuatro, menu_loop y modo_hora.cpp;
+       p5/p8 son J16_P5_SIN_USO/J16_P8_SIN_USO, INPUT sin lector.
        =================================================================== -->
   <div class="parar" id="sin-botonera">
     <b>🛑 EN ESTE EQUIPO NO HAY BOTONERA NI PANTALLA · todo se opera desde el TELÉFONO</b>
@@ -613,11 +615,16 @@
               (<code>PB9</code>/<code>PB13</code>)</td>
               <td>⚠️ <b>ni pulsador ni mando: ese hardware se retiró</b> (<code>D-1</code>, 05/09), y
                 el código del mando salió del programa el 14/09 —
-                <b>pero el firmware SIGUE LEYENDO esos dos pines</b>. Ver el aviso rojo de aquí
-                abajo</td></tr>
+                <s><b>pero el firmware SIGUE LEYENDO esos dos pines</b></s> <i>(02/10, <code>D-44</code>,
+                <code>f9cad1f</code>: ya no los lee; son <code>J16_P5_SIN_USO</code>/<code>J16_P8_SIN_USO</code>,
+                entrada sin lector)</i>. Ver el aviso rojo de aquí abajo: sigue por los equipos con
+                firmware anterior</td></tr>
           <tr><td><b>La pantalla LCD ST7920 y su menú</b></td>
-              <td><b>no se monta.</b> El código sigue dentro del binario, pero sus pines están en
-                <code>U8X8_PIN_NONE</code>: <b>no hay display que conectar</b>, y sus pines de
+              <td><b>no se monta.</b> <s>El código sigue dentro del binario, pero sus pines están en
+                <code>U8X8_PIN_NONE</code>:</s> <i>(02/10: el código del LCD salió el 13/09 y la
+                navegación del menú con <code>D-44</code>; de <code>menu.cpp</code> sólo queda
+                <code>menu_setup()</code>, el todo-rojo de <code>SET_MODO:MENU</code>)</i>
+                <b>no hay display que conectar</b>, y sus pines de
                 <code>J17</code> quedaron libres</td></tr>
         </tbody>
       </table>
@@ -631,9 +638,11 @@
       sigue moviendo cosas dentro del equipo</b> —compone secuencias del mando—. Y no es teórico:
       <code>B·B·B</code> deja el poste en <b>ámbar intermitente</b> y <code>A·B·A·B</code> mete al
       Poste 2 en <b>Modo Degradado</b></s>. → <b>15/09: con el programa del 15/09 ese flanco ya no
-      compone ninguna secuencia</b> —el mando salió de las dos puntas el 14/09— y sólo lo consumen
+      compone ninguna secuencia</b> —el mando salió de las dos puntas el 14/09— <s>y sólo lo consumen
       <code>botonArriba()</code>/<code>botonAbajo()</code> del menú y del Modo Hora del Maestro, sin
-      luz, pluma ni trama. <b>Pero un equipo con firmware ANTERIOR sí las compone</b>:
+      luz, pluma ni trama</s>. → <b>02/10 (<code>D-44</code>, <code>f9cad1f</code>, sin banco): el
+      programa ya NO lee p5 ni p8</b>: salieron los cuatro botones, el menú navegable y el Modo
+      Hora. <b>Pero un equipo con firmware ANTERIOR sí las compone</b>:
       <code>A·A·A</code> entra en Automático sin ninguna guarda, <code>B·B·B</code> pone ámbar y
       <code>A·B·A·B</code> mete al poste en <b>Modo Degradado</b>, que es el único modo que da verde
       <b>sin confirmar la otra punta</b>. Qué firmware lleva cada equipo lo dice
@@ -644,12 +653,15 @@
       pone algo ahí</b> —un final de carrera de la barrera, que es la idea anotada— <b>hay que
       desarmar antes ese reconocedor</b>: una pluma que sube y baja tres veces seguidas <b>es</b>
       <code>B·B·B</code>.</s> <i>(15/09: el reconocedor ya no está en el programa; lo que falta para
-      cerrar esos pines es quitar la LECTURA, y eso no está construido — <code>SPEC_5</code> §3.)</i> <s><b>Eso está sin decidir y va en la pregunta 3.</b></s> → <b>11/09,
+      cerrar esos pines es quitar la LECTURA, y eso no está construido — <code>SPEC_5</code> §3.)</i>
+      <i>(02/10: la lectura salió con <code>D-44</code>; en campo manda lo CARGADO.)</i> <s><b>Eso está sin decidir y va en la pregunta 3.</b></s> → <b>11/09,
       D-27: decidido.</b> <code>A-2</code> (05/09) dejó p5/p8 vacíos, y <code>D-27</code> dice que
       <b>el fin de carrera no se instala en este despliegue</b>: ni aquí ni en <code>J14</code>.</p>
-    <p class="porque">Medido el 05/09 sobre el fuente de las dos puntas, y así se localiza:
-      <code>grep -n "bool botonAceptar\|bool botonCancelar\|bool botonArriba\|bool botonAbajo" Maestro/src/botones.cpp Esclavo/src/botones.cpp</code>
-      · <code>grep -rn "botonArriba\|botonAbajo" Maestro/src Esclavo/src</code>. <b>Se cita el
+    <p class="porque">Medido el 05/09 sobre el fuente de las dos puntas, <s>y así se localiza:
+      <code>grep -n "bool botonAceptar\|bool botonCancelar\|bool botonArriba\|bool botonAbajo" Maestro/src/botones.cpp Esclavo/src/botones.cpp</code></s>
+      <i>(02/10: esas funciones ya no existen)</i>
+      · <code>grep -rn "J16_P5_SIN_USO\|J16_P8_SIN_USO" Maestro/src Esclavo/src</code> (sólo el
+      <code>pinMode</code> de <code>botones_setup()</code>). <b>Se cita el
       símbolo y no el número de línea: los números caducan solos.</b></p>
   </div>
 
@@ -1965,7 +1977,7 @@ SEM-SIN-MATRICULA  todavia NO ha aprendido de que poste cuelga</pre>
         existe.</b> Aquí ponía <s>«en (b) lo normal es 5 y 8 altos, 10 y 12 casi cero, y si dieran
         los cuatro igual, eso es el hallazgo»</s>. <b>Es al revés con el firmware de este
         paquete:</b> el mando ya <b>no</b> enciende la resistencia interna hacia arriba
-        (<code>pinMode(BOTON1, INPUT)</code> pelado, <s><code>Maestro/src/botones.cpp:160-161</code></s> <code>botones_setup()</code> <i>(15/09: se cita el símbolo; el número de línea caducó)</i>),
+        (<code>pinMode(BOTON1, INPUT)</code> pelado <i>(02/10: <code>J16_P5_SIN_USO</code>, <code>D-44</code>)</i>, <s><code>Maestro/src/botones.cpp:160-161</code></s> <code>botones_setup()</code> <i>(15/09: se cita el símbolo; el número de línea caducó)</i>),
         así que <b>los cuatro tienen que dar casi 0 V</b> y <b>eso es lo correcto</b>. Es
         exactamente lo que mide el <b>paso 2.bis</b>, y los dos pasos estaban <b>diciendo lo
         contrario dentro de la misma hoja</b>. <b>Si te salen 5 y 8 a ~0,6 V, no es un hallazgo: es
@@ -2573,6 +2585,10 @@ ESCLAVO  CMD:AMBAR_EMERGENCIA           (sin PIN, a proposito)
 
 CON EL PIN MAL, en cualquiera:   CMD:PIN:0000:SET_MODO:AUTO</pre>
       </div>
+      <p class="porque">✏️ <b>02/10 · <code>D-46</code> (<code>f9cad1f</code>, sin banco):</b> <s><code>SET_MODO:DEGRADADO</code> (las dos puntas) y <code>SOLICITAR_PASO</code> (Esclavo)</s> salieron del
+        programa. Con un firmware de <code>f9cad1f</code> en adelante contestan
+        <code>$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO</code> (<code>_EN_ESCLAVO</code> en el Poste 2) y <b>no hacen nada</b>: eso es lo correcto.
+        Con uno anterior contestan como antes. <b>Copia lo que conteste y el hash cargado.</b></p>
       <p class="ver"><b class="et">Ver</b> Las aceptadas dicen <code>$ACK</code> <b>y lo hacen</b>;
         las que no puede hacer, <code>$ERR</code> <b>con su motivo</b>. <b>Un «hecho» ahí es el fallo
         entero.</b> Se provocan a propósito <code>ALCANCE</code> en marcha y <code>DEMANDA</code>
@@ -2691,6 +2707,10 @@ Y CON EL CICLO EN MARCHA, cualquiera de ellas -> EN_MARCHA_PARE_EL_MODO</pre>
         tiene ese botón desde el 29/09). <b>Espera unos
         segundos mirando las tramas <code>$EVENT</code> que llegan.</b> Después <b>repítelo con el cruce SÍ en
         Modo Inteligente</b> —el modo se pone desde el <b>Maestro</b>—.</p>
+      <p class="porque">✏️ <b>02/10 · <code>D-46</code> (<code>f9cad1f</code>, sin banco):</b> <s><code>SOLICITAR_PASO</code></s> salió del
+        programa. Con un firmware de <code>f9cad1f</code> en adelante contesta
+        <code>$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO_EN_ESCLAVO</code> y <b>no hace nada</b>: eso es lo correcto.
+        Con uno anterior contesta lo de abajo. <b>Copia lo que conteste y el hash cargado.</b></p>
       <div class="diagrama" style="margin:.3rem 0">
 <pre>FUERA de Modo Inteligente   $ACK ... RESULT:PEDIDO_AL_MAESTRO
                             y luego, en Eventos:
@@ -2740,8 +2760,8 @@ EN Modo Inteligente         $ACK ... RESULT:PEDIDO_AL_MAESTRO
       retiró del equipo</b> —decisión del 05/09: <b>el equipo se opera sólo por la app</b>—, así que
       <b>no hay mando que probar, no hay receptor que comprar y no hay nada que cablear en esos dos
       pines</b>.</p>
-    <p>🔴 <b>Y lo que hace obligatorio decirlo en vez de borrar el paso:</b> <b>el programa SIGUE
-      LEYENDO p5 y p8</b><s>, a propósito y por un motivo de seguridad —de esa lectura cuelga el veto
+    <p>🔴 <b>Y lo que hace obligatorio decirlo en vez de borrar el paso:</b> <s><b>el programa SIGUE
+      LEYENDO p5 y p8</b></s> <i>(02/10, <code>D-44</code>: ya no los lee)</i><s>, a propósito y por un motivo de seguridad —de esa lectura cuelga el veto
       que impide que una orden de radio saque a un poste del ámbar que puso una persona—. Cada
       toque en esos pines <b>entra en el reconocedor de secuencias</b>:</s>
       → <b>15/09 (<code>SPEC_5</code> §3, medido en el fuente de las dos puntas):</b> el reconocedor
@@ -3728,6 +3748,11 @@ CON modulo de reloj conectado:
         diga que NO</b></p>
       <p><b class="et">Haz</b> Conéctate <b>al Poste 2</b> con la app —no vale desde el Poste 1: el
         Bluetooth no alcanza de un poste al otro—. Con un terminal serie Bluetooth manda <code>CMD:PIN:1234:SET_MODO:DEGRADADO</code> (la app ya no tiene ese botón desde el 29/09). <b>Copia LITERAL lo que conteste el equipo</b>, sea lo que sea.</p>
+      <p class="porque">✏️ <b>02/10 · <code>D-46</code> (<code>f9cad1f</code>, sin banco):</b> <s><code>SET_MODO:DEGRADADO</code></s> salió del
+        programa. Con un firmware de <code>f9cad1f</code> en adelante contesta
+        <code>$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO_EN_ESCLAVO</code> y <b>no hace nada</b>: eso es lo correcto.
+        Con uno anterior contesta lo de abajo. <b>Copia lo que conteste y el hash cargado.</b></p>
+      <p class="porque">Al Degradado se entra hoy por el testigo (<code>SET_MODO:DEG_T</code>).</p>
       <p class="ver"><b class="et">Ver</b> Una de dos, <b>y las dos son un resultado útil</b>:</p>
       <div class="tabla-envoltorio" style="margin:.2rem 0 .4rem">
         <table>

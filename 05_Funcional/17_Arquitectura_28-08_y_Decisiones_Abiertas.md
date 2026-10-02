@@ -29,9 +29,9 @@ mas**: lo demas lo fijan `SPEC_0..SPEC_8`, y `DECISIONES.md` es su indice.
 > 2. **`J14` es una ENTRADA del micro** (`PB0`, 3,3 V, sin opto y sin diodo); **la salida de
 >    talanquera es `J15`**. Hoy `J14` va **LIBRE y sin cablear** (`D-27`, 11/09) y **mientras el
 >    firmware lea `PB0` como demanda ahi no se conecta nada**: **§1.2**, **§1.7.bis**, `D-27`.
-> 3. **`J16` p5 y p8 estan VACIOS y el firmware SIGUE leyendo sus flancos** (`A-2`, `D-1`): lo que
->    se cierre ahi contra los 3,3 V del borne contiguo **compone secuencias del mando**, y `A.A.A`
->    entra al Modo Automatico **sin guarda**. **§1.6** y **§1.7**.
+> 3. **`J16` p5 y p8 estan VACIOS** (`A-2`, `D-1`); desde `D-44` (`f9cad1f`) el firmware ya no los lee, pero
+>    uno anterior al 14/09 **compone secuencias del mando** con un puente (`A.A.A` entra al Modo Automatico
+>    **sin guarda**). En campo manda lo CARGADO. **§1.6** y **§1.7**.
 
 > **Como se cita el fuente en este documento: por SIMBOLO y con el `grep` que lo encuentra, nunca
 > por numero de linea** —un numero caduca solo, en silencio y con autoridad de dato—. El censo que
@@ -413,7 +413,7 @@ puede tumbar al que manda.
 |---|---|
 | Pantalla LCD (las dos puntas) | toda la operacion de menu pasa por la app |
 | ~~Los cuatro pulsadores (`PB9`, `PB13`, `PB14`, `PB15`)~~ → **solo `BOTON3` (`PB14`) y `BOTON4` (`PB15`)** | libera `J16` **p10 y p12**, que es lo que las camaras necesitan. ~~**rompe la unica salida de modo**~~ → **§2.3 REFUTADA: la salida por app ya existe** |
-| ~~Mando de 4 reles~~ → ~~🟢 **SE CONSERVA en los canales A y B**~~ → 🔴 **05/09 (`D-1`): el HARDWARE se retira; el CODIGO se queda** | `MANDO_A` = `BOTON1` = `PB9` = `J16` p5 · `MANDO_B` = `BOTON2` = `PB13` = `J16` p8. **El veto de §2.4 se queda donde esta** — y con el mando desmontado su bandera **no se arma nunca**, que es lo correcto. Los pines siguen leidos activos en ALTO: **lo que entre por `J16` p5/p8 sigue componiendo secuencias** |
+| ~~Mando de 4 reles~~ → ~~🟢 **SE CONSERVA en los canales A y B**~~ → 🔴 **05/09 (`D-1`): el HARDWARE se retira; el CODIGO se queda** | `MANDO_A` = `BOTON1` = `PB9` = `J16` p5 · `MANDO_B` = `BOTON2` = `PB13` = `J16` p8. **El veto de §2.4 se queda donde esta** — y con el mando desmontado su bandera **no se arma nunca**, que es lo correcto. ~~Los pines siguen leidos~~ → **02/10 (`D-44`): sin lector** (`J16_P5_SIN_USO`/`J16_P8_SIN_USO`); con firmware anterior al 14/09, **lo que entre por `J16` p5/p8 compone secuencias** |
 | Modulo Bluetooth SPP dedicado (`HC-05`/`JDY-30`) | lo sustituye el ESP32 — ver §3.1 |
 
 > El censo del 31/08 que explica **por que se conservan los DOS canales** del mando, y la linea de
@@ -461,30 +461,24 @@ Los pines que libera la retirada de los pulsadores 3 y 4:
 |---|---|---|---|
 | p1 | `/12V` | — | 🔴 **12 V crudos. Se tapa** — ver §2.1 y **N-120: es OBLIGATORIO, no una cautela de banco** |
 | p2 | `GND` | — | masa |
-| p5 | `/Boton1` | `PB9` | ~~**vacio a proposito** (colchon)~~ → ~~🟢 **`MANDO_A`. VA CABLEADO** (31/08)~~ → 🔧 **CADUCADO EL 05/09 (`D-1`): el mando NO se monta, asi que `p5` queda LIBRE Y SIN CABLEAR.** ⚠️ **Pero el firmware SIGUE LEYENDO este pin** —`BOTON1` alimenta `botonArriba()`, con llamadores vivos— o sea que **lo que se cierre aqui contra `p4` mueve cosas dentro**. ~~`0,6 V` en reposo, N-118~~ → **refutado el 05/09: eran del firmware viejo con `INPUT_PULLUP`** |
-| p8 | `/Boton2` | `PB13` | ~~**vacio a proposito** (colchon)~~ → ~~🟢 **`MANDO_B`. VA CABLEADO** (31/08)~~ → 🔧 **CADUCADO EL 05/09 (`D-1`): idem `p5` — LIBRE Y SIN CABLEAR, y el firmware sigue leyendolo** (`BOTON2` → `botonAbajo()`) |
+| p5 | `/Boton1` | `PB9` | ~~**vacio a proposito** (colchon)~~ → ~~🟢 **`MANDO_A`. VA CABLEADO** (31/08)~~ → 🔧 **CADUCADO EL 05/09 (`D-1`): el mando NO se monta, asi que `p5` queda LIBRE Y SIN CABLEAR.** ⚠️ ~~**Pero el firmware SIGUE LEYENDO este pin**~~ → **02/10 (`D-44`): `J16_P5_SIN_USO`, sin lector**; con firmware anterior **lo que se cierre aqui contra `p4` mueve cosas dentro**. ~~`0,6 V` en reposo, N-118~~ → **refutado el 05/09: eran del firmware viejo con `INPUT_PULLUP`** |
+| p8 | `/Boton2` | `PB13` | ~~**vacio a proposito** (colchon)~~ → ~~🟢 **`MANDO_B`. VA CABLEADO** (31/08)~~ → 🔧 **CADUCADO EL 05/09 (`D-1`): idem `p5` — LIBRE Y SIN CABLEAR**; ~~el firmware sigue leyendolo~~ → **sin lector desde `D-44`** (`J16_P8_SIN_USO`) |
 | p10 | `/Boton3` | `PB14` | 🎯 **`CAM_C_PIN` — ENTRADA DE CAMARA de DEMANDA.** ~~«Boton 3 / Aceptar»~~ ✅ **cableada y verificada en banco el 03/09** (paso 21). Y desde `4b90f98` ademas **se vigila sola** (§1.7.bis). ✏️ **11/09, `D-25`: la CAMARA 1 de CADA poste**, contacto de alarma entre `p9` (3,3 V) y `p10` |
 | p12 | `/Boton4` | `PB15` | 🎯 **`CAM_D_PIN` — entrada de camara**~~, y HOY SE DEJA VACIO.~~ ~~«Boton 4 / Cancelar-Menu»~~ `0 V` en reposo, MEDIDO (paso 20). ~~🔵 **07/09: `D-13` es UNA CAMARA POR POSTE, asi que en cada equipo montado UNO de estos dos pines esta vacio — y el firmware DEPENDE de ello** (la exencion del vigilante, `botones.cpp`: sin esa linea alarmaria `CAM_CIEGA` de una camara que no existe). **El que se cablea es `p10`**, que es el ejercido en banco; **este se queda libre**~~ → ✏️ **11/09, `D-25` (el responsable: *«mantener estas conexiones como definitivas»*): la CAMARA 2 de CADA poste**, contacto de alarma entre `p11` (3,3 V) y `p12`. **Hace LO MISMO que la de `p10`** (`CAM_J16[2] = {CAM_C_PIN, CAM_D_PIN}`, un solo bucle en `camaras_actualizar()`). 🔴 **Lo que el firmware sigue creyendo:** la exencion del vigilante se escribio para un `p12` vacio y **no ha cambiado** (`vigilante_tick()` salta el pin con `!camHuboFlanco[i]`; `camara_estado()` lo salta al publicar `CAM:`): **una camara de `p12` muerta desde la instalacion no la avisa nadie**, y la app pinta `CAM: OK` con la primera deteccion de la de `p10`. Pendiente de rehacer EN FIRMWARE. ⚠️ **`p12` NO se ha cableado nunca en banco** (§3.5) y es el borne **mas cercano a la red de 12 V** (`1,359 mm`, abajo): `p1` tapado (`D-4`) antes de nada |
 
 > 🔴 **`p5`/`p8`: POR QUE NO BASTA CON «el mando se retiro» — MEDIDO EL 05/09, y es la mitad que un
-> resumen se come.** De los cuatro getters de boton, **dos estan muertos y dos NO**:
+> resumen se come.** ~~De los cuatro getters de boton, dos estan muertos y dos NO~~ → **02/10: salieron los cuatro**:
 >
 > | | hoy | consecuencia |
 > |---|---|---|
 > | `botonAceptar()` · `botonCancelar()` | **`return false;`** en las dos puntas | **nada de `p10`/`p12` ejecuta ni cancela**. Es lo que libera esos dos pines para las camaras |
 > | `botonArriba()` · `botonAbajo()` | 🔴 **VIVOS** — `consumir(0)`/`consumir(1)`, alimentados por `digitalRead(b.pin) == HIGH` sobre `BOTON1`=`PB9` y `BOTON2`=`PB13`, **con llamadores vivos en `menu.cpp` y `modo_hora.cpp` de las dos puntas** | **lo que se cierre en `p5`/`p8` contra los 3,3 V sigue entrando al firmware**, y ademas compone secuencias del mando (§2.4) |
+> **02/10 (`D-44`, `f9cad1f`): salieron las dos filas de arriba; `PB9`/`PB13` quedan como entrada sin lectura.**
 >
-> ```
-> grep -n "bool botonAceptar\|bool botonCancelar\|bool botonArriba\|bool botonAbajo" Maestro/src/botones.cpp Esclavo/src/botones.cpp
-> grep -rn "botonArriba\|botonAbajo" Maestro/src Esclavo/src
-> grep -n "pinMode(BOTON[12], INPUT)\|b[12].pin = BOTON[12]" Maestro/src/botones.cpp Esclavo/src/botones.cpp
-> ```
->
-> **Por eso «los cuatro botones estan fuera» es media verdad y no se escribe asi en ningun sitio:**
-> fuera esta el **pulsador** (el plastico), y fuera estan **Aceptar** y **Cancelar** (el codigo).
-> **Arriba y Abajo siguen leyendo cobre**, y ese cobre esta a un milimetro y medio de los 12 V de
-> `p1` (§1.7 abajo). **`p5` y `p8` se dejan sin cablear, y no se puentean «para probar»** fuera del
-> paso 29 de la guia.
+> `grep -rn "J16_P5_SIN_USO\|J16_P8_SIN_USO" Maestro/src Esclavo/src` (solo el `pinMode` de `botones_setup()`).
+> ~~**Arriba y Abajo siguen leyendo cobre**~~ → ya no; pero ese cobre esta a un milimetro y medio de los 12 V de
+> `p1` (§1.7 abajo) y en campo manda lo CARGADO. **`p5` y `p8` se dejan sin cablear, y no se puentean
+> «para probar»** fuera del paso 29 de la guia.
 
 > La ambiguedad de *«Camara 1»* / *«Camara 2»*, la leccion del `grep` sin `-E` cuyo control negativo
 > daba cero, y las dos filas tachadas del colchon estan en el historico, §1.7.

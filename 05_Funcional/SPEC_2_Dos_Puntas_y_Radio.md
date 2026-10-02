@@ -227,7 +227,8 @@ todo-rojo**. *(Literales, SPEC 4 §3.2; el campo, SPEC 6.)*
 > 🔴 **ENTRAR POR PRIMERA VEZ ES MANUAL** (salvo la opción automática de §7.ter, que un técnico activa antes).
 > **REANUDAR TRAS UN CORTE NO LO ES — Y AL OPERARIO SE LE AVISA DEL CORTE, NO DE LA REANUDACIÓN.**
 > - **La primera entrada sí la pide una persona, y hoy por el testigo** (`D-35`, §7.bis): la app ya no ofrece la de
->   aquí (`D-37`), y `SET_MODO:DEGRADADO` de las dos puntas, que aún la abre, sale (`D-46`, sin construir).
+>   aquí (`D-37`), y `SET_MODO:DEGRADADO` salió de las dos puntas con `D-46` (`f9cad1f`, sin banco): hoy responde
+>   `COMANDO_NO_SOPORTADO`. El testigo (`SET_MODO:DEG_T`) es la única orden de entrada.
 > - **La reanudación la decide la máquina**, en cada arranque y **sin pulsación ninguna** (`D-29`): cada punta tiene su
 >   función de reanudar tras corte, llamada desde el arranque **y desde el bucle** —dos sitios, porque la hora llega
 >   segundos después y la decisión queda diferida hasta que cierre su ventana—. El Esclavo entra por **la MISMA puerta
@@ -325,8 +326,9 @@ corre sin radio y sin la vigilancia de §8, es del orden de **10 s/mes** (`DECIS
 despeje de esta orden: el margen que queda es del orden de 20 s, y **nadie lo ha medido en un banco**.
 
 **Lo que NO cambia, y se dice explícito (`D-35`):** la vuelta de la radio sigue exactamente como hoy —`SFTY-21`,
-el latido del Maestro saca al Esclavo del Degradado con tramas de gobierno, arriba en este mismo §7—; y
-`SET_MODO:DEGRADADO` (`D-18`) sigue siendo el camino normal, sin tocar, para cuando SÍ hay sincronización de radio.
+el latido del Maestro saca al Esclavo del Degradado con tramas de gobierno, arriba en este mismo §7—. ⬇️ ~~y
+`SET_MODO:DEGRADADO` (`D-18`) sigue siendo el camino normal~~ → **salió con `D-46` (`f9cad1f`)**: el testigo es hoy
+la única entrada por orden, haya o no sincronización de radio.
 
 **Verificación de extremo a extremo en banco (nada de esto se prueba con un pack nuevo — CLAUDE.md §4, simulador
 CONGELADO):** con las dos tarjetas reales y el cable de radio entre postes DESCONECTADO, mandar el testigo a las
@@ -404,7 +406,7 @@ congelado (§4), y la verificación de esta puerta es de banco, no de pack.
   `degradado_comprobarTestigo()`), con el `inicio` que usaría la entrada. No hay una lista aparte que pueda divergir.
 - **Puerta del Maestro** = `FLAG_DEG_AUTO` · sin `FLAG_RENDIDO` · sin salida manual pendiente (b) · modo `AUTOMATICO`
   o `INTELIGENTE` · `modo_degradado_syncFresca()` (la sync del PAR: el Esclavo la acusó). Viaja en el param de **toda**
-  `CMD_PING`, `CMD_GO_GREEN` y `CMD_GO_RED`. En `MENU`, `MANUAL`, `AMBAR`, `ALCANCE` u `HORA` vale 0: hay una persona.
+  `CMD_PING`, `CMD_GO_GREEN` y `CMD_GO_RED`. En `MENU`, `MANUAL`, `AMBAR` o `ALCANCE` vale 0: hay una persona.
 - **Puerta del Esclavo** = `FLAG_DEG_AUTO` · sin `FLAG_RENDIDO` · sin salida manual pendiente · `DEG_INACTIVO`; la
   hora fiable con fecha y el ámbar de emergencia los mira la comprobación del testigo. Viaja en el `CMD_PONG`, junto a
   `PONG_VERDE_SOLTADO`, que el coordinador lee con máscara (`& PONG_VERDE_SOLTADO`, `D-34`). No exige sync propia: la
@@ -577,7 +579,8 @@ condición MÁS DÉBIL y por eso va la última:** la medida es **circular** y **
 sincronización, no este número. Al fallar un intento **la medida se suelta y la hora y la configuración NO**: es
 diagnóstico contra seguridad.
 
-**(c) La puerta del Poste 1.** También devuelve **motivo, no sí/no**; hoy la llama `SET_MODO:DEGRADADO` (`D-46`):
+**(c) La puerta del Poste 1** (`modo_degradado_evaluarEntrada()`). También devuelve **motivo, no sí/no**; la llamaba
+`SET_MODO:DEGRADADO`, que salió con `D-46` (`f9cad1f`): hoy no la alcanza ningún camino y se conserva. Sus motivos:
 falta hora · nunca hubo sincronización · sincronización vieja · **falta configuración** —que el ESCLAVO haya acusado el
 ciclo; **se añadió porque faltaba**, y sin él el Maestro daba verde por reloj mientras el Esclavo rechazaba y caía a
 ámbar por orfandad— · falta desfase · desfase alto.
@@ -592,6 +595,8 @@ ciclo; **se añadió porque faltaba**, y sin él el Maestro daba verde por reloj
 > distintos.** ⬇️ ~~ni pack~~ → **medido el 14/09: el pack `costura_05_limite_48h` SÍ los lee los dos y reproduce la
 > separación**, pero **certifica que el hueco sigue ahí; no lo cierra ni hace fallar a nadie** (HUECO 7).
 > `grep -n "SYNC_FRESCA_MS\|LIMITE_SIN_SYNC_MS" 01_Firmware/{Maestro,Esclavo}/src/modo_degradado.cpp`
+> ⬇️ **Desde `D-46` (`f9cad1f`) ninguna orden llega a estas dos puertas** —`SET_MODO:DEGRADADO` salió de las dos
+> puntas—; los dos números siguen sin cruzarse y la del Poste 2 (`degradado_entrar()`) la sigue usando su reanudación.
 
 **(e) El cálculo de fase — la misma función, no dos que «hacen lo mismo».** Vive en una cabecera compartida **que debe
 ser idéntica** (lo compara `costura_01_contratos`): **posición = segundos del día módulo el ciclo, con ciclo = 2 ×
