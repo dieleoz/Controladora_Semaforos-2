@@ -115,8 +115,8 @@ paso alterno de un carril (ambar en los dos extremos = nadie gobierna el tramo).
 
 | # | pregunta | depende de |
 |---|---|---|
-| C1 | Poste en rojo fijo sin hora (`D-38`) que sufre un corte: arranca en ambar (`D-40`) contra el otro alternando. ¿Se persiste el rojo? | -- |
-| C2 | Degradado `D-18` SIN testigo no reanuda tras >24 h (pliegue de CNT). ¿Se arregla o se acepta, si en campo solo se usa testigo? | -- |
+| ~~C1~~ | Contestada: `D-47` (el rojo fijo sobrevive al corte) | -- |
+| ~~C2~~ | Se cierra sola: `D-46` retira `SET_MODO:DEGRADADO`, al Degradado se entra solo por el testigo | -- |
 | C3 | `Validacion_LCD` se llevo 4 packs sin `banco/historico/` (`D-32`); renombrar toca 42 ficheros | -- |
 | C4 | Documentos a `05_Funcional/historico/` con el grafo de `entregas/grafo/`; despues `CRUDAS` en `.topes` | el responsable mueve la carpeta |
 
