@@ -108,12 +108,15 @@ candidata crecio con I (`cda33df`) y G (`f9cad1f`): un solo runbook sobre todo.
 | A4.bis | Correccion de las cuatro, SPEC -> prueba en rojo -> codigo | candidata nueva | hecho y en `main` (`f6ef03d`): `D-50` suelta a 21,5 s, `D-51` `FORZAR_ROJO` en Degradado, pruebas de `D-47`, `N-172` sin libreria RTC; app con los tres acuses de `FORZAR_ROJO` |
 | A3.bis | Compuerta otra vez | acta | hecho: `evidencia/2026-10-04_compuerta.txt` sobre `f6ef03d`, 18 PASS y banco 1360/1361 (solo `D-22`) |
 | A4.ter | Arquitecto otra vez (opus) | veredicto | APTO CON CONDICIONES sobre `f6ef03d`: (1) `FORZAR_ROJO` en Degradado sin radio deja al Poste 1 en ambar contra el verde por reloj del Poste 2; (2) con el permiso esperando la siembra, el verde vuelve tras un rojo total; (3) el `setup()` del Maestro se prueba sobre una copia; (4) nadie ejecuta las tres respuestas de `FORZAR_ROJO` |
-| A4.quater | SPEC primero: salida del Degradado programada (hora configurable en cada poste, aviso de paleteros, los dos salen a la vez por reloj; decidido 04/10); `FORZAR_ROJO` en Degradado = rojo fijo inmediato en ese poste; condiciones 2-4 | SPEC_2, SPEC_4 | en curso (agente SPEC, solo SPEC) |
-| A4.quater.b | Arquitecto sobre la SPEC nueva, antes del codigo | veredicto | tras A4.quater |
-| A4.quater.c | Pruebas vistas en rojo (arnes Degradado dos puntas, puente, app) con el valor de la SPEC; despues firmware y app; si el codigo pide algo que la SPEC no dice, se para y se corrige la SPEC | candidata | tras A4.quater.b |
+| A4.quater | SPEC: salida del Degradado programada (hora configurable en cada poste, aviso de paleteros, salen a la vez por reloj; decidido 04/10); `FORZAR_ROJO` en Degradado = rojo fijo inmediato; condiciones 2-4 | SPEC_2, SPEC_4, fila de `D-51` y la nueva | en curso: agente SPEC (sonnet, worktree, solo SPEC) |
+| A4.quater.b | Arquitecto sobre la SPEC nueva, antes del codigo | veredicto | `arquitecto-iot` (opus), solo lectura |
+| A4.quater.c | Pruebas vistas en rojo con el valor de la SPEC: arnes Degradado dos puntas, arnes del puente (respuestas BT), test de la app | arneses en rojo | agente pruebas (sonnet, worktree) |
+| A4.quater.d | Firmware Maestro y Esclavo (orden de salida, rojo fijo, permiso pendiente, relectura de CNTL) y app (formulario, aviso, textos), disjuntos; lo que la SPEC no diga para el trabajo y vuelve a la SPEC | candidata | dos agentes (sonnet, worktrees) |
+| A4.quater.e | Integracion por el diff y compuerta completa en el arbol principal hasta que dos pasadas den lo mismo; cifras a README/ESTADO | acta | orquestador |
+| A4.quinquies | Arquitecto sobre el binario | veredicto | `arquitecto-iot` (opus) |
+| A5 | QA sobre el binario que se entrega | veredicto | `qa-istqb` (opus) |
 | A4.quinto | Hoja de Marco solo con lo que falta (`Pruebas_Funcional_2026-10-04.html`, nueve casos); la del 02/10 a historico | `.html` | hecho en worktree, se integra |
-| A5 | QA sobre el binario (opus) | veredicto | tras APTO |
-| A6 | Paquete validado `SIN_BANCO` a `entregas/` (rellena `PAQUETE_PENDIENTE` de la hoja), `.docx` de las SPEC tocadas | `.zip` | tras A5 |
+| A6 | Paquete validado `SIN_BANCO` a `entregas/`, `PAQUETE_PENDIENTE` de la hoja de Marco rellenado, `.docx` de las SPEC tocadas, ESTADO y README al dia | `.zip` | orquestador; todo el runbook se cierra el 04/10, commit y push en cada paso |
 
 **B. Lo que se cierra en paralelo a A, con ficheros disjuntos**
 
