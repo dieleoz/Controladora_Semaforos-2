@@ -747,7 +747,7 @@ construirla, `decisiones_01_anclas` ve `D-52` sin ancla: es el rojo que dice «s
 3. **Flash solo con el poste en rojo:** programar, reprogramar o cancelar con el poste en verde rechaza `En verde:
    repita en rojo`; el rojo dura más de 240 s por ciclo (verde del otro más dos despejes), pero el operario debe
    acertarlo. Una segunda página no hace falta: el registro pasa de 7 a 9 medias palabras dentro de su página de 1 KB;
-   flash Maestro 69,8 % (45004 B), Esclavo 62,0 % (39996 B), acta del 04/10. **Si el borrado sale bien y falla la
+   flash Maestro 69,7 % (44988 B), Esclavo 61,9 % (39932 B), acta del 04/10. **Si el borrado sale bien y falla la
    escritura se pierde TAMBIÉN el registro del testigo** y, tras un corte, no reanuda (ámbar contra el otro, como
    (f).3); hoy pasa igual al renovar el testigo, y esto añade tres órdenes que escriben la flash.
 4. **Un corte entre programar y `salida`** se cubre con la flash; en rojo total no (d). Y un fallo de la flash deja
