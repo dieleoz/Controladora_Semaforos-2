@@ -157,9 +157,9 @@ CAUSA:ROJO_SIN_HORA,...,ACCION:ROJO_FIJO` al entrar y cada `AVISO_ROJO_SIN_HORA_
 el Maestro con `SET_MODO:MENU`; el Esclavo con las tramas de gobierno del Maestro ya fuera de Degradado, o
 con `AMBAR_EMERGENCIA`. **DEBE ganar (`D-51` corregida y `D-52`, 04/10; NO CONSTRUIDO, SPEC 2 §7.quater):** el
 mismo estado sirve para el ROJO TOTAL puesto por una persona (`FORZAR_ROJO` en Degradado, solo Maestro; causa
-`ROJO_TOTAL` en la alarma, no `ROJO_SIN_HORA`) y se sale tambien con la salida programada, que con hora no fiable
-no dispara. Una siembra fresca no devuelve el modo. Si el poste estaba en verde al caer, el
-cierre lleva su amarillo de 3 s (`D-45`, `semaforo_forzarRojo()`; SPEC 1 §3.2).
+`ROJO_TOTAL` en la alarma; tras un corte, `ROJO_SIN_HORA`) y se sale tambien con la salida programada, que con hora no
+fiable no dispara. Una siembra fresca no devuelve el modo. Si el poste estaba en verde al caer, el cierre lleva su
+amarillo de 3 s (`D-45`, `semaforo_forzarRojo()`; SPEC 1 §3.2).
 
 **Desde `cda33df` (`N-174`; sin banco), este rojo fijo alcanza dos casos mas:**
 - **`D-47`: sobrevive a un corte.** `irARojoSinHora()` pone `FLAG_ROJO_SIN_HORA` en la pila
