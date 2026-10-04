@@ -727,6 +727,11 @@ construirla, `decisiones_01_anclas` ve `D-52` sin ancla: es el rojo que dice «s
   lo bajo. Lo llaman `modo_degradado_forzarRojo()` (y entra en rojo fijo, `RRT_REANUDACION_CANCELADA`) y
   `SET_MODO:MENU` (`RESULT:OK_REANUDACION_CANCELADA` si devolvio true, `RESULT:OK` si no).
 - J3 tolera hasta 1000 ms sin rojo en el Maestro: una vuelta de arranque antes de entrar en rojo fijo.
+- Solo Maestro: `bool modo_degradado_esperaRevocada();` true si `SET_MODO:MENU` o `FORZAR_ROJO` bajaron la espera de la
+  siembra en esta vuelta; `main.cpp` la mira para NO entrar en el ambar de arranque tras esa revocacion.
+- **Sin fecha del DS3231** (`reloj_segundosDesde2000()` = 0 con `reloj_horaFiable()`): la salida se guarda como hora del
+  dia en RAM, se acusa `PROGRAMADA_SIN_RESPALDO` (no hay fecha que escribir en flash: un corte la pierde) y pasa a hora
+  absoluta con la primera siembra. HACE (construido el 04/10, sin banco).
 
 **(h) RIESGOS PARA EL RESPONSABLE — no se resuelven aquí.**
 1. **Salida programada en un poste y no en el otro** (o cancelada en uno): el que sale queda en `MENU`/ámbar sin

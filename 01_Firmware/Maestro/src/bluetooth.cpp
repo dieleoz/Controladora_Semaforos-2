@@ -796,9 +796,7 @@ static void procesarComando(const char* cmd) {
         enviarTramaConCrc(p);
       }
     }
-  } else if (strncmp(accion, "SET_MODO:DEG_FIN:", 17) == 0) {
-    // D-52 (SPEC_2 7.quater (c)): ahora,salida = HH:MM:SS,HH:MM:SS, o CANCELAR. Molde DEG_T: el $ACK solo si quedo
-    // programada (o cancelada), y sale de lo que devolvio la llamada.
+  } else if (strncmp(accion, "SET_MODO:DEG_FIN:", 17) == 0) {   // D-52, SPEC_2 7.quater (c): molde DEG_T
     int ah = -1, am = -1, as = -1, sh = -1, sm = -1, ss = -1;
     char sobra = 0;
     const bool cancelar = strcmp(accion + 17, "CANCELAR") == 0;
@@ -811,8 +809,10 @@ static void procesarComando(const char* cmd) {
           (uint32_t)sh * 3600UL + (uint32_t)sm * 60UL + (uint32_t)ss);
       char p[96];   // 31 del prefijo + 30 del motivo mas largo + NUL
       if (m <= MDF_CANCELADA) {
-        snprintf(p, sizeof(p), "$ACK,CMD:SET_MODO:DEG_FIN,RESULT:%s", modo_degradado_textoSalida(m));
-        enviarTramaConCrc(p);
+        enviarTramaConCrc(m == MDF_PROGRAMADA ? "$ACK,CMD:SET_MODO:DEG_FIN,RESULT:PROGRAMADA"
+            : m == MDF_REPROGRAMADA ? "$ACK,CMD:SET_MODO:DEG_FIN,RESULT:REPROGRAMADA"
+            : m == MDF_PROGRAMADA_SIN_RESPALDO ? "$ACK,CMD:SET_MODO:DEG_FIN,RESULT:PROGRAMADA_SIN_RESPALDO"
+            : "$ACK,CMD:SET_MODO:DEG_FIN,RESULT:CANCELADA");
         char det[40];
         snprintf(det, sizeof(det), cancelar ? "SALIDA_CANCELADA" : "SALIDA_PROGRAMADA_%02d:%02d:%02d", sh, sm, ss);
         bluetooth_reportarEvento("DEGRADADO", det);
