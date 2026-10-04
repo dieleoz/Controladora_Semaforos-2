@@ -89,6 +89,8 @@ const DegAuto = {
   // $EVENT ORIGEN:DEGRADADO. DETALLE lleva la hora dentro: no cabe en AvisosEquipo.
   evento(data) {
     if (!data || data.ORIGEN !== 'DEGRADADO') return null;
+    const fin = typeof DegFin !== 'undefined' ? DegFin.evento(data) : null;
+    if (fin) return fin;
     const d = String(data.DETALLE || '');
     const m = /^AUTO_ENTRADA_INICIO_(\d{2}):(\d{2}):\d{2}$/.exec(d);
     if (m) {
@@ -106,6 +108,7 @@ const DegAuto = {
   // $ALARM EVENTO:DEGRADADO. El resto de causas siguen en AvisosEquipo.
   alarma(data) {
     if (!data || data.EVENTO !== 'DEGRADADO') return null;
+    if (typeof DegFin !== 'undefined' && DegFin.alarma(data)) return DegFin.alarma(data);
     const causa = String(data.CAUSA || '');
     if (causa.indexOf('AUTO_NO_') === 0) {
       // Maestro con MDT_NO_GUARDADO: ACCION:QUEDA_ROJO (rojo fijo); el resto, SIGUE_AMBAR.
@@ -128,6 +131,7 @@ const DegAuto = {
   // Cada $STATUS con NODE, ANTES de que app.js lo guarde: un poste nuevo (o el mismo
   // tras reconectar, que deja state.node en null) se consulta una vez.
   alStatus(node) {
+    if (typeof DegFin !== 'undefined') DegFin.alStatus(node);   // D-52: js/deg_fin.js, mismo enganche
     if (!this.ctx || !node || node === this.ctx.state.node) return;
     this._estado = null;
     this._sinOpcion = false;
@@ -141,6 +145,9 @@ const DegAuto = {
   // Todo $ACK. Devuelve {tono, texto, toast} si es de este modulo; si no, null.
   acuse(data) {
     if (!this.ctx || !data) return null;
+    if (typeof DegFin !== 'undefined' && (data.CMD === DegFin.ORDEN_FIN || data.CMD === DegFin.CONSULTA_FIN)) {
+      return DegFin.acuse(data);
+    }
     if (data.CMD === this.CONSULTA) {
       this._consultaEnCurso = false;
       this._estado = this.leerConsulta(data.RESULT);
@@ -158,6 +165,8 @@ const DegAuto = {
   // Todo $ERR, primero en _traducirRechazo(). {texto, toast} o null.
   rechazo(data) {
     if (!this.ctx || !data) return null;
+    const fin = typeof DegFin !== 'undefined' ? DegFin.rechazo(data) : null;
+    if (fin) return fin;
     // DESCONOCIDO no nombra la orden: solo se toma por la consulta si es el rechazo de
     // una punta (no del PUENTE) por orden no soportada y la consulta es lo que espera.
     const noLaLleva = data.CMD === 'DESCONOCIDO' && data.DESC === 'COMANDO_NO_SOPORTADO' &&
@@ -179,6 +188,7 @@ const DegAuto = {
 
   iniciar(ctx) {
     this.ctx = ctx;
+    if (typeof DegFin !== 'undefined') DegFin.iniciar(ctx);   // js/deg_fin.js
     const $ = (id) => document.getElementById(id);
     this._el = { este: $('degauto-este'), otro: $('degauto-otro'), apto: $('degauto-apto'),
                  on: $('btn-degauto-on'), off: $('btn-degauto-off') };
@@ -217,6 +227,10 @@ const DegAuto = {
       el.off.textContent = this._espera && this._espera.valor === '0' ? esperando : 'Desactivar';
     }
   },
+
+  // D-52: la salida programada sale por la misma puerta que el resto de la familia (censo app_01: este fichero).
+  enviarFin(args) { return this.ctx.enviarComandoFirmware('SET_MODO:DEG_FIN', args); },
+  consultarFin() { return this.ctx.enviarComandoFirmware('CONSULTA_DEG_FIN'); },
 
   _consultar() {
     if (this.ctx.enviarComandoFirmware(this.CONSULTA)) this._consultaEnCurso = true;

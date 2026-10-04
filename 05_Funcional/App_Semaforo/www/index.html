@@ -758,9 +758,8 @@
         </button>
       </div>
 
-      <!-- D-37 (29/09): aqui estaba «Entrar en Modo Degradado». Salio: en banco dio verde en un
-           poste con el otro en ambar mientras se iba a ponerlo. Queda el testigo, que espera en
-           rojo a una hora comun. La orden sigue en el firmware (reanudacion y terminal). -->
+      <!-- D-37 (29/09): aqui estaba «Entrar en Modo Degradado»: en banco dio verde en un poste con el otro en
+           ambar. Queda el testigo, que espera en rojo a una hora comun (la orden sigue en el firmware). -->
 
       <!-- D-35: DEGRADADO CON TESTIGO (SPEC_4 §3.ter). Lo gobierna js/testigo.js. Pulsar es
            "orden enviada"; lo que el equipo hizo lo dicen su $ACK o su $ERR, en Eventos. -->
@@ -1145,6 +1144,7 @@
   <script src="js/telefono.js"></script>
   <script src="js/testigo.js"></script>
   <script src="js/deg_auto.js"></script>
+  <script src="js/deg_fin.js"></script>
   <script src="js/aviso_degradado.js"></script>
   <script src="js/serial_pc.js"></script>
   <script src="app.js"></script>

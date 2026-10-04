@@ -26,6 +26,7 @@ const AvisoDegradado = {
   _vale: null,        // { orden, ms }: la orden ya confirmada, un solo uso
   _pendiente: null,   // { orden, boton, addEvent }: lo que espera respuesta
   _boton: null,       // boton del click que se esta atendiendo ahora mismo
+  _reintento: null,   // lo pone un modulo antes de enviar: al confirmar se llama en vez de re-pulsar el boton
   _el: null,
 
   // Las ordenes que cambian el modo de ESTE poste.
@@ -50,18 +51,21 @@ const AvisoDegradado = {
     return !radio;
   },
 
+  // El vale se casa por NOMBRE de orden: SET_MODO:DEG_FIN lleva un `ahora` que cambia en cada envio.
+  nombre(orden) { return String(orden).replace(/^(SET_MODO:DEG_FIN):(?!CANCELAR$).*/, '$1'); },
+
   permite(orden, state, addEvent) {
     if (!state || !this.aplica(orden, state.node)) return true;
     const auto = state.modo !== 'DEGRADADO';
     if (auto && !this.riesgoAuto(state)) return true;
     const v = this._vale;
-    if (v && v.orden === orden && Date.now() - v.ms <= this.VIGENCIA_MS) {
+    if (v && v.orden === this.nombre(orden) && Date.now() - v.ms <= this.VIGENCIA_MS) {
       this._vale = null;
       return true;
     }
     const el = this._elementos();
     if (!el) return false;
-    this._pendiente = { orden, boton: this._boton, addEvent };
+    this._pendiente = { orden, boton: this._boton, addEvent, reintento: this._reintento };
     el.chk.checked = false;
     el.ok.disabled = true;
     if (el.titulo) el.titulo.textContent = auto ? 'Cuidado: sin radio y con degradado automatico' : el.tituloDeg;
@@ -100,8 +104,9 @@ const AvisoDegradado = {
     if (!this._el || !this._el.chk.checked) return;
     const p = this._cerrar();
     if (!p) return;
-    this._vale = { orden: p.orden, ms: Date.now() };
-    if (p.boton && typeof p.boton.click === 'function') p.boton.click();
+    this._vale = { orden: this.nombre(p.orden), ms: Date.now() };
+    if (p.reintento) p.reintento();
+    else if (p.boton && typeof p.boton.click === 'function') p.boton.click();
     else if (p.addEvent) p.addEvent('cyan', 'Aviso de degradado confirmado: pulse otra vez ' + p.orden + '.');
   },
 

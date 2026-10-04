@@ -346,43 +346,18 @@ document.addEventListener('DOMContentLoaded', () => {
   // =========================================================================
   // 1. PROTOCOLO DE COMANDOS FIRMWARE C++ (STM32 BLUETOOTH CONTRACT)
   // =========================================================================
-  // Las ordenes que el firmware acepta SIN autenticar, con el nombre EXACTO que viaja
-  // por el cable, para que el censo del pack app_01_comandos vea lo mismo que ve el
-  // micro. El criterio no lo elige la app: esta escrito en el despachador y es el
-  // mismo para las tres -el PIN guarda lo que ABRE paso, no lo que lo para-.
-  //
-  //   FORZAR_ROJO      Maestro/src/bluetooth.cpp. Rojo fijo en las dos vias.
-  //   AMBAR_EMERGENCIA Esclavo/src/bluetooth.cpp. Ambar intermitente y talanquera
-  //                    ABIERTA. Es la MISMA tecla de emergencia con OTRA maniobra, y
-  //                    por eso lleva otro nombre: hasta el 28/08 esa punta tambien
-  //                    respondia a FORZAR_ROJO y acusaba "rojo forzado, correcto" sin
-  //                    haber puesto un solo rojo. Ahora el Esclavo rechaza el literal
-  //                    viejo y el motivo del $ERR nombra el nuevo.
-  //   SET_MODO:MENU    Maestro/src/bluetooth.cpp. Deja el equipo en la pantalla, sin ciclo.
-  //   SET_MODO:ALCANCE Maestro/src/bluetooth.cpp. Deja el equipo en rojo fijo.
-  //
-  // Las cuatro se aceptan TAMBIEN con PIN en el micro, asi que meterlas aqui no abre
-  // ninguna puerta nueva: lo que hace es que se puedan usar sin teclear nada, que es
-  // justo el motivo por el que el firmware las dejo sin clave. En particular MENU es
-  // la vuelta atras universal, y una vuelta atras que exige recordar una clave delante
-  // de un cruce parado no es una vuelta atras.
-  //
-  // Y la exencion vale para LAS DOS ordenes de emergencia, no solo para la que dice
-  // "rojo": la caida segura del Esclavo es su ambar, y una caida segura que pide clave
-  // no es una caida segura. El criterio no cambia con el nombre del literal.
-  // LEER_RTC entra aqui por el criterio que el firmware ya tiene escrito, no por
-  // comodidad: "el PIN guarda lo que ABRE paso o mueve luces; no lo que las para"
-  // (Maestro/src/bluetooth.cpp, la rama de FORZAR_ROJO). Una consulta de reloj no abre,
-  // no para y no cambia nada -contesta el puente releyendo su chip, y ni siquiera llega
-  // al micro del semaforo-. Y hay una razon de campo encima: si el reloj esta mal, hay
-  // que poder MIRARLO antes de decidir si se toca, no despues de teclear la llave que
-  // lo cambia.
-  // VERSION entra por el MISMO criterio que LEER_RTC y por una razon de campo que pesa
-  // mas: es la primera pregunta que se hace cuando algo va raro, y el firmware la acepta
-  // con PIN y sin PIN a proposito. Si aqui fuera con PIN, el equipo contestaria
-  // AUTH_FAILED justo cuando el tecnico intenta averiguar QUE lleva dentro.
+  // Las ordenes que el firmware acepta SIN autenticar, con el nombre EXACTO del cable (censo de app_01_comandos).
+  // El criterio es el del despachador, no el de la app: el PIN guarda lo que ABRE paso, no lo que lo para.
+  //   FORZAR_ROJO       Maestro. Rojo fijo (en Degradado, SOLO en ese poste: D-51).
+  //   AMBAR_EMERGENCIA  Esclavo. Ambar intermitente y talanquera ABIERTA; el Esclavo rechaza el literal FORZAR_ROJO
+  //                     nombrando este (hasta el 28/08 acusaba "rojo forzado" sin poner un rojo).
+  //   SET_MODO:MENU / SET_MODO:ALCANCE   Maestro. Menu sin ciclo / rojo fijo; MENU es la vuelta atras universal.
+  // Se aceptan TAMBIEN con PIN: aqui no se abre ninguna puerta, solo se pueden usar sin teclear delante de un cruce
+  // parado. Vale para las DOS de emergencia: una caida segura que pide clave no es segura.
+  // LEER_RTC, VERSION y las consultas (CONSULTA_DEG_AUTO, CONSULTA_DEG_FIN) no abren, no paran ni cambian nada: hay
+  // que poder MIRAR antes de decidir si se toca, y VERSION es la primera pregunta cuando algo va raro.
   const SIN_PIN = ['FORZAR_ROJO', 'AMBAR_EMERGENCIA', 'SET_MODO:MENU', 'SET_MODO:ALCANCE',
-                   'LEER_RTC', 'VERSION', 'CONSULTA_DEG_AUTO'];
+                   'LEER_RTC', 'VERSION', 'CONSULTA_DEG_AUTO', 'CONSULTA_DEG_FIN'];
 
   // DEVUELVE SI LA ORDEN LLEGO A SALIR, y el que llama TIENE QUE MIRARLO.
   //
@@ -2894,7 +2869,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // D-35 (testigo) y A-15 (degradado automatico) viven en js/testigo.js y js/deg_auto.js.
   Testigo.iniciar({ state, enviarComandoFirmware, puntaCorrecta, avisarOtraPunta, addEvent,
                     showToast, horaLocal24, fechaLocalISO, pedirPin });
-  DegAuto.iniciar({ state, enviarComandoFirmware, addEvent, showToast, pedirPin });
+  DegAuto.iniciar({ state, enviarComandoFirmware, addEvent, showToast, pedirPin, horaLocal24 });
 
   // =========================================================================
   // 4.quater DEMANDA: UN CONTROL QUE REFLEJA EL MODO EN VEZ DE GASTAR UN RECHAZO
@@ -3287,6 +3262,31 @@ document.addEventListener('DOMContentLoaded', () => {
              'la cuenta del testigo vuelve a empezar y SIGUE ALTERNANDO, sin volver a rojo ni esperar el inicio.',
       toast: 'Testigo renovado: la cuenta empieza de nuevo, sigue alternando'
     },
+    // D-52 (SPEC_4 3.ter.ter): solo hay $ACK si quedo programada en ESTE poste; del otro no se sabe nada.
+    'SET_MODO:DEG_FIN|PROGRAMADA': {
+      tono: 'green',
+      texto: 'Equipo: SALIDA PROGRAMADA en ESTE poste: a esa hora sale del Degradado por rojo. ' +
+             'El otro poste hay que programarlo aparte.',
+      toast: 'Salida programada en este poste'
+    },
+    'SET_MODO:DEG_FIN|REPROGRAMADA': {
+      tono: 'green',
+      texto: 'Equipo: SALIDA REPROGRAMADA en ESTE poste: sustituye a la anterior. ' +
+             'El otro poste conserva la suya hasta que se cambie alli.',
+      toast: 'Salida reprogramada en este poste'
+    },
+    'SET_MODO:DEG_FIN|PROGRAMADA_SIN_RESPALDO': {
+      tono: 'red',
+      texto: 'Equipo: SALIDA PROGRAMADA en ESTE poste, pero SIN RESPALDO: un corte de luz la pierde y ' +
+             'el poste queda en rojo fijo hasta Volver.',
+      toast: 'Salida programada SIN respaldo: un corte la pierde'
+    },
+    'SET_MODO:DEG_FIN|CANCELADA': {
+      tono: 'cyan',
+      texto: 'Equipo: salida CANCELADA en ESTE poste. Si el otro la tenia, sigue programada: ' +
+             'cancelela alli.',
+      toast: 'Salida cancelada en este poste'
+    },
     'SET_MODO:MENU|OK': {
       tono: 'green',
       texto: 'Equipo: orden VOLVER AL MENU aceptada. La unidad queda en la pantalla, ' +
@@ -3294,6 +3294,11 @@ document.addEventListener('DOMContentLoaded', () => {
       toast: 'El equipo vuelve al menu'
     },
     // En Degradado no se salta al menu: se pide la salida, que es un todo-rojo de 30 s.
+    'SET_MODO:MENU|OK_REANUDACION_CANCELADA': {
+      tono: 'red',
+      texto: 'Equipo: volvio al menu; el degradado que esperaba la hora NO se reanudara.',
+      toast: 'Volvio al menu: el degradado NO se reanudara'
+    },
     'SET_MODO:MENU|SALIENDO_TODO_ROJO': {
       tono: 'red',
       texto: 'Equipo: orden ACEPTADA pero TODAVIA NO ESTA EN EL MENU. Estaba en Modo ' +
@@ -3308,11 +3313,23 @@ document.addEventListener('DOMContentLoaded', () => {
              'ROJO FIJO. Compruebe las dos puntas antes de dejar pasar a nadie.',
       toast: 'Rojo total: amarillo 3 s y rojo fijo en las dos vias'
     },
-    'FORZAR_ROJO|SALIENDO_TODO_ROJO': {
+    // D-51: en Degradado es rojo FIJO en este poste (no salida), y el otro sigue alternando por su reloj.
+    'FORZAR_ROJO|ROJO_FIJO_EN_ESTE_POSTE': {
       tono: 'red',
-      texto: 'Equipo: ROJO TOTAL aceptado. Estaba en Modo Degradado y SALE de el por su ' +
-             'TODO ROJO de transicion: no vuelve a alternar. Al terminar queda en el menu, sin ciclo.',
-      toast: 'Rojo total - sale del Degradado por todo-rojo, no vuelve a alternar'
+      texto: 'Equipo: ROJO FIJO en ESTE poste. El OTRO POSTE SIGUE ALTERNANDO por su reloj: vaya a el. ' +
+             'Se sale con la salida programada o con el boton Volver.',
+      toast: 'Rojo fijo en este poste; el otro sigue alternando'
+    },
+    'FORZAR_ROJO|YA_EN_ROJO_FIJO': {
+      tono: 'red',
+      texto: 'Equipo: ya estaba en rojo fijo; nada cambia. El otro poste sigue por su reloj.',
+      toast: 'Ya estaba en rojo fijo'
+    },
+    'FORZAR_ROJO|OK_REANUDACION_CANCELADA': {
+      tono: 'red',
+      texto: 'Equipo: ROJO FIJO en ESTE poste. El degradado que esperaba la hora NO se reanudara. ' +
+             'El OTRO POSTE sigue por su reloj: vaya a el.',
+      toast: 'Rojo fijo en este poste; el degradado NO se reanudara'
     },
     'FORZAR_ROJO|SALIDA_YA_EN_CURSO': {
       tono: 'red',
@@ -4344,36 +4361,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const SOLO_ESCLAVO = ['AMBAR_EMERGENCIA', 'CANCELAR_AMBAR'];
 
   // 🟠 N-124, VENTANA CONOCIDA Y ABIERTA A PROPOSITO - NO ES UN DESCUIDO.
-  //
-  // `SOLO_MAESTRO` pregunta `=== 'ESCLAVO'`, asi que con `state.node` en null -el segundo
-  // escaso entre que el socket abre y llega el primer $STATUS- una orden de Maestro SI
-  // sale al cable. `SOLO_ESCLAVO` no tiene esa ventana: su `!== 'ESCLAVO'` incluye null.
-  //
-  // Antes la tapaba una punta ADIVINADA de una fila fija del HTML, cuyo MAC ademas era
-  // falso. Al dejar que la punta la diga el equipo (N-124) la ventana queda al aire.
-  //
-  // SE PROBO A CERRARLA -poniendo `!== 'MAESTRO'`- y se retiro, porque rompe el arnes del
-  // puente: `simulador_puente_esp32.py` pulsa AUTOMATICO en el instante siguiente a
-  // conectar, sin esperar al primer $STATUS, y la app dejaba de emitir nada. Arreglarlo
-  // de verdad es que el arnes entregue un $STATUS antes de pulsar -que es lo que pasa en
-  // la realidad-, y eso se toca con calma, no con prisa y sobre una guarda de seguridad.
-  //
-  // LO QUE CUESTA MIENTRAS TANTO, medido y acotado: ~1 s por conexion en el que una orden
-  // SOLO_MAESTRO puede salir contra un Esclavo. El firmware la rechaza con
-  // $ERR,CMD:DESCONOCIDO, asi que no mueve una luz; lo que se pierde es el aviso claro al
-  // operario. Queda anotado en el roadmap y no se cierra desde aqui.
-  // A-11: SE CONSULTA CON LA ORDEN ENTERA, NO CON SU RAIZ, Y LA COINCIDENCIA ES POR
-  // PREFIJO DE SEGMENTO. Es la MISMA regla que app_08_enrutado_por_punta usa para
-  // decidir si una entrada gobierna una orden (_cubre): la entrada vale para si misma y
-  // para todo lo que cuelgue de ella con ':' -asi 'SET_TIEMPOS' sigue cubriendo
-  // 'SET_TIEMPOS:30:5:20'-. Escribir aqui una regla distinta de la que vigila el pack
-  // seria tener dos contratos de enrutado, y el pack aprobaria uno mientras la app usa
-  // el otro.
-  //
-  // POR QUE NO VALE YA CORTAR POR EL PRIMER ':' ANTES DE PREGUNTAR, que es lo que hacia
-  // el despachador de data-cmd: con las seis entradas SET_MODO:X escritas enteras, una
-  // consulta por la raiz 'SET_MODO' no casaria con ninguna y las seis dejarian de estar
-  // gobernadas -la app mandaria mandos de ciclo contra el Esclavo sin avisar-.
+  // `SOLO_MAESTRO` pregunta `=== 'ESCLAVO'`: con `state.node` en null (el segundo entre que abre el socket y llega el
+  // primer $STATUS) una orden de Maestro SI sale. Cerrarla con `!== 'MAESTRO'` rompio el arnes del puente, que pulsa
+  // AUTOMATICO nada mas conectar; arreglarlo es que el arnes entregue un $STATUS antes (roadmap). Coste, acotado: ~1 s
+  // por conexion con una orden SOLO_MAESTRO posible contra un Esclavo, que la rechaza con $ERR,CMD:DESCONOCIDO.
+  // A-11: SE CONSULTA CON LA ORDEN ENTERA, no con su raiz, y la coincidencia es por PREFIJO DE SEGMENTO: la MISMA regla
+  // que app_08_enrutado_por_punta usa para decidir si una entrada gobierna una orden (_cubre). 'SET_TIEMPOS' cubre
+  // 'SET_TIEMPOS:30:5:20'; cortar por el primer ':' dejaria sin gobernar las seis SET_MODO:X (mandos de ciclo contra el
+  // Esclavo sin aviso). Una regla distinta aqui seria un segundo contrato de enrutado.
   function puntaCorrecta(orden) {
     const cubre = e => orden === e || orden.indexOf(e + ':') === 0;
     if (SOLO_MAESTRO.some(cubre) && state.node === 'ESCLAVO') return 'MAESTRO';
