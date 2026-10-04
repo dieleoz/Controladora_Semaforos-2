@@ -810,7 +810,7 @@ bool modo_degradado_pedirSalida() {
   return true;
 }
 
-// El ciclo por reloj reabria el verde tras el amarillo de coordinador_forzarRojoTotal(), y su
+// D-51: el ciclo por reloj reabria el verde tras el amarillo de coordinador_forzarRojoTotal(), y su
 // GO_RED sacaba al Esclavo de su Degradado con esta punta todavia en el.
 uint8_t modo_degradado_forzarRojo() {
   if (modoActual_get() == MODO_DEGRADADO) return modo_degradado_pedirSalida() ? 1 : 2;

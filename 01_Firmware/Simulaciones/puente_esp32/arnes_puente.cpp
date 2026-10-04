@@ -357,14 +357,14 @@ bool protocolo_hayPaqueteDisponible(RF_Packet* destino) {
 
 #if defined(PUNTA_MAESTRO)
 // menu.cpp arrastra la pantalla entera; bluetooth.cpp solo llama a su setup.
-// N-82.bis: pero SI hace lo que el menu_setup() real hace con la maquina -modo y
-// coordinador_forzarMenu()-. Vacio, SET_MODO:MENU dejaba el coordinador en el estado del
-// modo anterior y el test de lamparas, que exige C_MENU_IDLE con el rojo del Esclavo
-// confirmado, no podia ejercerse por este arnes.
+// N-82.bis: hace lo del menu_setup() real (modo y coordinador); vacio, TEST_LEDS no se ejercia.
 void menu_setup() { modoActual_set(MENU); coordinador_forzarMenu(); }
 
 // D-46: SET_MODO:DEGRADADO salio; de modo_degradado.cpp bluetooth.cpp solo pide la salida.
 bool modo_degradado_pedirSalida() { return true; }
+uint8_t modo_degradado_forzarRojo() {   // D-51: copia de la real
+  if (modoActual_get() == MODO_DEGRADADO) return modo_degradado_pedirSalida() ? 1 : 2;
+  coordinador_forzarRojoTotal(); return 0; }
 
 // D-32 (1), 13/09 - EL RELOJ DEL LIMITE DE 48 h, GOBERNABLE DESDE FUERA.
 //

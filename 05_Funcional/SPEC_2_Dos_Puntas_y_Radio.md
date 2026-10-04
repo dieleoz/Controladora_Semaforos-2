@@ -186,7 +186,7 @@ anclas se desfasaban por el otro lado: ~~el Maestro cuenta desde lo último que 
 - **Con la subida Esclavo→Maestro muerta y la bajada viva, la suelta del verde del Poste 2 la hace el Poste 1**
   (condición 1 del arquitecto, 02/10; construido, sin banco). Los latidos le renuevan el silencio al Esclavo y su
   propia suelta no actúa. Con el verde en el Poste 2 (`QV_ESCLAVO`, en reposo) y sin respuesta durante
-  `SFTY6_SILENCIO_MS - TIMEOUT_ACK_MS - AMARILLO_MS` (21,5 s) —el mismo punto de `puedeSostenerVerde()`—, el Poste 1
+  `SFTY6_SILENCIO_MS - TIMEOUT_ACK_MS - AMARILLO_MS` (21,5 s; `D-50`) —igual que `puedeSostenerVerde()`—, el Poste 1
   **pide su rojo en ese instante** (`CMD_GO_RED` ya; el latido lo repite a su cadencia mientras el rojo no conste),
   marca la suelta por margen y sale a reposo. **No entra en ámbar hasta que vence la ventana** `TIMEOUT_ACK_MS +
   AMARILLO_MS` desde esa orden, que por construcción acaba en el umbral: el ámbar sigue a `SFTY6_SILENCIO_MS` y el
@@ -264,7 +264,7 @@ de la radio**, sólo con tramas de **gobierno** · **el límite duro** sin sincr
 **la hora no fiable**. **El límite acaba en ámbar y sólo el Esclavo pasa por el despeje** (**SPEC 6 A.4**); **la hora
 no fiable acaba en ROJO FIJO en las dos** (`D-38`, `irARojoSinHora()`; SPEC 3 §5). De ninguno de los dos se sale solo.
 **La salida del operario en el Poste 1 es una sola puerta** (condicion 2 del arquitecto, 02/10; construido, sin banco):
-`SET_MODO:MENU` y el rojo de emergencia `FORZAR_ROJO` hacen lo mismo, la salida por su todo-rojo, y lo acusan igual
+`SET_MODO:MENU` y el rojo `FORZAR_ROJO` (`D-51`) hacen lo mismo, la salida por su todo-rojo, y lo acusan igual
 (SPEC 4 §3.1). El rojo de emergencia ya no arranca el amarillo dentro del modo ni manda `GO_RED` desde el Degradado: el
 ciclo por reloj volvia a abrir el verde y ese `GO_RED` sacaba al Esclavo de su Degradado con el Maestro todavia en el.
 Al Esclavo lo saca el latido del Maestro ya fuera del modo, si hay radio; sin ella sigue en Degradado (§7.ter, punto 5).

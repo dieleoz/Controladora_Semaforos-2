@@ -1176,7 +1176,7 @@ void coordinador_actualizar() {
       verdeSoltadoPorMargen = true;
       estadoC = C_IDLE;
     } else if (!puedeSostenerVerde() && estadoC == C_IDLE && quienVerde == QV_ESCLAVO) {
-      // SPEC_2 s4 (condicion 1): el verde del OTRO poste se suelta en el mismo punto (con la subida
+      // D-50, SPEC_2 s4 (condicion 1): el verde del OTRO poste se suelta en el mismo punto (con la subida
       // muerta los latidos se lo sostienen); el GO_RED sale ya y su amarillo acaba en el umbral.
       quienVerde = QV_NINGUNO;
       rojoEsclavoConfirmado = false;
