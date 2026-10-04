@@ -5,23 +5,19 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 
 ## Por donde se retoma, en este orden
 
-1. **Retomar la rama `wip/correccion-no-apto`** (`0d35f21`, INTERRUMPIDO): puntos 1-4 del NO APTO hechos segun el
-   agente (suelta del Poste 1 a 21,5 s; `FORZAR_ROJO` en Degradado = salida por todo-rojo; pruebas de `D-47`;
-   `N-172` de raiz quitando la libreria STM32duino RTC). Falta: re-correr arneses y `--rapido`, aplicar
-   `wip/app_js_correccion_no_apto.patch` sin que `app.js` crezca, filas `D-50`/`D-51` (texto en el informe del
-   agente), fusionar a `main`, compuerta hasta converger, arquitecto, QA y paquete validado.
-2. **Fase F** hecha en su primera parte (`1617042`). Queda: partir
-   `17_...`, rehacer `ARQUITECTURA.map`, planos KiCad a `03_Hardware_Tarjeta/`, worktrees viejos.
-3. **Marco prueba `Paquete_Funcional_2026-10-02_851805c_SIN_BANCO`** con `Pruebas_Funcional_2026-10-02.html`; sus
-   cintas se leen enteras y contando. Lunes 05/10, primera sesion en campo con `Montaje_Campo_2026-10-05.html`.
-4. **Pendiente del responsable:** `N-175` modo nocturno (que hace en un paso alterno de un carril); C3 renombrar
-   `Validacion_LCD`; C4 donde vive el grafo. Fase 5 (`lib/`), despues de banco.
+1. **Marco prueba `Paquete_Semaforos_2026-10-04_e831249_SIN_BANCO`** (`entregas/`, sha256 `1090eb92...`) con
+   `Pruebas_Funcional_2026-10-04.html`: catorce casos, los cinco ultimos de banco con dos tarjetas (salida programada
+   `D-52`, rojo total `D-51`). Sus cintas se leen enteras y contando. Arquitecto y QA: APTO CON CONDICIONES, cerradas.
+2. **Lunes 05/10, montaje en campo** con `Montaje_Campo_2026-10-05.html` (sin Degradado desatendido).
+3. **Fase F** (partir `17_...`, `ARQUITECTURA.map`, planos KiCad, worktrees viejos) y `N-166` (renombrar `A-15`).
+4. **Pendiente del responsable:** `N-175` modo nocturno; C3 renombrar `Validacion_LCD`; C4 donde vive el grafo;
+   B3 actualizar el plugin del metodo (fuera del repo).
 
 ## Frentes abiertos (tres como maximo)
 
-- **Candidata con I+G** (`851805c`): NO APTO en correccion. Lo nuevo: `D-44..D-49`.
-- **Orden del repo** (fase F, `evidencia/2026-10-02_inventario_repo.txt`).
+- **Banco de Marco** con el paquete del 04/10.
 - **Campo**: lunes 05/10; `N-172` sin medir en tarjeta.
+- **Orden del repo** (fase F).
 
 ## Organizacion del repo por fases (con el arquitecto de plataforma)
 
@@ -36,7 +32,7 @@ trinquete 1,665); la 5, lo duplicado a `lib/`, despues de banco.
 | Maestro `179DB0` (El Sisga) | `7ff7d12` `SIN_BANCO`, probado despues `b354fe9` | cinta y diario en `evidencia/` |
 | Esclavo del Sisga | sin medir | su cinta no se ha traido |
 | Maestro `4D2007` y Esclavo `38EB53` (Marco, banco) | `6bd1e4f` en controlador y puente, medido: `$ACK,CMD:VERSION` el 01/10 | `evidencia/011020260934/` |
-| paquete para Marco | `Paquete_Funcional_2026-10-02_851805c_SIN_BANCO` (amarillo de la norma, legacy fuera; arquitecto NO APTO, dos defectos avisados en LEEME y hoja). En banco desde el 02/10: `d3606be` | banco de Marco |
+| paquete para Marco | `Paquete_Semaforos_2026-10-04_e831249_SIN_BANCO` (D-50..D-52, N-172; arquitecto y QA APTO CON CONDICIONES, cerradas). El del 02/10, a `entregas/RETIRADOS/` | `entregas/` |
 
 ## Verificacion en escritorio
 

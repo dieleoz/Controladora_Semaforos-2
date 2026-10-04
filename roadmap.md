@@ -113,10 +113,10 @@ candidata crecio con I (`cda33df`) y G (`f9cad1f`): un solo runbook sobre todo.
 | A4.quater.c | Pruebas vistas en rojo con el valor de la SPEC: arnes Degradado dos puntas, arnes del puente (respuestas BT), test de la app | arneses en rojo | hecho (`bf6f024`): Degradado 123/128, puente 131/147, jsdom 22 FALLAS, vistas en rojo |
 | A4.quater.d | Firmware Maestro y Esclavo (orden de salida, rojo fijo, permiso pendiente, relectura de CNTL) y app (formulario, aviso, textos), disjuntos; lo que la SPEC no diga para el trabajo y vuelve a la SPEC | candidata | hecho: firmware `a4545bb`, app `7cd3042`, literales `e94a052` |
 | A4.quater.e | Integracion por el diff y compuerta completa en el arbol principal hasta que dos pasadas den lo mismo; cifras a README/ESTADO | acta | hecho: acta del 04/10 sobre `39a8a1f`, 18 PASS, banco 1368/1369 (solo `D-22`); cifras `c61e428` |
-| A4.quinquies | Arquitecto sobre el binario | veredicto | en curso (opus, solo lectura) |
-| A5 | QA sobre el binario que se entrega | veredicto | en curso (opus, en paralelo con A4.quinquies) |
+| A4.quinquies | Arquitecto sobre el binario | veredicto | APTO CON CONDICIONES (B1, B2, precedencia, SPEC); cerradas en `5db6eb9` |
+| A5 | QA sobre el binario que se entrega | veredicto | APTO CON CONDICIONES, mismas condiciones; cerradas en `5db6eb9`; compuerta convergida en `7aeb327` |
 | A4.quinto | Hoja de Marco solo con lo que falta (`Pruebas_Funcional_2026-10-04.html`, nueve casos); la del 02/10 a historico | `.html` | hecho (`a5df8ec`); `PAQUETE_PENDIENTE` se rellena en A6 |
-| A6 | Paquete validado `SIN_BANCO` a `entregas/`, `PAQUETE_PENDIENTE` de la hoja de Marco rellenado, `.docx` de las SPEC tocadas, ESTADO y README al dia | `.zip` | orquestador; todo el runbook se cierra el 04/10, commit y push en cada paso |
+| A6 | Paquete validado `SIN_BANCO` a `entregas/`, `PAQUETE_PENDIENTE` de la hoja de Marco rellenado, `.docx` de las SPEC tocadas, ESTADO y README al dia | `.zip` | hecho: `Paquete_Semaforos_2026-10-04_e831249_SIN_BANCO` en `entregas/` (hoja `ef708f6`) |
 
 **B. Lo que se cierra en paralelo a A, con ficheros disjuntos**
 
