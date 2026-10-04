@@ -259,15 +259,20 @@ sincronización · sincronización vencida · ámbar vigente; **los textos que L
 existen en el Maestro, SPEC 6 A.2.** **Dentro:** todo-rojo de entrada con su suelo mínimo y después verde **sólo** en
 la fase propia, con el despeje que mandó el Maestro **ya ampliado en el origen** —si cada punta lo escalara los verdes
 se solaparían durante minutos—; **un salto de hora se aplica PASANDO POR ROJO** (`D-26`). **Las cuatro salidas, y
-ninguna admite marcha atrás** (el indicador de la pila se baja **al empezar** la salida): el operario · **el regreso
+ninguna admite marcha atrás** (el indicador de la pila se baja **al empezar** la salida): el operario, o su
+salida programada (§7.quater) · **el regreso
 de la radio**, sólo con tramas de **gobierno** · **el límite duro** sin sincronización, con su aviso previo · y la
 **la hora no fiable**. **El límite acaba en ámbar y sólo el Esclavo pasa por el despeje** (**SPEC 6 A.4**); **la hora
 no fiable acaba en ROJO FIJO en las dos** (`D-38`, `irARojoSinHora()`; SPEC 3 §5). De ninguno de los dos se sale solo.
-**La salida del operario en el Poste 1 es una sola puerta** (condicion 2 del arquitecto, 02/10; construido, sin banco):
-`SET_MODO:MENU` y el rojo `FORZAR_ROJO` (`D-51`) hacen lo mismo, la salida por su todo-rojo, y lo acusan igual
-(SPEC 4 §3.1). El rojo de emergencia ya no arranca el amarillo dentro del modo ni manda `GO_RED` desde el Degradado: el
-ciclo por reloj volvia a abrir el verde y ese `GO_RED` sacaba al Esclavo de su Degradado con el Maestro todavia en el.
-Al Esclavo lo saca el latido del Maestro ya fuera del modo, si hay radio; sin ella sigue en Degradado (§7.ter, punto 5).
+**La salida del operario en el Poste 1, HOY** (`f6ef03d`; construido, sin banco): `SET_MODO:MENU` y `FORZAR_ROJO`
+(`D-51`, versión de la mañana del 04/10) hacen lo mismo, la salida por su todo-rojo (SPEC 4 §3.1). El rojo de
+emergencia no arranca el amarillo dentro del modo ni manda `GO_RED` desde el Degradado: el ciclo por reloj volvía a
+abrir el verde y ese `GO_RED` sacaba al Esclavo de su Degradado con el Maestro todavía en él.
+**DEBE cambiar (responsable, 04/10 tarde; NO CONSTRUIDO, §7.quater):** `FORZAR_ROJO` dentro del Degradado es **rojo
+fijo inmediato en ese poste** (`DEG_ROJO_SIN_HORA`, `D-38`) y deja de ser la salida; se sale con la salida programada
+(`D-52`) o con `SET_MODO:MENU`, que sigue siendo la salida inmediata del poste conectado.
+Al Esclavo lo saca el latido del Maestro ya fuera del modo, si hay radio; sin ella sigue en Degradado (§7.ter, punto 5)
+hasta su salida programada (§7.quater).
 **Desde `cda33df` (`N-174`, sin banco):** el rojo fijo sobrevive a un corte (`D-47`, `FLAG_ROJO_SIN_HORA`) y
 alcanza también al reloj que se congela en marcha (`D-49`), que antes iba a ámbar; los dos, en SPEC 3 §5.
 **Todo paso de verde a rojo del Degradado lleva su amarillo** (`D-45`), porque todos pasan por
@@ -497,9 +502,10 @@ en Degradado cada `PRESENTE_S` en su segundo desfasado (medio dúplex). Al oírl
 DETALLE:ENLACE_DISPONIBLE` al recuperarla (se rearma tras 3 × `PRESENTE_S` sin oírla) y, **en Degradado, otra vez cada
 `ENLACE_AVISO_REPETIR_MS` mientras se la oiga** (`oirPresente()` de `deg_auto.cpp`, las dos puntas): quien se conecta
 después también se entera; la app lo junta en un cartel fijo (SPEC 4 §3.ter.bis). **No sale del modo:**
-la salida sigue siendo el operario (Maestro: `SET_MODO:MENU` o `FORZAR_ROJO`; Esclavo: las tramas de gobierno del
-Maestro ya fuera de
-Degradado, §7). **`CMD_PRESENTE` no llama a `reloj_notarRadio()`** (dejaría la hora del Esclavo esperando a la radio
+la salida sigue siendo el operario (Maestro: `SET_MODO:MENU`, y hoy también `FORZAR_ROJO`, que `D-51` corregida
+convierte en rojo fijo, §7.quater; Esclavo: las tramas de gobierno del Maestro ya fuera de Degradado, §7) o, sin
+radio, la salida programada de `D-52`.
+**`CMD_PRESENTE` no llama a `reloj_notarRadio()`** (dejaría la hora del Esclavo esperando a la radio
 en vez de a su ESP32), **ni refresca `tUltimoComando` ni `tUltimaRespuestaEsclavo`, ni pone `handshakeOk`, ni cuenta
 para (b), ni saca del Degradado**: en el Esclavo se filtra ANTES de `reloj_notarRadio()`; en el Maestro, al principio
 de la rama `if (llego)` de `coordinador_actualizar()`, que hoy da `handshakeOk = true` a cualquier comando que no
@@ -532,6 +538,9 @@ saca al Esclavo con su latido, §7).
 3. **La flash del testigo falla** (`MDT_NO_GUARDADO`): esa punta no entra (el Maestro va a `MENU`); la otra, sí.
 4. **El Esclavo se reinicia en la cuenta con la pila inválida** (sin la opción) o sin hora fiable en 420 s.
 5. **`SET_MODO:MENU` en el Maestro sin radio** deja al Esclavo en Degradado: como hoy con `D-18` y `D-35`.
+   **El hueco lo cierra la salida programada** (`D-52`, §7.quater, NO CONSTRUIDA): la misma hora en los dos postes,
+   cada uno sale por su reloj y sin radio. `SET_MODO:MENU` queda como salida inmediata del poste conectado, con el
+   aviso de paleteros; programar la salida en uno solo reabre este mismo riesgo (§7.quater (h)).
 6. **Una punta pierde la hora fiable y pasa a ROJO FIJO; la otra sigue alternando por reloj** (`D-38`, construido
    sin banco: `irARojoSinHora()` y `DEG_ROJO_SIN_HORA` en los dos `modo_degradado.cpp`). Peor caso, verde contra rojo:
    ese sentido queda cerrado hasta que llegue alguien. Sale `$ALARM ...EVENTO:DEGRADADO,CAUSA:ROJO_SIN_HORA,...,
@@ -575,6 +584,177 @@ orquestador y mandos nuevos en los adaptadores (`punta_mando("deg_auto", 0|1)`, 
 Asevera en cada milisegundo de los escenarios 1–4 que no hay verde contra ámbar ni verde contra verde (el detector
 `hayVerdeSimultaneo()` y su gemelo verde/ámbar); controles negativos: `DEG_AUTO_ROJO_MIN_S` a 0 y el `APTO` del
 Esclavo forzado a 1 deben dar FALLA. El simulador sigue congelado: no hay pack nuevo (`CLAUDE.md` §4).
+
+## 7.quater LA SALIDA PROGRAMADA Y EL ROJO TOTAL DEL DEGRADADO (`D-52`, `D-51` corregida) — NO CONSTRUIDO
+
+> 🔴 **Decidido por el responsable el 04/10 (tarde); nada de este apartado está en el fuente.** Lo que el equipo HACE
+> hoy y lo que DEBE hacer van separados en cada punto. Escrito desde el fuente (`Maestro/src/modo_degradado.cpp`,
+> `bluetooth.cpp`, `main.cpp`, `Esclavo/src/modo_degradado.cpp`) y el veredicto del arquitecto del 04/10 (condiciones
+> 1, 2 y 4). Deroga: de `D-51` la salida por todo-rojo; de §7.ter (f).5 el hueco «sin radio».
+
+**(a) Lo que hace hoy (`f6ef03d`).** Maestro: `modo_degradado_forzarRojo()` en `MODO_DEGRADADO` llama a
+`modo_degradado_pedirSalida()` (acuse `SALIENDO_TODO_ROJO` / `SALIDA_YA_EN_CURSO`); fuera del modo, a
+`coordinador_forzarRojoTotal()` y `RESULT:OK`. **El rojo total NO revoca el permiso de `D-29`:** con el Maestro en
+`MENU` esperando la siembra (`main.cpp`, rama `respaldo_degradadoActivo()`) acusa `OK`, y al llegar la siembra
+`modo_degradado_reanudarTrasCorte()` reabre el Degradado y su verde por reloj (arquitecto, cond. 2). **Leído en el
+fuente al escribir esto (`menu_setup()` no toca la pila), no estaba en su lista:** `SET_MODO:MENU` con el Maestro ya en
+`MENU` tampoco lo borra. Esclavo: no tiene `FORZAR_ROJO` (`$ERR RENOMBRADO_USE_AMBAR_EMERGENCIA`) ni menú; sale con
+`AMBAR_EMERGENCIA` (`degradado_salir()`, acaba en ámbar) o con las tramas de gobierno del Maestro. La app manda
+`FORZAR_ROJO` sin aviso de paleteros (`aviso_degradado.js`, `aplica()` solo mira `SET_MODO:*`) y dice «no vuelve a
+alternar».
+
+**(b) El rojo total (`D-51` corregida). DEBE:**
+- **`FORZAR_ROJO` con el Maestro en `MODO_DEGRADADO` = rojo fijo inmediato en ESE poste**, con el estado que ya existe
+  (`DEG_ROJO_SIN_HORA`, `D-38`): amarillo de 3 s si estaba en verde (`D-45`) y rojo sostenido. **Ya no es la salida.**
+  El otro poste sigue por reloj: verde contra rojo no cruza a nadie (el peor caso de `D-38`, sentido cerrado). «De
+  ninguno de los dos se sale solo» (§7): se sale con la salida programada (c) o con `SET_MODO:MENU` (su todo-rojo de
+  siempre).
+- **Marca `rojoPorOrden`** en ese estado: solo cambia la CAUSA de la alarma, no la luz ni la salida. Publica `$ALARM
+  DEGRADADO,CAUSA:ROJO_TOTAL,...,ACCION:ROJO_FIJO`, repetida cada `AVISO_ROJO_SIN_HORA_MS` (recuerda que el otro poste
+  alterna). Con `ROJO_SIN_HORA` la app mandaría a mirar el reloj por algo que hizo una persona.
+- **Sobrevive a un corte** como `D-47` (`respaldo_guardarRojoSinHora()`): arranca en rojo fijo y no reanuda. **Baja el
+  permiso de `D-29`** (`respaldo_guardarDegradado(false)`, ya lo hace `irARojoSinHora()`).
+- **El permiso, con el Degradado pendiente de la siembra** (Maestro en `MENU`, ventana de `D-29`): `FORZAR_ROJO`, la
+  salida (c) y `SET_MODO:MENU` **lo revocan** (`respaldo_guardarDegradado(false)`, `reanudacionPorDecidir = false`, fin
+  de `esperaReanudacion`). Después de un rojo total **no puede reanudarse el verde por reloj.**
+- **Respuestas de `FORZAR_ROJO` (sin PIN y con PIN, mismas) — cond. 4 del arquitecto.**
+  `RESULT:ROJO_FIJO_EN_ESTE_POSTE` (entró en rojo fijo, desde `DEG_ENTRADA_ROJO`, `DEG_ACTIVO` o `DEG_AMBAR`) ·
+  `RESULT:YA_EN_ROJO_FIJO` (ya estaba en `DEG_ROJO_SIN_HORA`, por hora perdida o por otra orden: nada cambia) ·
+  `RESULT:SALIDA_YA_EN_CURSO` (en `DEG_SALIDA_ROJO` o `DEG_RECHAZO`: ya está en rojo y va al menú) ·
+  `RESULT:OK_REANUDACION_CANCELADA` (fuera del modo, con permiso pendiente, ahora revocado) · `RESULT:OK` (fuera del
+  modo, sin permiso: `D-45`, sin cambio). **Desaparece `SALIENDO_TODO_ROJO` de esta orden.** Cada literal sale de lo que
+  devolvió `modo_degradado_forzarRojo()`, no de la rama.
+- **Esclavo: sin cambio.** No tiene rojo total; su salida inmediata sigue siendo `AMBAR_EMERGENCIA`, que acaba en
+  ámbar (asimetría que esta decisión no toca; riesgo (h).7).
+- **Aviso de paleteros: `FORZAR_ROJO` NO lo lleva** (excepción escrita, **propuesta; la confirma el responsable**,
+  cond. 1 del arquitecto). Razón: «lo seguro, fácil»; rojo fijo no da verde contra nadie. Lo que sí debe cambiar es el
+  TEXTO de la app (SPEC 4 §3.1): «este poste en ROJO FIJO; el OTRO POSTE SIGUE ALTERNANDO, vaya a él». `SET_MODO:MENU` y
+  la salida programada SÍ llevan el aviso (`aplica()` ya cubre cualquier `SET_MODO:*`).
+
+**(c) La orden: `SET_MODO:DEG_FIN:ahora,salida` (`HH:MM:SS,HH:MM:SS`), con PIN, en las DOS puntas.** Nombre: sin choque
+(`grep DEG_FIN` en el repo: cero; el prefijo `SET_MODO:DEG_T:` de 15 caracteres difiere en el 14.º). Con PIN son **47
+B** de los 63 útiles de `TRAMA_MAX_UTIL`. Cancelar: `SET_MODO:DEG_FIN:CANCELAR`. Consulta, sin PIN (molde
+`CONSULTA_DEG_AUTO`, y entra en la lista de órdenes sin PIN de las dos puntas): `CONSULTA_DEG_FIN`.
+- **Qué programa:** la hora (del día) en la que ESTA punta sale del Degradado por su reloj y sin radio. La misma en
+  cada poste, puesta desde la app, configurable como `inicio` (por defecto `ahora` + el traslado).
+- **A la hora `salida`**, en `DEG_ENTRADA_ROJO`, `DEG_ACTIVO` o `DEG_ROJO_SIN_HORA` (con hora fiable): la salida de
+  siempre, `modo_degradado_pedirSalida()` en el Maestro y `iniciarSalida(false)` en el Esclavo: rojo (con su amarillo si
+  estaba en verde), el despeje en uso (mínimo 30 s), y baja el permiso de la pila AL EMPEZAR. Dispara con
+  `reloj_segundosDesde2000() >= salidaS` y `reloj_horaFiable()`; con hora no fiable no dispara (rojo fijo; sale con
+  `SET_MODO:MENU` o cuando la hora vuelva). Publica `$EVENT DEGRADADO,SALIDA_PROGRAMADA_EJECUTADA`.
+- **Validaciones, en este orden, un `$ERR ... DESC:<texto>` por motivo** (Maestro `MotivoSalida` nuevo, `MDF_*`;
+  Esclavo `RechazoSalida`, `DEG_RECHAZO_F_*`; mismos textos): `FORMATO_INVALIDO` (`sscanf` con `%c` centinela y horas
+  válidas, en `bluetooth.cpp`) · «No esta en Degradado» (otro modo, o `DEG_RECHAZO`/`DEG_AMBAR`/`DEG_RENDIDO`: no
+  gobiernan) · «Ya esta saliendo» (`DEG_SALIDA_ROJO`/`DEG_SALIENDO`) · «Falta: reloj sin poner en hora»
+  (`reloj_horaFiable()`) · «Ahora no coincide» (`|ahora − reloj_segundosDelDia()| > TOLERANCIA_TESTIGO_S`, 3 s, por el
+  camino corto del día) · «Salida ya vencida» (`(salida − reloj) mod 86400 > SALIDA_MAX_S` = 12 h, como
+  `TESTIGO_INICIO_MAX_S`; en el Esclavo es la que muerde, con el texto «reprograme la salida en el Maestro») · «Salida
+  antes del inicio» (en la cuenta de entrada, `salidaS <= testigoInicioS`) · «En verde: repita en rojo» (la flash solo
+  se escribe con el poste en rojo, como `MDT_EN_VERDE`) · «No se pudo guardar la salida» (la flash falló: NO queda
+  programada y el poste sigue como estaba; no sale, a diferencia del testigo). `CANCELAR` sin nada programado: «No hay
+  salida programada».
+- **`$ACK` solo si quedó programada, y sale de lo que devolvió la llamada** (molde `SET_TIEMPOS`, `CLAUDE.md` §2):
+  `RESULT:PROGRAMADA` · `RESULT:REPROGRAMADA` (había otra; esta la sustituye) · `RESULT:PROGRAMADA_SIN_RESPALDO` (en
+  rojo total o sin registro de testigo: no hay flash que la guarde, un corte la pierde; (d)) · `RESULT:CANCELADA`.
+- **Reprogramar** = mandar otra: pasa las mismas validaciones y sustituye. **Cancelar** pasa por la flash, así que
+  también pide el poste en rojo. Las dos llevan el aviso de paleteros: un poste que cancela mientras el otro sale es el
+  riesgo (h).1.
+- **`SET_MODO:DEG_T` con una salida programada se rechaza** (`SALIDA_PROGRAMADA_CANCELE_PRIMERO`, Maestro y Esclavo):
+  ni renueva ni entra de nuevo en silencio sobre una salida que el operario ya fijó.
+- **Publicación.** El contador NO cabe en `$STATUS`: su `payload[155]` está a 2 B del borde del cable
+  (`bluetooth.cpp`, comentario del `$EVENT` de diagnóstico) y `documentos_03` exige el campo en las dos puntas. Va como
+  el resto de lo que pasa pocas veces: `$EVENT DEGRADADO,SALIDA_PROGRAMADA_HH:MM:SS` al aceptarla y `CONSULTA_DEG_FIN` →
+  `$ACK,CMD:CONSULTA_DEG_FIN,RESULT:NINGUNA` o `RESULT:SALE_HHMMSS_FALTAN_<s>S_<RESPALDADA|SIN_RESPALDO>` (sin `:`
+  dentro del valor, para el parser de la app). La app la pide al conectar y tras cada orden y cuenta hacia atrás sola.
+
+**(d) Corte de luz (el testigo en flash).** El registro de `testigo_flash.h` gana `salidaS` (s desde 2000; 0 = ninguna)
+y sube de versión: una página de la versión vieja se lee como ausente, y `-e all` (`CLAUDE.md` §3) la borra en cada
+carga. Se escribe con la salida programada, reprogramada o cancelada, **siempre con el poste en rojo**. Tras un corte,
+en `modo_degradado_reanudarTrasCorte()` y `reanudarTestigo()`: `salidaS != 0` y `ahora >= salidaS` → **no reanuda** y
+borra el permiso (el poste arranca en `MENU`/ámbar de arranque `D-40`; el Esclavo, en orfandad); `ahora < salidaS` →
+reanuda como testigo con la salida restaurada en RAM, y sale a su hora. La salida iniciada ya bajó el permiso: un corte
+durante su todo-rojo arranca en el menú. **En rojo fijo no hay respaldo** (el permiso está bajado, la flash no se lee):
+un corte pierde la salida y el poste queda en rojo fijo hasta `SET_MODO:MENU`; lado seguro, pero el otro habrá salido.
+
+**(e) Con radio y sin ella.** Cada poste sale a su hora **por su reloj, no por el latido**: con radio, si el Maestro
+sale primero, su latido ya fuera del modo puede sacar al Esclavo antes de su hora (§7); el resultado es el mismo.
+**Estado final sin radio: los dos en ÁMBAR INTERMITENTE a la vez, leído en el fuente, no medido.** Maestro: `MENU`;
+`coordinador_actualizar()` (`C_MENU_IDLE`, sin respuesta del Esclavo en `SFTY6_SILENCIO_MS`) enciende el ámbar. **El
+Esclavo no tiene menú:** pasa a `DEG_INACTIVO` y `main.cpp` lo lleva al ámbar por silencio (`tUltimoComando`, que en
+Degradado no se refresca). Con radio: los dos terminan en rojo fijo cuando el Maestro (`MENU`) manda `GO_RED`; hasta la
+primera respuesta, ámbar. El encargo decía «los dos en menú»: solo el Maestro lo está.
+
+**(f) Relojes desfasados.** Con `δ` = desfase entre los dos relojes al llegar a `salida`, el cruce está cerrado si `δ +
+AMARILLO_MS (3 s) < despeje en uso` (≥ 30 s): el que sale primero está en rojo y llega a ámbar `despeje` s después; el
+que sale último cierra su verde con 3 s de amarillo. **`δ` lo acota la programación**: cada punta comprueba `ahora`
+contra su reloj con ±3 s, luego `δ ≤ 6 s` + la deriva en ≤ 12 h (≈ 0,2 s con ±2 ppm cada uno); hay ~21 s de margen. No
+cuenta la deriva mensual de `D-26`. **Escrito desde el fuente, no medido en tarjeta.**
+
+**(g) Ficheros e interfaces.** `{Maestro,Esclavo}/src/modo_degradado.cpp,.h` (`rojoPorOrden`, `salidaS`, la orden de
+programar/cancelar/consultar, el disparo en el bucle, la rama de reanudación) · `{Maestro,Esclavo}/src/bluetooth.cpp`
+(`SET_MODO:DEG_FIN`, `CONSULTA_DEG_FIN` y su entrada en la lista sin PIN, las respuestas de `FORZAR_ROJO` en las dos
+ramas, el rechazo de `DEG_T`) · `{Maestro,Esclavo}/{src,include}/testigo_flash.cpp,.h` (campo y versión) ·
+`Maestro/src/main.cpp` (revocar la espera) · `Maestro/src/modo_degradado.cpp` (`modo_degradado_forzarRojo()`: cinco
+códigos). App: SPEC 4 §3.1-§3.ter.ter. **No toca** el ESP32, `reloj.cpp`, `respaldo.cpp` ni `ciclo_degradado.h`. Hasta
+construirla, `decisiones_01_anclas` ve `D-52` sin ancla: es el rojo que dice «sin construir» (`CLAUDE.md` §1).
+
+**(h) RIESGOS PARA EL RESPONSABLE — no se resuelven aquí.**
+1. **Salida programada en un poste y no en el otro** (o cancelada en uno): el que sale queda en `MENU`/ámbar sin
+   radio y el otro sigue con verde por reloj, hasta que alguien llegue: verde contra ámbar, el riesgo de (f).1. El
+   firmware no puede saberlo sin radio. Lo mitigan la tarjeta de la app («salida programada en el Maestro, falta el
+   Esclavo») y `CONSULTA_DEG_FIN`; no lo cierran.
+2. **`SALIDA_VENCIDA` en el segundo poste** (traslado agotado): lo deja sin programar con el primero en cuenta atrás.
+   La salida es reprogramar en el primero una hora posterior o cancelarlo (en rojo); la app lo dice al rechazar.
+3. **Flash solo con el poste en rojo:** programar, reprogramar o cancelar con el poste en verde rechaza `En verde:
+   repita en rojo`; el rojo dura más de 240 s por ciclo (verde del otro más dos despejes), pero el operario debe
+   acertarlo. Alternativa que no tomo: una segunda página de flash, +1 KB (ver el margen en la última acta).
+4. **Un corte entre programar y `salida`** se cubre con la flash; en rojo total no (d). Y un fallo de la flash deja
+   el poste sin salida con un `$ERR` que el operario puede no leer.
+5. **Rojo total y luego salida:** funciona (de `DEG_ROJO_SIN_HORA` por `pedirSalida()`), pero sale al menú sin radio
+   → ámbar; si el otro poste no salió, ese ámbar es de nuevo (h).1.
+6. **`SET_MODO:MENU` en la ventana de `D-29`** ya no reanuda (a); es un cambio de comportamiento no pedido de forma
+   explícita: lo derivo de la regla «el permiso se tira si una persona eligió modo» (§7).
+7. **Asimetría del rojo inmediato:** Maestro = rojo fijo; Esclavo = `AMBAR_EMERGENCIA` (sale por todo-rojo y acaba en
+   ámbar). Un técnico que para los dos con el botón de cada pantalla deja uno en rojo y otro en ámbar.
+8. **Sin cuenta atrás en `$STATUS`** (el cable no admite un campo más): solo `CONSULTA_DEG_FIN` y el `$EVENT`.
+9. **Entra «su cuenta de entrada» solo como `DEG_ENTRADA_ROJO`/`DEG_ENTRANDO`** (esperando `inicio`). La cuenta de
+   300-420 s del automático (§7.ter) no es Degradado todavía: se rechaza con «No esta en Degradado».
+
+**(i) Verificación de extremo a extremo.** Banco, dos tarjetas, radio desconectada: (1) testigo y, ya alternando,
+`SET_MODO:DEG_FIN` a las dos con la misma `salida` y `ahora` leído antes de cada envío (aviso de paleteros primero);
+cronometrar las luces: a `salida` rojo en las dos (amarillo si venían en verde), tras el despeje ámbar intermitente en
+las dos, **nunca verde contra ámbar ni verde contra verde**. (2) Corte de una tarjeta antes de `salida` (reanuda y sale
+a la hora) y otro después (no reanuda). (3) `FORZAR_ROJO` en el Maestro alternando: rojo fijo, el Esclavo sigue; luego
+`DEG_FIN` o `SET_MODO:MENU`. (4) Maestro en `MENU` esperando la siembra + `FORZAR_ROJO` + siembra: no reabre el verde.
+**Pruebas que deben verse en ROJO antes del código** (no existen; valores de esta SPEC, ninguno sale del código):
+- *Arnés del Degradado a dos puntas* (`Validacion_Automatico/dos_puntas/orquestador_degradado.cpp`, fila 19; bloque
+  nuevo `J`; el simulador está congelado y el bloque es una ampliación de un arnés existente, no un pack nuevo): **J1**
+  `FORZAR_ROJO` en el verde del Maestro: acuse 1 = `ROJO_FIJO_EN_ESTE_POSTE`, 0 ms de verde en 600 s, modo sigue
+  `MODO_DEGRADADO`, el Esclavo sigue alternando. **J2** corte tras J1: arranca en rojo fijo, no reanuda. **J3** ventana
+  de `D-29`: Maestro en `MENU` con permiso + `FORZAR_ROJO` + siembra → 0 ms de verde en 1.800 s y `respaldo_degradado ==
+  0`; control sin la orden: reanuda (`G0`). **J4** salida con `δ` = 0, ±6 s: ningún ms de verde-verde ni verde-ámbar
+  entre `salida − 60 s` y `salida + despeje + 60 s`; estado final de las dos = ámbar. **J5** corte antes de `salida`:
+  reanuda y sale a la hora; corte después: no reanuda. **J6** reprogramar sale a la hora nueva; cancelar no sale;
+  cancelar sin nada, `DEG_T` con salida y salida en verde: su motivo. **J7** salida programada solo en un poste: asevera
+  los segundos de verde contra ámbar medidos, como nota que no falla (`H13`). **Controles negativos**, con el defecto
+  inyectado en el `.cpp` real y restaurado por hash: quitar la baja del permiso en `modo_degradado_forzarRojo()`, quitar
+  el disparo de la salida, `salidaS` sin leer en la reanudación: las tres dan FALLA. **Invertir B8**, que hoy EXIGE
+  `acuse == 1` y `modo != MODO_DEGRADADO` (`CLAUDE.md` §9: se invierte, no se borra).
+- *Arnés del puente* (`Simulaciones/puente_esp32/arnes_puente.cpp`, `bluetooth.cpp` REAL de las dos puntas): deja de
+  tener `pedirSalida()` fijo a `true` y una copia de `forzarRojo()` (`arnes_puente.cpp`, cond. 4): los dos valores los
+  manda el arnés y asevera la trama literal. **P1** cada código de `modo_degradado_forzarRojo()` → su `RESULT:` de (b),
+  en la forma con PIN y sin PIN; ninguno es `SALIENDO_TODO_ROJO`. **P2** `DEG_FIN`: 5 entradas de formato malo
+  (`25:00:00`, campo de menos, byte de sobra, `CANCELAR` con basura, sin PIN → `AUTH_FAILED`) y cada motivo de (c) → su
+  `DESC` exacto; `PROGRAMADA`/`REPROGRAMADA`/`PROGRAMADA_SIN_RESPALDO`/`CANCELADA` solo con lo que devolvió el stub;
+  `CONSULTA_DEG_FIN` sin PIN, las dos formas. **P3** Esclavo: lo mismo con `RechazoSalida`, y `FORZAR_ROJO` sigue en
+  `RENOMBRADO_USE_AMBAR_EMERGENCIA`. **P4** `DEG_T` con salida → `SALIDA_PROGRAMADA_CANCELE_PRIMERO`.
+- *Test de la app* (`App_Semaforo/tests/dom_*.js`, jsdom): **A1** `FORZAR_ROJO|ROJO_FIJO_EN_ESTE_POSTE` dice «este
+  poste» y «el otro sigue alternando» y no contiene «no vuelve a alternar» ni «menu» (hoy la clave ni existe: la prueba
+  afirma que existe, o sería ABORTADO y no FALLA). **A2** `FORZAR_ROJO` con `MODO:DEGRADADO` no abre el aviso;
+  `SET_MODO:DEG_FIN` y `SET_MODO:MENU` sí. **A3** el botón «Programar salida» existe en las dos pantallas, manda
+  `SET_MODO:DEG_FIN:ahora,salida` con `ahora` releído en cada envío y reutiliza la `salida` guardada en el Esclavo.
+  **A4** traduce cada `RESULT`/`DESC` de `DEG_FIN`, `CAUSA:ROJO_TOTAL` y `CONSULTA_DEG_FIN` (cuenta atrás y tarjeta
+  «falta el otro poste»); `SALIDA_VENCIDA` dice reprogramar en el Maestro, no reintentar.
 
 ## 8. CÓMO SE PONEN DE ACUERDO LAS DOS PUNTAS SIN RADIO
 
@@ -708,6 +888,7 @@ reintentos por su plazo ensancha el HUECO 5** — el compromiso que `T-2` resolv
 | §8 (c) la puerta del Degradado del Maestro | ✅ **fila 19**: su adaptador llama a las dos consultas del coordinador real |
 | §8 (d) el cruce de los dos umbrales de sincronización | 🔴 **NADIE lo cierra** — un pack lo mide y lo publica, pero no falla por él (HUECO 7) |
 | §2.2.bis y §8 (e.bis) el amarillo de cierre en la radio y en la fase (`D-45`) | ✅ **filas 18 y 19** (el orden de la luz en las dos puntas, el amarillo del Poste 2 ante la orden de rojo, la suelta adelantada, la fase de seis tramos dentro del modo) y **15** (la fase pura); invertidas en `cda33df`. El presupuesto, `costura_09` por texto. Sin acta de compuerta sobre `cda33df` |
+| §7.quater la salida programada y el rojo total del Degradado (`D-52`, `D-51` corregida) | 🔴 **NADIE: no construido.** Las pruebas de §7.quater (i) deben verse en rojo antes del código; el `B8` de hoy exige lo contrario |
 
 **Cuenta: ~~16 barreras — 11 ejecutadas, 4 sin nadie, 1 partida~~ 17 barreras — 12 ejecutadas, 4 sin nadie, 1
 partida** *(02/10: entra `D-45`, ejecutada desde `cda33df`)* (la barrera de salidas, ejecutada en una punta y de
@@ -751,3 +932,6 @@ pendientes**: apuntan al fichero de protocolo y al coordinador fuera del ciclo �
    desigualdad (B) (27,3 s contra el rojo de la suelta, 30,3 s contra su arranque; §2.2.bis, §9), `ESC:AMARILLO`
    sin construir (§2.2.bis). El arranque en rojo fijo sin hora (`D-47`) lo ejercen `F2.5`, `F2.6` y `F3.5` del
    arnés del Degradado (SPEC 3 §5). Símbolos e instrumentos, SPEC 1 §12.10.
+11. 🔴 **LA SALIDA PROGRAMADA (`D-52`) Y EL ROJO TOTAL CORREGIDO (`D-51`) NO ESTÁN CONSTRUIDOS** (§7.quater, 04/10). Hoy
+   `FORZAR_ROJO` en Degradado sale del modo y no revoca el permiso de `D-29` (ventana de la siembra); sin radio no hay
+   salida simultánea (§7.ter (f).5). Los riesgos nuevos, §7.quater (h), son del responsable.

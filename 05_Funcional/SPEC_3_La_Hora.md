@@ -155,7 +155,10 @@ CAUSA:ROJO_SIN_HORA,...,ACCION:ROJO_FIJO` al entrar y cada `AVISO_ROJO_SIN_HORA_
 
 **No se vuelve solo.** Del rojo fijo se sale **por una orden del operario**, por el todo-rojo de la salida:
 el Maestro con `SET_MODO:MENU`; el Esclavo con las tramas de gobierno del Maestro ya fuera de Degradado, o
-con `AMBAR_EMERGENCIA`. Una siembra fresca no devuelve el modo. Si el poste estaba en verde al caer, el
+con `AMBAR_EMERGENCIA`. **DEBE ganar (`D-51` corregida y `D-52`, 04/10; NO CONSTRUIDO, SPEC 2 §7.quater):** el
+mismo estado sirve para el ROJO TOTAL puesto por una persona (`FORZAR_ROJO` en Degradado, solo Maestro; causa
+`ROJO_TOTAL` en la alarma, no `ROJO_SIN_HORA`) y se sale tambien con la salida programada, que con hora no fiable
+no dispara. Una siembra fresca no devuelve el modo. Si el poste estaba en verde al caer, el
 cierre lleva su amarillo de 3 s (`D-45`, `semaforo_forzarRojo()`; SPEC 1 §3.2).
 
 **Desde `cda33df` (`N-174`; sin banco), este rojo fijo alcanza dos casos mas:**
@@ -163,8 +166,14 @@ cierre lleva su amarillo de 3 s (`D-45`, `semaforo_forzarRojo()`; SPEC 1 §3.2).
   (`respaldo_guardarRojoSinHora()`), y al volver la luz el poste arranca en ese rojo fijo, no en ambar: el
   Maestro por `modo_degradado_arrancarEnRojoSinHora()` desde `setup()`, el Esclavo por
   `degradado_arrancarEnRojoSinHora()`. Toda entrada y salida del Degradado borra la marca (SPEC 1 §4.1). Lo
-  ejerce el arnes del Degradado: `F2.5` y la precedencia `F2.6` en el Maestro (por la transcripcion de `setup()` del
-  adaptador) y `F3.5` y `H10` en el Esclavo (su `main.cpp` real), vistas en rojo con `D-47` quitado.
+  ejerce el arnes del Degradado: `F2.5` y la precedencia `F2.6` en el Maestro y `F3.5` y `H10` en el Esclavo (su
+  `main.cpp` real), vistas en rojo con `D-47` quitado. 🔴 **La verdad sobre el Maestro (arquitecto, 04/10, cond. 3):**
+  `F2.5` y `F2.6` ejercen una COPIA de `setup()` escrita a mano en `dos_puntas/adaptador_maestro_deg.cpp`
+  (`punta_arrancar`), no `Maestro/src/main.cpp`; ningun arnes compila ese `setup()` y ningun pack compara la copia con
+  el original (`grep punta_arrancar` en `packs/`: solo `barrera_04`, sin comparacion). Si `main.cpp` cambia el orden de
+  sus cuatro ramas, `F2.5` y `F2.6` siguen en verde: **el arranque del Maestro no tiene prueba sobre el fuente real.**
+  Cierre pendiente: una comprobacion textual de ese bloque en un pack EXISTENTE (simulador congelado), vista en rojo
+  moviendo una rama; sin ella, esta frase se queda.
 - **`D-49`: el reloj que se congela en marcha** (`reloj_estadoCristal() == RELOJ_CRISTAL_CONGELADO` cuando vence el
   limite de 48 h sin sincronizar) va a ROJO FIJO por `irARojoSinHora()`, no a ambar. El Maestro publica antes
   `$ALARM ...CAUSA:RELOJ_NO_CUENTA,...,ACCION:CAMBIO_A_ROJO` y despues la de `ROJO_SIN_HORA`; el Esclavo, en
@@ -393,5 +402,8 @@ que destapo **H-1**, y su deteccion tampoco ha visto una tarjeta.
 ### H-7 El Degradado sin testigo no reanudaba en una tarjeta con mas de un dia de contador
 
 Cerrado por construccion con `N-172` (sin banco): el pliegue del contador lo hacia la libreria al leer la hora, y el
-firmware ya no la usa. Ejercido en el arnes del Degradado (bloque G: G0 y G9, con el modelo de la libreria en
-`reloj_real/STM32RTC.h`, en ROJO sobre el firmware anterior).
+firmware ya no la usa. Ejercido en el arnes del Degradado (bloque G: G0 y G9) con el modelo del periferico,
+`reloj_real/rtc_periferico.cpp` y `stm32f1xx_hal.h`. **`reloj_real/STM32RTC.h`, el modelo de la libreria, ya no existe**
+(se borro con `N-172`): **G9 ya no puede verse en rojo sobre el firmware anterior**, asi que su rojo habria que
+reponerlo con un defecto inyectado en `reloj.cpp`. Citan todavia la libreria que no esta: `rtc_periferico.cpp` (lineas
+5 y 115), `Maestro/src/reloj.cpp` (cabecera), los dos `reloj.h` y los packs `reloj_02` y `reloj_03` (arquitecto, 04/10).

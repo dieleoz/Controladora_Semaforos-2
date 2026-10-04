@@ -98,14 +98,16 @@ prometia rojo y hacia ambar con la talanquera arriba. Lo rechaza **nombrando el 
 | `SET_MODO:AUTO` | si | `RESULT:OK` **incondicional**. La rama llama ella misma a `coordinador_iniciarModo()` —el todo-rojo de entrada—, asi que no depende del flanco de `main.cpp`; las dos llamadas son `void` y no hay rechazo posible |
 | `SET_MODO:MANUAL` | si | `RESULT:OK` incondicional, por lo mismo: la rama llama a `coordinador_forzarRojoTotal()` (`N-147`: se entra por el todo-rojo que no programa nada) |
 | `SET_MODO:AMBAR` | si | **dos respuestas**, y dependen de `modoActual_get()` leido ANTES de escribirlo: `RESULT:REARMADO` si ya estaba en `MODO_AMBAR` —la rama re-arma con `modo_ambar_setup()`— y `RESULT:OK` si no. `N-146`: sin esto el equipo contestaba OK seis veces sin encender nada |
-| `SET_MODO:MENU` | **no** | **tres**: en `MODO_DEGRADADO` depende del bool de `modo_degradado_pedirSalida()` — `RESULT:SALIENDO_TODO_ROJO` si arranco la salida, `$ERR ... YA_VUELVE_AL_MENU` si ya estaba en marcha. **En ninguno de los dos se contesta OK**: el menu tarda el todo-rojo entero. Fuera del Degradado, `RESULT:OK` |
+| `SET_MODO:MENU` | **no** | **tres**: en `MODO_DEGRADADO` depende del bool de `modo_degradado_pedirSalida()` — `RESULT:SALIENDO_TODO_ROJO` si arranco la salida, `$ERR ... YA_VUELVE_AL_MENU` si ya estaba en marcha. **En ninguno de los dos se contesta OK**: el menu tarda el todo-rojo entero. Fuera del Degradado, `RESULT:OK`. **DEBE (`D-52`, no construido):** sigue siendo la salida INMEDIATA del poste conectado, con el aviso de paleteros; con el Maestro en `MENU` esperando la siembra de `D-29`, ademas revoca el permiso. El hueco sin radio lo cierra la salida programada (SPEC 2 §7.quater) |
 | `SET_MODO:ALCANCE` | **no** | `$ERR ... EN_MARCHA_PARE_EL_MODO` si `modoActual_get()` es `MODO_DEGRADADO`; si no, `RESULT:OK` **incondicional** — ver §7 |
 | `SET_MODO:INTELIGENTE` | si | igual que la anterior, y con la misma reserva de §7 |
 | ~~`SET_MODO:DEGRADADO`~~ | — | **Salio con `D-46` (`f9cad1f`; sin banco):** `$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO`. Su puerta, `modo_degradado_evaluarEntrada()` con `DEG_RECHAZO`, queda en el fuente sin llamador que la alcance y se conserva |
-| `SET_MODO:DEG_T:ahora,inicio,verde,despeje` | si | Construido (`990c278`; `D-35`, SPEC 2 §7.bis). **La unica orden de entrada al Degradado.** Puerta PARALELA a `modo_degradado_evaluarEntrada()`, sin sync de radio: `MotivoTestigo` — `$ERR ... DESC:<texto>` (`modo_degradado_textoTestigo()`) por `MDT_FALTA_HORA` / `MDT_AHORA_DESFASADO` (`ahora` vs `reloj_segundosDelDia()`, tolerancia `TOLERANCIA_TESTIGO_S`) / `MDT_DESPEJE_RANGO` / `MDT_INICIO_VENCIDO` / `MDT_AMBAR_VIGENTE`, o `RESULT:OK` si `MDT_OK`, `RESULT:RENOVADO` si `MDT_RENOVADO`. No depende de que haya habido `SET_RTC` antes |
+| `SET_MODO:DEG_T:ahora,inicio,verde,despeje` | si | Construido (`990c278`; `D-35`, SPEC 2 §7.bis). **La unica orden de entrada al Degradado.** Puerta PARALELA a `modo_degradado_evaluarEntrada()`, sin sync de radio: `MotivoTestigo` — `$ERR ... DESC:<texto>` (`modo_degradado_textoTestigo()`) por `MDT_FALTA_HORA` / `MDT_AHORA_DESFASADO` (tolerancia `TOLERANCIA_TESTIGO_S`) / `MDT_DESPEJE_RANGO` / `MDT_INICIO_VENCIDO` / `MDT_AMBAR_VIGENTE`, o `RESULT:OK` si `MDT_OK`, `RESULT:RENOVADO` si `MDT_RENOVADO`. **DEBE (`D-52`):** con salida programada, `$ERR` «Salida programada: cancele primero» |
 | `SET_DEG_AUTO:1` / `SET_DEG_AUTO:0` | si | Construido (`A-15`, SPEC 2 §7.ter (a)). **El `$ACK` sale DIFERIDO**, cuando el `ECO` del otro poste refleja el cambio: `RESULT:ON_EFECTIVO` (el otro tambien apto) / `RESULT:ON_FALTA_EL_OTRO_POSTE` / `RESULT:OFF`. Rechazos: `$ERR ... SIN_ENLACE_CON_EL_OTRO_POSTE` · `EN_DEGRADADO_SALGA_PRIMERO` · `FORMATO_INVALIDO`; sin `ECO` en `DEG_AUTO_ACUSE_MS`, `$ERR ... CAMBIADO_AQUI_SIN_ACUSE_DEL_OTRO_POSTE` (el cambio queda y se sigue publicando). Maestro en `MENU`: siempre ese `$ERR` (SPEC 2 §7.ter (a)). Misma orden y mismos literales en el Esclavo |
 | `CONSULTA_DEG_AUTO` | no (es una consulta) | Construido. `RESULT:ESTE_<ON/OFF>_OTRO_<ON/OFF>_APTO_<SI/NO>`: la opcion propia, el ultimo `APTO` oido del otro y el `APTO` propio. Igual en el Esclavo |
-| `FORZAR_ROJO` | **no** (y con PIN tambien) | Fuera de Degradado: `coordinador_forzarRojoTotal()`, `RESULT:OK`, rojo tras 3 s de amarillo (`D-45`). En Degradado: lo mismo que `SET_MODO:MENU`, salida por su todo-rojo (`D-51`, `modo_degradado_forzarRojo()`), `RESULT:SALIENDO_TODO_ROJO` o `SALIDA_YA_EN_CURSO` |
+| `FORZAR_ROJO` | **no** (y con PIN tambien) | Fuera de Degradado: `coordinador_forzarRojoTotal()`, `RESULT:OK`, 3 s de amarillo y rojo (`D-45`). En Degradado HOY (`f6ef03d`): salida por todo-rojo, `SALIENDO_TODO_ROJO` o `SALIDA_YA_EN_CURSO`. **DEBE (`D-51`, no construido):** rojo FIJO inmediato en ese poste (`DEG_ROJO_SIN_HORA`), sin aviso de paleteros; cinco respuestas, en §3.ter.ter |
+| `SET_MODO:DEG_FIN:ahora,salida` · `SET_MODO:DEG_FIN:CANCELAR` | si | **NO CONSTRUIDO** (`D-52`, SPEC 2 §7.quater (c)): `salida` = `HH:MM:SS` a la que esta punta sale por su reloj; aviso de paleteros; un `$ERR` por motivo y `$ACK` solo si quedo programada (listas en §3.ter.ter) |
+| `CONSULTA_DEG_FIN` | no (es una consulta) | **NO CONSTRUIDO.** `RESULT:NINGUNA` o `RESULT:SALE_HHMMSS_FALTAN_<s>S_<RESPALDADA/SIN_RESPALDO>`. Molde `CONSULTA_DEG_AUTO`; el contador no cabe en `$STATUS` (SPEC 2 §7.quater (c)). Igual en el Esclavo |
 | `MANUAL:CAMBIAR_TURNO` | si | **tres, y el ORDEN importa** (`N-151`): `$ERR ... MODO_SIN_CICLO_SALGA_PRIMERO` si `modoMueveElCoordinador()` es falso; si no, `RESULT:OK` cuando `pedirCambioVerificado()` devuelve true, y `$ERR ... EN_TRANSICION_REINTENTE` cuando no |
 | `TEST_LEDS` | si | Solo fuera de servicio (`N-82.bis`): `testLedsAdmitido()` exige modo `MENU` o `ALCANCE`, luz en `S_ROJO` y `ACK_RED` del Esclavo (`coordinador_rojoEsclavoConfirmado()`). `RESULT:STARTING_6S` si quedo armado; `$ERR` `SIN_ENLACE_AMBAR_NO_SE_PRUEBA` en `S_FALLO`, `ESPERANDO_ROJO_DEL_ESCLAVO` sin acuse, `EN_SERVICIO_PASE_A_MENU` en el resto |
 | `SET_TIEMPOS:v,r,d` | si | **EL MOLDE. Cuatro respuestas, una por motivo:** `$ERR ... FORMATO_INVALIDO` si el `sscanf` con el `%c` centinela no convierte 3 exactos —dos ordenes pegadas convierten 4—; `$ERR ... EN_MARCHA_PARE_EL_MODO` si `modoAutomatico_enMarcha()`; `$ERR ... RANGO` si `modoAutomatico_fijarTiempos()` devuelve false; `RESULT:OK` **solo** si devolvio true |
@@ -125,6 +127,7 @@ que viviera en una funcion comun los dejaria midiendo un bloque vacio (`N-89`).
 | `CANCELAR_AMBAR` | si | **PIDE PIN al reves que armar**, y es deliberado: quitar el ambar devuelve el cruce a dar verdes, o sea **abre paso**. Depende de `ambarEmergencia`: con latch puesto lo retira, avisa al Poste 1 y contesta `RESULT:RETIRADO` (la rama del mando salio con el, `D-30`). Sin latch, `RESULT:REENVIADO_AL_MAESTRO` si esta punta **sigue** en `S_FALLO` (la red de la trama perdida, `N-152`), y `$ERR ... NO_HAY_AMBAR_VIGENTE` si no |
 | ~~`SOLICITAR_PASO`~~ · ~~`SET_MODO:DEGRADADO`~~ | — | **Salieron con `D-46` (`f9cad1f`; sin banco):** `$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO_EN_ESCLAVO`. La app ya no las ofrecia (`D-36`, `D-37`). El paso se da desde el Maestro (Manual y DAR PASO, SPEC 1 §8); al Degradado se entra por el testigo |
 | `SET_MODO:DEG_T:ahora,inicio,verde,despeje` | si | Construido (`990c278`; `D-35`, SPEC 2 §7.bis). Misma orden, `RechazoTestigo` propio: `DEG_RECHAZO_T_SIN_HORA` / `_AHORA_DESFASADO` / `_INICIO_VENCIDO` —texto «repita el testigo en el Maestro»— / `_DESPEJE_RANGO` / `_AMBAR_VIGENTE`, o `RESULT:OK` / `RESULT:RENOVADO` |
+| `SET_MODO:DEG_FIN:ahora,salida` · `...:CANCELAR` · `CONSULTA_DEG_FIN` | si · si · no | **NO CONSTRUIDOS** (`D-52`). Misma orden y mismos literales que el Maestro (§3.1), con `RechazoSalida` propio; aqui muerde «Salida ya vencida» (texto: «reprograme la salida en el Maestro»). Al llegar la hora llama a `iniciarSalida(false)`: rojo, el despeje y `DEG_INACTIVO`, **sin menu**: sin radio queda en ambar por silencio. `DEG_T` con salida programada se rechaza igual |
 | `SET_DEG_AUTO:1` / `SET_DEG_AUTO:0` · `CONSULTA_DEG_AUTO` | si · no | Construidos. Los del Maestro (§3.1); aqui el enlace es una orden de gobierno del Maestro en los ultimos `SFTY6_SILENCIO_MS`, y el `ECO` llega en su `PING` |
 | `FORZAR_ROJO` | las dos formas | `$ERR ... RENOMBRADO_USE_AMBAR_EMERGENCIA`. **Se rechaza ensenando el nombre bueno**, no en silencio: quien lo manda tiene una app o un manual anteriores al cambio |
 | `TEST_LEDS` | si | `$ERR ... NO_EN_SERVICIO_USE_EL_MAESTRO`, **rechazado a proposito**: la secuencia enciende VERDE sin mirar nada, y ese verde saldria mientras el Maestro da paso al otro sentido |
@@ -237,6 +240,46 @@ riesgo: sin radio, los dos postes pasan solos a rojo y despues alternan por relo
 
 **Y el `$STATUS` del Maestro en Degradado publica `ESC:?`**: la app lo pinta como «desconocido», no como el ultimo
 color que vio (SPEC 2 §7.ter (e)).
+
+## 3.ter.ter LA SALIDA PROGRAMADA Y EL ROJO TOTAL EN LA APP — NO CONSTRUIDO (`D-52`, `D-51` corregida; SPEC 2 §7.quater)
+
+**Respuestas que DEBE dar el firmware (no construido).** `FORZAR_ROJO` en Degradado, cada una segun lo que devolvio
+`modo_degradado_forzarRojo()`: `RESULT:ROJO_FIJO_EN_ESTE_POSTE` · `RESULT:YA_EN_ROJO_FIJO` · `RESULT:SALIDA_YA_EN_CURSO`
+· `RESULT:OK_REANUDACION_CANCELADA` (fuera del modo, revoca el permiso de `D-29` pendiente de la siembra) · `RESULT:OK`
+(fuera del modo, sin permiso). `SALIENDO_TODO_ROJO` deja de salir de esta orden. Sin aviso de paleteros: el rojo
+no cruza a nadie.
+
+`SET_MODO:DEG_FIN`, un `$ERR ... DESC:<texto>` por motivo y en este orden: `FORMATO_INVALIDO` · «No esta en
+Degradado» · «Ya esta saliendo» · «Falta: reloj sin poner en hora» · «Ahora no coincide» (`TOLERANCIA_TESTIGO_S`) ·
+«Salida ya vencida» (mas de 12 h por delante) · «Salida antes del inicio» · «En verde: repita en rojo» · «No se pudo
+guardar la salida» · «No hay salida programada» (`CANCELAR` sin nada). `$ACK` solo si quedo programada:
+`RESULT:PROGRAMADA` · `REPROGRAMADA` · `PROGRAMADA_SIN_RESPALDO` (rojo total: un corte la pierde) · `CANCELADA`.
+
+**Lo que hace la app hoy:** `FORZAR_ROJO` sale sin aviso de paleteros (`js/aviso_degradado.js`, `aplica()` solo mira
+`SET_MODO:*`, `SET_DEG_AUTO:0` y las dos órdenes del Esclavo) y su acuse `FORZAR_ROJO|SALIENDO_TODO_ROJO` (`app.js`)
+dice «no vuelve a alternar. Al terminar queda en el menu». No hay botón de salida programada.
+
+**Lo que DEBE hacer:**
+1. **Texto de `FORZAR_ROJO` en Degradado**, una entrada por `RESULT` nuevo (SPEC 4 §3.1): `ROJO_FIJO_EN_ESTE_POSTE` dice
+   «ROJO FIJO en ESTE poste. El OTRO POSTE SIGUE ALTERNANDO por su reloj: vaya a él. Se sale con la salida programada o
+   con Volver al menu»; `YA_EN_ROJO_FIJO`, «ya estaba en rojo fijo; nada cambia»; `OK_REANUDACION_CANCELADA`, «rojo
+   total; el degradado que esperaba la hora NO se reanudará». Desaparece la clave `SALIENDO_TODO_ROJO` de esta orden;
+   `SALIDA_YA_EN_CURSO` se queda (ya está saliendo al menú). **Sin aviso de paleteros** (excepción propuesta,
+   SPEC 2 §7.quater (b)).
+2. **Botón «Programar salida del Degradado»** en las DOS pantallas, gobernado por `puntaCorrecta()`, con el mismo flujo
+   que el testigo (§3.ter): en el Maestro se escribe la hora de salida (por defecto `ahora` + el traslado, editable) y
+   la app manda `SET_MODO:DEG_FIN:ahora,salida` con `ahora` releído justo antes de enviar; **guarda `salida`** (local) y
+   en el Esclavo ofrece «Aplicar salida guardada — Maestro `<serie>`, salida `HH:MM:SS`» sin formulario nuevo, con un
+   `ahora` fresco. **Lleva el aviso de paleteros** (`aplica()` ya cubre `SET_MODO:DEG_FIN`; el vale se compara por el
+   nombre de la orden, no por sus argumentos). Botones «Reprogramar» y «Cancelar salida» (`SET_MODO:DEG_FIN:CANCELAR`).
+3. **Tarjeta de estado** (la pestaña Técnico, como `js/deg_auto.js`): pide `CONSULTA_DEG_FIN` al conectar y tras cada
+   orden y pinta «sale a HH:MM:SS, faltan N s» contando hacia atrás sola, con la marca «sin respaldo» si el firmware la
+   dio. **Si esta app programó el Maestro y no consta el Esclavo, el cartel queda fijo:** «salida programada en el
+   Maestro; FALTA el Esclavo» (el firmware no puede saberlo sin radio; riesgo SPEC 2 §7.quater (h).1).
+4. **Traduce** cada `$ERR` de `DEG_FIN` (un texto por motivo; «Salida ya vencida» dice «reprograme la salida en el
+   Maestro o cancélela», **no ofrece reintentar** con la misma hora), cada `RESULT` (`PROGRAMADA`, `REPROGRAMADA`,
+   `PROGRAMADA_SIN_RESPALDO`, `CANCELADA`), `$EVENT DEGRADADO,SALIDA_PROGRAMADA_*` y `$ALARM DEGRADADO,CAUSA:ROJO_TOTAL,
+   ACCION:ROJO_FIJO` («rojo total puesto por una persona; el otro poste sigue alternando»), que NO es `ROJO_SIN_HORA`.
 
 ## 4. El PIN
 
@@ -401,7 +444,7 @@ llaman al coordinador **dentro** de la rama. **Lo que cada una se deja, medido:*
 puesta a cero de SFTY-15 no ocurre en la segunda pulsacion**; en `INTELIGENTE`, no se re-ejecuta
 `coordinador_iniciarModo()`. **El par peligroso es alcanzable por el mismo camino que `N-146`:**
 `CMD:FORZAR_ROJO` entra **sin PIN desde cualquier modo**, mueve la luz y **no toca `modoActual`** (salvo en
-Degradado, donde es la salida del modo, §3.1). ⚠️ **Lo que NO
+Degradado, donde HOY es la salida del modo y DEBE ser rojo fijo en ese poste, §3.1). ⚠️ **Lo que NO
 se afirma:** no esta medido en banco ni en tarjeta, es lectura del fuente, y **no deja el cruce trabado**.
 
 ⚠️ **5 · El Modo Alcance no tiene superficie.** Todo lo que ese modo produce sale por
@@ -460,6 +503,9 @@ instalada: exportar, enviarlo a un chat y abrir el fichero recibido. Hasta enton
 🟢 **14 · ~~EL DEGRADADO AUTOMATICO (§3.ter.bis, `A-15`) ES CERO CODIGO~~** → construido (`a0d605b`, `1a78873`;
 app en `js/deg_auto.js` y `js/aviso_degradado.js`), sin banco.
 
+🔴 **15 · LA SALIDA PROGRAMADA Y EL ROJO TOTAL CORREGIDO NO TIENEN CODIGO EN LA APP** (§3.ter.ter, `D-52`, `D-51`,
+04/10). Hoy el texto de `FORZAR_ROJO` en Degradado afirma lo contrario de lo decidido y la orden sale sin aviso.
+
 ---
 
 ## 8. QUIEN EJERCE CADA BARRERA DE ESTE DOCUMENTO
@@ -481,6 +527,7 @@ app en `js/deg_auto.js` y `js/aviso_degradado.js`), sin banco.
 | §1 **`TRAMA_MAX_UTIL` y `BUF_ENTRADA_STM32`** | 🟡 **texto** (`esp32_06_no_parte_tramas`, `esp32_09_contrato_de_bytes`, `esp32_07_presupuesto_bytes`) |
 | §1 **la rama del latido que sale sin contestar** | 🟡 **texto** (`esp32_08_silencio_no_es_orden`, y el censo de la fila 20, que la excluye por nombre) |
 | §1 **`sellarHoraSiFaltaba()`**, la unica trama que el puente modifica | 🟡 **texto** (`esp32_13_siembra_de_hora`, `reloj_02_siembra_que_miente`); nadie compila `X:siembra.cpp` |
+| §3.1 **las respuestas de `FORZAR_ROJO` en Degradado y las de `SET_MODO:DEG_FIN`** (`D-51` corregida, `D-52`) | 🔴 **NADIE: no construido.** Hoy el arnes del puente tiene `pedirSalida()` fijo a `true` y una copia de `forzarRojo()` (`arnes_puente.cpp`): los finales de `FORZAR_ROJO` no los ejecuta ninguna prueba (arquitecto 04/10, cond. 4). Pruebas en rojo: SPEC 2 §7.quater (i) |
 
 **Cuenta: 10 filas y 12 barreras — 7 ejecutadas, 2 sin nadie, 3 vigiladas solo por texto.** 🔴 **Los dos rojos son
 el MISMO hecho: el ESP32 entero (9 `.cpp`) no se ejecuta en el PC en ningun sitio**, asi que todo lo que esta spec
