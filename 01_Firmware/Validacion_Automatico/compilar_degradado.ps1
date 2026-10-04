@@ -111,6 +111,9 @@ foreach ($f in ($fuentesMaestro + $fuentesEsclavo)) {
 $comunes = @('-std=c++11', '-O1', '-Wall', '-Wno-unused-parameter', '-DPUNTA_EXPORTA',
              '-static-libgcc', '-static-libstdc++')
 
+# D-52: las firmas de SPEC_2 7.quater (g) se usan en cuanto las dos cabeceras las declaran; antes, J4-J6 salen en rojo por ausencia.
+if ((Select-String -Path "$MAESTRO\include\modo_degradado.h" -Pattern 'modo_degradado_programarSalida' -Quiet) -and (Select-String -Path "$ESCLAVO\include\modo_degradado.h" -Pattern 'modo_degradado_programarSalida' -Quiet)) { $comunes += '-DARNES_SALIDA_D52' }
+
 Write-Host "Compilando la punta MAESTRO CON DEGRADADO (coordinador + semaforo + modo_degradado + modo_ambar + modos + respaldo + reloj REALES)..." -ForegroundColor Cyan
 & g++ @comunes '-DARNES_RELOJ_REAL' "-I$DP" "-I$RR" "-I$DP\comun" "-I$MAESTRO\include" -shared -o (Join-Path $BUILD 'punta_maestro_deg.dll') @fuentesMaestro
 if ($LASTEXITCODE -ne 0) { Write-Error "Fallo construyendo punta_maestro_deg.dll" }
@@ -121,7 +124,7 @@ if ($LASTEXITCODE -ne 0) { Write-Error "Fallo construyendo punta_esclavo_deg.dll
 
 Write-Host "Compilando el orquestador del Degradado..." -ForegroundColor Cyan
 $exe = Join-Path $BUILD 'validar_degradado.exe'
-& g++ -std=c++11 -O1 -Wall "-I$DP" (Join-Path $DP 'orquestador_degradado.cpp') -o $exe -static-libgcc -static-libstdc++
+& g++ -std=c++11 -O1 -Wall @($comunes | Where-Object { $_ -eq '-DARNES_SALIDA_D52' }) "-I$DP" (Join-Path $DP 'orquestador_degradado.cpp') -o $exe -static-libgcc -static-libstdc++
 if ($LASTEXITCODE -ne 0) { Write-Error "Fallo el enlazado del orquestador del Degradado" }
 
 & $exe

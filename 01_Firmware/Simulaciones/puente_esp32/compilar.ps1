@@ -42,9 +42,11 @@ if (-not (Test-Path $BUILD)) { New-Item -ItemType Directory -Path $BUILD | Out-N
 # uid_arnes.h; se le da memoria legible en vez de sustituir la funcion.
 function Construir($punta, $carpeta, $fuentes, $exe) {
     $inc = @("-I$AQUI", "-I$RAIZ\$carpeta\include")
+    $d52 = (Select-String -Path "$RAIZ\Maestro\include\modo_degradado.h" -Pattern 'ResultadoRojoTotal' -Quiet) -and (Select-String -Path "$RAIZ\Esclavo\include\modo_degradado.h" -Pattern 'modo_degradado_programarSalida' -Quiet)  # D-52: firmas de la SPEC
     $flags = @('-std=c++11', '-O1', '-Wall', '-Wno-unused-parameter',
                "-DPUNTA_$punta", '-DUID_BASE=arnes_uid',
                '-include', (Join-Path $AQUI 'uid_arnes.h'))
+    if ($d52) { $flags += '-DARNES_D52' }
     $objetos = @()
     foreach ($f in $fuentes) {
         $o = Join-Path $BUILD "$($punta.ToLower())_$f.o"

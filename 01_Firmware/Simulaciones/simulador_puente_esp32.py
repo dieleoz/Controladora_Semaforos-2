@@ -66,6 +66,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from banco import fuente as fw  # noqa: E402
+from escenario_p_salida import escenario_p  # noqa: E402  (D-51/D-52)
 
 try:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -3360,12 +3361,11 @@ def main():
         escenario_f7(t, c, maestro, app, util_max)
         escenario_asterisco(t, c, maestro, app, util_max)
         escenario_a9(t, c, maestro, esclavo, app, util_max)
-        # D-20 (11/09) va detras de A9 -que usa el $STATUS del Maestro para atribuir el
-        # poste- y delante de N-145, que es el ultimo por lo que dice abajo.
+        # D-20 (11/09) va tras A9 (usa el $STATUS del Maestro) y P (D-52) tras D-20; N-145, el ultimo.
         escenario_d20(t, c, maestro, esclavo, app, util_max)
-        # N-145 va EL ULTIMO porque toca el estado del arnes del Maestro -le quita el
-        # cristal para reproducir el defecto- y lo devuelve al terminar. Ir el ultimo
-        # hace que un fallo a mitad no le cambie la medida a ningun otro escenario.
+        escenario_p(t, c, maestro, esclavo, util_max)
+        # N-145 va EL ULTIMO: le quita el cristal al Maestro para reproducir el defecto y se lo
+        # devuelve; ir el ultimo hace que un fallo a mitad no le cambie la medida a ningun otro.
         escenario_n145(t, c, maestro, app, util_max)
 
     except fw.Abortado as e:

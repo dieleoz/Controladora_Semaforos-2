@@ -360,12 +360,6 @@ bool protocolo_hayPaqueteDisponible(RF_Packet* destino) {
 // N-82.bis: hace lo del menu_setup() real (modo y coordinador); vacio, TEST_LEDS no se ejercia.
 void menu_setup() { modoActual_set(MENU); coordinador_forzarMenu(); }
 
-// D-46: SET_MODO:DEGRADADO salio; de modo_degradado.cpp bluetooth.cpp solo pide la salida.
-bool modo_degradado_pedirSalida() { return true; }
-uint8_t modo_degradado_forzarRojo() {   // D-51: copia de la real
-  if (modoActual_get() == MODO_DEGRADADO) return modo_degradado_pedirSalida() ? 1 : 2;
-  coordinador_forzarRojoTotal(); return 0; }
-
 // D-32 (1), 13/09 - EL RELOJ DEL LIMITE DE 48 h, GOBERNABLE DESDE FUERA.
 //
 // Sin estos cuatro el arnes del MAESTRO dejo de ENLAZAR en cuanto bluetooth.cpp gano el
@@ -426,6 +420,7 @@ void botones_actualizar() {}
 #endif
 
 #include "arnes_puente_testigo2.inc"  // D-35: dobles del testigo
+#include "arnes_puente_salida.inc"    // D-51/D-52: pedirSalida() y forzarRojo() las manda el arnes
 #if defined(PUNTA_ESCLAVO)
 #include "arnes_puente_testigo3.inc"  // D-35: dobles del testigo
 // D-30 (14/09): AQUI VIVIA EL SUSTITUTO DEL VETO DEL MANDO -mando_ambarLocal()-.
@@ -785,6 +780,8 @@ int main(void) {
     } else if (strcmp(linea, "QUIT") == 0) {
       break;
 
+    } else if (salida_orden(linea)) {
+      // FZR: ver arnes_puente_salida.inc
     } else if (n == 0) {
       continue;
 

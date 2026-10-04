@@ -727,6 +727,7 @@ static Borde probarBorde(bool esMaestro, long J, unsigned long esperaMaxMs) {
 }
 
 #include "orquestador_deg_auto.inc"   // BLOQUE H: A-15, el Degradado automatico (SPEC_2 7.ter)
+#include "orquestador_deg_fin.inc"    // BLOQUE J: D-51 corregida, el rojo total del Degradado
 // ---------------------------------------------------------------------------
 int main() {
   std::printf("==============================================================\n");
@@ -981,9 +982,8 @@ int main() {
               "las dos puntas y NO toco ni una vez ROJO_PEATON, VERDE_PEATON ni el "
               "BUZZER. Se cuentan escrituras, no niveles");
 
-    // B8 (condicion 2 del arquitecto, SPEC_4 3.1): FORZAR_ROJO con el Maestro en su verde por
-    // reloj. Es la salida por su todo-rojo, la de SET_MODO:MENU: el verde no vuelve tras el
-    // amarillo (antes volvia en la misma vuelta) y el acuse dice SALIENDO_TODO_ROJO (1).
+    // B8 INVERTIDA (D-51 corregida; CLAUDE.md 9): rojo fijo en este poste, no la salida. CONSERVA habiaVerde,
+    // verdeTras == 0 y permiso == 0; INVIERTE modo != DEGRADADO; el acuse pasa a RRT_ROJO_FIJO (SPEC), no a 1 a ojo.
     for (unsigned long h = 0; h < 600000UL && !MAESTRO.verde(); h += PASO_MS) unTick();
     const bool habiaVerde = MAESTRO.verde();
     const long acuse = MAESTRO.orden("forzar_rojo_app");
@@ -992,13 +992,12 @@ int main() {
       unTick();
       if (h > M_AMARILLO_MS + PASO_MS && MAESTRO.verde()) verdeTras += PASO_MS;
     }
-    comprobar(habiaVerde && acuse == 1 && verdeTras == 0 &&
-                  MAESTRO.orden("modo_actual") != MODO_DEGRADADO_V &&
+    comprobar(habiaVerde && acuse == rrtRojoFijo() && verdeTras == 0 && MAESTRO.rojo() &&
+                  MAESTRO.orden("modo_actual") == MODO_DEGRADADO_V &&
                   MAESTRO.orden("respaldo_degradado") == 0,
-              "B8 (SPEC_4 3.1): FORZAR_ROJO en el verde del Degradado es la salida por su "
-              "todo-rojo: acuse " + std::to_string(acuse) + " (1 = SALIENDO_TODO_ROJO), " +
-              std::to_string(verdeTras) + " ms de verde tras el amarillo en 120 s, modo " +
-              std::to_string(MAESTRO.orden("modo_actual")) + " y permiso de la pila borrado");
+              "B8 (D-51 corregida): FORZAR_ROJO en el verde del Degradado es rojo fijo en este poste: acuse " +
+              std::to_string(acuse) + ", " + std::to_string(verdeTras) + " ms de verde tras el amarillo en 120 s, luz"
+              " roja, modo " + std::to_string(MAESTRO.orden("modo_actual")) + " (MODO_DEGRADADO " + std::to_string(MODO_DEGRADADO_V) + "), permiso borrado");
   }
 
   // =========================================================================
@@ -2130,6 +2129,7 @@ int main() {
     }
   }
   bloqueH();
+  bloqueJ(DEG_DESPEJE_SEG);
   // =========================================================================
   std::printf("\n==============================================================\n");
   std::printf(" RESULTADO: %d/%d comprobaciones OK\n", total - fallos, total);

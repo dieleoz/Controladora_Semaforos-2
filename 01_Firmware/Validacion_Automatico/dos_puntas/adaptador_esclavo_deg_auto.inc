@@ -157,5 +157,11 @@ static long arnesDegAuto_mando(const char* que, long arg) {
   if (!strcmp(que, "da_testigo"))
     return degradado_entrarTestigo(reloj_segundosDelDia(), (uint32_t)arg, DEG_AUTO_DESPEJE_S) == DEG_T_ACEPTADO;
   if (!strncmp(que, "da_accion_es:", 13)) return strcmp(g_daUltAccion, que + 13) == 0 ? 1 : 0;
+#ifdef ARNES_SALIDA_D52   // D-52 (SPEC_2 7.quater, firmas): lo pone compilar_degradado.ps1 si los .h ya las declaran
+  if (!strcmp(que, "da_salida_programar")) return (long)modo_degradado_programarSalida(reloj_segundosDelDia(), (uint32_t)arg);
+  if (!strcmp(que, "da_salida_cancelar"))  return (long)modo_degradado_cancelarSalida();
+  if (!strcmp(que, "da_salida_s"))         return (long)modo_degradado_salidaS();
+  if (!strcmp(que, "da_salida_respaldada")) return modo_degradado_salidaRespaldada() ? 1 : 0;
+#endif
   return PUNTA_DESCONOCIDO;
 }
