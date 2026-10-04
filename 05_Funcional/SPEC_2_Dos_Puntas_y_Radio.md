@@ -652,8 +652,8 @@ B** de los 63 útiles de `TRAMA_MAX_UTIL`. Cancelar: `SET_MODO:DEG_FIN:CANCELAR`
   `SET_MODO:MENU`, la rendición o el ámbar del límite, el regreso de la radio) y al ENTRAR (`DEG_T` aceptado o
   renovado, y la entrada automática por `entrarTestigo`). Así tras salir se puede volver a entrar y programar; el
   rechazo de `DEG_T` con salida pendiente solo vale DENTRO del modo.
-- **Validaciones, en este orden, un `$ERR ... DESC:<texto>` por motivo** (Maestro `MotivoSalida` nuevo, `MDF_*`; Esclavo
-  `RechazoSalida`, `DEG_RECHAZO_F_*`; mismos textos): `FORMATO_INVALIDO` (`sscanf` con `%c` centinela y horas válidas,
+- **Validaciones, en este orden, un `$ERR ... DESC:<texto>` por motivo** (`MotivoSalida`, `MDF_*`, el mismo en las dos
+  puntas; firmas en (g)): `FORMATO_INVALIDO` (`sscanf` con `%c` centinela y horas válidas,
   en `bluetooth.cpp`) · «No esta en Degradado» (otro modo, o `DEG_RECHAZO`/`DEG_AMBAR`/`DEG_RENDIDO`: no gobiernan) ·
   «Ya esta saliendo» (`DEG_SALIDA_ROJO`/`DEG_SALIENDO`) · «Falta: reloj sin poner en hora» (`reloj_horaFiable()`) ·
   «Ahora no coincide» (`|ahora − reloj_segundosDelDia()| > TOLERANCIA_TESTIGO_S`, 3 s, por el camino corto del día) ·
@@ -709,6 +709,23 @@ ramas, el rechazo de `DEG_T`) · `{Maestro,Esclavo}/{src,include}/testigo_flash.
 `Maestro/src/main.cpp` (revocar la espera) · `Maestro/src/modo_degradado.cpp` (`modo_degradado_forzarRojo()`: cinco
 códigos). App: SPEC 4 §3.1-§3.ter.ter. **No toca** el ESP32, `reloj.cpp`, `respaldo.cpp` ni `ciclo_degradado.h`. Hasta
 construirla, `decisiones_01_anclas` ve `D-52` sin ancla: es el rojo que dice «sin construir» (`CLAUDE.md` §1).
+
+**Firmas (las fija la SPEC; el constructor no las elige).** En `modo_degradado.h` de las DOS puntas, salvo lo marcado:
+- `enum MotivoSalida : uint8_t { MDF_PROGRAMADA, MDF_REPROGRAMADA, MDF_PROGRAMADA_SIN_RESPALDO, MDF_CANCELADA,
+  MDF_NO_EN_DEGRADADO, MDF_YA_SALIENDO, MDF_FALTA_HORA, MDF_AHORA_DESFASADO, MDF_SALIDA_VENCIDA,
+  MDF_ANTES_DEL_INICIO, MDF_EN_VERDE, MDF_NO_GUARDADO, MDF_NADA_QUE_CANCELAR };` en el orden de (c).
+- `MotivoSalida modo_degradado_programarSalida(uint32_t ahoraDia, uint32_t salidaDia);` (segundos del dia) ·
+  `MotivoSalida modo_degradado_cancelarSalida();` · `const char* modo_degradado_textoSalida(MotivoSalida m);` (los
+  textos de (c); los cuatro primeros son `$ACK`, el resto `$ERR`) · `uint32_t modo_degradado_salidaS();` (0 = ninguna)
+  · `bool modo_degradado_salidaRespaldada();`.
+- Solo Maestro: `enum ResultadoRojoTotal : uint8_t { RRT_OK = 0, RRT_ROJO_FIJO = 1, RRT_YA_EN_ROJO_FIJO = 2,
+  RRT_SALIDA_EN_CURSO = 3, RRT_REANUDACION_CANCELADA = 4 };` -> `RESULT:OK` · `ROJO_FIJO_EN_ESTE_POSTE` ·
+  `YA_EN_ROJO_FIJO` · `SALIDA_YA_EN_CURSO` · `OK_REANUDACION_CANCELADA`, y `ResultadoRojoTotal
+  modo_degradado_forzarRojo();` (sustituye al `uint8_t` de hoy).
+- Solo Maestro: `bool modo_degradado_revocarEsperaSiembra();` true si habia permiso esperando la siembra (`D-29`) y
+  lo bajo. Lo llaman `modo_degradado_forzarRojo()` (y entra en rojo fijo, `RRT_REANUDACION_CANCELADA`) y
+  `SET_MODO:MENU` (`RESULT:OK_REANUDACION_CANCELADA` si devolvio true, `RESULT:OK` si no).
+- J3 tolera hasta 1000 ms sin rojo en el Maestro: una vuelta de arranque antes de entrar en rojo fijo.
 
 **(h) RIESGOS PARA EL RESPONSABLE — no se resuelven aquí.**
 1. **Salida programada en un poste y no en el otro** (o cancelada en uno): el que sale queda en `MENU`/ámbar sin
