@@ -3278,7 +3278,7 @@ document.addEventListener('DOMContentLoaded', () => {
     'SET_MODO:DEG_FIN|PROGRAMADA_SIN_RESPALDO': {
       tono: 'red',
       texto: 'Equipo: SALIDA PROGRAMADA en ESTE poste, pero SIN RESPALDO: un corte de luz la pierde y ' +
-             'el poste queda en rojo fijo hasta Volver.',
+             'hay que volver a programarla despues de un corte.',
       toast: 'Salida programada SIN respaldo: un corte la pierde'
     },
     'SET_MODO:DEG_FIN|CANCELADA': {
