@@ -12,8 +12,8 @@
 //   - No lleva al ESCLAVO un testigo que el MAESTRO no haya ACUSADO: una punta dentro y
 //     la otra no es el caso peor de SPEC_6 §8. Sin acuse queda ENVIADO, y ENVIADO no se
 //     ofrece al Esclavo.
-//   - No manda el testigo sin el $ACK del SET_RTC del PUENTE: si en ESPERA_RTC_MS no
-//     llega, lo dice y no manda.
+//   - El SET_RTC previo NO bloquea (SPEC_4 §3.ter 2, SPEC_6 A.1.bis): el testigo sale con su $ACK, con su $ERR o
+//     pasados ESPERA_RTC_MS sin contestar. Lo que protege es `ahora`, que el firmware valida contra su reloj.
 //
 // Los rechazos del firmware traen el MOTIVO EN TEXTO (modo_degradado_textoTestigo() del
 // Maestro y degradado_textoRechazoTestigo() del Esclavo); por eso no van en ERR_TEXTO,
@@ -155,7 +155,7 @@ const Testigo = {
     if (node === 'MAESTRO' && g) {
       this.ctx.addEvent('red', 'Testigo del POSTE 1 guardado en este telefono: inicio ' +
         g.inicio + ', verde ' + g.verde + ' s, despeje ' + g.despeje + ' s. Lleve el ' +
-        'MISMO testigo al POSTE 2 antes de las ' + g.inicio + ' con "Enviar testigo": ' +
+        'MISMO testigo al POSTE 2 antes de las ' + g.inicio + ' con "Aplicar testigo guardado": ' +
         'hasta que el POSTE 2 lo acepte, una punta va por testigo y la otra no.');
     } else if (node === 'ESCLAVO') {
       this.ctx.addEvent('red', 'POSTE 2 con el testigo. Quedese a ver un ciclo completo y ' +
@@ -169,9 +169,11 @@ const Testigo = {
     if (!data) return null;
     if (data.CMD === 'SET_RTC' && this._espera) {
       clearTimeout(this._espera.timer);
+      const punta = this._espera.punta;
       this._espera = null;
-      this._aviso('el puente rechazo la hora (motivo al lado): NO se envia el testigo. ' +
-                  'Corrija la hora y repita.');
+      this._aviso('el puente rechazo la hora (motivo al lado). El testigo sale igual: el poste valida ' +
+                  '`ahora` con su propio reloj y dira si no cuadra.');
+      this._enviarTestigo(punta);
       return null;
     }
     if (data.CMD !== this.ORDEN) return null;
@@ -238,8 +240,8 @@ const Testigo = {
     el.estado.textContent = txt;
     if (el.btnE) {
       el.btnE.textContent = (g && g.estado === 'ACEPTADO' && vivo)
-        ? 'Enviar testigo - Maestro ' + (g.serie || '?') + ', inicio ' + g.inicio
-        : 'Enviar testigo';
+        ? 'Aplicar testigo guardado — Maestro ' + (g.serie || '?') + ', inicio ' + g.inicio
+        : 'Aplicar testigo guardado';
     }
   },
 
@@ -278,12 +280,12 @@ const Testigo = {
     const d0 = new Date();
     if (!c.enviarComandoFirmware('SET_RTC', c.fechaLocalISO(d0) + ',' + c.horaLocal24(d0))) return;
     c.addEvent('cyan', 'Degradado con testigo: orden SET_RTC enviada con la hora del ' +
-                       'telefono. El testigo sale cuando el puente acuse la hora.');
+                       'telefono. El testigo sale con su acuse, con su rechazo o a los ' + (this.ESPERA_RTC_MS / 1000) + ' s.');
     this._espera = { punta, timer: setTimeout(() => {
       this._espera = null;
-      this._aviso('el puente no acuso la hora en ' + (this.ESPERA_RTC_MS / 1000) + ' s: ' +
-                  'NO se envia el testigo. Compruebe el enlace y repita.');
-      this.render();
+      this._aviso('el puente no acuso la hora en ' + (this.ESPERA_RTC_MS / 1000) + ' s. El testigo sale ' +
+                  'igual: el poste valida `ahora` con su propio reloj.');
+      this._enviarTestigo(punta);
     }, this.ESPERA_RTC_MS) };
     this.render();
   },

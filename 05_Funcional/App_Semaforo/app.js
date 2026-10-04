@@ -735,14 +735,14 @@ document.addEventListener('DOMContentLoaded', () => {
       state.rfMedidaMs = Date.now();
     }
 
-    if (rfQualityEl) rfQualityEl.textContent = medido ? lectura.pct + '%' : '--';
+    if (rfQualityEl) rfQualityEl.textContent = medido ? lectura.pct + '%' : (lectura && lectura.crudo === '!' ? '!' : '--');
 
     // rf-rtt lleva el numero que vino, y NADA MAS: la unidad la pone el rotulo fijo
     // del HTML. Si no vino, la casilla queda con dos guiones y la unidad se retira -un
     // "-- ms" es una medida en milisegundos que nadie hizo-. Quien declara la ausencia
     // es el rotulo del tramo y el sello de hora, no un valor de relleno.
     const hayRtt = lectura && lectura.rtt !== null && lectura.rtt !== undefined;
-    if (rfRttEl) rfRttEl.textContent = hayRtt ? String(lectura.rtt) : '--';
+    if (rfRttEl) rfRttEl.textContent = hayRtt ? String(lectura.rtt) : (lectura && lectura.crudoRtt === '!' ? '!' : '--');
     const rfRttUnidadEl = document.getElementById('rf-rtt-unidad');
     if (rfRttUnidadEl) rfRttUnidadEl.style.visibility = hayRtt ? 'visible' : 'hidden';
 
@@ -1525,7 +1525,7 @@ document.addEventListener('DOMContentLoaded', () => {
     'MENU':        { texto: '☰ EN MENÚ · SIN CICLO',        fondo: 'rgba(0,240,255,0.15)',   borde: 'var(--cyan-neon)',  color: 'var(--cyan-neon)' },
     'INTELIGENTE': { texto: '👁 INTELIGENTE · POR DEMANDA',  fondo: 'rgba(0,240,255,0.15)',   borde: 'var(--cyan-neon)',  color: 'var(--cyan-neon)' },
     'ALCANCE':     { texto: '🛑 ALCANCE · ROJO FIJO',       fondo: 'rgba(255,30,68,0.2)',    borde: 'var(--red-lamp)',   color: 'var(--red-lamp)' },
-    'DEGRADADO':   { texto: '⚠️ DEGRADADO · SIN ENLACE ENTRE POSTES', fondo: 'rgba(255,179,0,0.15)', borde: 'var(--amber-lamp)', color: 'var(--amber-lamp)' },
+    'DEGRADADO':   { texto: '⚠️ DEGRADADO', fondo: 'rgba(255,179,0,0.15)', borde: 'var(--amber-lamp)', color: 'var(--amber-lamp)' },
     'SUBORDINADO': { texto: '🔗 SUBORDINADO AL MAESTRO',    fondo: 'rgba(0,240,255,0.15)',   borde: 'var(--cyan-neon)',  color: 'var(--cyan-neon)' },
     // A-11 (05/09). EL DECIMOPRIMERO, Y ES DEL ESCLAVO. Esa punta dejo de publicar
     // MODO:SUBORDINADO fijo el dia que se pudo pedir su Modo Degradado desde aqui: ahora
@@ -1537,7 +1537,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // cruce sigue operando por reloj cuando ya no opera: el tecnico leeria un modo
     // vigente donde hay una autorizacion caducada, que es lo contrario de lo que tiene
     // que hacer -volver a sincronizar y volver a entrar-.
-    'RENDIDO':     { texto: '⏳ DEGRADADO VENCIDO (48 h) · ÁMBAR', fondo: 'rgba(255,179,0,0.15)', borde: 'var(--amber-lamp)', color: 'var(--amber-lamp)' },
+    'RENDIDO':     { texto: '⏳ RENDIDO · ÁMBAR', fondo: 'rgba(255,179,0,0.15)', borde: 'var(--amber-lamp)', color: 'var(--amber-lamp)' },
     // Este no es "la app no lo conoce": es el equipo diciendo que no sabe en que modo
     // esta -el `default` de su propio switch-. Se distingue del de abajo a proposito.
     'DESCONOCIDO': { texto: '❔ EL EQUIPO NO SABE SU MODO',  fondo: 'rgba(148,163,184,0.15)', borde: 'var(--text-muted)', color: 'var(--text-muted)' }
@@ -1941,7 +1941,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // #cd-num: aqui solo hay que no estropearlo escribiendo una cifra inventada.
     const conocido = typeof state.countdown === 'number' && !Number.isNaN(state.countdown);
     const current = conocido ? Math.max(0, state.countdown) : 0;
-    cdNumEl.textContent = conocido ? String(current) : '--';
+    cdNumEl.textContent = conocido ? String(current) : (state.countdownImposible ? '!' : '--');
 
     const circumference = 251.32;
     // LA FRACCION SOLO SE DIBUJA SI HAY UN TOTAL QUE VENGA DE FUERA DE ESTA APP.
@@ -2462,8 +2462,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Forma SIN PIN: es la que el firmware espera para la parada de emergencia, y
       // la rama que la construye llevaba desde el rewrite sin un solo llamador.
       if (!enviarComandoFirmware('FORZAR_ROJO')) return;
-      addEvent('red', 'ALERTA: orden ROJO TOTAL DE EMERGENCIA enviada al MAESTRO. ' +
-                      'Si el equipo la acepta deja las dos vias en rojo fijo.');
+      addEvent('red', TextosSpec4.emergenciaMaestro(null, state.modo === 'DEGRADADO').orden);
     });
   }
 
@@ -2544,11 +2543,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // de cada semaforo, asi que el mando y la luz se nombran igual. Los dos nombres
     // tecnicos siguen enteros donde hacen falta -la cabecera, la bitacora de Eventos y
     // las pestanas de tecnico-, que es donde los lee quien diagnostica.
-    if (emergenciaSubMaestroEl) {
-      emergenciaSubMaestroEl.textContent = punta
-        ? 'Ambas vías en rojo fijo'
-        : 'POSTE 1 · ambas vías en rojo fijo';
-    }
+    const emM = TextosSpec4.emergenciaMaestro(punta, state.modo === 'DEGRADADO');
+    if (emergenciaSubMaestroEl) emergenciaSubMaestroEl.textContent = emM.sub;
     if (emergenciaSubEsclavoEl) {
       emergenciaSubEsclavoEl.textContent = punta
         ? 'Intermitente · talanquera ABIERTA'
@@ -2560,8 +2556,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // alto -o sea en todos los telefonos-, asi que cuando se ensenan las dos
     // emergencias esta linea es el UNICO sitio donde se dice cual es de cada poste.
     if (punta === 'MAESTRO') {
-      emergenciaHintEl.textContent = 'POSTE 1: la parada de emergencia deja las dos ' +
-        'vías en ROJO FIJO y detiene el tráfico.';
+      emergenciaHintEl.textContent = emM.hint;
     } else if (punta === 'ESCLAVO') {
       emergenciaHintEl.textContent = 'POSTE 2: la parada de emergencia NO deja rojo. ' +
         'Pone ÁMBAR INTERMITENTE y ABRE la talanquera: los dos sentidos pasan con ' +
@@ -3214,15 +3209,14 @@ document.addEventListener('DOMContentLoaded', () => {
              'quitarlo, use RETIRAR AMBAR.',
       toast: 'Ya estaba en ambar y el otro poste ya estaba avisado'
     },
-    // El ambar NO esta puesto todavia: el equipo esta saliendo del Degradado por
-    // todo-rojo y eso tarda hasta 90 s (cfgDespeje). Decir OK seria dar por hecho un
-    // cambio de luz que aun no ha ocurrido.
+    // El ambar NO esta puesto todavia: sale del Degradado por todo-rojo, de duracion el despeje en uso
+    // (SPEC_2 7.quater (c)): sin cifra. Decir OK seria dar por hecho un cambio que aun no ha ocurrido.
     'AMBAR_EMERGENCIA|SALIENDO_TODO_ROJO': {
       tono: 'red',
       texto: 'Equipo: orden ACEPTADA pero el ambar TODAVIA NO ESTA PUESTO. La unidad ' +
-             'esta saliendo del Modo Degradado por TODO ROJO y eso tarda hasta 90 s. ' +
+             'esta saliendo del Modo Degradado por TODO ROJO, que dura el despeje en uso. ' +
              'El ambar entra al terminar esa salida: no se vaya sin verlo.',
-      toast: 'Aceptada - el ambar entra al acabar el todo-rojo (hasta 90 s)'
+      toast: 'Aceptada - el ambar entra al acabar el todo-rojo'
     },
     'AMBAR_EMERGENCIA|SALIDA_YA_EN_CURSO': {
       tono: 'red',
@@ -3266,7 +3260,8 @@ document.addEventListener('DOMContentLoaded', () => {
     'SET_MODO:DEG_FIN|PROGRAMADA': {
       tono: 'green',
       texto: 'Equipo: SALIDA PROGRAMADA en ESTE poste: a esa hora sale del Degradado por rojo. ' +
-             'El otro poste hay que programarlo aparte.',
+             'El otro poste hay que programarlo aparte. Sin radio, al salir los dos postes quedan en ' +
+             'ambar intermitente.',
       toast: 'Salida programada en este poste'
     },
     'SET_MODO:DEG_FIN|REPROGRAMADA': {
@@ -3289,8 +3284,8 @@ document.addEventListener('DOMContentLoaded', () => {
     },
     'SET_MODO:MENU|OK': {
       tono: 'green',
-      texto: 'Equipo: orden VOLVER AL MENU aceptada. La unidad queda en la pantalla, ' +
-             'sin ciclo.',
+      texto: 'Equipo: orden VOLVER AL MENU aceptada. La unidad queda en el menu: ' +
+             'sin ciclo y en rojo.',
       toast: 'El equipo vuelve al menu'
     },
     // En Degradado no se salta al menu: se pide la salida, que es un todo-rojo de 30 s.
@@ -3341,13 +3336,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // mentia: los tiempos quedan guardados con el cruce FUERA del ciclo, en rojo, y ahi sigue.
     'SET_TIEMPOS|OK': {
       tono: 'red',
-      texto: 'Equipo: TIEMPOS GUARDADOS. Pero el cruce NO esta ciclando y no va a ' +
-             'empezar solo: para aceptar los tiempos el equipo tuvo que estar fuera ' +
-             'del ciclo, y sigue fuera -las dos puntas en ROJO-. Los tiempos nuevos ' +
-             'entran cuando alguien arranque el ciclo. El mando para hacerlo esta ' +
-             'debajo del formulario de tiempos, y tambien es el boton AUTOMATICO de ' +
-             'la botonera.',
-      toast: 'Tiempos guardados - el cruce sigue en ROJO hasta que arranque el ciclo'
+      texto: 'Equipo: TIEMPOS GUARDADOS. El equipo los acepta solo fuera de AUTOMATICO, asi ' +
+             'que el cruce NO esta ciclando y no va a empezar solo: los tiempos nuevos entran cuando alguien ' +
+             'arranque el ciclo. El mando esta debajo del formulario de tiempos y es el boton AUTOMATICO.',
+      toast: 'Tiempos guardados - el cruce no cicla hasta que arranque el ciclo'
     },
     // 🔴 D-15 (05/09) - LOS DOS TEXTOS DE ABAJO DECIAN ALGO QUE YA NO PASA, Y ERA LO
     // PEOR QUE PODIAN DECIR: PROMETIAN LA OTRA PUNTA.
@@ -3796,7 +3788,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // una funcion de los campos de la trama, para los motivos que traen un dato dentro.
   function _traducirRechazo(data) {
     const entrada = DegAuto.rechazo(data) || Testigo.rechazo(data, state.node) ||
-                    ERR_TEXTO[(data.CMD || '?') + '|' + (data.DESC || '')] || ERR_MOTIVO[data.DESC || ''];
+                    TextosSpec4.ERR[(data.CMD || '?') + '|' + (data.DESC || '')] || ERR_TEXTO[(data.CMD || '?') + '|' + (data.DESC || '')] || ERR_MOTIVO[data.DESC || ''];
     if (!entrada) return null;
     return typeof entrada === 'function' ? entrada(data) : entrada;
   }
@@ -3896,6 +3888,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // campo. renderLights() lo declara.
       if (data.MODO !== undefined) {
         state.modo = data.MODO;
+        actualizarEmergencia();   // el texto del rojo total depende del modo (Degradado: solo este poste)
       }
       if (data.ESTADO !== undefined) {
         state.estadoLuces = data.ESTADO;
@@ -3980,6 +3973,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (data.T !== undefined) {
         const seg = parseInt(data.T, 10);
         state.countdown = Number.isNaN(seg) ? null : seg;
+        state.countdownImposible = String(data.T).trim() === '!';   // SPEC_4 5: `!` valor imposible, `--` no se sabe
         updateCountdownRing();
       }
       // EL ENLACE. Un solo camino: la trama -> lecturaDeEnlace() -> pintarEnlace().
@@ -4140,7 +4134,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // y state.hora es la hora del CONTROLADOR, la del $STATUS. Pintar una con la otra
       // tapaba justo lo que hay que ver: un STM32 que no recibio la hora.
       Testigo.anotarAcuse(data, state.node); const degAuto = DegAuto.acuse(data);  // A-15
-      const dicho = ACK_TEXTO[clave] || degAuto;
+      const dicho = ACK_TEXTO[clave] || degAuto || TextosSpec4.ACK[clave];
       if (dicho) {
         addEvent(dicho.tono, dicho.texto);
         showToast(dicho.toast);

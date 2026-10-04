@@ -134,6 +134,31 @@ const AvisosEquipo = {
              'VOLVER AL MENU en el Poste 1 y repetir el testigo en los dos postes.',
       toast: 'ROJO FIJO: este poste perdio la hora en Degradado'
     }),
+    // SPEC_6 PARTE C: el Maestro paso a AMBAR por el limite del Degradado. Sin cifras (CLAUDE.md 14). La hora del
+    // telefono NO renueva el limite (SPEC_7 §5); solo lo hace una sincronizacion entre las dos puntas, por radio.
+    'DEGRADADO|LIMITE_48H': (data) => ({
+      tono: 'red',
+      texto: 'ESTE POSTE' + _cual(data) + ' PASO A AMBAR INTERMITENTE: vencio el limite del Degradado sin ' +
+             'sincronizar con el otro poste. Es la radio: sin ella nadie renueva el limite. Revise la radio ' +
+             'entre postes. NO reactive el Degradado (el equipo lo rechaza por sincronizacion) y ponerle la ' +
+             'hora desde el telefono no renueva el limite.',
+      toast: 'Degradado vencido: ambar - revise la radio entre postes'
+    }),
+    'DEGRADADO|SYNC_SIN_FECHA': (data) => ({
+      tono: 'red',
+      texto: 'ESTE POSTE' + _cual(data) + ' PASO A AMBAR INTERMITENTE: no se puede fechar la ultima ' +
+             'sincronizacion con el otro poste y el equipo la trata como vencida. Solo la levanta una ' +
+             'sincronizacion nueva entre los dos postes, y esa viaja por radio: la hora del telefono no la ' +
+             'renueva. Compruebe la radio antes de reintentar el modo.',
+      toast: 'Degradado: sin fecha de sincronizacion - ambar, revise la radio'
+    }),
+    'DEGRADADO|RELOJ_NO_CUENTA': (data) => ({
+      tono: 'red',
+      texto: 'ESTE POSTE' + _cual(data) + ' ESTA EN ROJO FIJO: vencio el limite con el reloj de la tarjeta ' +
+             'parado. Mire LAS DOS COSAS: el reloj (Consultar reloj) y la radio entre postes. No pulse ' +
+             'REINICIAR RELOJ para mirar: borra hora, ciclo y autorizacion.',
+      toast: 'Degradado: reloj parado - ROJO FIJO, revise reloj y radio'
+    }),
     // D-26 (5): la otra averia. No es nueva -la emiten las dos puntas desde antes-, pero
     // D-26 le puso lo que hay que hacer, y hasta hoy salia en crudo. La causa NO se
     // traduce: lleva el silencio medido con su cifra, y esa cifra la da el equipo.

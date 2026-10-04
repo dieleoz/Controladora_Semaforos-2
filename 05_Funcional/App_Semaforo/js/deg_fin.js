@@ -48,7 +48,7 @@ const DegFin = {
   _consultada: false,
   _consultaEnCurso: false,
   _sinOpcion: false,
-  _cancelando: false,         // solo un CANCELAR que esta app envio borra el registro local
+  _cancelando: false,         // punta a la que esta app envio CANCELAR; solo la del Maestro borra el registro local
   _timerConsulta: null,
 
   // ---- Puras ---------------------------------------------------------------
@@ -146,7 +146,8 @@ const DegFin = {
     if (/^(PROGRAMADA|REPROGRAMADA|PROGRAMADA_SIN_RESPALDO)$/.test(res) && g) {
       if (node === 'MAESTRO') { g.estado = 'ACEPTADO'; delete g.previa; } else if (node === 'ESCLAVO') g.esclavo = true;
       this.guardar(g);
-    } else if (res === 'CANCELADA' && this._cancelando) this.guardar(null);
+    } else if (res === 'CANCELADA' && this._cancelando === 'MAESTRO' && node === 'MAESTRO') this.guardar(null);
+    else if (res === 'CANCELADA' && this._cancelando && g) { delete g.esclavo; this.guardar(g); }  // el registro es del Maestro
     this._cancelando = false;
     this._consultar();
     this.render();
@@ -224,7 +225,7 @@ const DegFin = {
       this.TRASLADO_DEF_MIN + '">' +
       '<label for="txt-degfin-salida">Hora de salida (HH:MM:SS; vacio = ahora + traslado)</label>' +
       '<input type="text" id="txt-degfin-salida" class="form-input" placeholder="HH:MM:SS"></div>' +
-      '<button class="btn-degradado" id="btn-degfin-maestro">Programar salida</button>' +
+      '<button class="btn-degradado" id="btn-degfin-maestro">Programar salida del Degradado</button>' +
       '<button class="btn-degradado" id="btn-degfin-reprogramar">Reprogramar salida</button></div>' +
       '<div id="degfin-esclavo"><button class="btn-degradado" id="btn-degfin-esclavo">' +
       'Aplicar salida guardada</button></div>' +
@@ -322,7 +323,7 @@ const DegFin = {
     if (!c.state.node) { c.showToast('Conectese a un poste primero'); return; }
     if (!c.state.pinVerificado) { c.pedirPin(() => this._cancelar()); return; }
     if (!this._enviar('CANCELAR', () => this._cancelar())) return;
-    this._cancelando = true;
+    this._cancelando = c.state.node;
     c.addEvent('cyan', 'Tecnico: orden ' + this.ORDEN_FIN + ':CANCELAR enviada a este poste. ' +
                        'Cancele tambien en el otro.');
   },
