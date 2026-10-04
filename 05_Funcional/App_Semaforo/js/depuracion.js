@@ -717,7 +717,7 @@ const DiarioOrdenes = {
       }
       paquete.motivoSuelta = 'ninguna orden de esta app esperaba respuesta al comando ' +
                              (cmd || '(vacio)') + '. Puede venir de otro telefono, del ' +
-                             'mando de reles o de una orden anterior al arranque de la app';
+                             'otra via o de una orden anterior al arranque de la app';
     } else {
       // El equipo NO nombra la orden. Solo se atribuye si no hay ambiguedad.
       const pend = [];

@@ -100,7 +100,18 @@ const DegAuto = {
     }
     // El aviso de limite que ya publica el firmware (SYNC:.. AVISO:SI VENCIDA:..): con
     // testigo sale a los 28 dias. El testigo ya no vence (29/09): solo pide renovarlo.
-    if (/(^| )AVISO:SI( |$)/.test(d)) return this.RENOVAR;
+    if (/(^| )AVISO:SI( |$)/.test(d)) {
+      // SPEC_6 hueco 2: el mismo evento avisa a los 28 dias con testigo y en las ultimas horas del limite de 48 h
+      // sin testigo. Con la marca SYNC de <h> horas y h < 48 se dice lo que falta; sin horas, el texto de 28 dias.
+      const h = /(^| )SYNC[:](\d+)h( |$)/.exec(d);
+      if (h && Number(h[2]) < 48) {
+        const falta = 48 - Number(h[2]);
+        return { tono: 'red', toast: 'Faltan ' + falta + ' h para el limite: recupere la radio',
+          texto: 'Lleva ' + h[2] + ' h sin sincronizar con el otro poste: faltan ' + falta + ' h para el ' +
+                 'limite de 48 h. Recupere la radio entre postes o renueve el testigo en los dos postes.' };
+      }
+      return this.RENOVAR;
+    }
     // ENLACE_DISPONIBLE (repetido cada 60 s) no va aqui: es un cartel, js/carteles_equipo.js.
     return null;
   },

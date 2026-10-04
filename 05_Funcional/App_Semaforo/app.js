@@ -2496,7 +2496,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!enviarComandoFirmware('CANCELAR_AMBAR')) return;
       addEvent('cyan', 'Tecnico: orden RETIRAR AMBAR enviada al ESCLAVO. Espere el ' +
                        'acuse: el equipo dira si quedaba algun ambar y si queda otro ' +
-                       'puesto desde el mando.');
+                       'puesto desde la app.');
     });
   }
 
@@ -2678,7 +2678,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (padTituloEl) {
       padTituloEl.textContent = enEsclavo
         ? '🚨 EMERGENCIA DE ESTE POSTE'
-        : '🎮 BOTONERA DE CAMPO';
+        : '🎮 MANDOS DE CAMPO';
     }
     if (panelDiagnosticoEl) {
       panelDiagnosticoEl.style.display = enEsclavo ? '' : 'none';
@@ -3426,8 +3426,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const ERR_TEXTO = {
     'CANCELAR_AMBAR|NO_HAY_AMBAR_VIGENTE': {
       texto: 'Equipo: NO habia ningun ambar de emergencia puesto desde la app, asi que ' +
-             'no se retiro nada. Si el cruce sigue en ambar viene del mando del ' +
-             'gabinete o de un fallo de comunicacion (SFTY-6), y esta orden no quita ' +
+             'no se retiro nada. Si el cruce sigue en ambar viene de otro telefono o de un fallo de ' +
+             'comunicacion (SFTY-6), y esta orden no quita ' +
              'ninguno de los dos.',
       toast: 'No habia ambar de la app que retirar'
     },
@@ -3582,7 +3582,7 @@ document.addEventListener('DOMContentLoaded', () => {
     'OSCILADOR_PARADO_CAMBIE_PILA': {
       texto: 'La hora entro en los registros pero el reloj NO ESTA CONTANDO: el oscilador ' +
              'sigue parado. Cambie la pila del modulo. Mientras no cuente, el equipo no ' +
-             'tiene hora aunque en pantalla salga una.',
+             'tiene hora aunque el modulo muestre una.',
       toast: 'El reloj no cuenta: cambie la pila'
     },
     'MOTIVO_NO_CONTEMPLADO': {
@@ -3630,7 +3630,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // esta de verdad, en vez de repetir el nombre de una pantalla tapiada.
     'SIN_CRISTAL_VEA_CONSULTA_RELOJ': {
       texto: 'El Maestro no tiene reloj en marcha, asi que no acepta la hora. NO busque ' +
-             'la consulta del reloj en la pantalla del gabinete: no se puede abrir. El ' +
+             'la consulta del reloj en el equipo: se hace desde esta app. El ' +
              'equipo acaba de publicar los bits del reloj en el REGISTRO DE EVENTOS de ' +
              'esta app, justo debajo de este aviso: lealos ahi.',
       toast: 'Sin reloj en marcha: los bits estan en Registro de Eventos'
@@ -3650,8 +3650,8 @@ document.addEventListener('DOMContentLoaded', () => {
     'ARRANCA_Y_NO_CUENTA_VEA_CONSULTA_RELOJ': {
       texto: 'Se reinicio el reloj y el oscilador ARRANCA, pero el contador NO AVANZA: el ' +
              'equipo lo vigilo unos segundos y no conto. NO ponga la hora: no la podria ' +
-             'guardar. NO busque la consulta del reloj en la pantalla del gabinete: no se ' +
-             'puede abrir. El equipo acaba de publicar los bits del reloj en el REGISTRO DE ' +
+             'guardar. La consulta del reloj se hace desde esta app, no en el equipo. El ' +
+             'equipo acaba de publicar los bits del reloj en el REGISTRO DE ' +
              'EVENTOS de esta app, justo debajo de este aviso: con el oscilador en marcha y el ' +
              'contador quieto, son los que dicen donde mirar.',
       toast: 'El reloj arranca pero no cuenta: los bits estan en Registro de Eventos'
@@ -3719,7 +3719,7 @@ document.addEventListener('DOMContentLoaded', () => {
     'RENOMBRADO_USE_AMBAR_EMERGENCIA': {
       texto: 'En el ESCLAVO la parada de emergencia ya no se llama ROJO TOTAL: alli la ' +
              'maniobra es AMBAR INTERMITENTE con la talanquera ABIERTA, y el mando que la ' +
-             'pide es AMBAR EMERGENCIA. Use ese, que esta en la misma botonera.',
+             'pide es AMBAR EMERGENCIA. Use ese, que esta en esta misma pestana de mandos.',
       toast: 'En el Esclavo use AMBAR EMERGENCIA, no ROJO TOTAL'
     },
     'SALIDA_A_ROJO_EN_CURSO_REPITA': {

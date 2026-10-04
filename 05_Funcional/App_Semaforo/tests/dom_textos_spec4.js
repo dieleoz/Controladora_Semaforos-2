@@ -158,4 +158,33 @@ module.exports = async function pruebaTextosSpec4(montarAppLimpia, assert) {
     a.entra('ACK,CMD:SET_MODO:DEG_FIN,RESULT:CANCELADA');
     assert(DF.leer() === null, 'CANCELAR desde el Maestro si borra su registro local');
   }
+
+  // 12. SPEC_4 §3.bis, D-30 y D-44: no hay LCD, ni botonera, ni mando del gabinete. Los textos que lee el tecnico
+  // (literales de app.js y js/*.js, sin comentarios) no los citan.
+  {
+    const fs = require('fs'), path = require('path');
+    const raiz = path.join(__dirname, '..');
+    const ficheros = ['app.js'].concat(fs.readdirSync(path.join(raiz, 'js')).filter(f => /\.js$/.test(f)).map(f => 'js/' + f));
+    const MALO = /\bLCD\b|pantalla del (equipo|gabinete)|botonera|mando del gabinete|mando de reles|botones de la tarjeta|desde el mando\b|en pantalla salga|pulsador/i;
+    const hallazgos = [];
+    for (const f of ficheros) {
+      fs.readFileSync(path.join(raiz, f), 'utf8').split(/\r?\n/).forEach((l, n) => {
+        const t = l.trim();
+        if (t.startsWith('//') || t.startsWith('*') || t.startsWith('/*')) return;
+        if (MALO.test(t.replace(/\s\/\/.*$/, ''))) hallazgos.push(`${f}:${n + 1}`);
+      });
+    }
+    assert(hallazgos.length === 0, `12: ningun texto del tecnico cita LCD, botonera ni mando del gabinete: ${hallazgos.join(' ')}`);
+  }
+
+  // 13. SPEC_6 hueco 2: el mismo $EVENT sirve para 28 dias con testigo y para las ultimas horas del limite sin testigo.
+  {
+    const ev = (det) => { const a = montar(M, 'DEGRADADO'); a.entra(`EVENT,NODE:MAESTRO,ORIGEN:DEGRADADO,DETALLE:${det},HORA:14:36:00`); return a.ultimo(); };
+    const t45 = ev('SYNC:45h AVISO:SI VENCIDA:NO');
+    assert(/\b3\b/.test(t45) && /radio/i.test(t45) && /testigo/i.test(t45) && !/28 dias/.test(t45),
+      `13: SYNC:45h dice que faltan 3 h (48-45), recuperar la radio o renovar, sin "28 dias": "${t45.slice(0, 220)}"`);
+    assert(/\b1\b/.test(ev('SYNC:47h AVISO:SI VENCIDA:NO')) && !/28 dias/.test(ev('SYNC:47h AVISO:SI VENCIDA:NO')), '13: SYNC:47h dice que falta 1 h');
+    assert(/28 dias/.test(ev('SYNC:700h AVISO:SI VENCIDA:NO')), '13: con h >= 48 queda el texto de 28 dias');
+    assert(/28 dias/.test(ev('SYNC:-- AVISO:SI VENCIDA:NO')), '13: sin horas (SYNC:--) queda el texto de 28 dias');
+  }
 };

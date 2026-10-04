@@ -100,8 +100,8 @@ const DiarioVista = {
                 ' ordenes. Al cerrar la app se pierde: exportelo antes de bajar del poste. ' +
                 'Y no sabe tanto como parece: sabe que la app escribio la orden al cable, ' +
                 'no que el equipo la recibiera; ve lo que el equipo DICE por $STATUS, no ' +
-                'las luces del poste; y no se entera de ordenes dadas desde otro telefono, ' +
-                'desde el mando de reles o desde los botones de la tarjeta.';
+                'las luces del poste; y no se entera de ordenes dadas desde otro telefono ' +
+                'ni por otra via distinta de esta app.';
         if (c.descartados) {
           n += ' RECORTADO: se tiraron las ' + c.descartados + ' entradas mas antiguas al ' +
                'llegar al tope.';
