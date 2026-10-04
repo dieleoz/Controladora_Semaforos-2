@@ -89,6 +89,7 @@ def escenario_p(t, c, maestro, esclavo, util_max):
         a = _una(maestro, pm + "SET_MODO:DEG_FIN:CANCELAR")
         t.verificar(a == esperado, "P2 Maestro: CANCELAR con motivo %d -> %s" % (m, esperado),
                     "P2 Maestro: CANCELAR con motivo %d contesta %s (esperado %s)" % (m, a, esperado))
+    _acuse(maestro, "CMD:HORA_ESP32:%04d-%02d-%02d,18:25:00" % (2026, 10, 4))   # otros escenarios mueven el reloj
     for z, r, esperado in ((0, 0, "NINGUNA"), (66420, 1, "SALE_182700_FALTAN_120S_RESPALDADA"),
                            (66420, 0, "SALE_182700_FALTAN_120S_SIN_RESPALDO")):
         maestro.pr.pedir("SAL 0 3 %d %d" % (z, r))
