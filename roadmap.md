@@ -105,10 +105,13 @@ candidata crecio con I (`cda33df`) y G (`f9cad1f`): un solo runbook sobre todo.
 | A2 | Pruebas que celebraban lo viejo (§9), inyeccion vista en rojo | arneses al dia | hecho (`7603afc`) |
 | A3 | Compuerta completa en el arbol principal | acta | hecho: converge en 4 pasadas, 18 PASS y 1 FALLA = `D-22` (pide tarjeta) (`ae9a018`) |
 | A4 | Arquitecto (opus) | veredicto | **NO APTO** (`3d16b39`): amarillo del Esclavo contra el ambar del Maestro; `FORZAR_ROJO` en Degradado acusa y el verde vuelve; `D-47` sin prueba; la libreria RTC pisa DR6/DR7 en marcha (causa probable de `N-172`, coincide con DeepSeek y Nemotron) |
-| A4.bis | Correccion de las cuatro, SPEC -> prueba en rojo -> codigo | candidata nueva | **INTERRUMPIDO** en la rama `wip/correccion-no-apto` (`0d35f21`): los cuatro hechos segun el agente; falta re-correr arneses y compuerta; `app.js` va como `wip/app_js_correccion_no_apto.patch` (el fichero no puede crecer: sacar 21 lineas) |
-| A3.bis-A4.ter | Compuerta otra vez y arquitecto otra vez | veredicto | tras A4.bis |
+| A4.bis | Correccion de las cuatro, SPEC -> prueba en rojo -> codigo | candidata nueva | hecho y en `main` (`f6ef03d`): `D-50` suelta a 21,5 s, `D-51` `FORZAR_ROJO` en Degradado, pruebas de `D-47`, `N-172` sin libreria RTC; app con los tres acuses de `FORZAR_ROJO` |
+| A3.bis | Compuerta otra vez | acta | hecho: `evidencia/2026-10-04_compuerta.txt` sobre `f6ef03d`, 18 PASS y banco 1360/1361 (solo `D-22`) |
+| A4.ter | Arquitecto otra vez (opus) | veredicto | en curso |
+| A4.quater | SPEC al veredicto y al cruce de la cinta de Marco del 02/10 | SPEC al dia | tras A4.ter |
+| A4.quinto | Hoja de Marco solo con lo que falta (`Pruebas_Funcional_2026-10-04.html`, nueve casos); la del 02/10 a historico | `.html` | hecho en worktree, se integra |
 | A5 | QA sobre el binario (opus) | veredicto | tras APTO |
-| A6 | Paquete validado `SIN_BANCO` a `entregas/`, hoja de pruebas de lo nuevo, `.docx` de las SPEC tocadas | `.zip` | tras A5 |
+| A6 | Paquete validado `SIN_BANCO` a `entregas/` (rellena `PAQUETE_PENDIENTE` de la hoja), `.docx` de las SPEC tocadas | `.zip` | tras A5 |
 
 **B. Lo que se cierra en paralelo a A, con ficheros disjuntos**
 
@@ -117,6 +120,8 @@ candidata crecio con I (`cda33df`) y G (`f9cad1f`): un solo runbook sobre todo.
 | ~~B1~~ | Hecho (`8378a84`): lista de montaje del lunes 05/10 en `.html` que da PDF: respaldo md5 del firmware del Sisga, grabar, `J16` p1 tapado, `J14`/p5/p8 vacios, radios 2,4 kbps M0/M1 OFF, camaras `D-39`, sin Degradado desatendido | agente campo | `.html` |
 | B2 | `N-166` colision de nombre `A-15` | orquestador | una renombrada |
 | B3 | Metodo atrasado (`4e8e898` -> `cd3c71b`): actualizar plugin y primera linea de `CLAUDE.md` | orquestador | metodo al dia |
+| B4 | Manual 10 (HC-05 en `J17`, caducado) a historico: lo lee `documentos_03` como contrato de tramas; mover con la tupla del pack en el mismo commit, banco antes y despues | orquestador | uno menos |
+| B5 | Hook de proyecto: recordatorio al editar `DECISIONES.md` (comportamiento a la SPEC, fila de una linea, no preguntar lo ordenado) | orquestador | hook |
 
 **C. Decisiones del responsable** (no las cierra nadie escribiendo)
 
