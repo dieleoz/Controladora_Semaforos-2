@@ -246,7 +246,7 @@ color que vio (SPEC 2 §7.ter (e)).
 **Respuestas que DEBE dar el firmware (no construido).** `FORZAR_ROJO` en Degradado, cada una segun lo que devolvio
 `modo_degradado_forzarRojo()`: `RESULT:ROJO_FIJO_EN_ESTE_POSTE` · `RESULT:YA_EN_ROJO_FIJO` · `RESULT:SALIDA_YA_EN_CURSO`
 · `RESULT:OK` (fuera del modo). En la ventana de `D-29` (permiso esperando la siembra) revoca el permiso y entra en
-ROJO FIJO: `ROJO_FIJO_EN_ESTE_POSTE`, nunca ambar. `SET_MODO:MENU` en esa ventana:
+ROJO FIJO, nunca ambar: `OK_REANUDACION_CANCELADA`. `SET_MODO:MENU` en esa ventana:
 `OK_REANUDACION_CANCELADA`.
 no cruza a nadie.
 

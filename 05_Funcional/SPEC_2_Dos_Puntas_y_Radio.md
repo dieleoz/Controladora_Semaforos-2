@@ -625,8 +625,9 @@ alternar».
   permiso (`respaldo_guardarDegradado(false)`, `reanudacionPorDecidir = false`, fin de `esperaReanudacion`) y se queda
   en `MENU`. `DEG_FIN` en la ventana se rechaza «No esta en Degradado»: solo `FORZAR_ROJO` y `SET_MODO:MENU` revocan.
 - **Respuestas de `FORZAR_ROJO` (sin PIN y con PIN, mismas) — cond. 4 del arquitecto.**
-  `RESULT:ROJO_FIJO_EN_ESTE_POSTE` (entró en rojo fijo, desde `DEG_ENTRADA_ROJO`, `DEG_ACTIVO`, `DEG_AMBAR` o la ventana
-  de `D-29`) · `RESULT:YA_EN_ROJO_FIJO` (ya estaba en `DEG_ROJO_SIN_HORA`, por hora perdida o por otra orden: nada
+  `RESULT:ROJO_FIJO_EN_ESTE_POSTE` (entró en rojo fijo, desde `DEG_ENTRADA_ROJO`, `DEG_ACTIVO` o `DEG_AMBAR`;
+  en la ventana de `D-29`, revoca el permiso, entra en rojo fijo y contesta `RESULT:OK_REANUDACION_CANCELADA`) ·
+  `RESULT:YA_EN_ROJO_FIJO` (ya estaba en `DEG_ROJO_SIN_HORA`, por hora perdida o por otra orden: nada
   cambia) · `RESULT:SALIDA_YA_EN_CURSO` (en `DEG_SALIDA_ROJO` o `DEG_RECHAZO`: ya está en rojo y va al menú) ·
   `RESULT:OK` (fuera del modo y sin permiso: `D-45`, sin cambio). **Desaparece `SALIENDO_TODO_ROJO` de esta orden.**
   **`SET_MODO:MENU`** gana `RESULT:OK_REANUDACION_CANCELADA` (en la ventana, con permiso revocado; `RESULT:OK` sin
