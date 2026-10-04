@@ -76,8 +76,8 @@ bool reloj_enHora();
 // N-49 — El contador crudo del RTC: 32 bits de SEGUNDOS que mantiene la pila.
 //
 // Es la unica medida de tiempo de esta punta que sobrevive al corte Y es monotona.
-// La hora de pared no sirve para fechar: el calendario esta anclado a enero y el dia
-// vuelve de 31 a 1. Devuelve 0 si el RTC no esta operativo, y ese cero significa
+// La hora de pared no sirve para fechar: el dia vuelve de 31 a 1, y desde N-172 nadie
+// escribe este contador. Devuelve 0 si el RTC no esta operativo, y ese cero significa
 // "no hay reloj": respaldo_marcarSync() y respaldo_horasDesdeSync() se abstienen.
 //
 // Tiene que ser IDENTICA a la del Maestro. Las dos puntas fechan la misma
@@ -200,10 +200,8 @@ bool reloj_sembrarDesdeIso(const char* str);
 //
 // POR QUE NO SE REUSA horaValida (reloj_enHora()). Esa bandera contesta "hay hora?", y
 // esto pregunta "DE QUIEN es la hora que hay?". Son dos preguntas y por eso son dos
-// variables (CLAUDE.md 8): horaValida puede nacer en true de un RTC de hardware que
-// arranco con valores plausibles -o congelado, con Y2 muerto-, y con la regla "solo si no
-// hay hora" ese reloj habria vetado la del ESP32 para siempre. La fuente vive en reloj.cpp
-// (NINGUNA < RTC_HW < ESP32 < RADIO) y la marcan SOLO los dos sembradores: reloj_ajustar()
+// variables (CLAUDE.md 8). La fuente vive en reloj.cpp (NINGUNA < ESP32 < RADIO; desde
+// N-172 el RTC de hardware no da hora) y la marcan SOLO los dos sembradores: reloj_ajustar()
 // -la radio- y reloj_sembrarDesdeIso() -el ESP32-.
 //
 // "SIN RADIO", DEFINIDO CON UNA CONSTANTE QUE YA EXISTE: ninguna trama valida del Maestro

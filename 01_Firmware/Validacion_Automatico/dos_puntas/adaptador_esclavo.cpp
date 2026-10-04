@@ -339,12 +339,9 @@ static uint32_t rtcTranscurrido() {
   return (uint32_t)((arnes_millis_valor - g_rtcAncla) / 1000UL);
 }
 
-// N-162: el reloj_setup() real hace EXACTAMENTE esto y nada mas que importe aqui:
-//   horaValida = rtc.isConfigured() && rtc.getYear() >= ANIO_MARCA && (h|m|s) != 0
-// o sea que la hora que hay al arrancar es la del RTC HARDWARE, la que la pila mantuvo,
-// y ninguna otra. La sembrada por radio esta en RAM y ya no existe. Sin esta linea el
-// modelo despertaba en hora porque el indice 11 le devolvia su unica bandera.
-void reloj_setup() { g_horaSembrada = g_rtcHwEnHora; }
+// N-172: el reloj_setup() real ya no lee hora del RTC (sin libreria; reloj.cpp): arranca SIN
+// hora aunque el marcador del indice 11 diga que un firmware anterior escribio el RTC.
+void reloj_setup() { g_horaSembrada = false; }
 void reloj_actualizar() {}
 bool reloj_enHora() { return g_horaSembrada; }
 // D-21 (1): modo_degradado.cpp REAL pregunta si la hora puede decidir una luz. En ESTA

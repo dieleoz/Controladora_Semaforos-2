@@ -147,7 +147,6 @@ uint8_t reloj_segundo() { return (uint8_t)((arnes_millis_valor / 1000UL) % 60UL)
 uint8_t reloj_dia() { return 1; }
 uint32_t reloj_segundosDelDia() { return (uint32_t)(arnes_millis_valor / 1000UL); }
 uint32_t reloj_contadorSegundos() { return (uint32_t)(arnes_millis_valor / 1000UL); }
-void reloj_fijarEnero() {}
 void respaldo_marcarSync(uint32_t) {}
 
 // N-133/N-135: los tiempos del ciclo, doblados con memoria de verdad.

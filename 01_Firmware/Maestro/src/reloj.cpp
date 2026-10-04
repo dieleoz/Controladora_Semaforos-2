@@ -1,6 +1,5 @@
 // ===== src/reloj.cpp =====
 #include "reloj.h"
-#include <STM32RTC.h>
 #include <stm32f1xx_hal.h>   // N-17: arranque acotado del cristal, ver abajo
 
 // ---------------------------------------------------------------------------
@@ -14,14 +13,15 @@
 // al final de reloj_ajustarConAcuse().
 // ---------------------------------------------------------------------------
 
-static STM32RTC &rtc = STM32RTC::getInstance();
-
-// Como sabemos si la hora es de fiar:
-// al ajustarla escribimos tambien el ano ANIO_MARCA. Un RTC que nunca se puso en
-// hora, o que perdio la pila, arranca con el ano en 0 o 1. Si al encender leemos
-// un ano anterior a ANIO_MARCA, la hora NO es de fiar y hay que decirlo, no
-// suponerlo: un reloj sin poner en hora es peor que no tener reloj.
-static const uint8_t ANIO_MARCA = 26;  // 2026, ano de puesta en servicio
+// N-172: SIN LIBRERIA DEL RTC. STM32duino RTC 1.9.0 guarda su fecha en DR6/DR7 (rtc.h,
+// RTC_BKP_DATE), que son REG_SYNC_BAJA/REG_SUMA_BAJA de respaldo.cpp, y la reescribe con
+// RTC_StoreDate() en begin() y en cada lectura de fecha (STM32RTC.cpp, syncDate); y toda
+// lectura de hora pasa por HAL_RTC_GetTime(), que con CNT >= 24 h lo PLIEGA al dia
+// (stm32f1xx_hal_rtc.c). Lo primero rompia la suma de la pila; lo segundo, el contador
+// monotono de N-49. Su calendario, ademas, no lo escribe nadie desde N-162: su "anio" era el
+// byte alto de la marca de sync. Aqui el RTC es SOLO el contador, configurado por registro; la
+// hora es la de la siembra y nada mas.
+static const uint32_t ESPERA_RTC_MS = 5;   // RTOFF y RSF tardan 1-3 ciclos de 32 kHz
 
 static bool horaValida = false;
 static bool rtcOperativo = false;
@@ -124,22 +124,8 @@ static void vigilarCristal() {
   cristalCongelado = true;
   rtcOperativo = false;   // reloj_contadorSegundos() vuelve a devolver 0: ESA ES LA CURA
 
-  // Y LA HORA CAE CON EL, PERO SOLO SI SU UNICA FUENTE ERA ESTE CONTADOR.
-  //
-  // Con base de software sembrada (tBaseMillis > 0) la hora NO sale de aqui: sale de
-  // millis(), la cubre el plazo de D-21 (1) y se queda intacta. Sin base, la hora que hay
-  // es la que reloj_setup() o reloj_actualizar() ADOPTARON del RTC, o sea una hora
-  // CONGELADA a la que reloj_horaFiable() da fiabilidad para siempre por su
-  // "if (tBaseMillis == 0) return true". Ese borde esta escrito en reloj.h con su premisa
-  // -"esa no corre sobre el HSI sino sobre el cristal Y2"-, y este cristal es justo el que
-  // la rompe: si el Y2 no cuenta, esa hora no avanza y no puede decidir una luz.
-  //
-  // Bajar horaValida ARMA el camino de "no se la hora", no apaga ninguno, y el camino ya
-  // existia y ya estaba ejercido -reloj_setup() y reloj_reiniciarDominioRespaldo() lo
-  // bajan-. Donde manda es en modo_degradado.cpp: reloj_horaFiable() pasa a false, la
-  // puerta de entrada contesta MDG_FALTA_HORA y el bucle del modo se va a ambar. Es el
-  // lado seguro, y es el mismo al que ya lleva un REINICIAR_RELOJ.
-  if (tBaseMillis == 0) horaValida = false;
+  // N-172: la hora no cae con el. Solo la da la siembra (base de software), que no sale de
+  // este contador y la cubre el plazo de D-21 (1).
 }
 
 static bool arrancarCristal() {
@@ -163,6 +149,35 @@ static bool arrancarCristal() {
   return true;
 }
 
+static void esperarRtc(uint32_t bit) {
+  const uint32_t t0 = HAL_GetTick();
+  while ((RTC->CRL & bit) == 0 && HAL_GetTick() - t0 <= ESPERA_RTC_MS) {}
+}
+
+// N-172: el RTC a 1 Hz sobre el LSE, por registro (RM0008 18.3.4) y SIN TOCAR CNT. Si ya
+// esta en el LSE no se reconfigura: es la pila la que lo mantiene. Otra fuente no se cambia,
+// porque cambiarla exige reiniciar el dominio y con el la pila: sin contador, la marca de
+// sync sale CADUCADA, que es el lado seguro. Las esperas son acotadas: con un cristal que
+// no cuenta no acaban, y eso lo mide vigilarCristal(), no esta funcion.
+static bool configurarRtc() {
+  HAL_PWR_EnableBkUpAccess();
+  const uint32_t fuente = __HAL_RCC_GET_RTC_SOURCE();
+  if (fuente != 0 && fuente != RCC_RTCCLKSOURCE_LSE) return false;
+  if (fuente == 0) __HAL_RCC_RTC_CONFIG(RCC_RTCCLKSOURCE_LSE);
+  __HAL_RCC_RTC_ENABLE();
+  RTC->CRL &= ~RTC_CRL_RSF;   // tras un reinicio, CNT no se lee hasta resincronizar
+  esperarRtc(RTC_CRL_RSF);
+  if (fuente == 0) {
+    esperarRtc(RTC_CRL_RTOFF);
+    RTC->CRL |= RTC_CRL_CNF;
+    RTC->PRLH = 0;
+    RTC->PRLL = 0x7FFF;       // 32768 Hz / (0x7FFF + 1) = 1 Hz
+    RTC->CRL &= ~RTC_CRL_CNF;
+    esperarRtc(RTC_CRL_RTOFF);
+  }
+  return true;
+}
+
 void reloj_setup() {
   horaValida = false;
   rtcOperativo = false;
@@ -173,15 +188,10 @@ void reloj_setup() {
   siembraCaducada = false;
   cristalCongelado = false;   // 1.22: el arranque del periferico es lo que quita el cerrojo
 
-  if (!arrancarCristal()) return;
-
-  rtc.setClockSource(STM32RTC::LSE_CLOCK);  // cristal Y2 de 32.768 kHz
-  rtc.begin(false, STM32RTC::HOUR_24);      // false = NO borrar la hora guardada
+  if (!arrancarCristal() || !configurarRtc()) return;
   rtcOperativo = true;                      // N-24: a partir de aqui el RTC cuenta
   anclarVigilancia();                       // 1.22: y a partir de aqui se vigila que CUENTE
-
-  horaValida = rtc.isConfigured() && (rtc.getYear() >= ANIO_MARCA) &&
-               (rtc.getHours() != 0 || rtc.getMinutes() != 0 || rtc.getSeconds() != 0);
+  // N-172: la hora NO sale del RTC. Llega con la siembra (D-20).
 }
 
 static const unsigned long REINTENTO_LSE_MS = 30000;
@@ -211,51 +221,11 @@ void reloj_actualizar() {
 
   if (__HAL_RCC_GET_FLAG(RCC_FLAG_LSERDY) == RESET) return;  // sigue sin arrancar
 
-  // N-160 - SI YA HABIA HORA SEMBRADA, SE LA PASAMOS AL CRISTAL QUE ACABA DE ARRANCAR.
-  //
-  // Sin esto la hora SALTA en silencio y nadie se entera. El caso es real y lo abre
-  // D-20: arranca sin cristal -rtcOperativo false-, llega la siembra -desde el 11/09 la
-  // del ESP32 de este poste, rama CMD:HORA_ESP32 de bluetooth.cpp- y la
-  // base se queda SOLO en software -desde el 11/09 la siembra no escribe el RTC nunca-,
-  // y treinta segundos despues este reintento adopta el LSE. A partir de esa
-  // linea reloj_hora/minuto/segundo/dia() y reloj_segundosDelDia() cambian de fuente
-  // al RTC hardware, QUE NUNCA SE SEMBRO, mientras horaValida sigue en true.
-  //
-  // En esta punta eso no se queda en la pantalla: enviarHoraCompleta() empuja esa hora
-  // al Esclavo por radio, y la fase del Degradado sale de reloj_segundosDelDia(). Es
-  // N-24 del reves: no "hora escrita sobre un contador parado", sino "contador
-  // arrancado bajo una hora que nunca se le escribio".
-  //
-  // SE LEE ANTES DE MOVER LA BANDERA. N-162 (11/09): desde c51cc85 los getters miran
-  // PRIMERO la base de software (tBaseMillis > 0) y solo sin ella el RTC, asi que la hora
-  // que se lee ya no salta al adoptar el cristal.
-  //
-  // ~~Copiarla al RTC sigue haciendo falta: es lo que hace que reloj_contadorSegundos() -el
-  // que fecha el respaldo- cuente desde una hora escrita y no desde la que el RTC traiga~~
-  // -> REFUTADO Y RETIRADO el 11/09 (D-26), identico en las dos puntas y con la misma
-  // medida: (1) con base de software NADIE lee la hora del RTC -los getters miran
-  // tBaseMillis, reloj_fijarEnero() tambien se aparta- y el unico que lo lee,
-  // reloj_contadorSegundos(), es CNT en crudo que respaldo.cpp solo RESTA
-  // (respaldo_horasDesdeSync: "ahora - guardado"), asi que el valor desde el que empieza no
-  // interviene; (2) reescribir CNT con los segundos del dia puede REJUVENECER una marca de
-  // sync de un arranque anterior -el motivo 3 de la siembra, abajo-; (3) con un cristal que
-  // da LSERDY y no cuenta, cada setX() espera RTOFF hasta 1 s: ~3 s con el perro en 4 s.
-  // Queda adoptar el cristal y nada mas.
-  const bool teniaBase = horaValida;
-
-  rtc.setClockSource(STM32RTC::LSE_CLOCK);
-  rtc.begin(false, STM32RTC::HOUR_24);
+  // N-160/N-162/N-172: se adopta el CONTADOR y nada mas. La hora sembrada sigue en la base de
+  // software (tBaseMillis), y sin ella no hay hora que adoptar: el RTC no la tiene.
+  if (!configurarRtc()) return;
   rtcOperativo = true;
   anclarVigilancia();   // 1.22: se adopta el cristal Y se empieza a medir si CUENTA
-
-  if (teniaBase) return;  // horaValida ya estaba en true y la hora es la MISMA: no salta
-
-  // Sin base previa si vale adoptar lo que el RTC traiga: es un arranque en caliente
-  // con la hora que sobrevivio en el dominio de respaldo.
-  if (rtc.isConfigured() && (rtc.getYear() >= ANIO_MARCA) &&
-      (rtc.getHours() != 0 || rtc.getMinutes() != 0 || rtc.getSeconds() != 0)) {
-    horaValida = true;
-  }
 }
 
 bool reloj_reiniciarDominioRespaldo() {
@@ -275,10 +245,7 @@ bool reloj_reiniciarDominioRespaldo() {
   siembraCaducada = false;
   cristalCongelado = false;   // 1.22: esto reinicia el dominio entero; el cerrojo tambien
 
-  if (!arrancarCristal()) return false;
-
-  rtc.setClockSource(STM32RTC::LSE_CLOCK);
-  rtc.begin(false, STM32RTC::HOUR_24);
+  if (!arrancarCristal() || !configurarRtc()) return false;
   rtcOperativo = true;
   anclarVigilancia();   // 1.22
   return true;
@@ -287,8 +254,7 @@ bool reloj_reiniciarDominioRespaldo() {
 bool reloj_enHora() { return horaValida; }
 
 // D-21 (1) - VER reloj.h. La hora que decide una luz tiene que ser una hora sembrada hace
-// menos de HORA_CADUCA_MS. Sin base de software la hora es la del RTC de hardware, que no
-// corre sobre el HSI: ese borde esta escrito en reloj.h.
+// menos de HORA_CADUCA_MS. N-172: sin base de software no hay hora (horaValida en false).
 bool reloj_horaFiable() {
   if (!horaValida) return false;
   if (tBaseMillis == 0) return true;
@@ -304,31 +270,24 @@ uint32_t reloj_segundosDelDia() {
     const uint32_t deltaS = (millis() - tBaseMillis) / 1000UL;
     return (segBaseDelDia + deltaS) % 86400UL;
   }
-  if (rtcOperativo) {
-    return (uint32_t)rtc.getHours() * 3600UL + (uint32_t)rtc.getMinutes() * 60UL +
-           (uint32_t)rtc.getSeconds();
-  }
   return 0;
 }
 
 uint8_t reloj_hora() {
   if (!horaValida) return 0;
   if (tBaseMillis > 0) return (uint8_t)(reloj_segundosDelDia() / 3600UL);
-  if (rtcOperativo) return rtc.getHours();
   return 0;
 }
 
 uint8_t reloj_minuto() {
   if (!horaValida) return 0;
   if (tBaseMillis > 0) return (uint8_t)((reloj_segundosDelDia() % 3600UL) / 60UL);
-  if (rtcOperativo) return rtc.getMinutes();
   return 0;
 }
 
 uint8_t reloj_segundo() {
   if (!horaValida) return 0;
   if (tBaseMillis > 0) return (uint8_t)(reloj_segundosDelDia() % 60UL);
-  if (rtcOperativo) return rtc.getSeconds();
   return 0;
 }
 
@@ -340,20 +299,7 @@ uint8_t reloj_dia() {
     while (d > 31) d -= 31;
     return (uint8_t)(d == 0 ? 1 : d);
   }
-  if (rtcOperativo) return rtc.getDay();
   return 1;
-}
-
-void reloj_fijarEnero() {
-  if (!horaValida) return;
-  // N-162 (11/09): CON BASE SEMBRADA NO SE TOCA EL RTC. Esto corre cada 10 min desde
-  // coordinador.cpp, y rtc.getMonth() no es una lectura inocente en el F1: pasa por
-  // HAL_RTC_GetTime(), que con el contador por encima de 24 h lo REESCRIBE -plegandolo al
-  // dia- con la misma espera de RTOFF de 1000 ms que la siembra quito arriba. Y con base
-  // sembrada el calendario del RTC no lo lee nadie: reloj_dia() cuenta desde diaBase, que
-  // ya vuelve de 31 a 1 como enero. Solo queda util cuando la hora vino del propio RTC.
-  if (tBaseMillis > 0) return;
-  if (rtcOperativo && rtc.getMonth() != 1) rtc.setMonth(1);
 }
 
 // 1.49 - VER reloj.h. Se deduce de lo que ya habia: rtcOperativo lo baja el cerrojo de 1.22
@@ -430,8 +376,6 @@ void reloj_diagnostico(RelojDiag* d) {
     d->cntLeido = true;
   }
 
-  d->configurado = rtcOperativo ? rtc.isConfigured() : false;
-  d->anio = rtcOperativo ? (uint16_t)rtc.getYear() : 0;
 }
 
 // D-20 / N-160: aqui vive la regla de rango, y en ningun otro sitio. Ver reloj.h.
@@ -534,7 +478,7 @@ bool reloj_sembrarDesdeIso(const char* str) {
   //
   // anio y mes se parsean para consumir el formato ISO y se DESCARTAN aqui: por radio
   // solo viaja el dia del mes (CMD_HORA_D) y reloj_ajustar() no tiene donde ponerlos
-  // -el calendario del STM32 es enero fijo por construccion, ver reloj_fijarEnero()-.
+  // -el STM32 no lleva calendario (N-172)-.
   return reloj_ajustarConAcuse(h, m, s, dia);
 }
 

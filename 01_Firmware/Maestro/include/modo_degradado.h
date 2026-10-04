@@ -153,6 +153,10 @@ void modo_degradado_loop();
 // en rojo y camino del menu, asi que false no es un error: es "no hice nada nuevo".
 bool modo_degradado_pedirSalida();
 
+// SPEC_4 3.1 (condicion 2, 02/10): el rojo de emergencia (CMD:FORZAR_ROJO). En Degradado es
+// pedirSalida(): 1 si arranco la salida, 2 si ya estaba en marcha. Fuera, el rojo total: 0.
+uint8_t modo_degradado_forzarRojo();
+
 // --- D-35: EL DEGRADADO CON TESTIGO (SPEC_2 7.bis) --------------------------
 //
 // Segunda puerta, PARALELA a modo_degradado_evaluarEntrada(), que no se toca. No exige

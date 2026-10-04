@@ -3256,21 +3256,9 @@ document.addEventListener('DOMContentLoaded', () => {
              'esta orden no la arranca, lo que anade es que ese ambar quede protegido.',
       toast: 'Aceptada - ya habia una salida en curso que acaba en ambar'
     },
-    // N-146 (05/09). LAS DOS ENTRADAS DE ABAJO NACEN DE UNA CINTA DE BANCO, NO DE UNA
-    // REVISION: el 04/09 a las 21:10 el operario pulso AMBAR SEIS VECES en tres
-    // minutos, el equipo contesto OK las seis y el cruce no se movio. El firmware
-    // arreglo su mitad -ahora RE-ARMA el ambar y contesta distinto en cada caso-, pero
-    // si la app pintara los dos literales con el mismo texto el operario seguiria sin
-    // poder distinguir la pulsacion que SI encendio algo de las cinco que no.
-    //
-    // Y LA DIFERENCIA NO ES DE MATIZ, es la que decide si se va del poste:
-    //   OK        el equipo NO estaba en ambar y entra ahora. El cambio de luz es el
-    //             normal del arranque del modo.
-    //   REARMADO  ya estaba en MODO_AMBAR con la luz en otra cosa -a ese par se llega
-    //             por un ROJO TOTAL, que mueve la luz y no el modo-, y el ambar se ha
-    //             vuelto a encender. Re-armar no es gratis: modo_ambar_setup() manda un
-    //             todo-rojo y vuelve a ordenar el ambar a las dos puntas, asi que la
-    //             luz tarda en asentarse y esta es la pulsacion que hay que mirar.
+    // N-146 (05/09, cinta de banco): AMBAR seis veces, OK las seis y el cruce quieto. OK = no
+    // estaba en ambar y entra ahora; REARMADO = ya estaba en MODO_AMBAR con la luz en otra cosa
+    // (un ROJO TOTAL mueve la luz y no el modo) y el ambar se vuelve a encender por un todo-rojo.
     'SET_MODO:AMBAR|OK': {
       tono: 'red',
       texto: 'Equipo: MODO AMBAR puesto AHORA. No estaba en ambar y acaba de entrar. ' +
@@ -3313,24 +3301,27 @@ document.addEventListener('DOMContentLoaded', () => {
              'cuando ese todo-rojo termine.',
       toast: 'Aceptada - sale del Degradado por todo-rojo antes de llegar al menu'
     },
-    // N-150 (05/09). ESTA ENTRADA NO LA PEDIA app_10, Y HAY QUE DECIR POR QUE ESTA.
-    //
-    // SET_TIEMPOS tiene UN SOLO RESULT en el C++ -RESULT:OK, Maestro/src/bluetooth.cpp:668-,
-    // asi que el pack no la exige: con un solo si, el generico "orden ACEPTADA" no
-    // confunde con nada. Ese razonamiento es correcto PARA EL ACUSE y falso para lo que
-    // el operario necesita saber, y el 05/09 lo cobro con el equipo delante: "se le da
-    // aplicar tiempos y se queda en rojo maestro y esclavo y no cambian".
-    //
-    // Lo que pasaba es exactamente lo que el firmware promete y nada mas: los tiempos
-    // QUEDARON GUARDADOS. Lo que no dijo nadie es que el equipo esta fuera del ciclo
-    // -tuvo que estarlo para aceptar la orden- y que ahi se queda. El generico lo
-    // pintaba en VERDE con la palabra ACEPTADA delante, que es la trampa que este mismo
-    // fichero describe seis entradas mas arriba: un si a secas sobre algo que todavia
-    // no ha pasado.
-    //
-    // O sea: el criterio "varios RESULT" es el sintoma, y la propiedad de debajo es
-    // "el acuse dice que si a algo que el operario no ha terminado". Aqui se cumple con
-    // un solo RESULT, asi que la entrada va aunque el pack no la reclame.
+    // SPEC_4 3.1 (D-45): fuera de Degradado, amarillo 3 s y rojo; en Degradado, su salida por todo-rojo.
+    'FORZAR_ROJO|OK': {
+      tono: 'red',
+      texto: 'Equipo: ROJO TOTAL aceptado. Las dos vias pasan por 3 s de amarillo y quedan en ' +
+             'ROJO FIJO. Compruebe las dos puntas antes de dejar pasar a nadie.',
+      toast: 'Rojo total: amarillo 3 s y rojo fijo en las dos vias'
+    },
+    'FORZAR_ROJO|SALIENDO_TODO_ROJO': {
+      tono: 'red',
+      texto: 'Equipo: ROJO TOTAL aceptado. Estaba en Modo Degradado y SALE de el por su ' +
+             'TODO ROJO de transicion: no vuelve a alternar. Al terminar queda en el menu, sin ciclo.',
+      toast: 'Rojo total - sale del Degradado por todo-rojo, no vuelve a alternar'
+    },
+    'FORZAR_ROJO|SALIDA_YA_EN_CURSO': {
+      tono: 'red',
+      texto: 'Equipo: el equipo YA ESTABA saliendo del Modo Degradado y ya esta en ROJO. ' +
+             'Esta orden no cambia nada: al terminar el todo-rojo queda en el menu, sin ciclo.',
+      toast: 'Ya estaba saliendo del Degradado, en rojo'
+    },
+    // N-150 (05/09): un solo RESULT y app_10 no la pide, pero el generico verde 'ACEPTADA'
+    // mentia: los tiempos quedan guardados con el cruce FUERA del ciclo, en rojo, y ahi sigue.
     'SET_TIEMPOS|OK': {
       tono: 'red',
       texto: 'Equipo: TIEMPOS GUARDADOS. Pero el cruce NO esta ciclando y no va a ' +

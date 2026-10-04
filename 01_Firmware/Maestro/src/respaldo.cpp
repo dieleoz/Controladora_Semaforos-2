@@ -186,24 +186,9 @@ static void sellar() {
   contenidoValido = true;
 }
 
-// LA LIBRERIA DEL RTC ESCRIBE EN DR6/DR7. STM32duino RTC 1.9.0 guarda su fecha en
-// RTC_BKP_DATE = LL_RTC_BKP_DR6 y el siguiente (rtc.h), que aqui son REG_SYNC_BAJA y
-// REG_SUMA_BAJA. rtc.begin() -dentro de reloj_setup()- llama a syncDate(), y con CNT >= 86400
-// HAL_RTC_GetTime() pliega CNT al dia y avanza la fecha (stm32f1xx_hal_rtc.c), y la libreria la
-// guarda con RTC_StoreDate(): DR6/DR7 reescritos, la suma no cuadra y la pila se borraba entera
-// -con ella, el permiso de reanudar el Degradado tras un corte-. Basta un dia de marcha.
-// N-20 SIGUE EN PIE: esto solo LEE, antes de reloj_setup(); validar y borrar sigue despues.
-static uint16_t copiaSyncBaja = 0, copiaSumaBaja = 0;
-static bool copiaTomada = false;
-
-void respaldo_capturarAntesDelReloj() {
-  __HAL_RCC_PWR_CLK_ENABLE();
-  __HAL_RCC_BKP_CLK_ENABLE();
-  copiaSyncBaja = leerReg(REG_SYNC_BAJA);
-  copiaSumaBaja = leerReg(REG_SUMA_BAJA);
-  copiaTomada = true;
-}
-
+// N-172: DR1..DR10 son SOLO de este fichero. La libreria STM32duino RTC guardaba su fecha en
+// DR6/DR7 y los reescribia en marcha; desde N-172 reloj.cpp no la usa, y la copia y reposicion
+// que tapaban el arranque se retiraron con ella.
 void respaldo_setup() {
   // El reloj del dominio de respaldo y el de PWR pueden venir ya encendidos por
   // reloj_setup(), pero habilitarlos dos veces es inofensivo y no depender del
@@ -217,17 +202,6 @@ void respaldo_setup() {
   const uint32_t sumaGuardada = ((uint32_t)leerReg(REG_SUMA_ALTA) << 16) |
                                 (uint32_t)leerReg(REG_SUMA_BAJA);
   contenidoValido = (leerReg(REG_FIRMA) == FIRMA) && (sumaGuardada == calcularSuma());
-
-  // Defecto de la libreria (ver respaldo_capturarAntesDelReloj): si el contenido vivo no
-  // cuadra, se reponen DR6/DR7 de la copia y se valida OTRA VEZ con la misma expresion. Si
-  // tampoco cuadra, se borra como siempre: sin copia valida nada cambia respecto de antes.
-  if (!contenidoValido && copiaTomada) {
-    escribirReg(REG_SYNC_BAJA, copiaSyncBaja);
-    escribirReg(REG_SUMA_BAJA, copiaSumaBaja);
-    const uint32_t sumaCopia = ((uint32_t)leerReg(REG_SUMA_ALTA) << 16) |
-                               (uint32_t)leerReg(REG_SUMA_BAJA);
-    contenidoValido = (leerReg(REG_FIRMA) == FIRMA) && (sumaCopia == calcularSuma());
-  }
 
   if (!contenidoValido) {
     // Equipo nuevo, pila agotada o contenido corrupto. Se deja limpio en vez de

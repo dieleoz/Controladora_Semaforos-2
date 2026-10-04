@@ -37,8 +37,6 @@
 // descartado: nadie confirmaria que la otra punta sigue viva.
 // ---------------------------------------------------------------------------
 
-// Copia DR6/DR7 ANTES de reloj_setup(): la libreria del RTC los reescribe (ver respaldo.cpp).
-void respaldo_capturarAntesDelReloj();
 void respaldo_setup();
 
 // True si el contenido es nuestro y esta integro. Si devuelve false hay que tratar

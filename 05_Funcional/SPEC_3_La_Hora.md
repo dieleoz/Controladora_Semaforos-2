@@ -20,7 +20,7 @@ reloj. **Fuera:** el ciclo (SPEC 1) · la radio en si (SPEC 2) · la app (SPEC 4
 | | |
 |---|---|
 | **ESP32 de cada poste** | lleva un **reloj de calendario con su propia pila** (`DS3231`). Es **la autoridad de la hora, siempre y para todo** (`D-20`, que desarrolla `D-9`) |
-| **STM32 de cada poste** | **no tiene reloj que sirva**: el cristal de reloj de la placa esta confirmado muerto en banco y su calendario queda anclado a enero por construccion (`Y2`, `N-17`) |
+| **STM32 de cada poste** | **no tiene reloj que sirva**: el cristal de reloj de la placa esta confirmado muerto en banco y no lleva calendario: del RTC solo se usa el contador (`Y2`, `N-17`, `N-172`) |
 
 **Al STM32 no se le pregunta la hora nunca.** Lo que tiene es una **base de tiempo de software** —un
 segundo del dia, mas los milisegundos transcurridos desde que se apunto— que le **siembra** su propio
@@ -162,8 +162,9 @@ cierre lleva su amarillo de 3 s (`D-45`, `semaforo_forzarRojo()`; SPEC 1 §3.2).
 - **`D-47`: sobrevive a un corte.** `irARojoSinHora()` pone `FLAG_ROJO_SIN_HORA` en la pila
   (`respaldo_guardarRojoSinHora()`), y al volver la luz el poste arranca en ese rojo fijo, no en ambar: el
   Maestro por `modo_degradado_arrancarEnRojoSinHora()` desde `setup()`, el Esclavo por
-  `degradado_arrancarEnRojoSinHora()`. Toda entrada y salida del Degradado borra la marca (SPEC 1 §4.1). 🔴 **El
-  arranque del Maestro no lo ejerce ningun arnes**; el del Esclavo, la fila 19 (`H10`).
+  `degradado_arrancarEnRojoSinHora()`. Toda entrada y salida del Degradado borra la marca (SPEC 1 §4.1). Lo
+  ejerce el arnes del Degradado: `F2.5` y la precedencia `F2.6` en el Maestro (por la transcripcion de `setup()` del
+  adaptador) y `F3.5` y `H10` en el Esclavo (su `main.cpp` real), vistas en rojo con `D-47` quitado.
 - **`D-49`: el reloj que se congela en marcha** (`reloj_estadoCristal() == RELOJ_CRISTAL_CONGELADO` cuando vence el
   limite de 48 h sin sincronizar) va a ROJO FIJO por `irARojoSinHora()`, no a ambar. El Maestro publica antes
   `$ALARM ...CAUSA:RELOJ_NO_CUENTA,...,ACCION:CAMBIO_A_ROJO` y despues la de `ROJO_SIN_HORA`; el Esclavo, en
@@ -209,15 +210,15 @@ dos decisiones anteriores que nadie vio. **La reconstruccion difiere el BORRADO 
 - **La marca copiada de la pila no es una medida** (Esclavo): la reanudacion anota `syncDesdePila`, y mientras no
   llegue una sincronizacion de verdad, una pila que ya no puede fechar esa marca cuenta como «nunca sincronizado» y
   no se ignora por «la RAM esta sana». Asi las dos puntas contestan lo mismo con el mismo dato.
-- **La libreria del reloj pisa dos registros de la pila, y se reponen** (`N-172` H-D; construido, sin banco). La
-  libreria STM32duino del RTC guarda su fecha en DR6/DR7, que en `respaldo.cpp` son `REG_SYNC_BAJA`/`REG_SUMA_BAJA`:
-  con el contador por encima de un dia, `reloj_setup()` los reescribe y la suma deja de cuadrar, y la pila —con el
-  permiso de reanudar— se borraba entera. `respaldo_capturarAntesDelReloj()` copia los dos **antes** de
-  `reloj_setup()`, en las dos puntas; `respaldo_setup()` los repone si la suma no cuadra y valida otra vez con la
-  misma expresion; si tampoco cuadra, borra como siempre. **Limite abierto** (lectura del fuente, sin medir): ese
-  mismo arranque pliega el contador al dia, queda por debajo de la marca de la ultima sincronizacion y
-  `respaldo_horasDesdeSync()` contesta CADUCADA, asi que **el Degradado de `D-18`, SIN testigo, no reanuda** tras un
-  corte en una tarjeta con mas de un dia de contador (H-7). El de testigo no mira esa marca (SPEC 2 §7.bis).
+- **El firmware no usa la libreria del reloj** (`N-172`; construido, sin banco). La libreria STM32duino del RTC
+  guardaba su fecha en DR6/DR7, que en `respaldo.cpp` son `REG_SYNC_BAJA`/`REG_SUMA_BAJA`, y la reescribia en
+  `begin()` y en cada lectura de fecha; y toda lectura de hora plegaba el contador al dia. Lo primero dejaba la pila
+  con la suma rota y el siguiente arranque la borraba; lo segundo rompia el contador de la marca de 48 h (H-7).
+  `reloj.cpp` configura el RTC por registro, solo como contador a 1 Hz sobre el LSE, **sin escribir nunca CNT**; si
+  ya esta en el LSE no lo toca, y si esta en otra fuente no lo cambia (cambiarla borra la pila) y queda sin contador.
+  **La hora solo la da una siembra** (ESP32, radio o telefono): el RTC de hardware ya no es fuente de hora, y tras un
+  corte no hay hora hasta la siembra. DR1..DR10 son solo de `respaldo.cpp`. Una pila que un firmware anterior ya dejo
+  con la suma rota se borra una vez, en el primer arranque, como cualquier pila corrupta.
 - **Si no reanuda, el Maestro arranca en ambar** (`D-40`, SPEC 1 §4.1); mientras la decision siga pendiente,
   espera en el menu.
 - **Lo que NO se toca:** el **limite duro** sigue mandando —es la puerta que impide reanudar sobre una
@@ -383,15 +384,14 @@ entran: narran por que se bajo, y eso sigue siendo cierto.)*
 
 ### H-6 Nada de esto ha visto una tarjeta
 
-El relevo de fuente, el plazo nuevo, el rojo fijo de §5 y la reposicion de DR6/DR7 de §6 estan **en `main` y SIN
+El relevo de fuente, el plazo nuevo, el rojo fijo de §5 y el RTC sin libreria de §6 estan **en `main` y SIN
 BANCO**: lo que hay son packs y
 arneses de PC, y **un verde de la compuerta no dice que el firmware funcione en la tarjeta**
 (`CLAUDE.md` §0.3). La unica medida tomada sobre el aparato real —la cinta del Sisga— es justamente la
 que destapo **H-1**, y su deteccion tampoco ha visto una tarjeta.
 
-### H-7 🔴 El Degradado sin testigo no reanuda en una tarjeta con mas de un dia de contador
+### H-7 El Degradado sin testigo no reanudaba en una tarjeta con mas de un dia de contador
 
-Lectura del fuente, sin medir (§6): el arranque pliega el contador del reloj al dia (lo hace la libreria al leer
-la hora dentro de `reloj_setup()`), la marca de la ultima sincronizacion queda por encima y
-`respaldo_horasDesdeSync()` contesta CADUCADA por su regla de retroceso. Reponer DR6/DR7 salva la pila, **no esta
-cuenta**. Lo que hace el equipo hoy: no reanuda y el Maestro arranca en ambar (`D-40`). Que hacer es decision pendiente.
+Cerrado por construccion con `N-172` (sin banco): el pliegue del contador lo hacia la libreria al leer la hora, y el
+firmware ya no la usa. Ejercido en el arnes del Degradado (bloque G: G0 y G9, con el modelo de la libreria en
+`reloj_real/STM32RTC.h`, en ROJO sobre el firmware anterior).
