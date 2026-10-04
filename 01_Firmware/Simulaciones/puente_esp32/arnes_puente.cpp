@@ -311,8 +311,6 @@ void reloj_diagnostico(RelojDiag* d) {
   d->rtcEn = false;
   d->cntLeido = false;
   d->cnt = 0;
-  d->configurado = false;
-  d->anio = 0;
 }
 #endif
 
