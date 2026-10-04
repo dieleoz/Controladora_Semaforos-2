@@ -3192,3 +3192,17 @@ es lo mismo que "3.7 existe".
 - **Correccion interrumpida a peticion** en la rama `wip/correccion-no-apto`.
 - **Lo que se concluyo mal:** que la pluma bajaba 3 s tras la senal de la camara (cuenta desde el rojo); que la
   copia de DR6/DR7 en el arranque cerraba `N-172` (la libreria escribe tambien en marcha).
+
+## 12. Sesion del 04/10/2026: correccion del NO APTO, salida programada del Degradado y paquete e831249
+
+- **Correccion del NO APTO** retomada de `wip/correccion-no-apto`: el parche de `app.js` y el informe con `D-50`/`D-51`
+  se habian perdido; se rehicieron. Fusion a `main` en `f6ef03d`.
+- **Arquitecto: APTO CON CONDICIONES.** `FORZAR_ROJO` en Degradado sin radio dejaba al Poste 1 en ambar contra el verde
+  por reloj del Poste 2. El responsable decidio, por criterio y no por opcion: salida programada inversa a la entrada
+  (`D-52`) y rojo total = rojo fijo en ese poste (`D-51` corregida).
+- **Runbook en el dia:** SPEC -> arquitecto -> pruebas vistas en rojo -> firmware y app -> compuerta -> arquitecto
+  y QA -> correcciones (B1, B2, precedencia) -> compuerta convergida en `7aeb327` -> paquete `e831249` SIN_BANCO.
+- **Hook de proyecto** que recuerda al editar `DECISIONES.md` que es un indice (tercera recaida).
+- **Lo que se concluyo mal:** que `D-51` (rojo total = salida del modo) cerraba el punto 2: sin radio el otro poste
+  sigue alternando; mi pregunta lo daba por hecho y la decision heredo la premisa. Y J6a y el escenario P eran defectos
+  de la prueba, no del firmware.

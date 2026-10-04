@@ -117,6 +117,8 @@ candidata crecio con I (`cda33df`) y G (`f9cad1f`): un solo runbook sobre todo.
 | A5 | QA sobre el binario que se entrega | veredicto | APTO CON CONDICIONES, mismas condiciones; cerradas en `5db6eb9`; compuerta convergida en `7aeb327` |
 | A4.quinto | Hoja de Marco solo con lo que falta (`Pruebas_Funcional_2026-10-04.html`, nueve casos); la del 02/10 a historico | `.html` | hecho (`a5df8ec`); `PAQUETE_PENDIENTE` se rellena en A6 |
 | A6 | Paquete validado `SIN_BANCO` a `entregas/`, `PAQUETE_PENDIENTE` de la hoja de Marco rellenado, `.docx` de las SPEC tocadas, ESTADO y README al dia | `.zip` | hecho: `Paquete_Semaforos_2026-10-04_e831249_SIN_BANCO` en `entregas/` (hoja `ef708f6`) |
+| A7 | Banco de Marco con `e831249` y la hoja del 04/10 (14 casos); sus cintas se leen enteras y contando; si pasa, se quita `SIN_BANCO` | cintas | Marco, despues el orquestador |
+| A7.b | Segunda pasada de arquitecto y QA sobre las correcciones B1/B2 (cerradas con prueba en rojo, sin revision propia) | veredicto | si el responsable la pide |
 
 **B. Lo que se cierra en paralelo a A, con ficheros disjuntos**
 

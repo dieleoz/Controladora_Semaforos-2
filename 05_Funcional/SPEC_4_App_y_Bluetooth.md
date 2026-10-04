@@ -285,6 +285,15 @@ salida programada.
    `PROGRAMADA_SIN_RESPALDO`, `CANCELADA`), `$EVENT DEGRADADO,SALIDA_PROGRAMADA_*` y `$ALARM DEGRADADO,CAUSA:ROJO_TOTAL,
    ACCION:ROJO_FIJO` («rojo total puesto por una persona; el otro poste sigue alternando»), que NO es `ROJO_SIN_HORA`.
 
+**Ficheros (HACE, `7cd3042`).** `js/deg_fin.js` (modulo `DegFin`: botones, tarjeta con cuenta atras, motivos y
+`$EVENT`; la tarjeta se arma por JS porque `index.html` no crece) · `js/deg_auto.js` (reparte a `DegFin` desde los
+enganches que `app.js` ya llamaba: `enviarFin`, `consultarFin`) · `js/aviso_degradado.js` (el vale del aviso de
+paleteros se casa por NOMBRE de orden, no por la trama: `DEG_FIN` lleva un `ahora` distinto en cada envio) ·
+`app.js` (entradas de `ACK_TEXTO` y `CONSULTA_DEG_FIN` en `SIN_PIN`). Copias en `www/` y en la APK.
+**Limites que HACE y quedan escritos:** un `CANCELADA` que esta app no pidio (otro telefono) no borra el cartel local
+«FALTA el Esclavo», aunque la tarjeta si refleja la consulta; y la app mide la ventana de 12 h con el reloj del
+telefono y el poste con el suyo, asi que en el borde pueden discrepar: manda el `$ERR` del poste.
+
 ## 4. El PIN
 
 - La forma del cable es `CMD:PIN:<pin>:<accion>` y la comparacion es **literal en los dos despachadores**.
