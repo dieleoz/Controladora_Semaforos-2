@@ -263,7 +263,7 @@ que es donde se anotan las medidas.
    §4 —la tabla valor a valor está en el §4 Paso 3 del Manual 9—, y **las cuatro cámaras están
    compradas**. ~~⚠️ La guía, paso 07, todavía dice «objetivo: no filtrar»~~ — ✅ **corregida el 11/09 (`7037eb6`)**: la
    guía [`Camaras_Sisga_4x.html`](Camaras_Sisga_4x.html) dice ya ☑ Vehículo · ☐ Humano si la casilla existe (`D-27`).
-10. 📱 **[10_Manual_Modulo_Bluetooth_Telemetria.md](10_Manual_Modulo_Bluetooth_Telemetria.md)** —
+10. 📱 **[10_Manual_Modulo_Bluetooth_Telemetria.md](historico/10_Manual_Modulo_Bluetooth_Telemetria.md)** —
     el transporte SPP y la alimentación del módulo. **§1 congela el transporte: SPP, no BLE.**
 11. ⏱️ **[11_Manual_Instalacion_RTC_DS3231_Bateria.md](historico/11_Manual_Instalacion_RTC_DS3231_Bateria.md)** —
     pila del RTC y el `DS3231`. ⚠️ **§4.1 derogada por `D-15`: no se diagnostica el reloj mandando

@@ -1069,7 +1069,7 @@ salida de emergencia que ya no existe, al final el acta que se firma.**
 | orden | documento | donde esta la ficha |
 |---|---|---|
 | **1** | `05_Funcional/historico/15_Lista_de_Compras_Hardware.md` — hay dinero a punto de salir | historico, §B · Orden 1 |
-| **2** | `05_Funcional/10_Manual_Modulo_Bluetooth_Telemetria.md` — congelado, y manda enchufar un `HC-05` en `J17` | historico, §B · Orden 2 |
+| **2** | `05_Funcional/historico/10_Manual_Modulo_Bluetooth_Telemetria.md` — congelado, y manda enchufar un `HC-05` en `J17` | historico, §B · Orden 2 |
 | **3** | `05_Funcional/historico/8_Procedimiento_Modo_Degradado.md` | historico, §B · Orden 3 |
 | **4** | `05_Funcional/historico/MANUAL_MANDO_4_RELES.md` — describe un accionador que no esta | historico, §B · Orden 4 |
 | **5** | `05_Funcional/historico/3_Protocolo_Pruebas_Rigurosas.md` — el acta que se firma | historico, §B · Orden 5 |

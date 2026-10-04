@@ -40,7 +40,7 @@ DESCRIPCION = "$STATUS dice lo mismo en las dos puntas, en el Manual 10 y en la 
 
 PUNTAS = ("Maestro", "Esclavo")
 
-MANUAL = ("05_Funcional", "10_Manual_Modulo_Bluetooth_Telemetria.md")
+MANUAL = ("05_Funcional", "historico", "10_Manual_Modulo_Bluetooth_Telemetria.md")
 APP = ("05_Funcional", "App_Semaforo", "app.js")
 APP_HTML = ("05_Funcional", "App_Semaforo", "index.html")
 # Los dos destinos a los que se copia la app. El fichero concreto ya NO se escribe
