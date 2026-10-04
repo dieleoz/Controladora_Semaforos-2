@@ -2,5 +2,19 @@
   "enabledPlugins": {
     "orquestador@diego": true,
     "metodo@diego": true
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/decisiones_recordatorio.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
   }
 }

@@ -120,8 +120,8 @@ candidata crecio con I (`cda33df`) y G (`f9cad1f`): un solo runbook sobre todo.
 | ~~B1~~ | Hecho (`8378a84`): lista de montaje del lunes 05/10 en `.html` que da PDF: respaldo md5 del firmware del Sisga, grabar, `J16` p1 tapado, `J14`/p5/p8 vacios, radios 2,4 kbps M0/M1 OFF, camaras `D-39`, sin Degradado desatendido | agente campo | `.html` |
 | B2 | `N-166` colision de nombre `A-15` | orquestador | una renombrada |
 | B3 | Metodo atrasado (`4e8e898` -> `cd3c71b`): actualizar plugin y primera linea de `CLAUDE.md` | orquestador | metodo al dia |
-| B4 | Manual 10 (HC-05 en `J17`, caducado) a historico: lo lee `documentos_03` como contrato de tramas; mover con la tupla del pack en el mismo commit, banco antes y despues | orquestador | uno menos |
-| B5 | Hook de proyecto: recordatorio al editar `DECISIONES.md` (comportamiento a la SPEC, fila de una linea, no preguntar lo ordenado) | orquestador | hook |
+| B4 | Hecho (`5baa997`): Manual 10 (HC-05 en `J17`, caducado) a historico: lo lee `documentos_03` como contrato de tramas; mover con la tupla del pack en el mismo commit, banco antes y despues | orquestador | uno menos |
+| B5 | Hecho: hook de proyecto `.claude/hooks/decisiones_recordatorio.py` al editar `DECISIONES.md` | orquestador | hook |
 
 **C. Decisiones del responsable** (no las cierra nadie escribiendo)
 
