@@ -129,6 +129,8 @@ candidata crecio con I (`cda33df`) y G (`f9cad1f`): un solo runbook sobre todo.
 | B3 | Metodo atrasado (`4e8e898` -> `cd3c71b`): actualizar plugin y primera linea de `CLAUDE.md` | orquestador | metodo al dia |
 | B4 | Hecho (`5baa997`): Manual 10 (HC-05 en `J17`, caducado) a historico: lo lee `documentos_03` como contrato de tramas; mover con la tupla del pack en el mismo commit, banco antes y despues | orquestador | uno menos |
 | B5 | Hecho: hook de proyecto `.claude/hooks/decisiones_recordatorio.py` al editar `DECISIONES.md` | orquestador | hook |
+| B6 | Dictamen de SPEC y manuales (`revision/opinion-spec-manuales-2026-10-04`, `6f38ba4`): SPEC_5 con dos numeraciones; tachados en README y SPEC_1/2/4/5; `HUECOS MEDIDOS` con otro nombre en SPEC_5/8 y ausente en SPEC_0; `17_...` sobre 1000 lineas; `.docx` viejos; hoja de pruebas que remite a hojas en `historico/`; tres hojas cortas de operador, APK y conexionado cuando haya banco | orquestador | fase F |
+| B7 | `Camaras_Sisga_4x.html` dice que la pluma baja con un coche debajo: cierto con `7ff7d12` (Sisga, sin veto) y falso desde `d3606be` (veto de `D-33`); se corrige cuando se sepa que firmware queda en campo | orquestador | tras decision del responsable |
 
 **C. Decisiones del responsable** (no las cierra nadie escribiendo)
 
