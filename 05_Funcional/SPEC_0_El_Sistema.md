@@ -70,11 +70,12 @@ canal, `M0`/`M1` en OFF, antena puesta): `SPEC_6` PARTE B. **Ningun instrumento 
 configuracion** (`SPEC_6` HUECO 3), y si no se hizo el sintoma no dira «radio mal configurada»: dira que el equipo se callo.
 
 1. **Encender los dos postes.** No hay interruptor de modo ni secuencia de arranque: se da energia.
-2. **Donde queda el equipo al encender.** El **Esclavo pone rojo en las tres primeras lineas de su `setup()`** —«las luces
-   primero, siempre»—; el **Maestro arranca A OSCURAS** y su primer rojo no llega hasta `menu_setup()` →
-   `coordinador_forzarMenu()` (`SPEC_1` §12.5). Ya arrancado: **Maestro en `MENU`, rojo fijo en las DOS puntas** repetido por
-   el latido, **pluma ABAJO**; ambar intermitente en vez de rojo si no hay enlace. **Excepcion unica:** si estaba en Degradado
-   cuando se fue la luz, reanuda en Degradado (`D-29`). **Nunca reanuda el Automatico** (§0.B).
+2. **Donde queda el equipo al encender.** El **Esclavo pone rojo en las tres primeras lineas de su `setup()`**
+   («las luces primero, siempre»). El **Maestro entra en AMBAR INTERMITENTE de fuera de servicio**
+   (`entrarAmbarDeArranque()` y `modo_ambar_setup()`: todo-rojo y `CMD_GO_AMBAR` al Esclavo; `D-40`, `SPEC_1` §4.1)
+   y sale con una orden. **Excepciones:** si estaba en Degradado cuando se fue la luz, reanuda en Degradado (`D-29`);
+   si estaba en rojo fijo por hora perdida o por rojo total, arranca en ese rojo fijo (`D-47`). **Nunca reanuda el
+   Automatico** (§0.B).
 3. **Conectar el telefono al poste 1.** Emparejar buscando el rotulo `<ROTULO_PREFIJO><serie>-M` (`-E` en el poste 2).
    ⚠️ **Un ESP32 estrenado anuncia `ROTULO_PROVISIONAL` y el rotulo bueno aparece EN LA ARRANCADA SIGUIENTE** (`SPEC_4` §1):
    no es averia y no se arregla reintentando.
