@@ -167,6 +167,17 @@ RechazoTestigo degradado_comprobarTestigo(uint32_t ahora, uint32_t inicio, int d
 RechazoTestigo degradado_entrarTestigo(uint32_t ahora, uint32_t inicio, int despeje);
 const char* degradado_textoRechazoTestigo(RechazoTestigo r);
 
+// D-52 (SPEC_2 7.quater): la salida programada. Mismo enum, orden y textos que el Maestro; los cuatro primeros son
+// $ACK, el resto $ERR. Horas en segundos del dia; salidaS() = 0 si no hay.
+enum MotivoSalida : uint8_t { MDF_PROGRAMADA, MDF_REPROGRAMADA, MDF_PROGRAMADA_SIN_RESPALDO, MDF_CANCELADA,
+  MDF_NO_EN_DEGRADADO, MDF_YA_SALIENDO, MDF_FALTA_HORA, MDF_AHORA_DESFASADO, MDF_SALIDA_VENCIDA,
+  MDF_ANTES_DEL_INICIO, MDF_EN_VERDE, MDF_NO_GUARDADO, MDF_NADA_QUE_CANCELAR };
+MotivoSalida modo_degradado_programarSalida(uint32_t ahoraDia, uint32_t salidaDia);
+MotivoSalida modo_degradado_cancelarSalida();
+const char* modo_degradado_textoSalida(MotivoSalida m);
+uint32_t modo_degradado_salidaS();
+bool modo_degradado_salidaRespaldada();
+
 // Definida en reloj.cpp (D-35); declarada aqui, como en el Maestro, cuyo reloj.h no puede
 // crecer. Segundos desde la epoca del DS3231 (su anio 00) con la fecha del DS3231; 0 = sin fecha.
 uint32_t reloj_segundosDesde2000();

@@ -613,49 +613,32 @@ static void procesarComando(const char* cmd) {
 
   // SFTY - EL AMBAR DE EMERGENCIA NO PIDE PIN, Y ES DELIBERADO.
   //
-  // N-83: LA RAZON DE ANTES ERA FALSA Y POR ESO SE REESCRIBE. Decia "el PIN guarda lo
-  // que ABRE paso o mueve luces; no lo que las para", dando por hecho que esto para el
-  // trafico. No lo para: deja el equipo en S_FALLO, que es ambar intermitente a 500 ms
-  // con la talanquera ARRIBA (semaforo.cpp, decision del cliente y del PMT del
-  // 27/08/2026). O sea que este camino SI abre paso, y la exencion quedaba justificada
-  // por algo que no ocurre.
+  // N-83: LA RAZON DE ANTES ERA FALSA ("el PIN guarda lo que ABRE paso; no lo que las para": esto no para el trafico,
+  // deja el equipo en S_FALLO, ambar a 500 ms con la talanquera ARRIBA, decision del cliente y del PMT).
+  // La exencion sigue siendo correcta por esto otro: un ambar intermitente NO LE DA PRIORIDAD A NADIE;
+  // no concede el paso a un sentido contra el otro (lo que el PIN custodia) sino que pone a los dos a pasar con
+  // precaucion. Es la caida segura universal, la misma a la que el equipo llega solo al perder el enlace (SFTY-6) o
+  // al reiniciar el watchdog, y una caida segura que exige recordar una clave delante de un accidente no lo es: quien
+  // ve el incidente debe poder pedirla. Se acepta tambien la forma con PIN, mas abajo: la app la envia asi y el
+  // manual la documenta.
   //
-  // La exencion sigue siendo correcta, pero por esto otro: un ambar intermitente NO LE
-  // DA PRIORIDAD A NADIE. No concede el paso a un sentido contra el otro -que es lo que
-  // el PIN existe para custodiar-, sino que pone a los dos a pasar con precaucion y
-  // bajo su propia responsabilidad. Es la caida segura universal, la misma a la que el
-  // equipo llega solo cuando pierde el enlace (SFTY-6) o cuando el watchdog lo
-  // reinicia. Y una caida segura que exija recordar una clave delante de un accidente
-  // no es una caida segura: quien esta viendo el incidente tiene que poder pedirla,
-  // aunque no sea el tecnico que se sabe el PIN.
+  // N-106 (31/08) - Y NO SE SALTA EL MODO DEGRADADO (la tabla entera es el Manual 10 S4.5.2; aqui el porque vial).
+  // Antes era semaforo_iniciarFallo() a secas: con el Degradado gobernando la luz saltaba de un VERDE POR RELOJ
+  // directo a ambar, y mando.cpp ya tenia escrito lo que eso significa: "le daria a quien ya venia lanzado una senal
+  // que invita a negociar el paso mientras aun cree tener prioridad". El Degradado entra y sale SIEMPRE por
+  // todo-rojo, y el B.B.B del mando sale por ahi. R-1 (31/08): se acepta que el ambar tarde de 10 a 90 s (el
+  // todo-rojo de despedida sale de cfgDespeje): es lo unico que protege a quien venia lanzado, y lo que ya cuesta el
+  // B.B.B.
   //
-  // Se acepta tambien la forma con PIN mas abajo: la app la envia asi y el manual
-  // la documenta. Las dos entradas hacen lo mismo.
+  // LAS DOS PUERTAS -esta sin PIN y la de 'accion' con PIN- LLEVAN EL MISMO BLOQUE, letra por letra: un parche a una
+  // sola deja media puerta contestando el $ACK viejo (lo vigilan esclavo_07 y esclavo_08).
   //
-  // N-106 (31/08) - Y NO SE SALTA EL MODO DEGRADADO. La tabla completa es el Manual 10
-  // S4.5.2; aqui va el porque, que es vial:
-  //
-  // Antes esto era semaforo_iniciarFallo() a secas. Con el Degradado gobernando la luz
-  // eso saltaba de un VERDE POR RELOJ directo a ambar intermitente, y su propio mando.cpp
-  // ya tenia escrito lo que eso significa: "le daria a quien ya venia lanzado una senal
-  // que invita a negociar el paso mientras aun cree tener prioridad". Por eso el Degradado
-  // entra y sale SIEMPRE por todo-rojo, y por eso el B.B.B del mando sale por ahi.
-  //
-  // R-1 (31/08): se acepta que el ambar tarde de 10 a 90 s -el todo-rojo de despedida sale
-  // de cfgDespeje-, porque ese margen es lo unico que protege a quien ya venia lanzado. Es
-  // exactamente lo que ya cuesta el B.B.B.
-  //
-  // LAS DOS PUERTAS -esta sin PIN y la de 'accion' con PIN- LLEVAN EL MISMO BLOQUE, letra
-  // por letra. Un parche a una sola deja media puerta abierta contestando el $ACK viejo;
-  // lo vigilan esclavo_07 y esclavo_08.
-  //
-  // 🔴 N-142 / §3.16-A (11/09) - Y HASTA HOY ESA FRASE ERA FALSA, MEDIDA EN EL FUENTE:
-  // protocolo_enviarPaquete(CMD_AMBAR_ESCLAVO) tenia UN SOLO llamador en todo Esclavo/src
-  // y estaba en la puerta CON PIN. La app manda AMBAR_EMERGENCIA por la de SIN PIN -esta-,
-  // asi que el aviso de N-142 NO LO HABIA DISPARADO NUNCA NADIE desde un telefono: el
-  // tecnico del Poste 2 pedia ambar, esta punta se iba a S_FALLO y el Maestro seguia su
-  // ciclo pudiendo dar VERDE en el Poste 1 hacia un carril cuyo otro extremo ya no
-  // controla nadie. Es el candidato mas firme del DAR PASO del Sisga (roadmap §3.16).
+  // 🔴 N-142 / §3.16-A (11/09) - HASTA HOY ESA FRASE ERA FALSA, MEDIDA EN EL FUENTE:
+  // protocolo_enviarPaquete(CMD_AMBAR_ESCLAVO) tenia UN SOLO llamador en todo Esclavo/src y estaba en la puerta CON
+  // PIN, mientras la app manda AMBAR_EMERGENCIA por la de SIN PIN (esta): el aviso de N-142 no lo habia disparado
+  // nadie desde un telefono, esta punta se iba a S_FALLO y el Maestro seguia su ciclo pudiendo dar VERDE en el Poste
+  // 1 hacia un carril cuyo otro extremo ya no controla nadie. Es el candidato mas firme del DAR PASO del Sisga
+  // (roadmap §3.16).
   if (strcmp(cmd, "CMD:AMBAR_EMERGENCIA") == 0) {
     if (!degradado_gobiernaLuz()) {
       // Filas A y B: nadie mas gobierna la luz, el ambar se enciende ya. No hay $ERR
@@ -673,47 +656,22 @@ static void procesarComando(const char* cmd) {
       protocolo_enviarPaquete(CMD_AMBAR_ESCLAVO);
       avisoAmbarSalio();
 
-      // 🔴 Y EL $ACK DICE SI ESA TRAMA PUEDE HABER SIDO OIDA, PORQUE NO ES LO MISMO.
-      //
-      // CLAUDE.md §2: un $ACK que no depende de lo que la llamada devolvio es una mentira
-      // con formato de exito. protocolo_enviarPaquete() es void y lo es a proposito -no
-      // hay acuse que esperar-, asi que lo que se mira NO es esa llamada: es lo unico que
-      // esta punta sabe de la radio del Maestro en este instante, y es el mismo dato con
-      // el que ya se publica el $ALARM FALLO_RF y su $EVENT de regreso (N-108).
-      //
-      // QUE PROMETE CADA LITERAL, escrito para que nadie lea de mas:
-      //   OK / YA_EN_AMBAR_LATCH_PUESTO   el ambar esta puesto AQUI y el aviso salio con
-      //                                   el enlace sin caida declarada. NO promete que
-      //                                   la trama llegara -no se acusa-, solo que esta
-      //                                   punta oye al Maestro.
-      //   ..._SIN_RADIO                   el ambar esta puesto AQUI y esta punta ya
-      //                                   declaro que se quedo sin radio: el aviso sale
-      //                                   igual y casi seguro no llega. El Poste 1 puede
-      //                                   seguir dando verde, y quien pidio el ambar
-      //                                   tiene que saberlo antes de irse del poste.
-      //   ..._POSTE1_AVISADO              D-31: el Poste 1 ACUSO por radio un aviso
-      //                                   anterior de ESTE mismo ambar. Es la unica
-      //                                   frase de todas estas que promete algo del OTRO
-      //                                   extremo, y lo promete porque lo midio: hubo una
-      //                                   trama de vuelta. No promete que el Poste 1
-      //                                   siga en ambar -de eso no se entera nadie desde
-      //                                   aqui-, solo que la radio de ida funciona y que
-      //                                   por eso esta pulsacion NO espera nada.
-      //
-      // NO SE INVENTA UN SEGUNDO RELOJ DE SILENCIO para contestar esto: el que hay lo
-      // arma main.cpp con SFTY6_SILENCIO_MS y lo baja el regreso de tramas validas en
-      // bluetooth_loop(). Dos cuentas del mismo silencio divergirian sin que nadie lo
-      // notara, que es lo que este fichero ya tiene escrito para el silencio de J17.
-      //
-      // D-31: Y EL PRIMER $ACK NO ESPERA AL ACUSE. Sale ya, con lo que se sabe ya; si el
-      // acuse no llega en su plazo, el desmentido va DESPUES y por otro canal
-      // ($ALARM AVISO_RF). Casar un $ERR con una orden contestada hace segundos es lo que
-      // N-130 ya descarto: la app no sabria a cual de dos pulsaciones corresponde.
-      //
-      // SIN_RADIO GANA A POSTE1_AVISADO cuando las dos son ciertas, y no es un empate mal
-      // resuelto: la memoria del acuse es de HACE UN RATO y la caida de radio es de
-      // AHORA. Lo que el tecnico tiene que leer es lo que puede haber cambiado desde
-      // entonces.
+      // 🔴 Y EL $ACK DICE SI ESA TRAMA PUEDE HABER SIDO OIDA, PORQUE NO ES LO MISMO. CLAUDE.md §2: un $ACK que no
+      // depende de lo que la llamada devolvio es una mentira con formato de exito. protocolo_enviarPaquete() es void
+      // a proposito (no hay acuse que esperar), asi que se mira lo unico que esta punta sabe de la radio del Maestro
+      // ahora: el dato con el que ya se publica el $ALARM FALLO_RF y su $EVENT de regreso (N-108). QUE PROMETE CADA
+      // LITERAL:
+      //   OK / YA_EN_AMBAR_LATCH_PUESTO  ambar AQUI y el aviso salio con el enlace sin caida declarada; NO promete
+      //                                  que la trama llegara (no se acusa), solo que esta punta oye al Maestro.
+      //   ..._SIN_RADIO                  ambar AQUI y esta punta ya declaro que se quedo sin radio: el aviso sale
+      //                                  igual y casi seguro no llega; quien lo pidio debe saberlo antes de irse.
+      //   ..._POSTE1_AVISADO             D-31: el Poste 1 ACUSO por radio un aviso anterior de ESTE ambar; es la
+      //                                  unica que promete algo del OTRO extremo (hubo trama de vuelta).
+      // NO SE INVENTA UN SEGUNDO RELOJ DE SILENCIO: el que hay lo arma main.cpp con SFTY6_SILENCIO_MS y lo baja el
+      // regreso de tramas validas en bluetooth_loop(); dos cuentas del mismo silencio divergirian. D-31: Y EL PRIMER
+      // $ACK NO ESPERA AL ACUSE: sale ya, y si el acuse no llega en su plazo el desmentido va DESPUES por $ALARM
+      // AVISO_RF (casar un $ERR con una orden contestada hace segundos es lo que N-130 descarto). SIN_RADIO GANA A
+      // POSTE1_AVISADO si las dos son ciertas: el acuse es de HACE UN RATO y la caida de AHORA.
       const bool sinRadio = enlaceCaidoAnunciado;
       const bool yaAvisado = avisoAmbarConfirmado && !sinRadio;
       if (yaEnAmbar) {
@@ -882,6 +840,25 @@ static void procesarComando(const char* cmd) {
 
   // A-15 (SPEC_4 3.2): la consulta del Degradado automatico no toca nada: entra con y sin
   // PIN, por lo mismo que la version.
+  // D-52: CONSULTA_DEG_FIN tambien entra con y sin PIN, y solo mira.
+  // SALE_HHMMSS_FALTAN_<s>S_<RESPALDADA|SIN_RESPALDO>.
+  if (strcmp(cmd, "CMD:CONSULTA_DEG_FIN") == 0 || strcmp(cmd, "CMD:PIN:1234:CONSULTA_DEG_FIN") == 0) {
+    const uint32_t sal = modo_degradado_salidaS();
+    if (sal == 0) {
+      enviarTramaConCrc("$ACK,CMD:CONSULTA_DEG_FIN,RESULT:NINGUNA");
+    } else {
+      const uint32_t dia = sal % 86400UL;
+      uint32_t falta = (dia + 86400UL - reloj_segundosDelDia()) % 86400UL;
+      if (falta > 43200UL) falta = 0;   // ya paso: sale en esta vuelta
+      char p[80];
+      snprintf(p, sizeof(p), "$ACK,CMD:CONSULTA_DEG_FIN,RESULT:SALE_%02lu%02lu%02lu_FALTAN_%luS_%s",
+               (unsigned long)(dia / 3600UL), (unsigned long)(dia / 60UL % 60UL), (unsigned long)(dia % 60UL),
+               (unsigned long)falta, modo_degradado_salidaRespaldada() ? "RESPALDADA" : "SIN_RESPALDO");
+      enviarTramaConCrc(p);
+    }
+    return;
+  }
+
   if (strcmp(cmd, "CMD:CONSULTA_DEG_AUTO") == 0 || strcmp(cmd, "CMD:PIN:1234:CONSULTA_DEG_AUTO") == 0) {
     char p[64];
     snprintf(p, sizeof(p), "$ACK,CMD:CONSULTA_DEG_AUTO,RESULT:ESTE_%s_OTRO_%s_APTO_%s",
@@ -899,38 +876,25 @@ static void procesarComando(const char* cmd) {
 
   const char* accion = cmd + 13;
 
-  // LA MISMA PUERTA QUE ARRIBA, CON EL PIN PUESTO, Y CON EL MISMO BLOQUE LETRA POR LETRA.
-  // El porque de cada fila esta escrito una sola vez, en la puerta sin PIN; repetirlo aqui
-  // serian dos explicaciones que alguien tendria que sincronizar. Lo que NO se puede
-  // repartir es el codigo: los packs leen el bloque de CADA rama, y una respuesta que
-  // viviera en una funcion comun dejaria a los dos instrumentos midiendo un bloque vacio
-  // -es N-89, el refactor que apaga el instrumento sin romper un solo test-.
+  // LA MISMA PUERTA QUE ARRIBA, CON EL PIN PUESTO, Y CON EL MISMO BLOQUE LETRA POR LETRA. El porque de cada fila esta
+  // escrito una vez, en la puerta sin PIN. Lo que NO se puede repartir es el codigo: los packs leen el bloque de CADA
+  // rama, y una respuesta en una funcion comun dejaria a los dos instrumentos midiendo un bloque vacio (N-89).
   if (strcmp(accion, "AMBAR_EMERGENCIA") == 0) {
     if (!degradado_gobiernaLuz()) {
       const bool yaEnAmbar = (semaforo_estado() == S_FALLO);
       semaforo_iniciarFallo();
       ambarEmergencia = true;
 
-      // N-142 (04/09): SE LE DICE AL MAESTRO. Antes solo se le decia al TELEFONO.
+      // N-142 (04/09): SE LE DICE AL MAESTRO. Antes solo se le decia al TELEFONO: sin el aviso el Maestro no podia
+      // enterarse (esta punta sigue contestando PONG en ambar) y si estaba en VERDE convivian Maestro en verde y
+      // Esclavo en ambar hasta 3 minutos, con los dos sentidos pudiendo entrar al carril.
       //
-      // Sin este aviso el Maestro no tenia forma de enterarse -y encima esta punta sigue
-      // contestando PONG estando en ambar, asi que el enlace le parecia perfecto-. Si el
-      // Maestro estaba en VERDE cuando alguien engancho aqui el ambar, durante el resto
-      // de esa fase -hasta 3 minutos con los tiempos de hoy- convivian Maestro en verde y
-      // Esclavo en ambar, y los dos sentidos podian entrar al carril.
-      //
-      // D-31 (12/09) - Y ESTE PARRAFO SE REESCRIBE, PORQUE DECIA "SIN ESPERAR ACUSE Y SIN
-      // REINTENTO" Y ESO ERA EL DEFECTO. Lo que decia -"quedarse esperando retrasaria la
-      // respuesta al operario"- sigue siendo cierto Y SE RESPETA: el ambar se enciende
-      // arriba, el $ACK sale abajo en esta misma vuelta y NADA BLOQUEA EL BUCLE. Lo que
-      // se anade es un plazo que corre en bluetooth_loop() y, si vence, un DESMENTIDO
-      // posterior por $ALARM. Es el patron de CMD_ACK_DEMANDA (N-130), no una espera.
-      //
-      // Y hacia falta porque la red que este parrafo invocaba NO CUBRE LA AVERIA FEA: si
-      // solo muere el TRANSMISOR de esta punta, el Maestro le sigue hablando, no agota
-      // ningun reintento y no cae a fallo. Esta punta no tiene forma de saberlo -su unico
-      // dato de radio es el silencio de lo que RECIBE- y el tecnico se va del poste con
-      // un $ACK identico al de la radio sana. Es el bloque H4 del arnes de las dos puntas.
+      // D-31 (12/09) - ESTE PARRAFO SE REESCRIBE: DECIA "SIN ESPERAR ACUSE Y SIN REINTENTO" Y ESO ERA EL DEFECTO. No
+      // se bloquea el bucle: el ambar se enciende arriba, el $ACK sale abajo y un plazo de bluetooth_loop() manda, si
+      // vence, un DESMENTIDO por $ALARM (patron de CMD_ACK_DEMANDA, N-130). Hacia falta porque la red anterior NO
+      // CUBRE LA AVERIA FEA: si solo muere el TRANSMISOR de esta punta, el Maestro le sigue hablando, no agota
+      // reintentos y el tecnico se va con un $ACK identico al de la radio sana (bloque H4 del arnes de las dos
+      // puntas).
       protocolo_enviarPaquete(CMD_AMBAR_ESCLAVO);
       avisoAmbarSalio();
 
@@ -1068,26 +1032,24 @@ static void procesarComando(const char* cmd) {
       bluetooth_reportarEvento("APP_BLUETOOTH", "AMBAR_EMERGENCIA_REVOCADO");
     }
   } else if (strcmp(accion, "FORZAR_ROJO") == 0) {
-    // N-83: la misma puerta que arriba, con el PIN puesto. Ver alli el porque de
-    // rechazar en vez de aliasar. Una app vieja lo manda por las dos, y las dos tienen
-    // que contestar lo mismo: sin esta rama la forma con PIN caeria al DESCONOCIDO
-    // generico y la forma sin PIN daria un motivo util, que es la peor combinacion
-    // -el mismo error contestado de dos maneras segun por donde entre-.
+    // N-83: la misma puerta que arriba, con el PIN puesto (ver alli el porque de rechazar en vez de aliasar). Una app
+    // vieja lo manda por las dos y las dos deben contestar lo mismo: sin esta rama la forma con PIN caeria al
+    // DESCONOCIDO generico, el mismo error contestado de dos maneras segun por donde entre.
     enviarTramaConCrc("$ERR,CMD:FORZAR_ROJO,DESC:RENOMBRADO_USE_AMBAR_EMERGENCIA");
     bluetooth_reportarEvento("APP_BLUETOOTH", "FORZAR_ROJO_RENOMBRADO");
   } else if (strncmp(accion, "SET_MODO:DEG_T:", 15) == 0) {
-    // D-46: SOLICITAR_PASO y SET_MODO:DEGRADADO salieron de esta punta; al Degradado se entra
-    // por el testigo (D-35), y las dos ordenes viejas caen en COMANDO_NO_SOPORTADO.
-    // D-35 (SPEC_2 7.bis): la MISMA orden que en el Maestro, con su tabla de rechazo propia
-    // (RechazoTestigo). Aqui solo se traduce texto a numeros (molde SET_TIEMPOS, con el %c
-    // que delata lo que sobra); verde distinto de 180 es formato. La respuesta sale de lo
-    // que devolvio degradado_entrarTestigo(), un $ERR por motivo.
+    // D-46: SOLICITAR_PASO y SET_MODO:DEGRADADO salieron de esta punta (caen en COMANDO_NO_SOPORTADO); al Degradado
+    // se entra por el testigo (D-35): la MISMA orden que en el Maestro, con su tabla (RechazoTestigo). Aqui solo se
+    // traduce texto (molde SET_TIEMPOS, con el %c que delata lo que sobra; verde distinto de 180 es formato) y la
+    // respuesta sale de lo que devolvio degradado_entrarTestigo(), un $ERR por motivo.
     int ah = -1, am = -1, as = -1, ih = -1, im = -1, is = -1, v = 0, d = 0;
     char sobra = 0;
     const int n = sscanf(accion + 15, "%d:%d:%d,%d:%d:%d,%d,%d%c",
                          &ah, &am, &as, &ih, &im, &is, &v, &d, &sobra);
     if (n != 8 || !horaDelDiaValida(ah, am, as) || !horaDelDiaValida(ih, im, is) || v != 180) {
       enviarTramaConCrc("$ERR,CMD:SET_MODO:DEG_T,DESC:FORMATO_INVALIDO");
+    } else if (modo_degradado_salidaS() != 0) {   // D-52: ni renueva ni entra en silencio sobre una salida fijada
+      enviarTramaConCrc("$ERR,CMD:SET_MODO:DEG_T,DESC:Cancele antes la salida programada");
     } else {
       const RechazoTestigo r = degradado_entrarTestigo(
           (uint32_t)ah * 3600UL + (uint32_t)am * 60UL + (uint32_t)as,
@@ -1103,6 +1065,33 @@ static void procesarComando(const char* cmd) {
         snprintf(p, sizeof(p), "$ERR,CMD:SET_MODO:DEG_T,DESC:%s", degradado_textoRechazoTestigo(r));
         enviarTramaConCrc(p);
         bluetooth_reportarEvento("APP_BLUETOOTH", "SET_MODO_DEG_T_RECHAZADO");
+      }
+    }
+  } else if (strncmp(accion, "SET_MODO:DEG_FIN:", 17) == 0) {
+    // D-52 (SPEC_2 7.quater (c)): gemela de la del Maestro, con el mismo MotivoSalida y los mismos textos. Solo se
+    // traduce texto; el $ACK/$ERR sale de lo que devolvio la llamada, y solo hay $ACK si quedo programada (o
+    // cancelada).
+    int ah = -1, am = -1, as = -1, sh = -1, sm = -1, ss = -1;
+    char sobra = 0;
+    const bool cancelar = strcmp(accion + 17, "CANCELAR") == 0;
+    const int n = cancelar ? 0 : sscanf(accion + 17, "%d:%d:%d,%d:%d:%d%c", &ah, &am, &as, &sh, &sm, &ss, &sobra);
+    if (!cancelar && (n != 6 || !horaDelDiaValida(ah, am, as) || !horaDelDiaValida(sh, sm, ss))) {
+      enviarTramaConCrc("$ERR,CMD:SET_MODO:DEG_FIN,DESC:FORMATO_INVALIDO");
+    } else {
+      const MotivoSalida m = cancelar ? modo_degradado_cancelarSalida() : modo_degradado_programarSalida(
+          (uint32_t)ah * 3600UL + (uint32_t)am * 60UL + (uint32_t)as,
+          (uint32_t)sh * 3600UL + (uint32_t)sm * 60UL + (uint32_t)ss);
+      char p[112];   // 31 del prefijo + 52 del motivo mas largo + NUL
+      if (m <= MDF_CANCELADA) {
+        snprintf(p, sizeof(p), "$ACK,CMD:SET_MODO:DEG_FIN,RESULT:%s", modo_degradado_textoSalida(m));
+        enviarTramaConCrc(p);
+        char det[40];
+        if (cancelar) { snprintf(det, sizeof(det), "SALIDA_CANCELADA");
+        } else { snprintf(det, sizeof(det), "SALIDA_PROGRAMADA_%02d:%02d:%02d", sh, sm, ss); }
+        bluetooth_reportarEvento("DEGRADADO", det);
+      } else {
+        snprintf(p, sizeof(p), "$ERR,CMD:SET_MODO:DEG_FIN,DESC:%s", modo_degradado_textoSalida(m));
+        enviarTramaConCrc(p);
       }
     }
   } else if (strncmp(accion, "SET_DEG_AUTO:", 13) == 0) {

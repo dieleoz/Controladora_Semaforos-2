@@ -153,9 +153,27 @@ void modo_degradado_loop();
 // en rojo y camino del menu, asi que false no es un error: es "no hice nada nuevo".
 bool modo_degradado_pedirSalida();
 
-// SPEC_4 3.1 (condicion 2, 02/10): el rojo de emergencia (CMD:FORZAR_ROJO). En Degradado es
-// pedirSalida(): 1 si arranco la salida, 2 si ya estaba en marcha. Fuera, el rojo total: 0.
-uint8_t modo_degradado_forzarRojo();
+// D-51 corregida (SPEC_2 7.quater): CMD:FORZAR_ROJO. En Degradado es ROJO FIJO en este poste, no la salida; en la
+// ventana de D-29 revoca el permiso y entra en rojo fijo; fuera, el rojo total.
+enum ResultadoRojoTotal : uint8_t { RRT_OK = 0, RRT_ROJO_FIJO = 1, RRT_YA_EN_ROJO_FIJO = 2,
+                                    RRT_SALIDA_EN_CURSO = 3, RRT_REANUDACION_CANCELADA = 4 };
+ResultadoRojoTotal modo_degradado_forzarRojo();
+
+// true si habia permiso esperando la siembra (D-29) y lo bajo. Lo llaman forzarRojo() y SET_MODO:MENU.
+bool modo_degradado_revocarEsperaSiembra();
+// main.cpp: la espera acabo por una orden, no por la decision; no es motivo de ambar de arranque (D-40).
+bool modo_degradado_esperaRevocada();
+
+// D-52 (SPEC_2 7.quater): la salida programada. Mismo orden y textos en las dos puntas; los cuatro primeros son $ACK,
+// el resto $ERR. Horas en segundos del dia. salidaS() devuelve 0 si no hay o fuera del modo.
+enum MotivoSalida : uint8_t { MDF_PROGRAMADA, MDF_REPROGRAMADA, MDF_PROGRAMADA_SIN_RESPALDO, MDF_CANCELADA,
+  MDF_NO_EN_DEGRADADO, MDF_YA_SALIENDO, MDF_FALTA_HORA, MDF_AHORA_DESFASADO, MDF_SALIDA_VENCIDA,
+  MDF_ANTES_DEL_INICIO, MDF_EN_VERDE, MDF_NO_GUARDADO, MDF_NADA_QUE_CANCELAR };
+MotivoSalida modo_degradado_programarSalida(uint32_t ahoraDia, uint32_t salidaDia);
+MotivoSalida modo_degradado_cancelarSalida();
+const char* modo_degradado_textoSalida(MotivoSalida m);
+uint32_t modo_degradado_salidaS();
+bool modo_degradado_salidaRespaldada();
 
 // --- D-35: EL DEGRADADO CON TESTIGO (SPEC_2 7.bis) --------------------------
 //

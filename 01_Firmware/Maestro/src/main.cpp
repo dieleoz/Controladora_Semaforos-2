@@ -228,6 +228,7 @@ void loop() {
   // D-40: la espera acaba al salir del menu (reanudo, o alguien eligio modo) o cuando la
   // decision borra el indicador; en ese caso, si sigue en el menu, ambar de arranque. Va
   // aqui por lo mismo que la reanudacion: el switch de abajo lo arranca en esta vuelta.
+  if (modo_degradado_esperaRevocada()) esperaReanudacion = false;   // D-51/D-52: la cerro una orden, no la decision
   if (esperaReanudacion && (modoActual_get() != MENU || !respaldo_degradadoActivo())) {
     esperaReanudacion = false;
     if (modoActual_get() == MENU) entrarAmbarDeArranque();

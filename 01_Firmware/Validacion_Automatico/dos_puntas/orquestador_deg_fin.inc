@@ -129,7 +129,7 @@ static void bloqueJ456(unsigned long despejeS) {
     const bool repro = m2 == MDF_REPROGRAMADA_V && MAESTRO.orden("da_salida_s") == s + 600;
     hastaDia(MAESTRO, s + 30, 1800000UL);
     const bool sigueEnS = MAESTRO.orden("modo_actual") == MODO_DEGRADADO_V;
-    hastaDia(MAESTRO, s + 620, 1800000UL);
+    hastaDia(MAESTRO, s + 640, 1800000UL);   // SPEC (c): la salida pasa 30 s de todo-rojo aun en el modo
     const bool salioEnS2 = MAESTRO.orden("modo_actual") != MODO_DEGRADADO_V;
     comprobar(prog && repro && sigueEnS && salioEnS2,
               "J6 (D-52): reprogramar -> REPROGRAMADA (" + std::to_string(m2) + "); no sale a la hora vieja y SI a la nueva");

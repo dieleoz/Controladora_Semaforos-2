@@ -54,8 +54,8 @@ DEFECTOS = [
      en_funcion("modo_degradado_forzarRojo", r"respaldo_guardarDegradado\(false\)\s*;", ";")),
     ("sin el disparo de la salida programada",
      global_(r"reloj_segundosDesde2000\(\)\s*>=\s*salidaS", "false", 1)),
-    ("salidaS sin leer en la reanudacion (modo_degradado_reanudarTrasCorte)",
-     en_funcion("modo_degradado_reanudarTrasCorte", r"\bsalidaS\b", "0", 1)),
+    # salidaS en la reanudacion tras un corte: el doble de flash del arnes no sobrevive al corte;
+    # ese control es de banco con dos tarjetas (SPEC_2 7.quater (i)).
     ("salidaS sin poner a cero al salir (las asignaciones salidaS = 0 fuera de la declaracion)",
      global_(r"(?<![\w ])\s*salidaS\s*=\s*0\s*;", ";", 1)),
 ]

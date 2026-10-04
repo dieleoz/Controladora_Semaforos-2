@@ -32,6 +32,7 @@ struct TestigoFlash {
   uint32_t inicioS;   // instante de inicio, s desde 2000
   uint8_t verdeSeg;
   uint8_t despejeSeg;
+  uint32_t salidaS;   // D-52: salida programada, s desde 2000; 0 = ninguna
 };
 
 // true si la pagina tiene un registro integro (firma, version y suma). Con false, *t no se

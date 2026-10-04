@@ -567,48 +567,30 @@ static bool horaDelDiaValida(int h, int m, int s) {
 }
 
 static void procesarComando(const char* cmd) {
-  // AB-1 - LA LINEA RESERVADA DEL PUENTE, Y VA LA PRIMERA DE TODAS.
-  //
-  // Antes que el rojo de emergencia, antes que la guarda de PIN, antes que nada. No
-  // porque sea mas importante -no lo es-, sino porque tiene que salir de aqui SIN
-  // TOCAR NADA y sin contestar, y cualquier rama que la adelante le anadiria un efecto.
-  //
-  // POR QUE EXISTE. El puente emite esta linea cada LATIDO_MS -contrato.h del ESP32-
-  // para que los tres contadores de silencio de J17 de este mismo fichero signifiquen
-  // algo. Hasta hoy contaban SILENCIOS DEL PUERTO, no muertes del puente: por J17 solo
-  // entraba lo que un dedo pulsa en la app, asi que un puente vivo y uno muerto eran
-  // indistinguibles desde aqui.
-  //
-  // POR QUE NO CONTESTA, QUE ES TODA LA RAZON DE QUE ESTA RAMA EXISTA. Se midio el
-  // 04/09: sin ella, el latido caeria en el ultimo else de la guarda de PIN y devolveria
-  // $ERR,CMD:AUTH_FAILED,DESC:PIN_INVALIDO. La app no traduce ese par y lo saca por el
-  // ramal generico: un aviso ROJO cada dos segundos acusando al operario de una clave
-  // que nadie tecleo. Eso es el FALLA PERMANENTE de CLAUDE.md seccion 2 -un rechazo que
-  // nadie puede apagar ensena a ignorar los rechazos de verdad-, y por eso la rama
-  // devuelve muda en vez de con un $ACK: un ACK cada dos segundos seria el mismo ruido
-  // con otro color.
-  //
-  // Y NO ROMPE 6.4. La regla dice que el puente no origina ORDENES. Esta linea no
-  // ejecuta nada, no mueve una luz, no cambia un modo y no contesta. Lo unico que
-  // produce es que j17RegistrarLinea() -mas abajo, en el troceador- cierre un silencio.
-  // No se manda: se respira.
-  //
-  // EL LITERAL EMPIEZA POR '$' A PROPOSITO. Las ordenes son "CMD:..."; lo que empieza
-  // por '$' son las tramas que este equipo EMITE. No hay ninguna orden a un byte de
-  // distancia de esto, asi que ni un bit cambiado en el cable la convierte en otra cosa.
+  // AB-1 - LA LINEA RESERVADA DEL PUENTE, Y VA LA PRIMERA DE TODAS: antes que el rojo de emergencia y la guarda de
+  // PIN, porque tiene que salir SIN TOCAR NADA y sin contestar; cualquier rama que la adelante le anadiria un efecto.
+  // El puente la emite cada LATIDO_MS (contrato.h del ESP32) para que los tres contadores de silencio de J17
+  // signifiquen algo: hasta hoy contaban silencios del PUERTO, no muertes del puente. NO CONTESTA, y es toda la razon
+  // de la rama (medido el 04/09): sin ella caeria en la guarda de PIN y devolveria
+  // $ERR,CMD:AUTH_FAILED,DESC:PIN_INVALIDO, que la app saca como un aviso ROJO cada dos segundos acusando al operario
+  // de una clave que nadie tecleo: el FALLA PERMANENTE de CLAUDE.md 2. Un ACK cada dos segundos seria el mismo ruido
+  // con otro color. NO ROMPE 6.4: no ejecuta nada, no mueve una luz ni un modo; solo cierra un silencio en
+  // j17RegistrarLinea(). El literal empieza por '$' a proposito: las ordenes son "CMD:..." y lo que empieza por '$'
+  // lo EMITE este equipo, asi que ni un bit cambiado la convierte en otra.
   if (strcmp(cmd, "$LATIDO") == 0) {
     return;
   }
 
-  // SFTY - EL ROJO DE EMERGENCIA NO PIDE PIN, Y ES DELIBERADO.
-  //
-  // "Lo seguro, facil; lo peligroso, dificil": detener el trafico es la accion SEGURA, y una
-  // clave delante solo retrasa a quien ve el incidente. El PIN guarda lo que ABRE paso.
-  // La forma con PIN, mas abajo, hace lo mismo: la app la envia asi y el manual la documenta.
+  // SFTY - EL ROJO DE EMERGENCIA NO PIDE PIN, Y ES DELIBERADO: "lo seguro, facil; lo peligroso, dificil". Detener el
+  // trafico es la accion SEGURA y una clave solo retrasa a quien ve el incidente; el PIN guarda lo que ABRE paso. La
+  // forma con PIN, mas abajo, hace lo mismo: la app la envia asi y el manual la documenta.
   if (strcmp(cmd, "CMD:FORZAR_ROJO") == 0) {
-    const uint8_t r = modo_degradado_forzarRojo();   // SPEC_4 3.1; en Degradado, la salida
-    if (r == 1) { enviarTramaConCrc("$ACK,CMD:FORZAR_ROJO,RESULT:SALIENDO_TODO_ROJO");
-    } else if (r == 2) { enviarTramaConCrc("$ACK,CMD:FORZAR_ROJO,RESULT:SALIDA_YA_EN_CURSO");
+    const ResultadoRojoTotal r = modo_degradado_forzarRojo();   // D-51: en Degradado, rojo fijo en ESTE poste
+    if (r == RRT_ROJO_FIJO) { enviarTramaConCrc("$ACK,CMD:FORZAR_ROJO,RESULT:ROJO_FIJO_EN_ESTE_POSTE");
+    } else if (r == RRT_YA_EN_ROJO_FIJO) { enviarTramaConCrc("$ACK,CMD:FORZAR_ROJO,RESULT:YA_EN_ROJO_FIJO");
+    } else if (r == RRT_SALIDA_EN_CURSO) { enviarTramaConCrc("$ACK,CMD:FORZAR_ROJO,RESULT:SALIDA_YA_EN_CURSO");
+    } else if (r == RRT_REANUDACION_CANCELADA) {
+      enviarTramaConCrc("$ACK,CMD:FORZAR_ROJO,RESULT:OK_REANUDACION_CANCELADA");
     } else { enviarTramaConCrc("$ACK,CMD:FORZAR_ROJO,RESULT:OK"); }
     bluetooth_reportarEvento("APP_BLUETOOTH", "FORZAR_ROJO_SIN_PIN");
     return;
@@ -634,18 +616,10 @@ static void procesarComando(const char* cmd) {
   // hace caso SIEMPRE a la radio, asi que empujarle una hora que esta punta descarto seria
   // mandarle una hora que nadie adopto (N-160).
   //
-  // D-26 (2) - SE PROPAGA EN CADA SIEMBRA, NO CADA INTERVALO_SYNC_MS, Y ES UNA DECISION
-  // MEDIDA. Con la radio viva el Esclavo NO siembra de su ESP32 (manda la radio), asi que
-  // entre dos propagaciones su hora corre sobre SU HSI: a 25000 ppm son 90 s por hora de
-  // separacion posible contra los 29 s que aguanta el cruce, y ese es el desfase con el
-  // que se entra en Degradado si la radio muere justo antes de la siguiente propagacion.
-  // Propagando en cada siembra queda en 7,5 s por punta (300 s x 25000 ppm). Lo que cuesta:
-  // un intercambio son 7 tramas -D, H, M, S, ACK_HORA, DELTA y su respuesta- a ~0,13 s de
-  // aire cada una (SFTY-11, protocolo.h), ~0,9 s cada 300 s = 0,3 % del canal, frente al
-  // ~8,7 % que ya ocupa el latido (PING+PONG cada LATIDO_MS = 3 s). Y no compite con las
-  // luces: el coordinador solo arranca el intercambio con el bus libre y lo abandona si
-  // una orden de luz espera acuse. Ademas la vigilancia de coordinador.cpp -+-3 s cada
-  // 10 min- ya lo dispararia casi siempre por su cuenta con el HSI a mas de 300 ppm.
+  // D-26 (2) - SE PROPAGA EN CADA SIEMBRA, NO CADA INTERVALO_SYNC_MS (decision medida): con la radio viva el Esclavo
+  // no siembra de su ESP32 y su hora corre sobre SU HSI; a 25000 ppm son 90 s por hora de separacion posible contra
+  // los 29 s que aguanta el cruce. Propagando en cada siembra quedan 7,5 s por punta (300 s x 25000 ppm) por ~0,3 %
+  // del canal (7 tramas a ~0,13 s, SFTY-11), sin competir con las luces: el coordinador lo arranca con el bus libre.
   //
   // NO CONTESTA, ni $ACK ni $ERR: no la origino el telefono. Lo que queda es el Diario, y
   // SOLO EN EL CAMBIO: la primera siembra buena tras el arranque o tras una alarma. Una
@@ -691,21 +665,13 @@ static void procesarComando(const char* cmd) {
 
   // Validación estricta de PIN de 4 dígitos (1234)
   //
-  // OTRAS TRES ORDENES ENTRAN SIN PIN, POR EL MISMO CRITERIO DE ARRIBA: ni MENU ni
-  // ALCANCE abren paso -el primero deja el equipo en la pantalla, sin ciclo; el segundo
-  // en rojo fijo-, y VERSION no toca nada en absoluto -solo CUENTA lo que este binario
-  // es-, que es el mismo motivo por el que CMD:LEER_RTC entra sin clave en el puente. El
-  // PIN guarda lo que ABRE, no lo que para ni lo que mira. Se aceptan tambien con PIN,
-  // igual que FORZAR_ROJO: la app antepone la clave a todo lo que no este en su lista
-  // SIN_PIN, y una orden que solo se aceptara sin PIN seria inalcanzable desde el
-  // celular. Aceptar LAS DOS formas es ademas lo unico que no depende de en que lista la
-  // ponga la app: en la version es lo primero que se pregunta cuando algo va mal, y un
-  // AUTH_FAILED ahi manda a buscar una clave en vez de a mirar el firmware.
-  //
-  // Lo que se mueve es DONDE EMPIEZA LA ACCION, no la cadena de comparaciones: las dos
-  // formas caen en el mismo strcmp de mas abajo. Una segunda cadena para las ordenes sin
-  // PIN serian dos contratos que alguien tendria que sincronizar, y el dia que uno se
-  // quede atras el comando funciona por una puerta y contesta DESCONOCIDO por la otra.
+  // OTRAS ORDENES ENTRAN SIN PIN, POR EL MISMO CRITERIO DE ARRIBA: ni MENU ni ALCANCE abren paso (el primero deja el
+  // equipo en la pantalla, sin ciclo; el segundo en rojo fijo) y VERSION no toca nada: solo CUENTA lo que este
+  // binario es. El PIN guarda lo que ABRE, no lo que para ni lo que mira. Se aceptan tambien con PIN, igual que
+  // FORZAR_ROJO: la app antepone la clave a todo lo que no este en su lista SIN_PIN, y una orden que solo se aceptara
+  // sin PIN seria inalcanzable desde el celular. Lo que se mueve es DONDE EMPIEZA LA ACCION, no la cadena de
+  // comparaciones: una segunda cadena serian dos contratos que sincronizar, y el dia que uno se quede atras el
+  // comando contesta DESCONOCIDO.
   const char* accion;
   if (strncmp(cmd, "CMD:PIN:1234:", 13) == 0) {
     accion = cmd + 13;
@@ -713,6 +679,7 @@ static void procesarComando(const char* cmd) {
              (strcmp(cmd + 4, "SET_MODO:MENU") == 0 ||
               strcmp(cmd + 4, "SET_MODO:ALCANCE") == 0 ||
               strcmp(cmd + 4, "CONSULTA_DEG_AUTO") == 0 ||   // A-15: solo mira
+              strcmp(cmd + 4, "CONSULTA_DEG_FIN") == 0 ||    // D-52: solo mira
               strcmp(cmd + 4, "VERSION") == 0)) {
     accion = cmd + 4;
   } else {
@@ -733,38 +700,19 @@ static void procesarComando(const char* cmd) {
     enviarTramaConCrc("$ACK,CMD:SET_MODO:MANUAL,RESULT:OK");
     bluetooth_reportarEvento("APP_BLUETOOTH", "SET_MODO_MANUAL");
   } else if (strcmp(accion, "SET_MODO:AMBAR") == 0) {
-    // N-146 (05/09): EL AMBAR CONTESTABA OK Y NO ENCENDIA NADA. LO DESTAPO UNA CINTA.
-    //
-    // En la cinta del 04/09 a las 21:10 hay SEIS "CMD:PIN:****:SET_MODO:AMBAR" seguidos,
-    // los seis con "$ACK,CMD:SET_MODO:AMBAR,RESULT:OK", y el $STATUS de despues dice
-    // "MODO:AMBAR,ESTADO:ROJO" en los 47 que siguen. El operario pulso seis veces en tres
-    // minutos porque el cruce no se movia, y el equipo le dijo OK las seis.
-    //
-    // POR QUE: entrar en el ambar es trabajo de modo_ambar_setup(), y main.cpp solo lo
-    // llama EN EL FLANCO -"if (modo != modoAnterior)"-. Con el modo ya en MODO_AMBAR no
-    // hay flanco, asi que modoActual_set() aqui no hace absolutamente nada.
-    //
-    // Y AL PAR (MODO_AMBAR, luz en rojo) SE LLEGA POR UN CAMINO NORMAL, no por un fallo:
-    // CMD:FORZAR_ROJO llama a coordinador_forzarRojoTotal(), que cambia LA LUZ y no el
-    // MODO -a proposito: el rojo de emergencia entra sin PIN desde cualquier modo-. Un
-    // ROJO TOTAL despues de un ambar deja exactamente ese par, y a partir de ahi el boton
-    // de ambar queda muerto para siempre sin decirlo.
-    //
-    // Se re-arma. Es la barrera de salidas (CLAUDE.md 6): un $ACK que no depende de lo
-    // que se hizo es una mentira con formato de exito, y aqui ademas la mentira tapaba
-    // una salida de emergencia. Y se contesta DISTINTO en los dos casos, porque son dos
-    // cosas distintas y el diario de ordenes las tiene que poder separar.
-    //
-    // Re-armar no es gratis -modo_ambar_setup() manda un todo-rojo y vuelve a ordenar el
-    // ambar-, y por eso NO se hace desde el aviso del Esclavo (N-142, main.cpp), que
-    // llega repetido. Aqui lo pide una persona pulsando un boton: repetirlo es
-    // exactamente lo que quiere.
-    // N-152 (05/09): ESTE AMBAR LO PIDE ALGUIEN DE ESTE POSTE, Y ESO SE ESCRIBE.
-    //
-    // Dos cosas a la vez, porque son la misma. La pantalla del gabinete heredaba el
-    // motivo anterior -este era el unico de los cuatro caminos al ambar que no fijaba
-    // ninguno-, y ademas es lo que impide que el aviso de cancelacion del Esclavo saque
-    // al cruce de un ambar que pidio una persona de aqui. Ver modo_ambar.h.
+    // N-146 (05/09): EL AMBAR CONTESTABA OK Y NO ENCENDIA NADA. LO DESTAPO UNA CINTA: el 04/09 a las 21:10 hay SEIS
+    // "CMD:PIN:****:SET_MODO:AMBAR" seguidos, los seis con "$ACK,CMD:SET_MODO:AMBAR,RESULT:OK" y 47 $STATUS despues
+    // con "MODO:AMBAR,ESTADO:ROJO": el operario pulso seis veces porque el cruce no se movia. POR QUE: entrar al
+    // ambar es trabajo de modo_ambar_setup(), y main.cpp solo lo llama EN EL FLANCO (modo != modoAnterior); con el
+    // modo ya en MODO_AMBAR modoActual_set() no hace nada. Al par (MODO_AMBAR, luz en rojo) se llega por un camino
+    // normal: CMD:FORZAR_ROJO cambia LA LUZ y no el MODO, a proposito (entra sin PIN desde cualquier modo). Se
+    // re-arma (barrera de salidas, CLAUDE.md 6: un $ACK que no depende de lo que se hizo es una mentira con formato
+    // de exito) y se contesta DISTINTO en los dos casos para que el diario los separe. Re-armar no es gratis
+    // -modo_ambar_setup() manda un todo-rojo-, y por eso NO se hace desde el aviso del Esclavo (N-142, main.cpp), que
+    // llega repetido; aqui lo pide una persona pulsando un boton. N-152 (05/09): ESTE AMBAR LO PIDE ALGUIEN DE ESTE
+    // POSTE, Y ESO SE ESCRIBE: la pantalla heredaba el motivo anterior (el unico de los cuatro caminos al ambar que
+    // no fijaba ninguno) y es lo que impide que el aviso de cancelacion del Esclavo saque al cruce de un ambar que
+    // pidio una persona de aqui. Ver modo_ambar.h.
     modo_ambar_fijarMotivo("Ambar pedido desde", "la app (celular)");
     const bool yaEnModo = (modoActual_get() == MODO_AMBAR);
     modoActual_set(MODO_AMBAR);
@@ -781,9 +729,8 @@ static void procesarComando(const char* cmd) {
     // dando verde por reloj, y el escenario peligroso de ese modo es exactamente que
     // UNA SOLA PUNTA lo abandone. Es la MISMA puerta que el boton 4 del gabinete.
     if (modoActual_get() == MODO_DEGRADADO) {
-      // El bool distingue haber arrancado la salida de encontrarla ya en marcha, y en
-      // ninguno de los dos casos se contesta OK: el menu tarda todavia el todo-rojo
-      // entero en llegar, y decir OK seria dar por hecho un cambio que no ha ocurrido.
+      // El bool distingue haber arrancado la salida de encontrarla en marcha; en ninguno se contesta OK: el menu
+      // tarda todavia el todo-rojo entero en llegar.
       if (modo_degradado_pedirSalida()) {
         enviarTramaConCrc("$ACK,CMD:SET_MODO:MENU,RESULT:SALIENDO_TODO_ROJO");
         bluetooth_reportarEvento("APP_BLUETOOTH", "SALIDA_DEGRADADO_PEDIDA");
@@ -791,9 +738,11 @@ static void procesarComando(const char* cmd) {
         enviarTramaConCrc("$ERR,CMD:SET_MODO:MENU,DESC:YA_VUELVE_AL_MENU");
       }
     } else {
+      const bool revocada = modo_degradado_revocarEsperaSiembra();   // D-51: la ventana de D-29 se cierra
       modoActual_set(MENU);
       menu_setup();
-      enviarTramaConCrc("$ACK,CMD:SET_MODO:MENU,RESULT:OK");
+      if (revocada) { enviarTramaConCrc("$ACK,CMD:SET_MODO:MENU,RESULT:OK_REANUDACION_CANCELADA");
+      } else { enviarTramaConCrc("$ACK,CMD:SET_MODO:MENU,RESULT:OK"); }
       bluetooth_reportarEvento("APP_BLUETOOTH", "SET_MODO_MENU");
     }
   } else if (strcmp(accion, "SET_MODO:ALCANCE") == 0) {
@@ -808,9 +757,8 @@ static void procesarComando(const char* cmd) {
       bluetooth_reportarEvento("APP_BLUETOOTH", "SET_MODO_ALCANCE");
     }
   } else if (strcmp(accion, "SET_MODO:INTELIGENTE") == 0) {
-    // PIDE PIN porque arranca un ciclo que DA VERDES, y por eso mismo no se entra desde
-    // el Degradado: la salida de aquel obliga a un todo-rojo de 30 s en las dos puntas,
-    // y ponerse a ciclar sin cumplirlo deja a la otra unidad en su ciclo por reloj.
+    // PIDE PIN porque arranca un ciclo que DA VERDES, y no se entra desde el Degradado: su salida obliga a un
+    // todo-rojo de 30 s en las dos puntas, y ciclar sin cumplirlo deja a la otra unidad en su ciclo por reloj.
     if (modoActual_get() == MODO_DEGRADADO) {
       enviarTramaConCrc("$ERR,CMD:SET_MODO:INTELIGENTE,DESC:EN_MARCHA_PARE_EL_MODO");
     } else {
@@ -819,18 +767,19 @@ static void procesarComando(const char* cmd) {
       bluetooth_reportarEvento("APP_BLUETOOTH", "SET_MODO_INTELIGENTE");
     }
   } else if (strncmp(accion, "SET_MODO:DEG_T:", 15) == 0) {
-    // D-35 (SPEC_2 7.bis): EL DEGRADADO CON TESTIGO. D-46: es la unica orden de entrada;
-    // SET_MODO:DEGRADADO salio del firmware y ahora cae en COMANDO_NO_SOPORTADO.
-    // Formato ahora,inicio,verde,despeje = HH:MM:SS,HH:MM:SS,v,d. Aqui solo se traduce texto
-    // a numeros (molde SET_TIEMPOS, con el %c que delata lo que sobra); verde distinto de
-    // 180 es formato. Los rangos y la hora los decide modo_degradado_entrarTestigo(), y la
-    // respuesta sale de lo que ESA llamada devolvio, un $ERR por motivo.
+    // D-35 (SPEC_2 7.bis): EL DEGRADADO CON TESTIGO. D-46: es la unica orden de entrada; SET_MODO:DEGRADADO salio y
+    // cae en COMANDO_NO_SOPORTADO. Formato ahora,inicio,verde,despeje = HH:MM:SS,HH:MM:SS,v,d: aqui solo se traduce
+    // texto (molde SET_TIEMPOS, con el %c que delata lo que sobra; verde distinto de 180 es formato). Los rangos y la
+    // hora los decide modo_degradado_entrarTestigo() y la respuesta sale de lo que ESA llamada devolvio, un $ERR por
+    // motivo.
     int ah = -1, am = -1, as = -1, ih = -1, im = -1, is = -1, v = 0, d = 0;
     char sobra = 0;
     const int n = sscanf(accion + 15, "%d:%d:%d,%d:%d:%d,%d,%d%c",
                          &ah, &am, &as, &ih, &im, &is, &v, &d, &sobra);
     if (n != 8 || !horaDelDiaValida(ah, am, as) || !horaDelDiaValida(ih, im, is) || v != 180) {
       enviarTramaConCrc("$ERR,CMD:SET_MODO:DEG_T,DESC:FORMATO_INVALIDO");
+    } else if (modo_degradado_salidaS() != 0) {   // D-52: ni renueva ni entra en silencio sobre una salida fijada
+      enviarTramaConCrc("$ERR,CMD:SET_MODO:DEG_T,DESC:Cancele antes la salida programada");
     } else {
       const MotivoTestigo m = modo_degradado_entrarTestigo(
           (uint32_t)ah * 3600UL + (uint32_t)am * 60UL + (uint32_t)as,
@@ -846,6 +795,46 @@ static void procesarComando(const char* cmd) {
         snprintf(p, sizeof(p), "$ERR,CMD:SET_MODO:DEG_T,DESC:%s", modo_degradado_textoTestigo(m));
         enviarTramaConCrc(p);
       }
+    }
+  } else if (strncmp(accion, "SET_MODO:DEG_FIN:", 17) == 0) {
+    // D-52 (SPEC_2 7.quater (c)): ahora,salida = HH:MM:SS,HH:MM:SS, o CANCELAR. Molde DEG_T: el $ACK solo si quedo
+    // programada (o cancelada), y sale de lo que devolvio la llamada.
+    int ah = -1, am = -1, as = -1, sh = -1, sm = -1, ss = -1;
+    char sobra = 0;
+    const bool cancelar = strcmp(accion + 17, "CANCELAR") == 0;
+    const int n = cancelar ? 0 : sscanf(accion + 17, "%d:%d:%d,%d:%d:%d%c", &ah, &am, &as, &sh, &sm, &ss, &sobra);
+    if (!cancelar && (n != 6 || !horaDelDiaValida(ah, am, as) || !horaDelDiaValida(sh, sm, ss))) {
+      enviarTramaConCrc("$ERR,CMD:SET_MODO:DEG_FIN,DESC:FORMATO_INVALIDO");
+    } else {
+      const MotivoSalida m = cancelar ? modo_degradado_cancelarSalida() : modo_degradado_programarSalida(
+          (uint32_t)ah * 3600UL + (uint32_t)am * 60UL + (uint32_t)as,
+          (uint32_t)sh * 3600UL + (uint32_t)sm * 60UL + (uint32_t)ss);
+      char p[96];   // 31 del prefijo + 30 del motivo mas largo + NUL
+      if (m <= MDF_CANCELADA) {
+        snprintf(p, sizeof(p), "$ACK,CMD:SET_MODO:DEG_FIN,RESULT:%s", modo_degradado_textoSalida(m));
+        enviarTramaConCrc(p);
+        char det[40];
+        snprintf(det, sizeof(det), cancelar ? "SALIDA_CANCELADA" : "SALIDA_PROGRAMADA_%02d:%02d:%02d", sh, sm, ss);
+        bluetooth_reportarEvento("DEGRADADO", det);
+      } else {
+        snprintf(p, sizeof(p), "$ERR,CMD:SET_MODO:DEG_FIN,DESC:%s", modo_degradado_textoSalida(m));
+        enviarTramaConCrc(p);
+      }
+    }
+  } else if (strcmp(accion, "CONSULTA_DEG_FIN") == 0) {
+    // D-52: solo mira. SALE_HHMMSS_FALTAN_<s>S_<RESPALDADA|SIN_RESPALDO>, sin ':' dentro del valor.
+    const uint32_t sal = modo_degradado_salidaS();
+    if (sal == 0) {
+      enviarTramaConCrc("$ACK,CMD:CONSULTA_DEG_FIN,RESULT:NINGUNA");
+    } else {
+      const uint32_t dia = sal % 86400UL;
+      uint32_t falta = (dia + 86400UL - reloj_segundosDelDia()) % 86400UL;
+      if (falta > 43200UL) falta = 0;   // ya paso: sale en esta vuelta
+      char p[80];
+      snprintf(p, sizeof(p), "$ACK,CMD:CONSULTA_DEG_FIN,RESULT:SALE_%02lu%02lu%02lu_FALTAN_%luS_%s",
+               (unsigned long)(dia / 3600UL), (unsigned long)(dia / 60UL % 60UL), (unsigned long)(dia % 60UL),
+               (unsigned long)falta, modo_degradado_salidaRespaldada() ? "RESPALDADA" : "SIN_RESPALDO");
+      enviarTramaConCrc(p);
     }
   } else if (strncmp(accion, "SET_DEG_AUTO:", 13) == 0) {
     // A-15 (SPEC_2 7.ter (a)): la opcion del Degradado automatico. Molde SET_TIEMPOS: el
@@ -874,9 +863,12 @@ static void procesarComando(const char* cmd) {
              degAuto_aptoPropio() ? "SI" : "NO");
     enviarTramaConCrc(p);
   } else if (strcmp(accion, "FORZAR_ROJO") == 0) {
-    const uint8_t r = modo_degradado_forzarRojo();   // SPEC_4 3.1; en Degradado, la salida
-    if (r == 1) { enviarTramaConCrc("$ACK,CMD:FORZAR_ROJO,RESULT:SALIENDO_TODO_ROJO");
-    } else if (r == 2) { enviarTramaConCrc("$ACK,CMD:FORZAR_ROJO,RESULT:SALIDA_YA_EN_CURSO");
+    const ResultadoRojoTotal r = modo_degradado_forzarRojo();   // D-51: en Degradado, rojo fijo en ESTE poste
+    if (r == RRT_ROJO_FIJO) { enviarTramaConCrc("$ACK,CMD:FORZAR_ROJO,RESULT:ROJO_FIJO_EN_ESTE_POSTE");
+    } else if (r == RRT_YA_EN_ROJO_FIJO) { enviarTramaConCrc("$ACK,CMD:FORZAR_ROJO,RESULT:YA_EN_ROJO_FIJO");
+    } else if (r == RRT_SALIDA_EN_CURSO) { enviarTramaConCrc("$ACK,CMD:FORZAR_ROJO,RESULT:SALIDA_YA_EN_CURSO");
+    } else if (r == RRT_REANUDACION_CANCELADA) {
+      enviarTramaConCrc("$ACK,CMD:FORZAR_ROJO,RESULT:OK_REANUDACION_CANCELADA");
     } else { enviarTramaConCrc("$ACK,CMD:FORZAR_ROJO,RESULT:OK"); }
     bluetooth_reportarEvento("APP_BLUETOOTH", "FORZAR_ROJO_TOTAL");
   } else if (strcmp(accion, "MANUAL:CAMBIAR_TURNO") == 0) {
