@@ -169,6 +169,7 @@ static long arnesDegAuto_mando(const char* que, long arg) {
   if (!strcmp(que, "da_salida_cancelar"))  return (long)modo_degradado_cancelarSalida();
   if (!strcmp(que, "da_salida_s"))         return (long)modo_degradado_salidaS();
   if (!strcmp(que, "da_salida_respaldada")) return modo_degradado_salidaRespaldada() ? 1 : 0;
+  if (!strcmp(que, "da_texto_vencido_ok")) return !strcmp(modo_degradado_textoSalida(MDF_SALIDA_VENCIDA), "Salida ya vencida");   // SPEC_2 7.quater (c)
 #endif
   return PUNTA_DESCONOCIDO;
 }

@@ -638,7 +638,7 @@ static void avisarRojoFijo() {
 static void rojoFijo() {
   respaldo_guardarRojoSinHora();   // D-47: DESPUES de bajar el Degradado, que lo borra
   respaldo_guardarRendido(true);
-  semaforo_forzarRojo();
+  semaforo_forzarRojo(); salidaRespaldada = false;   // SPEC_2 7.quater (d): en rojo fijo no hay respaldo
   avisarRojoFijo();
   tAvisoRojo = millis();
   estado = DEG_ROJO_SIN_HORA;
@@ -899,7 +899,7 @@ MotivoSalida modo_degradado_programarSalida(uint32_t ahoraDia, uint32_t salidaDi
   salidaS = absS;
   salidaSinFecha = ahoraS == 0;
   salidaRespaldada = resp;
-  return habia ? MDF_REPROGRAMADA : resp ? MDF_PROGRAMADA : MDF_PROGRAMADA_SIN_RESPALDO;
+  return !resp ? MDF_PROGRAMADA_SIN_RESPALDO : habia ? MDF_REPROGRAMADA : MDF_PROGRAMADA;   // sin respaldo gana
 }
 
 MotivoSalida modo_degradado_cancelarSalida() {

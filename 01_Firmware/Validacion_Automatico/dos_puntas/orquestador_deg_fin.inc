@@ -57,7 +57,7 @@ static long rrtRojoFijo() {
 #ifdef ARNES_SALIDA_D52
 // J4-J6: SALIDA PROGRAMADA (D-52). Valores de MotivoSalida = orden del enum de la SPEC (g), no del .h.
 static const long MDF_REPROGRAMADA_V = 1, MDF_SIN_RESPALDO_V = 2, MDF_CANCELADA_V = 3, MDF_EN_VERDE_V = 10,
-                  MDF_NADA_V = 12;
+                  MDF_NADA_V = 12, MDF_VENCIDA_V = 8;
 static bool progOk(long m) { return m == 0 || m == MDF_SIN_RESPALDO_V; }   // PROGRAMADA o PROGRAMADA_SIN_RESPALDO
 
 static void hastaDia(Punta& p, long dia, unsigned long maxMs) {
@@ -78,6 +78,18 @@ static bool montarSalida(long delta, long adelanteS, long& salida) {
   salida = MAESTRO.orden("segundos_del_dia") + adelanteS;
   const long m = progEnRojo(MAESTRO, salida);
   return progOk(m) && progOk(progEnRojo(ESCLAVO, salida));
+}
+// El Maestro entra por el TESTIGO (D-35) y con DS3231 (fecha != 0): la salida queda RESPALDADA en flash. Con
+// montarSalida (entrada de D-18, sin registro) es PROGRAMADA_SIN_RESPALDO.
+static long montarSalidaRespaldada(long adelanteS, long& salida) {
+  prepararSincronizadas(15, 8, 0, 0);
+  activarDs3231(1000, 7000);
+  avanzar(5000);
+  const long ini = MAESTRO.orden("segundos_del_dia") + 20;
+  if (MAESTRO.orden("da_testigo", ini) != 1) return -1;
+  avanzar(60000UL);   // pasa el inicio y alterna
+  salida = MAESTRO.orden("segundos_del_dia") + adelanteS;
+  return progEnRojo(MAESTRO, salida);
 }
 
 static void bloqueJ456(unsigned long despejeS) {
@@ -124,15 +136,18 @@ static void bloqueJ456(unsigned long despejeS) {
   // J6a: reprogramar sale a la hora nueva; y tras salir se vuelve a entrar con el testigo y se programa otra.
   {
     long s = 0;
-    const bool prog = montarSalida(0, 1500, s);
+    const bool prog = montarSalidaRespaldada(1500, s) == 0;   // respaldada: reprogramar es REPROGRAMADA
+    const long antesS = MAESTRO.orden("da_salida_s");   // con fecha es absoluta (s desde 2000), no hora del dia
     const long m2 = progEnRojo(MAESTRO, s + 600);
-    const bool repro = m2 == MDF_REPROGRAMADA_V && MAESTRO.orden("da_salida_s") == s + 600;
+    const long nuevaS = MAESTRO.orden("da_salida_s");
+    const bool repro = m2 == MDF_REPROGRAMADA_V && nuevaS == antesS + 600;
     hastaDia(MAESTRO, s + 30, 1800000UL);
     const bool sigueEnS = MAESTRO.orden("modo_actual") == MODO_DEGRADADO_V;
     hastaDia(MAESTRO, s + 640, 1800000UL);   // SPEC (c): la salida pasa 30 s de todo-rojo aun en el modo
     const bool salioEnS2 = MAESTRO.orden("modo_actual") != MODO_DEGRADADO_V;
     comprobar(prog && repro && sigueEnS && salioEnS2,
-              "J6 (D-52): reprogramar -> REPROGRAMADA (" + std::to_string(m2) + "); no sale a la hora vieja y SI a la nueva");
+              "J6 (D-52): reprogramar (respaldada) -> REPROGRAMADA (" + std::to_string(m2) + "); la salida pasa de " +
+              std::to_string(antesS) + " a " + std::to_string(nuevaS) + "; no sale a la hora vieja y SI a la nueva");
     avanzar(120000UL);
     const long ini = MAESTRO.orden("segundos_del_dia") + 60;
     const bool entro = MAESTRO.orden("da_testigo", ini) == 1 && MAESTRO.orden("da_salida_s") == 0;
@@ -164,6 +179,36 @@ static void bloqueJ456(unsigned long despejeS) {
     comprobar(nada == MDF_NADA_V && enVerde == MDF_EN_VERDE_V && MAESTRO.orden("da_salida_s") == 0,
               "J6 (D-52): cancelar sin nada -> NADA_QUE_CANCELAR (" + std::to_string(nada) + "); programar con la luz "
               "en verde -> EN_VERDE (" + std::to_string(enVerde) + ") y no queda programada");
+  }
+  // J7 (B1, SPEC (d)): en rojo fijo la salida deja de estar respaldada (el permiso esta bajado, la flash no se lee).
+  // J8 (SPEC (c), precedencia): reprogramar SIN respaldo acusa PROGRAMADA_SIN_RESPALDO, no REPROGRAMADA.
+  {
+    long s = 0;
+    const bool prog = montarSalidaRespaldada(40000, s) == 0;
+    const long antes = MAESTRO.orden("da_salida_respaldada");   // control: con testigo y fecha, respaldada
+    const long acuse = MAESTRO.orden("forzar_rojo_app");
+    const long despues = MAESTRO.orden("da_salida_respaldada");
+    comprobar(prog && antes == 1 && acuse == rrtRojoFijo() && despues == 0 && MAESTRO.orden("da_salida_s") != 0,
+              "J7 (D-52 (d)): FORZAR_ROJO con salida respaldada -> la salida sigue y deja de estar respaldada "
+              "(antes " + std::to_string(antes) + ", despues " + std::to_string(despues) + ")");
+    const long m = MAESTRO.orden("da_salida_programar", s + 600);
+    comprobar(m == MDF_SIN_RESPALDO_V && MAESTRO.orden("da_salida_respaldada") == 0,
+              "J8 (D-52 (c)): reprogramar en rojo fijo (sin respaldo) -> PROGRAMADA_SIN_RESPALDO (" + std::to_string(m) +
+              "), no REPROGRAMADA (" + std::to_string(MDF_REPROGRAMADA_V) + ")");
+  }
+  // J9 (B2): el Esclavo rechaza con el MISMO literal que el Maestro, "Salida ya vencida" (SPEC (c)); el consejo lo dice la app.
+  {
+    long s = 0;
+    const bool prog = montarSalida(0, 40000, s);
+    const long reloj = ESCLAVO.orden("segundos_del_dia");
+    const long motE = ESCLAVO.orden("da_salida_programar", (reloj + 46800L) % 86400L);   // 13 h por delante
+    const long motM = MAESTRO.orden("da_salida_programar", (reloj + 46800L) % 86400L);
+    comprobar(prog && motE == MDF_VENCIDA_V && motM == MDF_VENCIDA_V && ESCLAVO.orden("da_texto_vencido_ok") == 1 &&
+                  MAESTRO.orden("da_texto_vencido_ok") == 1,
+              "J9 (D-52 (c)): 13 h por delante -> SALIDA_VENCIDA en las dos (E " + std::to_string(motE) + ", M " +
+              std::to_string(motM) + ") y el texto es exactamente 'Salida ya vencida' (E " +
+              std::to_string(ESCLAVO.orden("da_texto_vencido_ok")) + ", M " +
+              std::to_string(MAESTRO.orden("da_texto_vencido_ok")) + ")");
   }
 }
 #else

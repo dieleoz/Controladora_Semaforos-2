@@ -82,6 +82,16 @@ module.exports = async function pruebaDegFin(montarAppLimpia, assert) {
   entra('ERR,CMD:SET_MODO:DEG_FIN,DESC:Salida ya vencida');
   assert(/reprograme la salida en el Maestro/i.test(ultimo()) && !/reintent|repita|vuelva a mandar/i.test(ultimo()),
     `A4: "Salida ya vencida" dice reprogramar en el Maestro y NO ofrece reintentar: "${ultimo().slice(0, 200)}"`);
+  // B2: el literal de «Salida ya vencida» del ESCLAVO se lee de SU fuente (no se escribe aqui) y la app lo traduce igual.
+  const srcE = require('fs').readFileSync(require('path').join(__dirname, '../../../01_Firmware/Esclavo/src/modo_degradado.cpp'), 'utf8');
+  const mE = srcE.match(/case MDF_SALIDA_VENCIDA:\s*return "([^"]*)";/);
+  assert(!!mE && mE[1] === 'Salida ya vencida',
+    `A4: el Esclavo rechaza con el MISMO literal que el Maestro, "Salida ya vencida": "${mE ? mE[1] : '(sin literal)'}"`);
+  if (mE) {
+    entra(`ERR,CMD:SET_MODO:DEG_FIN,DESC:${mE[1]}`);
+    assert(!/sin traducir/.test(ultimo()) && /reprograme la salida en el Maestro/i.test(ultimo()),
+      `A4: el literal del Esclavo ("${mE[1]}") se traduce y dice reprogramar en el Maestro: "${ultimo().slice(0, 200)}"`);
+  }
   entra('ACK,CMD:SET_MODO:MENU,RESULT:OK_REANUDACION_CANCELADA');
   assert(!/ACEPTADA \(/.test(ultimo()) && /NO se reanudar/i.test(ultimo()),
     `A4: MENU|OK_REANUDACION_CANCELADA dice que el degradado NO se reanudara: "${ultimo().slice(0, 160)}"`);

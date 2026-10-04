@@ -295,7 +295,7 @@ static unsigned long tAvisoRojo = 0;
 static void irARojoSinHora() {
   semaforo_forzarRojo();
   verdeAplicado = false;
-  rendicionEnCurso = false;
+  rendicionEnCurso = false; salidaRespaldada = false;   // SPEC_2 7.quater (d): en rojo fijo no hay respaldo
   respaldo_guardarDegradado(false);
   respaldo_guardarRojoSinHora();   // D-47: DESPUES de bajar el Degradado, que lo borra
   respaldo_guardarRendido(true);
@@ -585,7 +585,7 @@ MotivoSalida modo_degradado_programarSalida(uint32_t ahoraDia, uint32_t salidaDi
   salidaS = absS;
   salidaSinFecha = ahoraS == 0;
   salidaRespaldada = resp;
-  return habia ? MDF_REPROGRAMADA : resp ? MDF_PROGRAMADA : MDF_PROGRAMADA_SIN_RESPALDO;
+  return !resp ? MDF_PROGRAMADA_SIN_RESPALDO : habia ? MDF_REPROGRAMADA : MDF_PROGRAMADA;   // sin respaldo gana
 }
 
 MotivoSalida modo_degradado_cancelarSalida() {
@@ -608,7 +608,7 @@ const char* modo_degradado_textoSalida(MotivoSalida m) {
     case MDF_YA_SALIENDO:              return "Ya esta saliendo";
     case MDF_FALTA_HORA:               return "Falta: reloj sin poner en hora";
     case MDF_AHORA_DESFASADO:          return "Ahora no coincide";
-    case MDF_SALIDA_VENCIDA:           return "Salida ya vencida: reprograme la salida en el Maestro";
+    case MDF_SALIDA_VENCIDA:           return "Salida ya vencida";
     case MDF_ANTES_DEL_INICIO:         return "Salida antes del inicio";
     case MDF_EN_VERDE:                 return "En verde: repita en rojo";
     case MDF_NO_GUARDADO:              return "No se pudo guardar la salida";

@@ -1,9 +1,8 @@
 """Controles negativos de J (SPEC_2 7.quater (i), CLAUDE.md 6): cada defecto se inyecta en el .cpp REAL de la punta,
-se corre compilar_degradado.ps1 y se restaura por HASH. Los cuatro tienen que dar FALLA (codigo 1 y una linea J rota).
-NO SE HA EJECUTADO: el codigo de D-52 no existe. Se activa solo cuando modo_degradado.h declara las firmas; los
-patrones salen de los nombres de la SPEC (salidaS, reloj_segundosDesde2000() >= salidaS, modo_degradado_forzarRojo,
-respaldo_guardarDegradado(false)). Si un patron no casa EXACTAMENTE las veces que se espera, es ABORTADO (2), no PASS.
-Uso: python inyectar_salida_d52.py   (0 los cuatro dan FALLA - 1 alguno sigue verde - 2 no pudo correr)."""
+se corre compilar_degradado.ps1 y se restaura por HASH. Los TRES tienen que dar FALLA (codigo 1 y una linea J rota);
+el cuarto de la SPEC (salidaS sin leer en la reanudacion) es de BANCO: el doble de flash del arnes no sobrevive al
+corte. Los patrones salen de los nombres de la SPEC; si uno no casa EXACTAMENTE las veces esperadas, es ABORTADO (2).
+Uso: python inyectar_salida_d52.py   (0 los tres dan FALLA - 1 alguno sigue verde - 2 no pudo correr)."""
 import hashlib
 import os
 import re

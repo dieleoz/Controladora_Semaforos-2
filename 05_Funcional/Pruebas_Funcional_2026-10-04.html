@@ -312,6 +312,133 @@ button#btnPdf{
   <div class="print-only" id="pr9"></div>
 </section>
 
+<section class="prueba" id="p10">
+  <h2>10. Salida programada: la misma hora en los dos postes</h2>
+  <ol>
+    <li>Quite el cable entre postes. Ponga los dos en <strong>Degradado con testigo</strong> y espere a que alternen.</li>
+    <li>Conectado al <strong>Poste 1</strong>, en la tarjeta <strong>Salida programada del Degradado</strong> deje el traslado en 20 minutos (o escriba una hora de salida) y espere a ver el Poste 1 <strong>en rojo</strong>. Pulse <strong>Programar salida</strong> y confirme el aviso de paleteros.</li>
+    <li>Conéctese al <strong>Poste 2</strong> y pulse <strong>Aplicar salida guardada</strong>. Hágalo también con el Poste 2 en rojo y antes de la hora de salida.</li>
+    <li>Anote la hora de salida. Desde 1 minuto antes y hasta 2 minutos después, mire las luces de los dos postes y anote la hora de cada cambio.</li>
+  </ol>
+  <div class="espera">Se espera: cada poste contesta "Equipo: SALIDA PROGRAMADA en ESTE poste: a esa hora sale del Degradado por rojo. El otro poste hay que programarlo aparte." Mientras el Poste 2 no la tenga, la app deja el cartel "Salida programada en el Maestro; FALTA el Esclavo: aplique alli la salida guardada." A la hora, los dos pasan a <strong>rojo</strong> (con 3 s de amarillo si venían en verde) y, pasado el despeje, quedan en <strong>ámbar intermitente</strong> a la vez. <strong>Nunca verde contra ámbar ni verde contra verde.</strong> Si pulsa Programar con el poste en verde, la app dice "En verde: la salida solo se guarda con el poste en rojo. Espere a verlo en rojo y repita."</div>
+  <div class="horas">
+    <label class="campo">Hora de salida programada <input type="text" id="h10a" class="hora"></label>
+    <label class="campo">Poste 1: hora en que pasó a rojo <input type="text" id="h10b" class="hora"></label>
+    <label class="campo">Poste 2: hora en que pasó a rojo <input type="text" id="h10c" class="hora"></label>
+    <label class="campo">Poste 1: hora del ámbar intermitente <input type="text" id="h10d" class="hora"></label>
+    <label class="campo">Poste 2: hora del ámbar intermitente <input type="text" id="h10e" class="hora"></label>
+    <label class="campo">¿Hubo verde contra ámbar o verde contra verde? (sí/no) <input type="text" id="h10f" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r10" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r10" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r10" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v10" placeholder="Qué luz tenía cada poste a la hora de salida y cómo terminaron"></textarea>
+  <div class="print-only" id="pr10"></div>
+</section>
+
+<section class="prueba" id="p11">
+  <h2>11. Salida programada con corte de luz, antes y después de la hora</h2>
+  <ol>
+    <li>Con la radio quitada, programe la salida en los dos postes como en la prueba 10, con la hora de salida a unos <strong>10 minutos</strong>.</li>
+    <li><strong>Corte A.</strong> Corte la luz del <strong>Poste 1</strong> y devuélvala <strong>antes</strong> de la hora de salida. Anote la hora del corte, la de la vuelta y la luz con que arranca. Conéctese y mire la tarjeta de salida programada.</li>
+    <li>Espere a la hora de salida y mire las dos luces.</li>
+    <li><strong>Corte B.</strong> Programe otra salida en los dos postes. Corte la luz del Poste 1 y devuélvala <strong>después</strong> de la hora de salida. Anote en qué estado queda.</li>
+  </ol>
+  <div class="espera">Se espera: <strong>Corte A</strong>: el Poste 1 vuelve solo al Degradado y la tarjeta dice "Este poste: sale a HH:MM:SS, faltan N s."; a la hora sale con rojo y queda en ámbar, igual que el Poste 2 (sin verde contra ámbar). <strong>Corte B</strong>: el Poste 1 <strong>no</strong> vuelve al Degradado; arranca en el menú o en ámbar de arranque. En los dos casos, el otro poste sigue su propia hora.</div>
+  <div class="horas">
+    <label class="campo">Corte A: hora del corte <input type="text" id="h11a" class="hora"></label>
+    <label class="campo">Corte A: hora de la vuelta <input type="text" id="h11b" class="hora"></label>
+    <label class="campo">Corte A: luz con la que arranca <input type="text" id="h11c" class="hora"></label>
+    <label class="campo">Corte A: ¿salió a la hora, en rojo y luego ámbar? (sí/no) <input type="text" id="h11d" class="hora"></label>
+    <label class="campo">Corte B: hora del corte <input type="text" id="h11e" class="hora"></label>
+    <label class="campo">Corte B: hora de la vuelta <input type="text" id="h11f" class="hora"></label>
+    <label class="campo">Corte B: ¿volvió al Degradado? (sí/no) y estado en que quedó <input type="text" id="h11g" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r11" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r11" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r11" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v11" placeholder="Qué hizo el Poste 1 al volver en cada corte, y qué hizo el Poste 2"></textarea>
+  <div class="print-only" id="pr11"></div>
+</section>
+
+<section class="prueba" id="p12">
+  <h2>12. ROJO TOTAL con salida programada, consulta y corte</h2>
+  <ol>
+    <li>Con la radio quitada, los dos en <strong>Degradado con testigo</strong> alternando y la salida programada en el Poste 1 (a unos 20 minutos), con el Poste 1 en rojo al programarla.</li>
+    <li>Pulse <strong>ROJO TOTAL</strong> en el Poste 1 y lea lo que dice la app. Mire el Poste 2.</li>
+    <li>Cierre la conexión y vuelva a conectarse al Poste 1 para que la app consulte la salida. Lea la tarjeta.</li>
+    <li>Corte la luz del Poste 1 un minuto y devuélvala, antes de la hora de salida. Observe 5 minutos.</li>
+  </ol>
+  <div class="espera">Se espera: la app dice "Equipo: ROJO FIJO en ESTE poste. El OTRO POSTE SIGUE ALTERNANDO por su reloj: vaya a el. Se sale con la salida programada o con el boton Volver." El Poste 1 queda en rojo fijo y el Poste 2 sigue alternando. La tarjeta dice "Este poste: sale a HH:MM:SS, faltan N s - sin respaldo: un corte de luz la pierde." Tras el corte, el Poste 1 queda en <strong>rojo fijo</strong>: ni verde ni ámbar, y la salida programada se perdió.</div>
+  <div class="horas">
+    <label class="campo">Hora de ROJO TOTAL <input type="text" id="h12a" class="hora"></label>
+    <label class="campo">Texto que dio la app <input type="text" id="h12b" class="hora"></label>
+    <label class="campo">Texto de la tarjeta de salida (¿dice "sin respaldo"?) <input type="text" id="h12c" class="hora"></label>
+    <label class="campo">Hora del corte <input type="text" id="h12d" class="hora"></label>
+    <label class="campo">Hora de la vuelta <input type="text" id="h12e" class="hora"></label>
+    <label class="campo">Luz del Poste 1 en los 5 minutos siguientes <input type="text" id="h12f" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r12" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r12" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r12" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v12" placeholder="Qué luz tenía cada poste y qué dijo la app"></textarea>
+  <div class="print-only" id="pr12"></div>
+</section>
+
+<section class="prueba" id="p13">
+  <h2>13. ROJO TOTAL en la espera de la hora tras un corte</h2>
+  <ol>
+    <li>Con los dos en <strong>Degradado con testigo</strong> alternando, corte la luz del <strong>Poste 1</strong> y devuélvala. Al volver, el Poste 1 queda en el menú <strong>esperando la hora</strong> para reanudar (de unos segundos a un par de minutos).</li>
+    <li>En esa espera, conectado al Poste 1, pulse <strong>ROJO TOTAL</strong> y lea lo que dice la app.</li>
+    <li>Observe el Poste 1 durante 5 minutos como mínimo.</li>
+    <li>Repita el corte y, en la espera, pulse en cambio <strong>Volver</strong> al menú. Lea lo que dice la app.</li>
+  </ol>
+  <div class="espera">Se espera: con ROJO TOTAL la app dice "Equipo: ROJO FIJO en ESTE poste. El degradado que esperaba la hora NO se reanudara. El OTRO POSTE sigue por su reloj: vaya a el." El Poste 1 queda en <strong>rojo fijo</strong>: nunca verde y nunca ámbar. Con Volver, la app dice "Equipo: volvio al menu; el degradado que esperaba la hora NO se reanudara." y el Poste 1 se queda en el menú. Si no alcanza a pulsar a tiempo, ponga "No se pudo probar".</div>
+  <div class="horas">
+    <label class="campo">Hora de la vuelta de la luz <input type="text" id="h13a" class="hora"></label>
+    <label class="campo">Hora de ROJO TOTAL <input type="text" id="h13b" class="hora"></label>
+    <label class="campo">Texto que dio la app <input type="text" id="h13c" class="hora"></label>
+    <label class="campo">Luz del Poste 1 en los 5 minutos siguientes <input type="text" id="h13d" class="hora"></label>
+    <label class="campo">Texto de la app con Volver (2.ª vez) <input type="text" id="h13e" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r13" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r13" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r13" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v13" placeholder="Qué luz tuvo el Poste 1 y si alguna vez dio verde o ámbar"></textarea>
+  <div class="print-only" id="pr13"></div>
+</section>
+
+<section class="prueba" id="p14">
+  <h2>14. Salida vencida: qué texto ve en el teléfono</h2>
+  <ol>
+    <li>Con la radio quitada y los dos en <strong>Degradado con testigo</strong>, adelante el reloj del celular 2 segundos respecto al del poste (la app solo admite hasta 3 s de diferencia). Así el poste ve la salida un poco más lejos de 12 horas.</li>
+    <li>Conectado al <strong>Poste 1</strong>, ponga el traslado más largo (720 minutos) y pulse <strong>Programar salida</strong> con el poste en rojo. Si el poste la rechaza, copie <strong>tal cual</strong> el texto de la app.</li>
+    <li>Si el Poste 1 la <strong>aceptó</strong>, conéctese al <strong>Poste 2</strong> y pulse <strong>Aplicar salida guardada</strong>; si ese la rechaza, copie también el texto.</li>
+    <li>Devuelva el reloj del celular a la hora correcta.</li>
+  </ol>
+  <div class="espera">Se espera: la app dice "Salida ya vencida: la hora ya paso o queda demasiado lejos. Reprograme la salida en el Maestro o cancelela." y <strong>no</strong> ofrece volver a intentar con la misma hora. No debe salir "motivo sin traducir". Si ningún poste la rechaza, ponga "No se pudo probar" y escriba que no se logró provocar.</div>
+  <div class="horas">
+    <label class="campo">Hora de la prueba <input type="text" id="h14a" class="hora"></label>
+    <label class="campo">Poste que la rechazó <input type="text" id="h14b" class="hora"></label>
+    <label class="campo">Texto exacto que dio la app <input type="text" id="h14c" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r14" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r14" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r14" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v14" placeholder="Qué dijo la app y si ofreció reintentar"></textarea>
+  <div class="print-only" id="pr14"></div>
+</section>
+
 <section class="prueba" id="pF">
   <h2>Algo más que haya visto</h2>
   <textarea id="vF" placeholder="Cualquier otra cosa que quiera anotar"></textarea>
@@ -388,7 +515,7 @@ button#btnPdf{
   // Para cada prueba, arma en el recuadro de impresión el resultado elegido y lo
   // escrito, en texto llano. Así, al imprimir, se ve la respuesta aunque el
   // teléfono no dibuje los controles marcados. Las horas anotadas van también.
-  var ids = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
+  var ids = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14'];
   function refrescarImpresion() {
     ids.forEach(function (n) {
       var pr = document.getElementById('pr' + n);
