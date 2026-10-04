@@ -167,7 +167,7 @@ configuracion** (`SPEC_6` HUECO 3), y si no se hizo el sintoma no dira «radio m
    del Degradado: **las dos puntas lo publican** por evento, pero solo lo lee quien este conectado (`SPEC_7` §5).
 7. **SOLO ENTRA EN DEGRADADO SOLO SI UN TECNICO LO DEJO ACTIVADO ANTES, Y FUERA DE ESO LA APP INVENTA LA CAUSA.** Con la
    opcion automatica activada con PIN en los dos postes, entra tras 5 min sin radio y lo anuncia (`AUTO_ENTRADA`);
-   sin ella la entrada es de una persona (`SPEC_2` §7.ter, `A-15`, 🔴 sin construir). En los demas casos el equipo
+   sin ella la entrada es de una persona (`SPEC_2` §7.ter, `A-15`, construido, sin banco). En los demas casos el equipo
    publica `MODO:` y `ESTADO:` y **nunca la causa**: los textos de causa estan escritos en `app.js` (`SPEC_7` §6, H-2).
 8. **NO SE DIAGNOSTICA A SI MISMO EL COBRE NI LA RADIO.** Ningun instrumento lee la configuracion de una radio (`SPEC_6`
    HUECO 3); la pluma **no tiene realimentacion** —sabe «ordene abrir», nunca «esta abierta» (`SPEC_1` §2)—; y **una camara

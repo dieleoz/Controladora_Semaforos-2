@@ -278,8 +278,8 @@ fuerza: partir un despeje por la mitad es justo lo que no se puede hacer.** Y **
 tiempos**: conserva el despeje que haya.
 **Con `D-45` (`cda33df`, sin banco):** `DAR PASO` con un verde encendido lo cierra por su amarillo; durante él el
 coordinador no está en `C_IDLE` y `CAMBIAR_TURNO` contesta `EN_TRANSICION_REINTENTE`, como en el despeje. Sigue
-terminando en rojo+verde: el verde se abre directo. El comentario de `coordinador_pedirCambio()` se reescribió; el de
-la cabecera de `modo_manual.cpp` aún dice *«verde a rojo directo ... los 4 s de ambar»*: comentario caducado.
+terminando en rojo+verde: el verde se abre directo. El comentario de `coordinador_pedirCambio()` se reescribió, y el de
+la cabecera de `modo_manual.cpp` ya no habla de «los 4 s de ambar».
 
 ## 9. El estado seguro
 
@@ -417,10 +417,9 @@ Cada uno trae con qué reproducirlo.
      `costura_06_reanudacion`, `esclavo_03_par_config`, `esclavo_06_no_abre_paso`, `app_04_valores_de_status` y
      `adaptador_esclavo.cpp` (sólo un comentario); su revisión no se ha hecho aquí.
    - 🔴 **LO QUE QUEDA ABIERTO:** **(1)** el borde de la desigualdad (B) del presupuesto de radio (SPEC 2 §2.2.bis,
-     §9); **(2)** `ESC:AMARILLO` no se construyó: `ESC:` dice `VERDE` hasta el `CMD_ACK_RED` (SPEC 4 §6); **(3)** la
-     app no cambió: su frase de la pluma con la luz en `AMARILLO` sigue diciendo *«NO es avería»* (SPEC 4 §6);
-     **(4)** comentarios caducados en el fuente: la cabecera de `modo_manual.cpp` (*«los 4 s de ambar»*) y los
-     *«25 s»* de `modo_ambar.cpp` y del bucle del Poste 2.
+     §9); **(2)** `ESC:AMARILLO` no se construyó: `ESC:` dice `VERDE` hasta el `CMD_ACK_RED` (SPEC 4 §6). Cerrados
+     después: la app dice con la luz en `AMARILLO` «amarillo de cierre: baja al pasar a rojo», y la cabecera de
+     `modo_manual.cpp` y los *«25 s»* ya no están en el fuente.
 11. 🟢 **CERRADO POR `D-46` (`f9cad1f`, 02/10; sin banco) — SALEN DOS ÓRDENES.** `SOLICITAR_PASO` del Poste 2 y
    `SET_MODO:DEGRADADO` de las dos puntas ya no tienen rama en `procesarComando()`: caen en el `else` final y
    responden `$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO` (`..._EN_ESCLAVO` en el Poste 2). El paso se da con

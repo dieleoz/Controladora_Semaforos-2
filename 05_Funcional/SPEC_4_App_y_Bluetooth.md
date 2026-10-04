@@ -102,10 +102,10 @@ prometia rojo y hacia ambar con la talanquera arriba. Lo rechaza **nombrando el 
 | `SET_MODO:ALCANCE` | **no** | `$ERR ... EN_MARCHA_PARE_EL_MODO` si `modoActual_get()` es `MODO_DEGRADADO`; si no, `RESULT:OK` **incondicional** — ver §7 |
 | `SET_MODO:INTELIGENTE` | si | igual que la anterior, y con la misma reserva de §7 |
 | ~~`SET_MODO:DEGRADADO`~~ | — | **Salio con `D-46` (`f9cad1f`; sin banco):** `$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO`. Su puerta, `modo_degradado_evaluarEntrada()` con `DEG_RECHAZO`, queda en el fuente sin llamador que la alcance y se conserva |
-| `SET_MODO:DEG_T:ahora,inicio,verde,despeje` | si | Construido (`990c278`; `D-35`, SPEC 2 §7.bis). **La unica orden de entrada al Degradado.** Puerta PARALELA a `modo_degradado_evaluarEntrada()`, sin sync de radio: `MotivoTestigo` — `$ERR ... DESC:<texto>` (`modo_degradado_textoTestigo()`) por `MDT_FALTA_HORA` / `MDT_AHORA_DESFASADO` (tolerancia `TOLERANCIA_TESTIGO_S`) / `MDT_DESPEJE_RANGO` / `MDT_INICIO_VENCIDO` / `MDT_AMBAR_VIGENTE`, o `RESULT:OK` si `MDT_OK`, `RESULT:RENOVADO` si `MDT_RENOVADO`. **DEBE (`D-52`):** con salida programada, `$ERR ... DESC:Cancele antes la salida programada` |
+| `SET_MODO:DEG_T:ahora,inicio,verde,despeje` | si | Construido (`990c278`; `D-35`, SPEC 2 §7.bis). **La unica orden de entrada al Degradado.** Puerta paralela a `modo_degradado_evaluarEntrada()`, sin sync de radio: `$ERR ... DESC:<texto>` (`modo_degradado_textoTestigo()`) por `MDT_FALTA_HORA`, `MDT_AHORA_DESFASADO` (`TOLERANCIA_TESTIGO_S`), `MDT_DESPEJE_RANGO`, `MDT_INICIO_VENCIDO`, `MDT_AMBAR_VIGENTE`, `MDT_EN_VERDE`, `MDT_NO_GUARDADO`; `RESULT:OK` / `RESULT:RENOVADO`. Con salida programada (`D-52`): `$ERR ... DESC:Cancele antes la salida programada` |
 | `SET_DEG_AUTO:1` / `SET_DEG_AUTO:0` | si | Construido (`A-15`, SPEC 2 §7.ter (a)). **El `$ACK` sale DIFERIDO**, cuando el `ECO` del otro poste refleja el cambio: `RESULT:ON_EFECTIVO` (el otro tambien apto) / `RESULT:ON_FALTA_EL_OTRO_POSTE` / `RESULT:OFF`. Rechazos: `$ERR ... SIN_ENLACE_CON_EL_OTRO_POSTE` · `EN_DEGRADADO_SALGA_PRIMERO` · `FORMATO_INVALIDO`; sin `ECO` en `DEG_AUTO_ACUSE_MS`, `$ERR ... CAMBIADO_AQUI_SIN_ACUSE_DEL_OTRO_POSTE` (el cambio queda y se sigue publicando). Maestro en `MENU`: siempre ese `$ERR` (SPEC 2 §7.ter (a)). Misma orden y mismos literales en el Esclavo |
 | `CONSULTA_DEG_AUTO` | no (es una consulta) | Construido. `RESULT:ESTE_<ON/OFF>_OTRO_<ON/OFF>_APTO_<SI/NO>`: la opcion propia, el ultimo `APTO` oido del otro y el `APTO` propio. Igual en el Esclavo |
-| `FORZAR_ROJO` | **no** (y con PIN tambien) | Fuera de Degradado: `coordinador_forzarRojoTotal()`, `RESULT:OK`, 3 s de amarillo y rojo (`D-45`). En Degradado HOY (`f6ef03d`): salida por todo-rojo, `SALIENDO_TODO_ROJO` o `SALIDA_YA_EN_CURSO`. **Construido el 04/10 (`a4545bb`, `D-51`), sin banco:** rojo FIJO inmediato en ese poste (`DEG_ROJO_SIN_HORA`; tambien en la ventana de `D-29`), sin aviso de paleteros (decidido); respuestas en §3.ter.ter |
+| `FORZAR_ROJO` | **no** (y con PIN tambien) | Fuera de Degradado: `coordinador_forzarRojoTotal()`, `RESULT:OK`, 3 s de amarillo y rojo (`D-45`). En Degradado, **construido el 04/10 (`a4545bb`, `D-51`), sin banco:** rojo FIJO inmediato en ese poste (`DEG_ROJO_SIN_HORA`; tambien en la ventana de `D-29`), sin aviso de paleteros (decidido); respuestas en §3.ter.ter |
 | `SET_MODO:DEG_FIN:ahora,salida` · `SET_MODO:DEG_FIN:CANCELAR` | si | Construido el 04/10 (`a4545bb`, `D-52`), sin banco; SPEC 2 §7.quater (c): `salida` = `HH:MM:SS` a la que esta punta sale por su reloj; aviso de paleteros; un `$ERR` por motivo y `$ACK` solo si quedo programada (listas en §3.ter.ter) |
 | `CONSULTA_DEG_FIN` | no (es una consulta) | Construido el 04/10, sin banco. `RESULT:NINGUNA` o `RESULT:SALE_HHMMSS_FALTAN_<s>S_<RESPALDADA/SIN_RESPALDO>` (`_SIN_RESPALDO` tambien tras `FORZAR_ROJO` o hora perdida). Molde `CONSULTA_DEG_AUTO`; el contador no cabe en `$STATUS` (SPEC 2 §7.quater (c)). Igual en el Esclavo |
 | `MANUAL:CAMBIAR_TURNO` | si | **tres, y el ORDEN importa** (`N-151`): `$ERR ... MODO_SIN_CICLO_SALGA_PRIMERO` si `modoMueveElCoordinador()` es falso; si no, `RESULT:OK` cuando `pedirCambioVerificado()` devuelve true, y `$ERR ... EN_TRANSICION_REINTENTE` cuando no |
@@ -136,7 +136,7 @@ que viviera en una funcion comun los dejaria midiendo un bloque vacio (`N-89`).
 
 | orden | PIN | que contesta, y **de que depende** |
 |---|---|---|
-| `CMD:LEER_RTC` | no (es una consulta: no abre, no para, no cambia) | `$ACK,NODE:PUENTE,...,RESULT:OK` con `FECHA:` y `HORA:` **releidas del chip ahora mismo**, o **siete `$ERR` distintos**, uno por cada valor de `MotivoSinHora` —incluido `BARRERA_INCOHERENTE`, que existe para que un defecto del firmware no se disfrace de averia del modulo, y `MOTIVO_NO_CONTEMPLADO`, para que nadie anada un valor al enum y deje la consulta muda—. Cada literal vive **dentro** de su rama |
+| `CMD:LEER_RTC` | no (es una consulta: no abre, no para, no cambia) | `$ACK,NODE:PUENTE,...,RESULT:OK` con `FECHA:` y `HORA:` **releidas del chip ahora mismo**, o **siete `$ERR` distintos**, uno por cada valor de `MotivoSinHora` —incluido `BARRERA_INCOHERENTE`, que existe para que un defecto del firmware no se disfrace de averia del modulo—, mas un octavo, `MOTIVO_NO_CONTEMPLADO`, para que nadie anada un valor al enum y deje la consulta muda—. Cada literal vive **dentro** de su rama |
 | `SET_RTC:<fecha>,<hora>` | **el PIN viaja y no lo comprueba nadie** — ver §7 | siete motivos, uno por valor de `ResultadoReloj`, y el `$ACK` final **devuelve la hora RELEIDA**, no la que se mando. Hay un octavo caso que es `$ACK` y no `$ERR`: `RESULT:HORA_PUESTA_SIN_PROPAGAR` cuando el DS3231 quedo puesto pero `siembra_ahora()` no pudo poner la linea entera en el cable. El detalle es de SPEC 3 |
 | cualquier linea con `HORA_ESP32` dentro | — | `$ERR,NODE:PUENTE,CMD:HORA_ESP32,DESC:LINEA_RESERVADA_AL_PUENTE`, **y va la primera de todas**: esa orden solo la origina el modulo, y el STM32 la acepta sin PIN porque el puente no lo conoce |
 
@@ -258,19 +258,17 @@ guardar la salida» · «No hay salida programada» (`CANCELAR` sin nada). `$ACK
 `RESULT:PROGRAMADA` · `REPROGRAMADA` (solo con respaldo en flash) · `PROGRAMADA_SIN_RESPALDO` (sin respaldo: rojo total
 o sin registro; un corte la pierde; gana a `REPROGRAMADA`) · `CANCELADA`.
 
-**Lo que hacia la app antes de `a4545bb`:** `FORZAR_ROJO` sale sin aviso de paleteros (`js/aviso_degradado.js`,
-`aplica()` solo mira `SET_MODO:*`, `SET_DEG_AUTO:0` y las dos órdenes del Esclavo) y su acuse
-`FORZAR_ROJO|SALIENDO_TODO_ROJO` (`app.js`) dice «no vuelve a alternar. Al terminar queda en el menu». No hay botón de
-salida programada.
-
-**Lo que DEBE hacer:**
-1. **Texto de `FORZAR_ROJO` en Degradado**, una entrada por `RESULT` nuevo (SPEC 4 §3.1): `ROJO_FIJO_EN_ESTE_POSTE` dice
+**Lo que HACE la app (`7cd3042`, sin banco ni telefono):** `FORZAR_ROJO` sale sin aviso de paleteros
+(`js/aviso_degradado.js`, `aplica()` solo mira `SET_MODO:*`, `SET_DEG_AUTO:0` y las dos órdenes del Esclavo). La clave
+`FORZAR_ROJO|SALIENDO_TODO_ROJO` ya no existe en `ACK_TEXTO` (`app.js`).
+1. **Texto de `FORZAR_ROJO` en Degradado**, una entrada por `RESULT` (SPEC 4 §3.1): `ROJO_FIJO_EN_ESTE_POSTE` dice
    «ROJO FIJO en ESTE poste. El OTRO POSTE SIGUE ALTERNANDO por su reloj: vaya a él. Se sale con la salida programada o
    con Volver al menu»; `YA_EN_ROJO_FIJO`, «ya estaba en rojo fijo; nada cambia»; `SET_MODO:MENU` con
    `OK_REANUDACION_CANCELADA`, «volvió al menú; el degradado que esperaba la hora NO se reanudará». Desaparece la clave
    `SALIENDO_TODO_ROJO` de esta orden; `SALIDA_YA_EN_CURSO` se queda (ya está saliendo al menú). **Sin aviso de
    paleteros** (decidido, SPEC 2 §7.quater (b)).
-2. **Botón «Programar salida del Degradado»** en las DOS pantallas, gobernado por `puntaCorrecta()`, con el mismo flujo
+2. **Botón «Programar salida del Degradado»** en las DOS pantallas, un bloque por punta según `state.node` (si no
+   coincide, aviso y no sale nada), con el mismo flujo
    que el testigo (§3.ter): en el Maestro se escribe la hora de salida (por defecto `ahora` + el traslado, editable) y
    la app manda `SET_MODO:DEG_FIN:ahora,salida` con `ahora` releído justo antes de enviar; **guarda `salida`** (local) y
    en el Esclavo ofrece «Aplicar salida guardada — Maestro `<serie>`, salida `HH:MM:SS`» sin formulario nuevo, con un
@@ -365,9 +363,9 @@ corrida, **y la cuenta no se copia aqui** (§14).
 **`D-45` (`N-174`; construido en `cda33df`, sin banco) cambio lo que significa `ESTADO:AMARILLO`, no el formato.**
 Hasta `cda33df` salia al ABRIR (de rojo a verde); ahora sale al CERRAR, durante `AMARILLO_SEG` al final de cada
 verde, y despues `ROJO` (`semaforo_nombreEstado()`; SPEC 1 §3.2). Consecuencias para la app: **(1)** su frase
-*«AMARILLO, este poste esta cerrando su paso»* (`app.js`) es ahora cierta; **(2)** 🔴 **la app no cambio:** con la luz
-en `AMARILLO` sigue pintando la frase de la pluma *«NO es averia: no baja mientras haya alguien debajo»*, que ya no
-vale —en el amarillo la pluma esta arriba por diseno (`luzPideArriba`), no por un veto (SPEC 8 §1)—; **(3)**
+*«AMARILLO, este poste esta cerrando su paso»* (`app.js`) es ahora cierta; **(2)** con la luz
+en `AMARILLO` la app pinta «amarillo de cierre: baja al pasar a rojo» (`app.js`, frase de la pluma): en el amarillo la
+pluma esta arriba por diseno (`luzPideArriba`), no por un veto (SPEC 8 §1); **(3)**
 `FORZAR_ROJO` contesta `$ACK` al aceptar la orden y el `ROJO` llega tras el amarillo.
 🔴 **ABIERTO: `ESC:AMARILLO` no se construyo.** `coordinador_estadoEsclavo()` publica lo ultimo que consta del Poste
 2 y dice `VERDE` hasta el `CMD_ACK_RED`, tambien durante su amarillo de cierre (SPEC 2 §2.2.bis). La propuesta
@@ -385,8 +383,8 @@ que un `--`. El campo que llega marcado es un dato; el campo que no llega deja l
 del `$ALARM`, o sea cuando el enlace YA se habia caido**. `D-32` (2) eligio la via de `D-23` —**`$EVENT`
 periodico**, no un aviso ESP32 -> STM32—: `Esclavo/src/bluetooth.cpp` publica `$EVENT ... ORIGEN:ENLACE_RF,
 DETALLE:RX:<n> OK:<n> RUIDO:<n>` cada `DIAG_ENLACE_MS`, con su propio reloj y **fuera del `if` del `$STATUS`**.
-Los cuatro campos fijos siguen fijos: **el dato nuevo no va en el `$STATUS`, va en el Diario.** La PANTALLA sigue
-abierta: §7.3.
+Los cuatro campos fijos siguen fijos: **el dato nuevo no va en el `$STATUS`, va en el Diario.** La app lo pinta en un
+recuadro propio de la ventana del Poste 2 (`js/diagnostico_enlace.js`, `renderDiagnosticoEnlace()`; §7.3).
 
 🟢 **EN LOS DOS POSTES, LA APP DESTACA EL AVISO DE BARRERA RETENIDA, y no se puede perder con el scroll.** Un solo
 `$EVENT` de `ORIGEN:CAMARA_PLUMA` con `DETALLE:VETO_SOSTENIDO_S:` abre un cartel propio
@@ -433,16 +431,13 @@ STM32 ya no ve la linea: **no hay quien lo rechace**. Esta **abierto POR DECISIO
 aceptado por el responsable— y por eso no es un defecto; se escribe aqui porque **una excepcion que nadie
 cuenta es indistinguible de un olvido** (`CLAUDE.md` §6).
 
-🔴 **3 · `D-23`: EL FIRMWARE YA ESTA; LA PANTALLA DE LA APP NO — y la app es de quien era la decision.**
-`D-32` (2) resolvio el mecanismo: como el STM32 **no puede saber** que un telefono se conecto —el unico que lo ve
-es el ESP32— y traer ese aviso seria **la tercera orden que el accesorio origina hacia el micro**
-(`esp32_05_no_origina` la condiciona **por escrito** a una fila de `DECISIONES.md`), el responsable eligio
-**`$EVENT` periodico a cadencia baja**, que no toca ninguna barrera, y esta construido. **LO QUE SIGUE ABIERTO,
-medido sobre el arbol:** `D-23` pedia *«una pantalla para Esclavo, diferente de lo que hoy hace la app»* y **la app
-no tiene ni una linea de ella** — `grep -n "ENLACE_RF" app.js` da **cero en las cuatro copias**. El dato **si llega
-al tecnico**, pero como una linea mas del REGISTRO DE EVENTOS: `$EVENT` lo pinta el camino generico de `app.js`,
-que no distingue este `ORIGEN` de ningun otro. **Es media decision construida, y la mitad que falta es la que la
-fila nombra.**
+🟢 **3 · `D-23`: FIRMWARE Y APP CONSTRUIDOS (sin telefono ni banco).** `D-32` (2) resolvio el mecanismo: como
+el STM32 **no puede saber** que un telefono se conecto —el unico que lo ve es el ESP32— y traer ese aviso seria **la
+tercera orden que el accesorio origina hacia el micro** (`esp32_05_no_origina` la condiciona **por escrito** a una fila
+de `DECISIONES.md`), el responsable eligio **`$EVENT` periodico a cadencia baja**, que no toca ninguna barrera. En la
+app, `js/diagnostico_enlace.js` lee ese `$EVENT` y `renderDiagnosticoEnlace()` lo pinta en un recuadro de la ventana
+del Poste 2 (contadores acumulados y su diferencia con la muestra anterior), **sin semaforo de color ni veredicto**: el
+umbral que diria «esto va mal» no lo ha decidido nadie. `app.js` no nombra `ENLACE_RF`; lo nombra el modulo.
 
 🔴 **4 · Dos `$ACK` que no dependen de lo que la orden hizo: `SET_MODO:ALCANCE` y `SET_MODO:INTELIGENTE`.**
 Las dos ramas contestan `RESULT:OK` despues de `modoActual_set()` **y nada mas**. El trabajo de entrar en
@@ -457,7 +452,7 @@ llaman al coordinador **dentro** de la rama. **Lo que cada una se deja, medido:*
 puesta a cero de SFTY-15 no ocurre en la segunda pulsacion**; en `INTELIGENTE`, no se re-ejecuta
 `coordinador_iniciarModo()`. **El par peligroso es alcanzable por el mismo camino que `N-146`:**
 `CMD:FORZAR_ROJO` entra **sin PIN desde cualquier modo**, mueve la luz y **no toca `modoActual`** (salvo en
-Degradado, donde HOY es la salida del modo y DEBE ser rojo fijo en ese poste, §3.1). ⚠️ **Lo que NO
+Degradado, donde es rojo fijo en ese poste, §3.1). ⚠️ **Lo que NO
 se afirma:** no esta medido en banco ni en tarjeta, es lectura del fuente, y **no deja el cruce trabado**.
 
 ⚠️ **5 · El Modo Alcance no tiene superficie.** Todo lo que ese modo produce sale por
@@ -516,8 +511,8 @@ instalada: exportar, enviarlo a un chat y abrir el fichero recibido. Hasta enton
 🟢 **14 · ~~EL DEGRADADO AUTOMATICO (§3.ter.bis, `A-15`) ES CERO CODIGO~~** → construido (`a0d605b`, `1a78873`;
 app en `js/deg_auto.js` y `js/aviso_degradado.js`), sin banco.
 
-🔴 **15 · LA SALIDA PROGRAMADA Y EL ROJO TOTAL CORREGIDO NO TIENEN CODIGO EN LA APP** (§3.ter.ter, `D-52`, `D-51`,
-04/10). Hoy el texto de `FORZAR_ROJO` en Degradado afirma lo contrario de lo decidido y la orden sale sin aviso.
+🟢 **15 · ~~LA SALIDA PROGRAMADA Y EL ROJO TOTAL CORREGIDO NO TIENEN CODIGO EN LA APP~~** → construido (`7cd3042`,
+§3.ter.ter; `js/deg_fin.js`), sin banco ni telefono.
 
 ---
 

@@ -145,8 +145,8 @@ Lo que el equipo hace solo; las tres primeras solo se ven en **`MODO:`** del `$S
    **ambar intermitente** hasta una orden (`D-40`, SPEC 1 §4.1). 🔴 **Tras cualquier corte, verifique A.3 en las
    dos puntas aunque el equipo no se lo pida**: si una reanudo y la otra no, puede dar verdes sin que nadie mire.
 4. **Hora perdida en Degradado ➜ ROJO FIJO en esa punta** (`D-38`), con `$ALARM DEGRADADO,CAUSA:ROJO_SIN_HORA`
-   repetida (PARTE C); `MODO:` sigue diciendo `DEGRADADO`. No vuelve sola, y la otra punta sigue alternando. 🔴 **Si
-   ademas sufre un corte, arranca en ambar** (`D-40`): verde contra ambar; riesgo abierto, lo decide el responsable.
+   repetida (PARTE C); `MODO:` sigue diciendo `DEGRADADO`. No vuelve sola, y la otra punta sigue alternando. **Si
+   ademas sufre un corte, arranca en el mismo rojo fijo** (`D-47`, SPEC 1 §4.1; antes arrancaba en ambar, `D-40`).
 
 ## A.6 🔴 LA COMPROBACION DE LA HORA QUE SIGUE HACIENDO FALTA, Y POR QUE
 
@@ -257,6 +257,10 @@ mas**: medido, el puente ESP32 **no origina ninguna** —solo retransmite— y e
 | `DEGRADADO` | `RELOJ_NO_CUENTA` | `CAMBIO_A_ROJO` | **solo Maestro** | vencio el limite con el reloj de la tarjeta parado (`RELOJ_CRISTAL_CONGELADO`): pasa a ROJO FIJO y sale `ROJO_SIN_HORA` (`D-49`). El Esclavo solo publica `ROJO_SIN_HORA` | Mire LAS DOS COSAS: el reloj (SPEC 3, H-1) y la radio (Parte B). `REINICIAR_RELOJ` BORRA hora, ciclo y autorizacion: no se pulsa para mirar |
 | `CAM_PEGADA` | `CAM_C_CONTACTO_FIJO` · `CAM_D_CONTACTO_FIJO` | **`NINGUNA`** | las dos | el contacto de esa camara lleva cerrado mas del plazo de presencia legitima | **el borne lo dice el nombre**: son los dos de camara de `J16` (`D-25`, SPEC 5 §2.1). Revisar cableado y la configuracion de esa camara (`D-13`). **La causa dice `CONTACTO_FIJO` y NO «averia» a proposito**: no se puede distinguir de una presencia legitima larga |
 | `CAM_CIEGA` | `CAM_C_SIN_FLANCO` · `CAM_D_SIN_FLANCO` | **`NINGUNA`** | las dos | esa camara **dio flancos antes** y lleva demasiado paso abierto sin dar ninguno | lo mismo. ⚠️ **Solo puede salir de una camara que YA vio algo alguna vez**: una muerta desde la instalacion, o un borne vacio, **no la dispara nunca** (SPEC 5 §3.2) |
+| `DEGRADADO` | `ROJO_TOTAL` | `ROJO_FIJO` | **solo Maestro** | una persona mando `FORZAR_ROJO` con el Poste 1 en Degradado (`D-51`, SPEC 2 §7.quater (b)); se repite cada `AVISO_ROJO_SIN_HORA_MS`. Tras un corte sale como `ROJO_SIN_HORA` | **el otro poste sigue alternando por su reloj**: vaya a el. Salir: salida programada o `SET_MODO:MENU` |
+| `DEGRADADO` | `OTRO_EN_DEGRADADO` | `REVISE_OTRO` | las dos | esta punta oye `CMD_PRESENTE` del otro poste en Degradado y ella no lo esta (SPEC 2 §7.ter (c)); no toca la luz | **vaya al otro poste**: da verdes por reloj |
+| `DEGRADADO` | `RENOVAR_TESTIGO` | `REPITA_TESTIGO` | las dos | pasaron 28 dias desde el ultimo testigo; despues, una vez al dia. No toca luz ni modo (`D-35`, SPEC 2 §7.ter (d)) | **repita el testigo en los dos postes** |
+| `DEGRADADO` | `AUTO_NO_<codigo>` | `SIGUE_AMBAR` · `QUEDA_ROJO` | las dos | la entrada automatica no pudo entrar, una vez por corte (`A-15`, codigos en SPEC 2 §7.ter (b)); `QUEDA_ROJO` solo el Maestro con `GUARDADO` | lo dice la app (SPEC 4 §3.ter.bis); con `QUEDA_ROJO`, avise a mantenimiento |
 
 > 🔴 **`ACCION:NINGUNA` NO ES RELLENO: significa «medida de seguridad vial ejecutada: ninguna».** Las dos alarmas de
 > camara **no mueven nada por si mismas**: no bajan la pluma, no tocan una luz y no paran el ciclo.
@@ -354,10 +358,9 @@ de sus filas habla de subir el techo de orfandad de la version de campo** —bus
 apariciones—. **Describe un binario construido, no una decision tomada**, y sin fila **no hay nada escrito que autorice
 cargarlo** ni que fije cual plazo es el bueno. Se nombra como hueco; esta spec no abre filas.
 
-**10. 🔴 EL DEGRADADO CON TESTIGO (A.1.bis, A.2.bis, `D-35`) ES CERO CÓDIGO Y CERO BANCO.**
-`grep -rn "DEG_T" {Maestro,Esclavo}/{src,include}` da cero: la puerta, la comparación de `ahora` contra el
-reloj propio, el registro de vigencia de 31 días y el flujo de la app (SPEC 4 §3.ter) están sin construir. No
-hay pack ni acta de campo que lo cierre.
+**10. 🟢 ~~EL DEGRADADO CON TESTIGO (`D-35`) ES CERO CÓDIGO~~ → construido** (`990c278` en las dos
+puntas, `11b57b3` en la app; `SET_MODO:DEG_T` en los dos `bluetooth.cpp`) y probado en banco por el funcional
+(`4a2c73c`). Sin vencimiento desde el 29/09 (SPEC 2 §7.ter (d)). Sin acta de campo que lo declare.
 
 *Las decisiones vigentes que esta spec recoge van citadas donde aplican; nombradas como hueco, la pieza del aviso de
 oscilador parado y `T-2` sin fila. Remedido el 12/09/2026 sobre

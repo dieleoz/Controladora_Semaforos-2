@@ -153,13 +153,13 @@ sostiene el rojo en cada vuelta. En el Esclavo ese estado **sigue gobernando la 
 no lo lleve a ambar, y el `$STATUS` dice `MODO:DEGRADADO`. Publica `$ALARM ...EVENTO:DEGRADADO,
 CAUSA:ROJO_SIN_HORA,...,ACCION:ROJO_FIJO` al entrar y cada `AVISO_ROJO_SIN_HORA_MS` mientras dure (§7).
 
-**No se vuelve solo.** Del rojo fijo se sale **por una orden del operario**, por el todo-rojo de la salida:
-el Maestro con `SET_MODO:MENU`; el Esclavo con las tramas de gobierno del Maestro ya fuera de Degradado, o
-con `AMBAR_EMERGENCIA`. **DEBE ganar (`D-51` corregida y `D-52`, 04/10; NO CONSTRUIDO, SPEC 2 §7.quater):** el
-mismo estado sirve para el ROJO TOTAL puesto por una persona (`FORZAR_ROJO` en Degradado, solo Maestro; causa
-`ROJO_TOTAL` en la alarma; tras un corte, `ROJO_SIN_HORA`) y se sale tambien con la salida programada, que con hora no
-fiable no dispara. Una siembra fresca no devuelve el modo. Si el poste estaba en verde al caer, el cierre lleva su
-amarillo de 3 s (`D-45`, `semaforo_forzarRojo()`; SPEC 1 §3.2).
+**No se vuelve solo.** Del rojo fijo se sale **por una orden del operario**, por el todo-rojo de la salida: el Maestro
+con `SET_MODO:MENU`; el Esclavo con las tramas de gobierno del Maestro ya fuera de Degradado, o con `AMBAR_EMERGENCIA`.
+**Gano el 04/10 (`D-51` corregida y `D-52`; construido en `a4545bb`, sin banco, SPEC 2 §7.quater):** el mismo estado
+sirve para el ROJO TOTAL puesto por una persona (`FORZAR_ROJO` en Degradado, solo Maestro; causa `ROJO_TOTAL` en la
+alarma; tras un corte, `ROJO_SIN_HORA`) y se sale tambien con la salida programada, que con hora no fiable no dispara.
+Una siembra fresca no devuelve el modo. Si el poste estaba en verde al caer, el cierre lleva su amarillo de 3 s (`D-45`,
+`semaforo_forzarRojo()`; SPEC 1 §3.2).
 
 **Desde `cda33df` (`N-174`; sin banco), este rojo fijo alcanza dos casos mas:**
 - **`D-47`: sobrevive a un corte.** `irARojoSinHora()` pone `FLAG_ROJO_SIN_HORA` en la pila
@@ -231,8 +231,9 @@ dos decisiones anteriores que nadie vio. **La reconstruccion difiere el BORRADO 
 - **Si no reanuda, el Maestro arranca en ambar** (`D-40`, SPEC 1 §4.1); mientras la decision siga pendiente,
   espera en el menu.
 - **Lo que NO se toca:** el **limite duro** sigue mandando —es la puerta que impide reanudar sobre una
-  marca que ya no significa nada—, y **sigue sin haber entrada automatica al Degradado**: la activacion
-  es manual (`SFTY-21`) y esto **reanuda** un modo que ya estaba puesto.
+  marca que ya no significa nada—, y **la activacion sigue siendo de una persona** (`SFTY-21`) salvo la entrada
+  automatica opcional, apagada de fabrica (`A-15`, `D-43`, SPEC 2 §7.ter); esto **reanuda** un modo que ya estaba
+  puesto.
 
 ## 7. Las alarmas de reloj — son DOS, porque son dos averias distintas
 
@@ -314,8 +315,8 @@ sincronizar», y tras un reset eso abria la puerta de FRESCURA de la entrada del
   las dos puntas, contesta **tres** estados: VIGILANDO —el oscilador arranco y la ventana sigue abierta—, CUENTA
   —se han visto dos flancos del contador desde que se adopto el cristal— y CONGELADO —no hay contador que cuente:
   no arranco, o la ventana cerro sin flancos—. Se deduce de lo que ya habia; no es un estado nuevo que se pueda
-  desincronizar. `reloj_hayCristal()` no tiene llamador en el Maestro y no existe en el Esclavo; sigue
-  contestando solo «arranco».
+  desincronizar. `reloj_hayCristal()` salio con `D-44` (no tenia llamador); el veredicto del cristal es solo
+  `reloj_estadoCristal()`.
 - **La usan tres sitios, y los tres esperan al veredicto:** el acuse de `REINICIAR_RELOJ`, que ya no dice
   «ponga la hora» hasta ver contar (SPEC 4 §3.1); la reanudacion tras corte de las dos puntas (§6); y la caida del
   Degradado del Maestro por su limite, que ahora **se publica con su causa** —`$ALARM DEGRADADO` con
