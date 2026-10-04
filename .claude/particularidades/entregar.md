@@ -10,7 +10,7 @@ Va, y solo esto:
 - **La guia/formulario `.html` de pruebas vigente** de `05_Funcional/` -- el que Diego este usando
   en la sesion en curso, el que genera un PDF al rellenarlo (hoy: `Pruebas_Funcional_2026-10-04.html`;
   el nombre lleva fecha y caduca solo -- si hay mas de uno con fecha reciente, se confirma con Diego
-  cual toca antes de mandarlo. `Guia_Cableado_y_Pruebas_Banco.html` es de banco, no de campo: no se
+  cual toca antes de mandarlo. `historico/Guia_Cableado_y_Pruebas_Banco.html` es de banco, no de campo: no se
   manda salvo que se pida).
 - **`LEEME_PRIMERO.txt`**, corto, texto plano (no `.md`, no `.htm`), con exactamente este orden:
   1. Si paso banco o no, con esas palabras (`SIN BANCO` si no paso). Nunca abre con una cifra en verde.

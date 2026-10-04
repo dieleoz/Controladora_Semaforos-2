@@ -79,7 +79,7 @@ EVIDENCIA = os.path.join(BASE_DIR, "evidencia")
 # El documento de conexiones. Hasta el 31/08 no lo enlazaba nadie y este script no
 # lo metia: 81 KB de guia de cableado que el funcional no recibia.
 GUIA_HTML = "Guia_Cableado_y_Pruebas_Banco.html"
-GUIA_RUTA = "05_Funcional/" + GUIA_HTML
+GUIA_RUTA = "05_Funcional/historico/" + GUIA_HTML
 
 # El documento que ORDENA a los demas (skill `entregar` seccion 3.bis). Nacio sin .docx,
 # asi que un paquete que solo mire .docx lo deja fuera - que es justo lo que hacia

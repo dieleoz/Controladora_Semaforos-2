@@ -29,8 +29,8 @@ que es donde se anotan las medidas.
 > → [`2_Manual_Hardware_y_Pruebas.md`](historico/2_Manual_Hardware_y_Pruebas.md) §4
 > **3.** Ejecute el checklist y firme el acta
 > → **[`3_Protocolo_Pruebas_Rigurosas.md`](historico/3_Protocolo_Pruebas_Rigurosas.md)**
-> **4.** 🔧 **Si va a una SESIÓN DE BANCO, el protocolo vigente y ÚNICO es la
-> [`Guia_Cableado_y_Pruebas_Banco.html`](Guia_Cableado_y_Pruebas_Banco.html)** — 44 pasos, se abre en
+> **4.** 🔧 **Si va a una SESIÓN DE BANCO, la hoja vigente es la
+> [`Pruebas_Funcional_2026-10-04.html`](Pruebas_Funcional_2026-10-04.html)** — se abre en
 > el navegador, **se rellena y se devuelve en PDF**. *(El `ENCARGO_SESION_BANCO.md` de 29 pasos se
 > archivó el 07/09 en [`historico/`](historico/ENCARGO_SESION_BANCO_ARCHIVADO_07-09.md): se conserva
 > como **acta** de la 1.ª noche, no como guion. **Un solo encargo vigente.**)*

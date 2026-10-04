@@ -350,7 +350,8 @@ seis.**
   ninguna superficie de mando**.
 
 **El plano de conexiones que se entrega —`J17`, `J16`, `PB6`/`PB7`, el `DS3231` y el SWD— es
-[`05_Funcional/Guia_Cableado_y_Pruebas_Banco.html`](05_Funcional/Guia_Cableado_y_Pruebas_Banco.html).**
+[`05_Funcional/Montaje_Campo_2026-10-05.html`](05_Funcional/Montaje_Campo_2026-10-05.html)**,
+con el cobre medido en `17_...` y SPEC_5.
 
 ---
 
