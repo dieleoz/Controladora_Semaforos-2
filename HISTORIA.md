@@ -3206,3 +3206,9 @@ es lo mismo que "3.7 existe".
 - **Lo que se concluyo mal:** que `D-51` (rojo total = salida del modo) cerraba el punto 2: sin radio el otro poste
   sigue alternando; mi pregunta lo daba por hecho y la decision heredo la premisa. Y J6a y el escenario P eran defectos
   de la prueba, no del firmware.
+- **Tarde:** revisores de SPEC, firmware y app (lanzados tambien desde otras sesiones, que cambiaban la rama del arbol
+  principal); sin defectos del firmware contra la SPEC; trece defectos de la app corregidos con prueba en rojo; el aviso
+  `SYNC` entro en bucle y lo cerro Fable tras DeepSeek y Nemotron. Paquete final `22fd0d8` SIN_BANCO (app corregida,
+  firmware de `e831249`); el de `e831249` a RETIRADOS.
+- **Lo que se concluyo mal (tarde):** que la app podia deducir el testigo por las horas del `$EVENT`; que el Esclavo
+  avisaba con alarma al rendirse (es muda); que un revisor sin informe habia perdido el trabajo (estaba en otra rama).
