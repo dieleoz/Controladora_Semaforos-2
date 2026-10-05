@@ -85,6 +85,35 @@ python 01_Firmware/Simulaciones/banco/correr.py   # solo los packs. Sirve para i
 
 ### Lo siguiente, en orden (el estado de cada punto, en `ESTADO.md`)
 
+**PRIMERO (05/10, el funcional espera en banco): `N-176` ROJO+AMARILLO antes del verde (`D-53`).** Coste medido
+sobre `a5db18e`: ~28 ficheros (firmware ~10, app 4, arneses 4, packs/modelos 5, SPEC 5). Riesgos que se revisan
+ANTES de construir (§11.7): (a) +2 s rompen el presupuesto de radio (`PEOR_CASO_CICLO_MS + TIMEOUT_ACK_MS` 27,3 s
+contra `SFTY6_SILENCIO_MS` 28 s, `D-48`): sube el silencio y se recalcula `D-50`; (b) el Esclavo no acusa
+`ACK_GREEN` hasta el verde real (patron de `S_AMARILLO`); (c) Degradado a 8 fases: firmware nuevo en los DOS postes
+a la vez; (d) `ESTADO:` nuevo de <= 9 caracteres y su fila en la app (si no, «ESTADO NO RECONOCIDO»).
+
+Diseno comun de los agentes: `D-53` y SPEC_1 §3.2 (al cerrar R1). Con Marco esperando, R1, R3 y R4 corren en
+paralelo con ficheros disjuntos contra el mismo diseno; el arquitecto revisa SPEC y diff juntos antes de la compuerta.
+
+| # | paso | quien | ficheros | estado |
+|---|---|---|---|---|
+| R1 | SPEC_1/2/4/8 al `D-53`; comitea el orquestador con la fila | agente, arbol principal | `05_Funcional/SPEC_{1,2,4,8}*` | en curso |
+| R3 | Pruebas que celebran el directo (§9) invertidas, vistas en rojo | agente, worktree | arneses `Validacion_*`, packs y modelos | en curso |
+| R4a | Firmware de las dos puntas | agente, worktree | `{Maestro,Esclavo}/{src,include}` | en curso |
+| R4b | App: estado `ROJO+AMAR`; Degradado automatico como eleccion de montaje (abajo); `.html` | agente, worktree | `App_Semaforo/**`, `Pruebas_Funcional_*.html` | en curso |
+| R2 | Integrar por el diff (§8); arquitecto (opus) sobre SPEC + diff: `SFTY6_SILENCIO_MS` 31 s y 8 fases | orquestador + opus | - | |
+| R5 | Compuerta completa en el arbol principal; QA (opus) una vez | orquestador + QA | - | |
+| R6 | `.zip` `SIN_BANCO` a `entregas/`: firmware (fuente PlatformIO y binarios con sha256), APK, app web, `.html` | orquestador | - | |
+
+**El `.html` de R6 pide SOLO lo nuevo**: el rojo+amarillo (`D-53`), la eleccion del Degradado automatico y la carga
+de los dos postes a la vez. Lo que Marco ya probo con `22fd0d8` no se le vuelve a pedir.
+
+**Degradado automatico (`A-15`), sin cambio de firmware.** El 05/10 Marco lo intento sin radio y el firmware
+rechazo las 7 ordenes (`SIN_ENLACE_CON_EL_OTRO_POSTE`, `evidencia/051020261239/`): hizo lo que dice la spec, pero la
+app no lo explica. Decidido por el responsable: es una ELECCION DE MONTAJE («si se cae la radio: ambar y voy con el
+testigo» por defecto, `D-43`, o «entran solos a los 5 min»), que la app pregunta al conectar, solo deja cambiar
+con radio, muestra siempre en la pantalla principal y anuncia al caer la radio (con cuenta atras aproximada).
+
 Reordenado el 02/10. Se cierra por fases: ninguna empieza sin cerrar la anterior. **Orden de ejecucion (02/10):
 A1-A2 y H hechos -> I (en curso) -> G (legacy, D-44/D-46, y el ancla de D-24) -> UN solo runbook A3-A6
 sobre la candidata con I y G -> F.** El pack de anclas da rojo legitimo mientras haya decisiones sin construir. Al
