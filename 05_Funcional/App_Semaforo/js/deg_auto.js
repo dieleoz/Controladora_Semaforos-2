@@ -103,11 +103,10 @@ const DegAuto = {
     // SPEC_4 3.ter.ter: el evento no dice si hay testigo y no se deduce de h. VENCIDA:SI va primero, con o sin AVISO:
     // sin testigo y sin fecha el firmware publica AVISO:NO VENCIDA:SI y cae a ambar igual.
     if (/(^| )VENCIDA:SI( |$)/.test(d)) {
-      const sinFecha = /(^| )SYNC:--( |$)/.test(d);
-      return { tono: 'red', toast: 'Sin radio: el equipo pasa a ambar',
-        texto: (sinFecha ? 'No se puede fechar la ultima sincronizacion por radio: el equipo se rinde a ambar intermitente. '
-                         : 'Limite de 48 h sin radio ALCANZADO: el equipo se rinde a ambar intermitente. ') +
-               'Recupere la radio entre postes; poner la hora con el telefono no lo renueva.' };
+      return { tono: 'red', toast: 'Sin radio valida: este poste deja de dar verdes por reloj',
+        texto: 'Sin sincronizacion de radio valida (48 h o mas, o sin fecha): este poste deja de dar verdes por reloj. ' +
+               'Lo que hace ahora (ambar o rojo fijo) lo dice su alarma. Recupere la radio entre postes; ' +
+               'poner la hora con el telefono no lo renueva.' };
     }
     if (/(^| )AVISO:SI( |$)/.test(d)) {
       const h = /(^| )SYNC[:](\d+)h( |$)/.exec(d);

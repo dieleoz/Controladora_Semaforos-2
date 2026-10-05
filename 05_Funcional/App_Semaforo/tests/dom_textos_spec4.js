@@ -198,7 +198,8 @@ module.exports = async function pruebaTextosSpec4(montarAppLimpia, assert) {
     }
     for (const d of ['SYNC:48h AVISO:SI VENCIDA:SI', 'SYNC:49h AVISO:SI VENCIDA:SI', 'SYNC:700h AVISO:SI VENCIDA:SI']) {
       const t = ev(d);
-      assert(/limite de 48 h/i.test(t) && /ALCANZADO/.test(t) && /ambar/i.test(t) && !/28 dias|testigo/i.test(t), `13: ${d} es el limite de 48 h alcanzado: "${t}"`);
+      assert(/48 h o mas/i.test(t) && /sin fecha/i.test(t) && /deja de dar verdes/i.test(t) && /su alarma/i.test(t) &&
+             !/se rinde|pasa a ambar|queda en rojo|28 dias|testigo/i.test(t), `13: ${d}: limite alcanzado sin nombrar la luz (ambar o rojo fijo, D-49): "${t}"`);
     }
     {
       const t = ev('SYNC:-- AVISO:SI VENCIDA:NO');
@@ -207,7 +208,11 @@ module.exports = async function pruebaTextosSpec4(montarAppLimpia, assert) {
     {
       // Sin testigo y sin fecha el firmware publica AVISO:NO VENCIDA:SI (modo_degradado_avisoLimite/syncVencida): cae a ambar.
       const t = ev('SYNC:-- AVISO:NO VENCIDA:SI');
-      assert(/ambar/i.test(t) && /fechar/i.test(t) && /recupere la radio/i.test(t), `13: SYNC:-- AVISO:NO VENCIDA:SI avisa de la caida a ambar: "${t}"`);
+      assert(/sin fecha/i.test(t) && /deja de dar verdes/i.test(t) && /recupere la radio/i.test(t) && !/se rinde|pasa a ambar|queda en rojo/i.test(t),
+             `13: SYNC:-- AVISO:NO VENCIDA:SI avisa sin nombrar la luz ni el limite: "${t}"`);
+      const a2 = montar(E, 'DEGRADADO'); a2.entra('EVENT,NODE:ESCLAVO,ORIGEN:DEGRADADO,DETALLE:SYNC:49h AVISO:SI VENCIDA:SI,HORA:14:36:00');
+      const t2 = a2.ultimo();
+      assert(/deja de dar verdes/i.test(t2) && !/se rinde|pasa a ambar|queda en rojo/i.test(t2), `13: el Esclavo con VENCIDA:SI tampoco nombra la luz: "${t2}"`);
     }
   }
 
