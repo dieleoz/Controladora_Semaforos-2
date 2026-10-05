@@ -31,7 +31,7 @@ identificador, comando, **un solo byte** de parámetro y CRC, y cada envío sale
 
 | comando | dirección | qué es |
 |---|---|---|
-| `CMD_GO_GREEN` / `CMD_ACK_GREEN` | M→E / E→M | la única orden que abre paso en el Poste 2, y su «verde encendido y estable» |
+| `CMD_GO_GREEN` / `CMD_ACK_GREEN` | M→E / E→M | la única orden que abre paso en el Poste 2, y su «verde encendido y estable» (con `D-53`, tras el rojo+amarillo; §2.2.ter, HUECO) |
 | `CMD_GO_RED` / `CMD_ACK_RED` | M→E / E→M | la orden que cierra —también es el latido cuando el rojo no consta— y su «estoy en rojo», que desde `D-45` (`cda33df`) acusa el ROJO ENCENDIDO, tras el amarillo (§2.2.bis) |
 | `CMD_PING` / `CMD_PONG` · `CMD_GO_AMBAR` | M→E / E→M | el latido, que mide que el enlace vive · y el ámbar ordenado, siempre detrás de una orden de rojo previa |
 | `CMD_AMBAR_ESCLAVO` / `CMD_ACK_AVISO_AMBAR` | E→M / M→E | el Poste 2 avisa de su ámbar de emergencia, y el acuse (`D-31`) |
@@ -67,40 +67,52 @@ envejecido:** §9 y SPEC 6 D.1.
 `Verde M -> AMARILLO M (C_MASTER_A_ROJO) -> rojo M -> despeje -> GO_GREEN -> verde E DIRECTO -> ACK_GREEN ->
 GO_RED -> AMARILLO E (C_ESPERANDO_ACK_RED) -> rojo E -> ACK_RED -> despeje -> Verde M DIRECTO`
 
-- **Cada punta enciende SU amarillo, en su fichero del semáforo** (`semaforo_forzarRojo()` sobre un verde, SPEC 1
-  §3.2). El Poste 1 no ordena «amarillo»: `CMD_GO_RED` significa «cierra». No hay trama nueva para la luz;
-  `CMD_GO_AMBAR` sigue siendo el ámbar intermitente.
-- **`CMD_ACK_RED` acusa el ROJO ENCENDIDO, no la orden.** En la rama de `CMD_GO_RED` del bucle del Poste 2: tras
-  `semaforo_forzarRojo()`, si la luz ya está en `S_ROJO` acusa al momento; si no, arma `ackRojoPendiente`, y al final
-  del bucle el acuse sale en la vuelta en que el amarillo acabó en rojo (si acabó en otra cosa —ámbar de emergencia u
-  orfandad— se olvida). Una orden de rojo repetida durante el amarillo no lo reinicia ni se acusa todavía; una de
-  verde ni lo reabre ni se acusa (`luz != S_AMARILLO`): acabado en rojo, la siguiente repetición se trata como
-  siempre.
-- **La primera espera del acuse lleva el amarillo dentro:** en `C_ESPERANDO_ACK_RED` el primer plazo es
-  `TIMEOUT_ACK_MS + AMARILLO_MS` (6,5 s) y los siguientes `TIMEOUT_ACK_MS` (3,5 s), para que el amarillo no gaste un
-  reintento ni parezca radio mala.
-- **El todo-rojo empieza cuando la punta que CIERRA está en rojo**: el despeje del Poste 1, desde su rojo estable
-  (`C_MASTER_A_ROJO` espera `semaforo_estable()` en rojo, y `coordinador_actualizar()` renueva `tRef` al acabar todo
-  amarillo); el del Poste 2, desde el `CMD_ACK_RED`, que ahora es ese mismo instante (y en reposo, sin verde
-  asignado, la primera llegada del acuse también renueva `tRef`). **La marca de rojo confirmado** sigue poniéndose
-  sólo con el acuse: durante el amarillo del otro poste NO consta su rojo.
-- **`CMD_ACK_GREEN` es cierto al recibirse**: el verde se enciende directo (`semaforo_forzarVerde()`) y el acuse sale
-  en la misma vuelta.
-- **El presupuesto de radio, cerrado subiendo el umbral (`D-48`):** `SFTY6_SILENCIO_MS` pasó de 25 a 28 s. El peor
-  caso del ciclo (`PEOR_CASO_CICLO_MS`) es `LATIDO_MS + AMARILLO_MS + CICLO_MAX_REINTENTOS × PASO_RADIO_MS` = 3 + 3 +
-  5 × 3,56 = **23,8 s**: el amarillo entra una vez. Libres bajo el techo, **4,2 s**, como antes de `D-45` (§9 (A)).
-  ~~**(c)** subir el umbral de silencio: vetado por el responsable~~ → **es la salida que decidió `D-48`**; lo
-  vetado sigue siendo BAJARLO (§4). Las otras dos salidas barajadas —**(a)** un reintento menos, **(b)** un acuse
-  de recibo inmediato— no se construyeron.
-- 🔴 **ABIERTO, sin decidir: el borde de la desigualdad (B) de §9.** El `static_assert` junto a
-  `puedeSostenerVerde()` suma `PEOR_CASO_CICLO_MS + TIMEOUT_ACK_MS` = **27,3 s** contra 28, y toma por borde el
-  instante en que cae el ROJO de la suelta (`SFTY6_SILENCIO_MS - TIMEOUT_ACK_MS`). Contada desde el ARRANQUE de la
-  suelta, que empieza un `AMARILLO_MS` antes, la suma es **30,3 s** y no cabe. El `static_assert` de la
-  sincronización (`SYNC_MAX_INTENTOS`) sí mide contra el arranque. Cuál de los dos bordes vale para el ciclo no está
-  decidido.
-- 🔴 **ABIERTO: `ESC:AMARILLO` no se construyó.** `coordinador_estadoEsclavo()` no tiene amarillo: durante el
-  amarillo del Poste 2 (`C_ESPERANDO_ACK_RED` con `quienVerde == QV_ESCLAVO`) publica `ESC:VERDE` hasta el
-  `CMD_ACK_RED` (SPEC 4 §6).
+- **Cada punta enciende SU amarillo** (`semaforo_forzarRojo()` sobre un verde, SPEC 1 §3.2): `CMD_GO_RED` significa
+  «cierra», sin trama nueva; `CMD_GO_AMBAR` sigue siendo el ámbar intermitente.
+- **`CMD_ACK_RED` acusa el ROJO ENCENDIDO.** En la rama de `CMD_GO_RED` del Poste 2, con la luz ya en `S_ROJO` acusa
+  al momento; si no, arma `ackRojoPendiente` y el acuse sale en la vuelta en que el amarillo acabó en rojo (si acabó
+  en ámbar, se olvida). Repetida durante el amarillo, la orden de rojo no lo reinicia ni se acusa; la de verde ni lo
+  reabre ni se acusa (`luz != S_AMARILLO`).
+- **La primera espera de `C_ESPERANDO_ACK_RED` lleva el amarillo dentro:** `TIMEOUT_ACK_MS + AMARILLO_MS` (6,5 s);
+  las siguientes, `TIMEOUT_ACK_MS` (3,5 s).
+- **El todo-rojo empieza con la punta que CIERRA en rojo**: el del Poste 1, desde su rojo estable (`tRef` se renueva
+  al acabar todo amarillo); el del Poste 2, desde el `CMD_ACK_RED`. La marca de rojo confirmado sigue poniéndose sólo
+  con el acuse: durante el amarillo del otro poste NO consta su rojo.
+- **`CMD_ACK_GREEN` es cierto al recibirse**: verde directo y acuse en la misma vuelta (HACE hoy; `D-53` lo cambia,
+  §2.2.ter).
+- **El presupuesto de radio (`D-48`):** `SFTY6_SILENCIO_MS` de 25 a 28 s. `PEOR_CASO_CICLO_MS = LATIDO_MS +
+  AMARILLO_MS + CICLO_MAX_REINTENTOS × PASO_RADIO_MS` = 3 + 3 + 5 × 3,56 = **23,8 s**; libres **4,2 s** (§9 (A)).
+  Lo vetado sigue siendo BAJAR el umbral (§4).
+- 🔴 **ABIERTO: el borde de la desigualdad (B) de §9.** El `static_assert` junto a `puedeSostenerVerde()` suma
+  `PEOR_CASO_CICLO_MS + TIMEOUT_ACK_MS` = **27,3 s** contra 28, con borde en el ROJO de la suelta
+  (`SFTY6_SILENCIO_MS - TIMEOUT_ACK_MS`); desde su ARRANQUE, un `AMARILLO_MS` antes, son **30,3 s** y no cabe. El de
+  `SYNC_MAX_INTENTOS` sí mide contra el arranque. Cuál vale para el ciclo no está decidido.
+- 🔴 **ABIERTO: `ESC:AMARILLO` no se construyó.** Durante el amarillo del Poste 2 `coordinador_estadoEsclavo()`
+  publica `ESC:VERDE` hasta el `CMD_ACK_RED` (SPEC 4 §6).
+
+### 2.2.ter El rojo+amarillo en el diálogo (`D-53`, `N-176`) — HUECO: DECIDIDO, SIN CONSTRUIR
+
+`... despeje -> GO_GREEN -> ROJO+AMARILLO E -> verde E -> ACK_GREEN -> ... -> ACK_RED -> despeje -> ROJO+AMARILLO M ->
+Verde M`. Todo este apartado es lo que el equipo DEBE hacer; el estado y la constante, SPEC 1 §3.3.
+- **Cada punta enciende SU rojo+amarillo** (`semaforo_forzarVerde()`); `CMD_GO_GREEN` sigue diciendo «abre».
+- **`CMD_ACK_GREEN` acusa el VERDE ENCENDIDO**, con el patrón de `CMD_ACK_RED`: con la luz en `S_ROJO_AMARILLO` se
+  arma un acuse pendiente que sale en la vuelta en que pasa a `S_VERDE`; si acaba en otra cosa (rojo, ámbar) se
+  olvida. Repetida durante el rojo+amarillo, la orden ni lo reinicia, ni se acusa, ni refresca `tUltimoComando`
+  (`D-34`, §4); sobre `S_VERDE` re-acusa como hoy. Una orden de rojo durante él da rojo directo y acuse al momento.
+- **La primera espera de `C_ESPERANDO_ACK_GREEN`:** `TIMEOUT_ACK_MS + ROJO_AMARILLO_MS` (5,5 s); luego `TIMEOUT_ACK_MS`.
+- **`ESC:` no cambia:** dice `ROJO` hasta el `CMD_ACK_GREEN`, lo que consta. Pintar el rojo+amarillo del otro poste
+  queda sin decidir, como `ESC:AMARILLO`.
+- 🔴 **El umbral de silencio está ABIERTO (arquitecto, `N-176` R2).** Medido sobre `a5db18e`: el rojo+amarillo
+  retrasa el `CMD_ACK_GREEN` y el amarillo el `CMD_ACK_RED`; son intercambios distintos y entre ellos hay siempre una
+  respuesta, porque el `CMD_GO_GREEN` no sale sin un `CMD_PONG` de menos de `LATIDO_MS` (`D-34`,
+  `C_ESPERA_ESTATICO_TRAS_MASTER`), que renueva el silencio del Maestro (§4). **Si cuenta el mayor:**
+  `PEOR_CASO_CICLO_MS = LATIDO_MS + max(AMARILLO_MS, ROJO_AMARILLO_MS) + CICLO_MAX_REINTENTOS × PASO_RADIO_MS` =
+  3 + 3 + 17,8 = **23,8 s** (el de verde, 22,8 s); (B) 23,8 + 3,5 = **27,3 s ≤ 28**; `SFTY6_SILENCIO_MS` sigue en
+  28 s y la suelta de `D-50` (y `SUELTA_VERDE_MS`) en 28 − 3,5 − 3 = **21,5 s**, con un
+  `static_assert(ROJO_AMARILLO_SEG <= AMARILLO_SEG)` junto al peor caso. **Si se suman:** 3 + 3 + 2 + 17,8 = 25,8 s,
+  (B) 29,3 s, umbral 30 s (margen 0,7 s) y suelta 30 − 3,5 − 3 = 23,5 s. El diseño de construcción propone 31 s
+  (suelta 24,5 s), que no sale de ninguna de las dos cuentas. Subirlo alarga el tiempo que una punta cree que la
+  otra la acompaña; bajarlo sigue vetado (§4).
 
 ### 2.3 Lo que el Poste 2 hace al recibir
 
@@ -162,7 +174,7 @@ producía **más** ámbares en microcortes que se recuperan. **El umbral NO se b
 caiga donde caía el rojo directo: un amarillo contra el ámbar intermitente del otro poste es paso abierto. En el
 Poste 1, `puedeSostenerVerde()` suma `TIMEOUT_ACK_MS + AMARILLO_MS` (la suelta a 21,5 s de silencio, el rojo a
 24,5 s); en el Poste 2, `SUELTA_VERDE_MS = SFTY6_SILENCIO_MS - AVISO_AMBAR_TIMEOUT_MS - AMARILLO_SEG × 1000`, sólo con
-la luz en `S_VERDE`.
+la luz en `S_VERDE` (HUECO `D-53`: también en `S_ROJO_AMARILLO`, que vuelve a rojo directo; SPEC 1 §3.3 (3)).
 **Lo que ese margen NO cubre —el verde de la OTRA punta cuando ésta ya cayó— es §9.** **Vuelta del enlace**
 (`SFTY-9`): se reencolan la hora y la configuración, se fuerza rojo, se pide el rojo del otro lado y **se espera su
 acuse** antes de contar despeje; tras una suelta por margen se reanuda por esa misma puerta, porque un todo-rojo de
@@ -174,7 +186,7 @@ anclas se desfasaban por el otro lado: ~~el Maestro cuenta desde lo último que 
 **repetición** de la orden de verde. Hoy, en las dos puntas:
 
 - **Una repetición de la orden de verde no refresca el silencio del Esclavo**: sólo la que encuentra la luz fuera de
-  verde y de amarillo, o sea la que abre.
+  verde y de amarillo (y, con `D-53`, de rojo+amarillo), o sea la que abre.
 - **El Esclavo suelta su verde un acuse y un `AMARILLO_SEG` ANTES de su silencio**, cierra por su amarillo y lo dice
   en el parámetro de su respuesta al latido; **no lo borra el latido**, sólo una orden de luz.
 - **El Maestro no entrega la orden de verde sin una RESPUESTA de la otra punta en el último latido** —en esa espera el
@@ -184,15 +196,12 @@ anclas se desfasaban por el otro lado: ~~el Maestro cuenta desde lo último que 
 - **Al oír ese aviso con el cruce quieto, el Maestro reanuda por la misma puerta de `N-163`**: rojo, acuse, despeje, y
   su propio verde.
 - **Con la subida Esclavo→Maestro muerta y la bajada viva, la suelta del verde del Poste 2 la hace el Poste 1**
-  (condición 1 del arquitecto, 02/10; construido, sin banco). Los latidos le renuevan el silencio al Esclavo y su
-  propia suelta no actúa. Con el verde en el Poste 2 (`QV_ESCLAVO`, en reposo) y sin respuesta durante
-  `SFTY6_SILENCIO_MS - TIMEOUT_ACK_MS - AMARILLO_MS` (21,5 s; `D-50`) —igual que `puedeSostenerVerde()`—, el Poste 1
-  **pide su rojo en ese instante** (`CMD_GO_RED` ya; el latido lo repite a su cadencia mientras el rojo no conste),
-  marca la suelta por margen y sale a reposo. **No entra en ámbar hasta que vence la ventana** `TIMEOUT_ACK_MS +
-  AMARILLO_MS` desde esa orden, que por construcción acaba en el umbral: el ámbar sigue a `SFTY6_SILENCIO_MS` y el
-  Poste 2 ya está en rojo. Antes el `GO_RED` salía al entrar en ámbar: un viaje en verde y 3 s de amarillo contra el
-  ámbar. **No cubre** la pérdida de esos `GO_RED`: el Poste 2 sigue en verde hasta su orfandad, contada desde la
-  última trama que le llegó, como antes. Lo ejerce `G1` del arnés de dos puntas, con el amarillo contado como paso.
+  (`D-50`; construido, sin banco): los latidos le renuevan el silencio al Esclavo y su suelta no actúa. Con el verde
+  en el Poste 2 (`QV_ESCLAVO`, en reposo) y sin respuesta durante `SFTY6_SILENCIO_MS - TIMEOUT_ACK_MS - AMARILLO_MS`
+  (21,5 s, como `puedeSostenerVerde()`), el Poste 1 **manda `CMD_GO_RED` en ese instante** (el latido lo repite
+  mientras el rojo no conste), marca la suelta y sale a reposo; la ventana `TIMEOUT_ACK_MS + AMARILLO_MS` acaba en el
+  umbral, así que el ámbar llega con el Poste 2 ya en rojo. **No cubre** la pérdida de esos `GO_RED`: el Poste 2
+  sigue en verde hasta su orfandad. Lo ejerce `G1` del arnés de dos puntas, con el amarillo contado como paso.
 
 **Lo que cuesta**: un microcorte que vuelve justo en ese margen da un rojo y un despeje de más, nunca un ámbar; y con
 enlace malo la entrega del verde se retrasa un latido por cada respuesta perdida, sin pasar del umbral de silencio.
@@ -264,22 +273,19 @@ salida programada (§7.quater) · **el regreso
 de la radio**, sólo con tramas de **gobierno** · **el límite duro** sin sincronización, con su aviso previo · y la
 **la hora no fiable**. **El límite acaba en ámbar y sólo el Esclavo pasa por el despeje** (**SPEC 6 A.4**); **la hora
 no fiable acaba en ROJO FIJO en las dos** (`D-38`, `irARojoSinHora()`; SPEC 3 §5). De ninguno de los dos se sale solo.
-**La salida del operario en el Poste 1** (`f6ef03d`; construido, sin banco): `SET_MODO:MENU` es la salida por su
-todo-rojo (SPEC 4 §3.1); `FORZAR_ROJO` dejó de serlo (abajo). El rojo de emergencia no arranca el amarillo dentro del
-modo ni manda `GO_RED` desde el Degradado: el ciclo por reloj volvía a abrir el verde y ese `GO_RED` sacaba al Esclavo
-de su Degradado con el Maestro todavía en él.
-**Cambio del responsable, 04/10 tarde (construido el 04/10, `a4545bb`, sin banco; §7.quater):** `FORZAR_ROJO` dentro del
-Degradado es **rojo fijo inmediato en ese poste** (`DEG_ROJO_SIN_HORA`, `D-38`) y deja de ser la salida; se sale con la
-salida programada (`D-52`) o con `SET_MODO:MENU`, que sigue siendo la salida inmediata del poste conectado.
-Al Esclavo lo saca el latido del Maestro ya fuera del modo, si hay radio; sin ella sigue en Degradado (§7.ter, punto 5)
-hasta su salida programada (§7.quater).
-**Desde `cda33df` (`N-174`, sin banco):** el rojo fijo sobrevive a un corte (`D-47`, `FLAG_ROJO_SIN_HORA`) y
-alcanza también al reloj que se congela en marcha (`D-49`), que antes iba a ámbar; los dos, en SPEC 3 §5.
-**Todo paso de verde a rojo del Degradado lleva su amarillo** (`D-45`), porque todos pasan por
-`semaforo_forzarRojo()`: el fin de la fase propia (lo da la fase, §8 (e)), el salto de hora, la entrada con un verde
-encendido, las cuatro salidas, el rojo fijo sin hora y la caída a ámbar (`irAAmbar()`: amarillo, el rojo y, un par de
-segundos después, el parpadeo). Mientras dura el amarillo se renueva el reloj de esos todo-rojo (`tEstado`,
-`tCambioEstado`), y la puerta del testigo rechaza también durante él. Las dos puntas abren su verde DIRECTO.
+**La salida del operario en el Poste 1** (`f6ef03d`, sin banco) es `SET_MODO:MENU`, por su todo-rojo (SPEC 4 §3.1).
+El rojo de emergencia no manda `GO_RED` desde el Degradado: sacaba al Esclavo de su Degradado con el Maestro en él.
+**`FORZAR_ROJO` dentro del Degradado** (`D-51`, `a4545bb`, sin banco; §7.quater) es **rojo fijo inmediato en ese
+poste** (`DEG_ROJO_SIN_HORA`, `D-38`), no la salida; se sale con la salida programada (`D-52`) o con `SET_MODO:MENU`.
+Al Esclavo lo saca el latido del Maestro ya fuera del modo; sin radio sigue en Degradado hasta su salida programada.
+El rojo fijo sobrevive a un corte (`D-47`) y alcanza al reloj que se congela en marcha (`D-49`): SPEC 3 §5.
+**Todo paso de verde a rojo del Degradado lleva su amarillo** (`D-45`, `cda33df`), porque todos pasan por
+`semaforo_forzarRojo()`: el fin de la fase propia (§8 (e)), el salto de hora, la entrada con un verde encendido, las
+cuatro salidas, el rojo fijo sin hora y la caída a ámbar (`irAAmbar()`: amarillo, rojo y el parpadeo). Mientras dura
+el amarillo se renueva el reloj de esos todo-rojo (`tEstado`, `tCambioEstado`) y la puerta del testigo rechaza. Las
+dos puntas abren su verde DIRECTO (HACE hoy). **HUECO `D-53`:** abren por rojo+amarillo (§8 (e.ter)); `FORZAR_ROJO`,
+`D-38`, `D-49`, las salidas y el salto de hora durante él dan rojo DIRECTO, sin amarillo, porque no hubo verde
+(SPEC 1 §3.3 (3)); la puerta del testigo rechaza también durante él (`MDT_EN_VERDE`, `DEG_RECHAZO_T_EN_VERDE`).
 
 ## 7.bis EL DEGRADADO CON TESTIGO — segunda puerta, para cuando la radio no vuelve en semanas (`D-35`)
 
@@ -831,52 +837,52 @@ falta hora · nunca hubo sincronización · sincronización vieja · **falta con
 ciclo; **se añadió porque faltaba**, y sin él el Maestro daba verde por reloj mientras el Esclavo rechazaba y caía a
 ámbar por orfandad— · falta desfase · desfase alto.
 
-> 🔴 **(d) LOS DOS UMBRALES DE SINCRONIZACIÓN SON DISTINTOS POR PUNTA: LA MISMA ORDEN PUEDE ENTRAR EN UNA Y SER
-> RECHAZADA EN LA OTRA.** El Poste 1 exige **frescura** (`SYNC_FRESCA_MS`); el Poste 2 sólo exige que **haya habido
-> alguna** y que **no haya vencido el límite duro** (`LIMITE_SIN_SYNC_MS`). **La frescura es un plazo mucho más
-> corto**, así que entre los dos el Poste 2 acepta `SET_MODO:DEGRADADO` y el Poste 1 lo rechaza por sincronización
-> vieja: **una punta en Degradado dando verde por reloj y la otra en su ciclo normal**, que se irá a ámbar por
-> orfandad — el mismo escenario que la falta de configuración cierra en el sentido contrario, **abierto en éste**.
-> **El firmware no cruza esos dos números: no hay `static_assert` que los relacione, y viven en proyectos
-> distintos.** ⬇️ ~~ni pack~~ → **medido el 14/09: el pack `costura_05_limite_48h` SÍ los lee los dos y reproduce la
-> separación**, pero **certifica que el hueco sigue ahí; no lo cierra ni hace fallar a nadie** (HUECO 7).
+> 🔴 **(d) LOS DOS UMBRALES DE SINCRONIZACIÓN SON DISTINTOS POR PUNTA.** El Poste 1 exige **frescura**
+> (`SYNC_FRESCA_MS`); el Poste 2, que **haya habido alguna** y que **no haya vencido el límite duro**
+> (`LIMITE_SIN_SYNC_MS`), un plazo mucho más largo: la misma orden puede entrar en el Poste 2 y rechazarse en el 1, y
+> dejar **una punta en Degradado dando verde por reloj y la otra en su ciclo normal**, que se irá a ámbar por orfandad.
+> **El firmware no cruza esos dos números** (no hay `static_assert`, viven en proyectos distintos); el pack
+> `costura_05_limite_48h` los lee y reproduce la separación, pero no falla por ella (HUECO 7). Desde `D-46` ninguna
+> orden llega a estas dos puertas; la del Poste 2 (`degradado_entrar()`) la sigue usando su reanudación.
 > `grep -n "SYNC_FRESCA_MS\|LIMITE_SIN_SYNC_MS" 01_Firmware/{Maestro,Esclavo}/src/modo_degradado.cpp`
-> ⬇️ **Desde `D-46` (`f9cad1f`) ninguna orden llega a estas dos puertas** —`SET_MODO:DEGRADADO` salió de las dos
-> puntas—; los dos números siguen sin cruzarse y la del Poste 2 (`degradado_entrar()`) la sigue usando su reanudación.
 
 **(e) El cálculo de fase — la misma función, no dos que «hacen lo mismo».** Vive en una cabecera compartida **que debe
-ser idéntica** (lo compara `costura_01_contratos`): **posición = segundos del día módulo el ciclo, con ciclo = 2 ×
-(verde + `AMARILLO_SEG` + despeje)** (desde `D-45`, (e.bis)), **anclada a la HORA DE PARED y no a un contador
-propio** —dos equipos encendidos con un minuto de diferencia arrancarían desfasados un minuto entero—. **El orden lo
-fija la función y no se negocia: la posición 0 es
-el verde del Maestro, o sea que EL POSTE 1 TIENE EL VERDE PRIMERO**, y detrás van su amarillo, despeje, verde del
-Esclavo, su amarillo y despeje. **Guarda de medianoche:** el último tramo del día y el primero del siguiente son
-**siempre despeje**, porque a las 00:00:00 la posición salta y ese salto puede caer en mitad de un verde y saltarse el
-todo-rojo. **Y la
-configuración imposible tiene respuesta escrita:** con verde o despeje a cero devuelve despeje —todo-rojo—, no un
-caso «que no debería pasar».
+ser idéntica** (lo compara `costura_01_contratos`): **posición = segundos del día módulo el ciclo**, con el ciclo de
+(e.bis) y, con `D-53`, el de (e.ter), **anclada a la HORA DE PARED y no a un contador propio** —dos equipos
+encendidos con un minuto de diferencia arrancarían desfasados un minuto entero—. **El orden lo fija la función y no se
+negocia: EL POSTE 1 TIENE EL VERDE PRIMERO.** **Guarda de medianoche:** el último tramo del día y el primero del
+siguiente son **siempre despeje**, porque a las 00:00:00 la posición salta y puede caer en mitad de un verde. **La
+configuración imposible tiene respuesta escrita:** con verde o despeje a cero devuelve despeje —todo-rojo—.
 
 > **(e.bis) El amarillo en la fase (`D-45`, `N-174`) — CONSTRUIDO en `cda33df`, SIN BANCO.**
-> - **Seis fases por punta, en este orden** (`FaseDegradado`): `FD_VERDE_MAESTRO`, `FD_AMARILLO_MAESTRO`,
->   `FD_DESPEJE_A`, `FD_VERDE_ESCLAVO`, `FD_AMARILLO_ESCLAVO`, `FD_DESPEJE_B`. **Ciclo = 2 × (verde + `AMARILLO_SEG`
->   + despeje)**: el verde y el despeje no se tocan. Cada punta enciende su amarillo en la fase suya —el Poste 2 aplica
->   `aplicarLuz(calcularFase() == FD_VERDE_ESCLAVO)`, y el `false` llega como `semaforo_forzarRojo()` sobre un verde—;
->   la otra sigue en rojo. `ciclo_degradado_faseCruda()` da la fase de una posición sin guardas.
-> - **Guarda de medianoche, con amarillo.** El último tramo del día y el primero del siguiente siguen siendo
->   despeje. En los `AMARILLO_SEG` previos al tramo final, la punta que estaba en verde al empezar esa ventana está en
->   su amarillo y un verde que empezaría dentro no se enciende; un amarillo cuyo verde acabó dentro del tramo inicial
->   sale como despeje. «Venía de verde» se calcula sobre la hora de pared, no se recuerda.
->   `ciclo_degradado_restante()` cuenta las mismas fronteras. Lo ejerce la fila 15 (`arnes_ciclo.cpp`: todo verde
->   acaba en el amarillo de su punta, de `AMARILLO_SEG` enteros, y éste en despeje).
-> - **El margen de desfase entre relojes es el despeje en los dos sentidos.** Antes el sentido favorable aguantaba
->   más por el ámbar con que abría el Poste 2; sin él, la fila 19 (bloque C, `C3`/`C4`) asevera que con el Esclavo
->   atrasado el cruce rompe exactamente en el despeje ampliado y con el Esclavo adelantado sólo un segundo más (el
->   residuo de la hora en segundos enteros), contando el amarillo del otro como paso abierto. `costura_12` se
->   invirtió en el mismo commit. **Sin acta de compuerta sobre `cda33df`.**
-> - 🔴 **Las dos puntas tienen que llevar `D-45` A LA VEZ.** Un Poste 1 con la fase nueva y un Poste 2 con la anterior
->   calculan ciclos de duración distinta sobre la misma hora y se desfasan en cada vuelta: **verde contra verde** al
->   cabo de pocas vueltas. La cabecera idéntica (`costura_01_contratos`) lo vigila en el árbol, no en los equipos:
->   ninguna trama compara la versión cargada. **Se cargan las dos en la misma visita**, y en campo manda `ESTADO.md`.
+> - **Seis fases** (`FaseDegradado`): `FD_VERDE_MAESTRO`, `FD_AMARILLO_MAESTRO`, `FD_DESPEJE_A`, `FD_VERDE_ESCLAVO`,
+>   `FD_AMARILLO_ESCLAVO`, `FD_DESPEJE_B`. **Ciclo = 2 × (verde + `AMARILLO_SEG` + despeje)**. Cada punta enciende su
+>   amarillo en su fase (el Poste 2, `aplicarLuz(calcularFase() == FD_VERDE_ESCLAVO)`; el `false` es
+>   `semaforo_forzarRojo()` sobre un verde). `ciclo_degradado_faseCruda()` da la fase sin guardas.
+> - **Medianoche, con amarillo:** en los `AMARILLO_SEG` previos al tramo final la punta que estaba en verde está en su
+>   amarillo y un verde que empezaría dentro no se enciende; un amarillo cuyo verde acabó dentro del tramo inicial sale
+>   como despeje. `ciclo_degradado_restante()` cuenta las mismas fronteras. Lo ejerce la fila 15 (`arnes_ciclo.cpp`).
+> - **El margen de desfase entre relojes es el despeje en los dos sentidos** (con el Esclavo adelantado, un segundo
+>   más: la hora va en segundos enteros); la fila 19 (`C3`/`C4`) lo asevera contando el amarillo del otro como paso.
+> - 🔴 **Las dos puntas llevan `D-45` A LA VEZ:** con fases distintas los ciclos duran distinto sobre la misma hora y se
+>   desfasan en cada vuelta, **verde contra verde**. `costura_01_contratos` lo vigila en el árbol, no en los equipos.
+>   **Se cargan las dos en la misma visita**; en campo manda `ESTADO.md`.
+
+> **(e.ter) El rojo+amarillo en la fase (`D-53`, `N-176`) — HUECO: DECIDIDO, SIN CONSTRUIR.**
+> - **Ocho fases, en este orden:** `FD_ROJO_AMARILLO_MAESTRO`, `FD_VERDE_MAESTRO`, `FD_AMARILLO_MAESTRO`,
+>   `FD_DESPEJE_A`, `FD_ROJO_AMARILLO_ESCLAVO`, `FD_VERDE_ESCLAVO`, `FD_AMARILLO_ESCLAVO`, `FD_DESPEJE_B`. **Ciclo =
+>   2 × (`ROJO_AMARILLO_SEG` + verde + `AMARILLO_SEG` + despeje)**, idéntico en las dos puntas; la posición 0 es el
+>   rojo+amarillo del Poste 1. Verde y despeje no se tocan.
+> - **El rojo+amarillo va DESPUÉS del despeje y no lo consume.** El margen de desfase sigue siendo el despeje: el
+>   rojo+amarillo no abre paso, pero no se cuenta como margen.
+> - **El verde propio son las dos fases, rojo+amarillo y verde:** en ellas la punta llama a `semaforo_forzarVerde()`
+>   (hoy el Poste 1 sólo en `FD_VERDE_MAESTRO`), y el semáforo pone el rojo+amarillo y el verde a los
+>   `ROJO_AMARILLO_SEG`. Fuera de ellas, rojo.
+> - **Ningún verde se enciende sin su rojo+amarillo, aunque la fase salte a verde** (inicio del día, entrada, salto
+>   de hora): lo garantiza el semáforo, no la fase, y el rojo+amarillo sale del principio de ese verde.
+> - **Medianoche:** un rojo+amarillo cuyo verde no se va a encender sale como despeje; `ciclo_degradado_restante()`
+>   cuenta las mismas fronteras y su tope suma el rojo+amarillo.
+> - 🔴 **Firmware mixto entre postes = desfase**, como `D-45`: los dos postes se cargan con `D-53` en la misma visita.
 
 ## 9. LOS DOS RELOJES Y LOS DOS PRESUPUESTOS — todos cierran sobre el umbral de silencio
 
@@ -899,30 +905,29 @@ ANTES que el de la quietud**, y no por accidente: `costura_09` **exige** que el 
 orfandad o los últimos reintentos serían código muerto (`N-71`). **Esa desigualdad abre el HUECO 5.**
 
 **Y sobre el MISMO techo se apoyan dos cuentas que NO se pueden comparar, porque miden contra bordes distintos**
-(`CLAUDE.md` §7). **(A) El presupuesto asignable:** lo que queda libre bajo el techo de orfandad **crudo** tras el peor
-caso del ciclo —la cadencia del latido, el amarillo de cierre del Esclavo (`D-45`) y todos los reintentos con su
-tiempo de cable: 23,8 s de 28, libres 4,2 s (§2.2.bis)—, y lo recalcula `costura_09` leyendo las constantes del
-C++; *su borde* es que quien primero llega manda, y es el ámbar por orfandad. **(B) La desigualdad del punto de
-suelta:** el mismo peor caso **más lo que dura un acuse** (27,3 s de 28; 🔴 su borde está
-abierto: el rojo de la suelta o su arranque, §2.2.bis); **NO es un presupuesto y su holgura
-NO es de nadie**, su borde es el instante en que esta punta suelta el verde, y dice que adelantar la suelta no puede
-recortar el presupuesto de reintentos. **No se restan ni comparten holgura**, y un tercer consumidor se mide contra
-**(A)**. **Contra el borde de (B) se mide también el intercambio de hora** (1.49c): mientras corre, el latido está
-suprimido y sus acuses **no renuevan** el silencio del Maestro, así que la cadencia del latido más todos sus intentos
-tienen que caber antes del punto de suelta del verde —si no, un intercambio con lluvia soltaría el verde con el
-Esclavo contestando—. Lo exige un `static_assert` junto a `SYNC_MAX_INTENTOS`, que desde `D-45` mide contra el
+(`CLAUDE.md` §7). **(A) El presupuesto asignable:** lo que queda libre bajo el techo de orfandad **crudo** tras el
+peor caso del ciclo —la cadencia del latido, el amarillo de cierre del Esclavo (`D-45`) y todos los reintentos con su
+tiempo de cable: 23,8 s de 28, libres 4,2 s (§2.2.bis); si el rojo+amarillo de `D-53` lo mueve está abierto
+(§2.2.ter)—, y lo recalcula `costura_09` leyendo las constantes del C++; *su borde* es que quien primero llega manda,
+y es el ámbar por orfandad. **(B) La desigualdad del punto de suelta:** el mismo peor caso **más lo que dura un
+acuse** (27,3 s de 28; 🔴 su borde está abierto: el rojo de la suelta o su arranque, §2.2.bis); **NO es un presupuesto
+y su holgura NO es de nadie**, su borde es el instante en que esta punta suelta el verde, y dice que adelantar la
+suelta no puede recortar el presupuesto de reintentos. **No se restan ni comparten holgura**, y un tercer consumidor
+se mide contra **(A)**. **Contra el borde de (B) se mide también el intercambio de hora** (1.49c): mientras corre, el
+latido está suprimido y sus acuses **no renuevan** el silencio del Maestro, así que la cadencia del latido más todos
+sus intentos tienen que caber antes del punto de suelta del verde —si no, un intercambio con lluvia soltaría el verde
+con el Esclavo contestando—. Lo exige un `static_assert` junto a `SYNC_MAX_INTENTOS`, que desde `D-45` mide contra el
 ARRANQUE de la suelta (un `AMARILLO_MS` antes del rojo), y `costura_09` lo recalcula. **El tiempo de aire** —las
-copias de la ráfaga por la tasa aérea— **está escrito A MANO en el coordinador como tiempo de cable y NO se deriva
-de ningún parámetro de la radio** (`ENVIO_TRAMA_MS`); `costura_09` lleva el mismo valor a la vista y por el mismo
-motivo. Los parámetros del módulo son de **SPEC 6 §B**, y aquí sólo se exige que las
-dos puntas y el repetidor estén configurados igual o el CRC no casa. **Subir el umbral de silencio sin mover los
-reintentos por su plazo ensancha el HUECO 5** — el compromiso que `T-2` resolvió en campo: **SPEC 6 D.**
+copias de la ráfaga por la tasa aérea— **está escrito A MANO en el coordinador como tiempo de cable y NO se deriva de
+ningún parámetro de la radio** (`ENVIO_TRAMA_MS`); `costura_09` lleva el mismo valor a la vista y por el mismo motivo.
+Los parámetros del módulo son de **SPEC 6 §B**, y aquí sólo se exige que las dos puntas y el repetidor estén
+configurados igual o el CRC no casa. **Subir el umbral de silencio sin mover los reintentos por su plazo ensancha el
+HUECO 5** — el compromiso que `T-2` resolvió en campo: **SPEC 6 D.**
 
 ## 10. QUIÉN EJERCE CADA BARRERA DE ESTE DOCUMENTO
 
-> **Una spec puede describir barreras que ningún compilador ejerce, con UNA condición: que cada barrera lleve escrito QUIÉN
-> la ejerce.** El criterio es `CLAUDE.md` §6.3 — **¿algún arnés COMPILA ese `.cpp`?**; si sólo lo lee por texto no ve un
-> defecto del TIEMPO. Filas = compuerta; reparto de `.cpp`, `ARQUITECTURA.map` §4-5. Medido sobre `ef3504c`.
+> **Cada barrera lleva escrito QUIÉN la ejerce** (`CLAUDE.md` §6.3: ¿algún arnés COMPILA ese `.cpp`?). Filas =
+> compuerta; reparto de `.cpp`, `ARQUITECTURA.map` §4-5. Medido sobre `ef3504c`.
 
 | barrera | quién la EJERCE hoy |
 |---|---|
@@ -938,18 +943,18 @@ reintentos por su plazo ensancha el HUECO 5** — el compromiso que `T-2` resolv
 | §8 (c) la puerta del Degradado del Maestro | ✅ **fila 19**: su adaptador llama a las dos consultas del coordinador real |
 | §8 (d) el cruce de los dos umbrales de sincronización | 🔴 **NADIE lo cierra** — un pack lo mide y lo publica, pero no falla por él (HUECO 7) |
 | §2.2.bis y §8 (e.bis) el amarillo de cierre en la radio y en la fase (`D-45`) | ✅ **filas 18 y 19** (el orden de la luz en las dos puntas, el amarillo del Poste 2 ante la orden de rojo, la suelta adelantada, la fase de seis tramos dentro del modo) y **15** (la fase pura); invertidas en `cda33df`. El presupuesto, `costura_09` por texto. Sin acta de compuerta sobre `cda33df` |
+| §2.2.ter y §8 (e.ter) el rojo+amarillo en la radio y en la fase (`D-53`) | 🔴 **NADIE: sin construir** (`N-176`). Las filas 15, 18 y 19 aseveran hoy la apertura directa y el ciclo de seis fases: se invierten |
 | §7.quater la salida programada y el rojo total del Degradado (`D-52`, `D-51` corregida) | 🔴 **Construido el 04/10 (`a4545bb`), sin banco.** Pruebas en PC en el bloque `J`; los cinco casos de banco de (i) (reanudación con salida incluida) los cierra el banco |
 
-**Cuenta: ~~16 barreras — 11 ejecutadas, 4 sin nadie, 1 partida~~ 17 barreras — 12 ejecutadas, 4 sin nadie, 1
-partida** *(02/10: entra `D-45`, ejecutada desde `cda33df`)* (la barrera de salidas, ejecutada en una punta y de
-texto en la otra). Los rojos del CRC, de la vuelta del enlace y de la supresión del latido **no son tres casillas
-pendientes**: apuntan al fichero de protocolo y al coordinador fuera del ciclo — es el mismo hueco visto tres veces.
+**Cuenta: 18 barreras — 12 ejecutadas, 5 sin nadie, 1 partida** *(05/10: entra `D-53`, sin construir)* (la barrera de
+salidas, ejecutada en una punta y de texto en la otra). Los rojos del CRC, de la vuelta del enlace y de la supresión
+del latido **no son tres casillas pendientes**: apuntan al fichero de protocolo y al coordinador fuera del ciclo — es
+el mismo hueco visto tres veces.
 
 ## HUECOS MEDIDOS
 
-1. 🟢 **CERRADOS dos:** el número de reintentos del aviso de ámbar está **elegido, no derivado**; y el veto sobre la
-   orden de verde es hoy sólo el de la app (§2.3): el mando salió (`D-30`). **No** cierra que `J16` p5/p8 sigan vacíos
-   y leídos (SPEC 5 §3) hasta `D-44` (SPEC 1 §12.2).
+1. 🟢 **CERRADOS:** los reintentos del aviso de ámbar están **elegidos, no derivados**; el veto sobre la orden de verde
+   es sólo el de la app (§2.3, `D-30`); `J16` p5/p8, con `D-44` (SPEC 1 §12.2).
 2. 🔴 **Los dos presupuestos de radio no casan sobre el mismo techo: fila pendiente, no detalle.** §9 los separa por su
    borde; **elegir el modelo sigue sin hacerse**.
 3. ⚠️ **El acuse de rojo no lleva a qué orden contesta** —escrito en el propio coordinador—: un acuse retenido en el
@@ -960,10 +965,8 @@ pendientes**: apuntan al fichero de protocolo y al coordinador fuera del ciclo �
    STM32** (`D-21`), y el Degradado se autoriza sobre una comprobación que no lo ve (**SPEC 3, H-2**). Y **nada de este
    capítulo ha visto una tarjeta**: el acuse del aviso, el salto de hora por rojo, el evento periódico y el ancla de
    respuesta del silencio del Maestro (§4, 1.49c) están en `main` **SIN BANCO**, y qué corre en cada equipo lo dice `ESTADO.md`.
-5. 🟢 **CERRADO en el fuente (`D-34`, 15/09) — el número se queda.** ~~Nadie mira la luz de la otra punta entre los
-   dos vencimientos~~ → medido en el arnés de dos puntas: hasta 23 s de ámbar del Maestro contra verde del Esclavo, y
-   el mecanismo no eran los reintentos sino las anclas (`roadmap` 1.39). Lo que el equipo hace ahora está en **§4**;
-   las filas `G12`–`G14` lo vigilan. **Sin banco: sigue sin haberse visto en una tarjeta.**
+5. 🟢 **CERRADO en el fuente (`D-34`) — el número se queda.** El mecanismo eran las anclas, no los reintentos
+   (`roadmap` 1.39); lo que hace el equipo, §4, con `G12`–`G14`. **Sin banco.**
 6. 🟡 **LA REANUDACIÓN AUTOMÁTICA NO SE ANUNCIA; EL CORTE, SÍ, Y SÓLO SI APAGÓ EL ESP32** (§7). La app abre el
    cartel de corte con el parte de arranque del puente (`js/aviso_corte.js`, causa de subida de tensión) y el
    `MODO:` del `$STATUS`; **no lo abre** un reinicio del STM32 solo (watchdog), y el parte no trae la hora del corte.
@@ -973,15 +976,12 @@ pendientes**: apuntan al fichero de protocolo y al coordinador fuera del ciclo �
    hay `static_assert`, las dos constantes viven en proyectos distintos, y el pack que sí las lee **reproduce la
    separación y la publica como residual: mide el hueco, no lo tapa. Es el hueco más grande del acuerdo de §8**, porque
    lo que falla no es la radio: es la puerta.
-8. 🟢 ~~**EL DEGRADADO CON TESTIGO (§7.bis, `D-35`) NO EXISTE: CERO CÓDIGO.**~~ → construido (`990c278`) y probado en
-   banco (`4a2c73c`). Su vencimiento de 31 días está quitado (`1a78873`, §7.ter (d)).
-9. 🔴 **EL DEGRADADO AUTOMÁTICO (§7.ter, `A-15`) ESTÁ CONSTRUIDO Y SIN BANCO** (`a0d605b`, `1a78873`): sólo lo mide el
-   arnés de PC. Sus riesgos residuales, §7.ter (f), son decisión del responsable; (f).1 está medido.
-10. 🟡 **EL AMARILLO DE CIERRE (`D-45`, `N-174`) ESTÁ CONSTRUIDO EN `cda33df`, SIN BANCO** (§2.2.bis, §4, §7,
-   §8 (e.bis)), con el umbral a 28 s (`D-48`) como salida al presupuesto de radio. 🔴 **Abiertos:** el borde de la
-   desigualdad (B) (27,3 s contra el rojo de la suelta, 30,3 s contra su arranque; §2.2.bis, §9), `ESC:AMARILLO`
-   sin construir (§2.2.bis). El arranque en rojo fijo sin hora (`D-47`) lo ejercen `F2.5`, `F2.6` y `F3.5` del
-   arnés del Degradado (SPEC 3 §5). Símbolos e instrumentos, SPEC 1 §12.10.
-11. 🔴 **LA SALIDA PROGRAMADA (`D-52`) Y EL ROJO TOTAL CORREGIDO (`D-51`) ESTÁN CONSTRUIDOS, SIN BANCO** (§7.quater,
-   `a4545bb`). Falta el banco con dos tarjetas (i); el cobre y el relé no se tocan. Los riesgos nuevos, §7.quater (h),
-   son del responsable.
+8. 🟢 **El Degradado con testigo (§7.bis, `D-35`):** construido (`990c278`), en banco (`4a2c73c`), sin vencimiento.
+9. 🔴 **EL DEGRADADO AUTOMÁTICO (§7.ter, `A-15`): CONSTRUIDO, SIN BANCO**; riesgos residuales del responsable, (f).
+10. 🟡 **EL AMARILLO DE CIERRE (`D-45`) ESTÁ CONSTRUIDO EN `cda33df`, SIN BANCO** (§2.2.bis, §4, §7, §8 (e.bis)), con
+   el umbral a 28 s (`D-48`). 🔴 **Abiertos:** el borde de (B) y `ESC:AMARILLO` (§2.2.bis). `D-47` lo ejercen `F2.5`,
+   `F2.6` y `F3.5` (SPEC 3 §5). Símbolos, SPEC 1 §12.10.
+11. 🔴 **LA SALIDA PROGRAMADA (`D-52`) Y EL ROJO TOTAL (`D-51`): CONSTRUIDOS (`a4545bb`), SIN BANCO** (§7.quater):
+   falta el banco con dos tarjetas (i); los riesgos de (h) son del responsable.
+12. 🔴 **EL ROJO+AMARILLO (`D-53`, `N-176`): DECIDIDO, SIN CONSTRUIR** (§2.2.ter, §7, §8 (e.ter); SPEC 1 §3.3). Hoy
+   se abre directo. **Abierto (arquitecto):** el umbral de silencio y la suelta de `D-50` (§2.2.ter: 28, 30 o 31 s).

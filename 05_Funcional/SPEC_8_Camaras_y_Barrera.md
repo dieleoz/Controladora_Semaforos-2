@@ -45,6 +45,11 @@ camara, y lo que hace con ella tiene una sola direccion:
   `PLUMA_RETARDO_BAJADA_MS` contra `DESPEJE_SEG_MIN` no cambia, porque el
   amarillo no resta despeje: tras cada verde la pluma queda arriba `AMARILLO_SEG` mas el retardo, y el otro poste
   sigue abriendo un despeje entero despues del rojo.
+- **HUECO (`D-53`, `N-176`; decidido, sin construir): durante el ROJO+AMARILLO previo a cada verde la pluma sigue
+  ABAJO y SUBE con el VERDE real.** `luzPideArriba` no gana termino: mira el verde ya enclavado, y en
+  `S_ROJO_AMARILLO` no hay verde (SPEC 1 §3.3 (7)). El rojo+amarillo va despues del despeje del otro poste y no lo
+  acorta, asi que la bajada y su `static_assert` no cambian. Si el rojo+amarillo acaba en rojo (orden de rojo, perdida
+  de radio), la pluma no se ha movido.
 - **Pasado el retardo, CUALQUIERA de las dos camaras del poste VETA la bajada** mientras siga viendo
   algo. Sin consenso: con un AND, una camara muerta anularia el veto para siempre.
 - **Al soltarse el veto el firmware baja en el instante, pero la camara mantiene su alarma 5 s tras el evento**

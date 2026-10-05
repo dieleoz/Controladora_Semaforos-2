@@ -105,7 +105,7 @@ prometia rojo y hacia ambar con la talanquera arriba. Lo rechaza **nombrando el 
 | `SET_MODO:DEG_T:ahora,inicio,verde,despeje` | si | Construido (`990c278`; `D-35`, SPEC 2 §7.bis). **La unica orden de entrada al Degradado.** Puerta paralela a `modo_degradado_evaluarEntrada()`, sin sync de radio: `$ERR ... DESC:<texto>` (`modo_degradado_textoTestigo()`) por `MDT_FALTA_HORA`, `MDT_AHORA_DESFASADO` (`TOLERANCIA_TESTIGO_S`), `MDT_DESPEJE_RANGO`, `MDT_INICIO_VENCIDO`, `MDT_AMBAR_VIGENTE`, `MDT_EN_VERDE`, `MDT_NO_GUARDADO`; `RESULT:OK` / `RESULT:RENOVADO`. Con salida programada (`D-52`): `$ERR ... DESC:Cancele antes la salida programada` |
 | `SET_DEG_AUTO:1` / `SET_DEG_AUTO:0` | si | Construido (`A-15`, SPEC 2 §7.ter (a)). **El `$ACK` sale DIFERIDO**, cuando el `ECO` del otro poste refleja el cambio: `RESULT:ON_EFECTIVO` (el otro tambien apto) / `RESULT:ON_FALTA_EL_OTRO_POSTE` / `RESULT:OFF`. Rechazos: `$ERR ... SIN_ENLACE_CON_EL_OTRO_POSTE` · `EN_DEGRADADO_SALGA_PRIMERO` · `FORMATO_INVALIDO`; sin `ECO` en `DEG_AUTO_ACUSE_MS`, `$ERR ... CAMBIADO_AQUI_SIN_ACUSE_DEL_OTRO_POSTE` (el cambio queda y se sigue publicando). Maestro en `MENU`: siempre ese `$ERR` (SPEC 2 §7.ter (a)). Misma orden y mismos literales en el Esclavo |
 | `CONSULTA_DEG_AUTO` | no (es una consulta) | Construido. `RESULT:ESTE_<ON/OFF>_OTRO_<ON/OFF>_APTO_<SI/NO>`: la opcion propia, el ultimo `APTO` oido del otro y el `APTO` propio. Igual en el Esclavo |
-| `FORZAR_ROJO` | **no** (y con PIN tambien) | Fuera de Degradado: `coordinador_forzarRojoTotal()`, `RESULT:OK`, 3 s de amarillo y rojo (`D-45`). En Degradado, **construido el 04/10 (`a4545bb`, `D-51`), sin banco:** rojo FIJO inmediato en ese poste (`DEG_ROJO_SIN_HORA`; tambien en la ventana de `D-29`), sin aviso de paleteros (decidido); respuestas en §3.ter.ter |
+| `FORZAR_ROJO` | **no** (y con PIN tambien) | Fuera de Degradado: `coordinador_forzarRojoTotal()`, `RESULT:OK`, 3 s de amarillo y rojo (`D-45`); sobre un rojo+amarillo, rojo directo (`D-53`, HUECO, SPEC 1 §3.3 (3)). En Degradado, **construido el 04/10 (`a4545bb`, `D-51`), sin banco:** rojo FIJO inmediato en ese poste (`DEG_ROJO_SIN_HORA`; tambien en la ventana de `D-29`), sin aviso de paleteros (decidido); respuestas en §3.ter.ter |
 | `SET_MODO:DEG_FIN:ahora,salida` · `SET_MODO:DEG_FIN:CANCELAR` | si | Construido el 04/10 (`a4545bb`, `D-52`), sin banco; SPEC 2 §7.quater (c): `salida` = `HH:MM:SS` a la que esta punta sale por su reloj; aviso de paleteros; un `$ERR` por motivo y `$ACK` solo si quedo programada (listas en §3.ter.ter) |
 | `CONSULTA_DEG_FIN` | no (es una consulta) | Construido el 04/10, sin banco. `RESULT:NINGUNA` o `RESULT:SALE_HHMMSS_FALTAN_<s>S_<RESPALDADA/SIN_RESPALDO>` (`_SIN_RESPALDO` tambien tras `FORZAR_ROJO` o hora perdida). Molde `CONSULTA_DEG_AUTO`; el contador no cabe en `$STATUS` (SPEC 2 §7.quater (c)). Igual en el Esclavo |
 | `MANUAL:CAMBIAR_TURNO` | si | **tres, y el ORDEN importa** (`N-151`): `$ERR ... MODO_SIN_CICLO_SALGA_PRIMERO` si `modoMueveElCoordinador()` es falso; si no, `RESULT:OK` cuando `pedirCambioVerificado()` devuelve true, y `$ERR ... EN_TRANSICION_REINTENTE` cuando no |
@@ -365,7 +365,7 @@ corrida, **y la cuenta no se copia aqui** (§14).
 | rotulo en Android | `<prefijo><serie>-M` | `<prefijo><serie>-E` (o el provisional en la primera arrancada del modulo) |
 | cabecera | `MAESTRO (POSTE 1)` | `ESCLAVO (POSTE 2)` — lo decide `NODE:`, no lo que el operario suponga |
 | `MODO:` | `MENU` `MANUAL` `AUTO` `INTELIGENTE` `ALCANCE` `DEGRADADO` `AMBAR` (~~`HORA`~~, `D-44`) | `SUBORDINADO` `DEGRADADO` `RENDIDO` — el campo dice si esta punta esta obedeciendo o gobernando |
-| `ESTADO:` | `ROJO` `VERDE` `AMARILLO` `FALLO COM` (con espacio) | los mismos cuatro |
+| `ESTADO:` | `ROJO` `VERDE` `AMARILLO` `FALLO COM` (con espacio); *`ROJO+AMAR` con `D-53` (HUECO)* | los mismos |
 | cuenta atras `T:` | numero o `--` | **`--` FIJO** |
 | enlace `RF:` `RTT:` | medidos | **`--` FIJOS** |
 | bateria `BAT:` | **`--` FIJO** en las dos puntas: el equipo declara que **no la mide** —falta el divisor y la entrada analogica—, y la app lo dice con esas palabras en vez de pintar un numero |
@@ -381,6 +381,15 @@ pluma esta arriba por diseno (`luzPideArriba`), no por un veto (SPEC 8 §1); **(
 🔴 **ABIERTO: `ESC:AMARILLO` no se construyo.** `coordinador_estadoEsclavo()` publica lo ultimo que consta del Poste
 2 y dice `VERDE` hasta el `CMD_ACK_RED`, tambien durante su amarillo de cierre (SPEC 2 §2.2.bis). La propuesta
 —`ESC:AMARILLO` desde la orden de rojo que cierra un verde del Poste 2 hasta su acuse— sigue **sin decidir**.
+
+**HUECO `D-53` (`N-176`, sin construir): `ESTADO:ROJO+AMAR`**, 9 caracteres, el tope del campo
+(`semaforo_nombreEstado()`, SPEC 1 §3.3 (9)), durante los `ROJO_AMARILLO_SEG` antes de cada verde, en las dos
+puntas. Hoy la app lo pintaría
+«ESTADO NO RECONOCIDO». Lo que debe hacer: **(1)** una fila en `ESTADOS` de `app.js` con las lámparas roja y ámbar
+encendidas, texto «ROJO Y AMARILLO» y frase *«ROJO Y AMARILLO, este poste va a abrir su paso»*, sin la cifra: un
+número que la app no puede recalcular no se escribe en `app.js` (`CLAUDE.md` §14); **(2)** frase de la pluma: abajo,
+*«sube con el verde»* (SPEC 8 §1); **(3)** `ESC:` no cambia: dice `ROJO` hasta el `CMD_ACK_GREEN` (SPEC 2 §2.2.ter);
+**(4)** las copias de `app.js` (`metodo.md` §14) llevan la misma fila.
 
 ⚠️ **Los cuatro campos fijos del Esclavo —`T`, `RF`, `RTT`, `BAT`— NO SE RETIRAN, y el motivo es de la
 app, no del firmware.** La app escribe `state.countdown` dentro de `if (data.T !== undefined)` y

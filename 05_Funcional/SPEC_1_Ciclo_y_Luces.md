@@ -57,6 +57,7 @@ CIERRA, porque el pin cae a reposo. Y **ninguna avería de la pluma detiene el c
 | luz | pluma |
 |---|---|
 | Rojo · todo-rojo de despeje · ~~ámbar de transición~~ *(salió con `D-45`, `cda33df`)* · ~~destellos y ámbar rápido del mando~~ *(salieron con el mando, 14/09)* | ABAJO |
+| **Rojo + amarillo de apertura** (`D-53`, §3.3; HUECO, sin construir, `N-176`) | **ABAJO**: sube con el VERDE real |
 | Verde de ciclo | ARRIBA |
 | **Amarillo de cierre** (`D-45`, §3.2; construido en `cda33df`, sin banco) | **ARRIBA**: `luzPideArriba` lleva `estado == S_AMARILLO`; el retardo de bajada cuenta desde el ROJO (SPEC 8 §1) |
 | Verde y amarillo de test de lámparas | **ABAJO** (en el test `estado` sigue en `S_ROJO`) |
@@ -76,11 +77,13 @@ verde y fallo (`semaforo_estable()`), y no mientras dura el amarillo de cierre.
 |---|---|---|
 | Rojo | rojo fijo | forzar rojo desde lo que no es verde · el fin del amarillo de cierre · apagar todo (apaga las tres) |
 | Ámbar (`S_AMARILLO`) | amarillo fijo, **sólo al CERRAR un verde**, durante `AMARILLO_SEG` (§3.2) | forzar rojo sobre un verde, por `iniciarTransicionARojo()` |
-| Verde | verde fijo | forzar verde, **directo** desde rojo |
+| Verde | verde fijo | forzar verde, **directo** desde rojo (HACE hoy; `D-53` lo deroga, §3.3) |
 | Fallo | **ámbar intermitente** | el arranque de fallo (`semaforo_iniciarFallo()`) |
+| *Rojo+amarillo (`S_ROJO_AMARILLO`)* | *rojo y amarillo a la vez, `ROJO_AMARILLO_SEG`* | *HUECO (`D-53`, §3.3): forzar verde sobre rojo* |
 
 **Las transiciones son ASIMÉTRICAS, y la asimetría es el corazón de este documento** *(desde `cda33df`, `D-45`; sin
-banco)*. **De rojo a verde se pasa directo; de verde a rojo, por amarillo**: forzar rojo sobre un verde enciende el
+banco)*. **De rojo a verde se pasa directo** (HACE hoy; con `D-53`, por rojo+amarillo, §3.3)**; de verde a rojo, por
+amarillo**: forzar rojo sobre un verde enciende el
 amarillo y anota el instante, y la máquina de luces (`semaforo_actualizar()`) salta a rojo al cumplirse
 `AMARILLO_SEG`. **El fallo parpadea** invirtiendo el ámbar cada medio periodo, con un plazo literal sin nombre — ver
 Huecos. Y **la máquina de luces avanza SIN CONDICIÓN en cada vuelta del bucle principal de las dos puntas**: un
@@ -107,7 +110,8 @@ seg. (velocidad 50 km/h)»*: un mínimo de amarillo en texto **NO CONSTA**. Tran
 `cda33df` no era ninguna de las secuencias de 4.4.2: la que avisa del verde es «Rojo y Amarillo», los dos encendidos.
 
 1. **Abrir: de rojo a verde DIRECTO** (`semaforo_forzarVerde()`), en las dos puntas y en todos los modos, Degradado
-   incluido. `semaforo_iniciarTransicionAVerde()` ya no está en el fuente; las puertas del coordinador y
+   incluido. **Es lo que HACE hoy y lo DEROGA `D-53` (05/10): el verde se abre por ROJO+AMARILLO (§3.3, HUECO).**
+   `semaforo_iniciarTransicionAVerde()` ya no está en el fuente; las puertas del coordinador y
    `aplicarLuz()` del Degradado del Poste 2 llaman a `semaforo_forzarVerde()`.
 2. **Cerrar: de verde a AMARILLO fijo durante `AMARILLO_SEG` y después a ROJO.** No por disciplina de los
    llamadores: `semaforo_forzarRojo()` sobre `S_VERDE` llama a `iniciarTransicionARojo()` (estática, en el fichero
@@ -143,7 +147,60 @@ seg. (velocidad 50 km/h)»*: un mínimo de amarillo en texto **NO CONSTA**. Tran
 Lo ejercen las filas 17 (`arnes_automatico.cpp`: rojo a verde directo, cierre por amarillo con el coordinador fuera
 de reposo), 18 (dos puntas: el orden de la luz en todo el barrido y el amarillo del Poste 2) y 19 (Degradado), con
 las pruebas que celebraban lo contrario invertidas y vistas en rojo con el defecto inyectado (mensaje de `cda33df`).
-**Sin acta de compuerta sobre `cda33df` en `evidencia/` y sin banco ni tarjeta.**
+**Sin acta de compuerta sobre `cda33df` en `evidencia/` y sin banco ni tarjeta.** Las que aseveran «rojo a verde
+directo» CELEBRAN lo que `D-53` deroga: se invierten con §3.3 (`CLAUDE.md` §9).
+
+### 3.3 ROJO – ROJO+AMARILLO – VERDE – AMARILLO – ROJO (`D-53`, `N-176`) — HUECO: DECIDIDO, SIN CONSTRUIR
+
+Todo este apartado es lo que el equipo DEBE hacer; nada de él está en el fuente de `a5db18e`.
+**La norma.** Manual de Señalización Vial 2024, 4.4.2 (p. 394), primera secuencia vehicular: «Rojo – Rojo y Amarillo -
+Verde – Amarillo – Rojo»; 4.4.1 d: el rojo y amarillo «advierte [...] que está próximo el inicio del intervalo de
+verde»; rótulo de la Figura 4-9: «Rojo - Amarillo Duración 2 seg.» (rótulo de figura, no texto normativo); 4.4.4 cuenta
+el rojo-amarillo dentro del tiempo de seguridad. Transcripción: `fuentes/md/Manual_Senalizacion_Vial_semaforos.md` §2.
+1. **Abrir: de rojo a ROJO+AMARILLO durante `ROJO_AMARILLO_SEG` y después a VERDE**, en las dos puntas y en todos
+   los caminos que hoy llaman a `semaforo_forzarVerde()`: Poste 1, las tres puertas de `coordinador.cpp`
+   (`C_INICIAL_ESPERA_ESTATICO`, `C_ESPERA_ESTATICO_TRAS_ESCLAVO` y la de la petición de cambio), `FD_VERDE_MAESTRO`
+   de `modo_degradado.cpp` y `terminarTestLeds()`; Poste 2, `CMD_GO_GREEN` de `main.cpp` y `aplicarLuz(true)` de
+   `modo_degradado.cpp`. Censo: `grep -rn "semaforo_forzarVerde" 01_Firmware/{Maestro,Esclavo}/src`. Como el
+   amarillo, no por disciplina de los llamadores: lo pone el fichero del semáforo.
+2. **Un estado nuevo, `S_ROJO_AMARILLO`, en `EstadoSemaforo` de las dos puntas.** `semaforo_forzarVerde()` sobre
+   `S_ROJO` o `S_FALLO` lo pone, anota el instante y aplica rojo y amarillo (el enclavamiento lo admite: no hay
+   verde); sobre `S_ROJO_AMARILLO` vuelve sin reiniciar el reloj; sobre `S_VERDE` repinta el verde; sobre
+   `S_AMARILLO` no hace nada (§3.2 (3)). `semaforo_actualizar()` pasa a `S_VERDE` al vencer `ROJO_AMARILLO_SEG`.
+3. **Durante el rojo+amarillo NUNCA hubo verde, y por eso se vuelve a ROJO DIRECTO, sin amarillo.**
+   `semaforo_forzarRojo()` sobre `S_ROJO_AMARILLO` pone `S_ROJO` en la misma llamada: `FORZAR_ROJO`,
+   `SET_MODO:MENU`, la orden de rojo por radio, la suelta por margen, `D-38`/`D-49` y las salidas del Degradado.
+   4.4.3 regula el paso desde el VERDE; un amarillo aquí diría que se cierra un paso que no se abrió.
+   `semaforo_iniciarFallo()` sigue sin guarda: del rojo+amarillo al ámbar intermitente, directo.
+4. **No es estable** (`semaforo_estable()` falso): los coordinadores esperan el verde real
+   (`C_MASTER_A_VERDE`, `C_INICIAL_MASTER_A_VERDE`), y `quienVerde` se pone con él. 🔴 **Para el arquitecto:** si el
+   rojo+amarillo acaba en rojo (punto 3) con el coordinador en una de esas dos esperas, la espera no puede quedarse
+   colgada esperando un verde que no llegará; quien fuerza el rojo tiene que mover también el estado del coordinador.
+5. **Los relojes de fase cuentan desde el VERDE real, en las dos puntas.** El Automático y el Inteligente cuentan con
+   `coordinador_listoParaContar()`, que sólo es cierto en `C_IDLE`, al que se llega con el verde propio estable o con
+   el `CMD_ACK_GREEN` del Poste 2, que con `D-53` sale con su verde encendido (SPEC 2 §2.2.ter). Un verde de 21 s
+   sigue durando 21 s y el ciclo crece un `ROJO_AMARILLO_SEG` por sentido (§5). El suelo y el techo del Inteligente
+   son del verde (§7). El backstop del Poste 2 (`tInicioVerdeEsclavo`) ya se arma sólo en `S_VERDE` (§9).
+6. **`DAR PASO` y `MANUAL:CAMBIAR_TURNO` (§8):** durante el rojo+amarillo el coordinador no está en `C_IDLE` y la
+   orden contesta `EN_TRANSICION_REINTENTE`, como en el despeje y el amarillo.
+7. **La pluma sigue ABAJO durante el rojo+amarillo y sube con el verde real** (`D-53`): `luzPideArriba` no gana
+   término, porque mira el verde ya enclavado y `S_FALLO`/`S_AMARILLO`. SPEC 8 §1.
+8. **El veto de margen al ABRIR el verde propio del Poste 1** (`puedeSostenerVerde()`, SPEC 2 §4) lleva además
+   `ROJO_AMARILLO_MS`, para que el verde empiece con el margen de hoy. El umbral de silencio y la suelta de `D-50`,
+   abiertos para el arquitecto: SPEC 2 §2.2.ter.
+9. **El estado se publica:** `semaforo_nombreEstado()` devuelve `ROJO+AMAR` (9 caracteres, el tope del campo
+   `ESTADO` en el presupuesto del `$STATUS`, que hoy marca `FALLO COM`). La app, SPEC 4 §6.
+10. **Lo que NO lleva rojo+amarillo.** **(a)** El test de lámparas (§10): rojo, ámbar y verde sueltos, fuera de
+   servicio, con la pluma abajo; no abre paso (§3.2 (6)(b)). Si se corta con un rojo+amarillo en curso,
+   `terminarTestLeds()` lo repinta sin tocar su reloj, como el amarillo; y como el test sólo corre en `S_ROJO` y se
+   corta en cuanto la luz deja el rojo, un verde abierto durante el test pasa por el rojo+amarillo igual.
+   🔴 **Para el arquitecto:** su fase ámbar antes del verde es la secuencia que `D-45` retiró de la calle; se deja
+   como está por ser de taller. **(b)** El
+   paso a ámbar intermitente y la vuelta a rojo de §3.2 (6)(c).
+11. **Constante:** `ROJO_AMARILLO_SEG` = 2 s, FIJA y NO CONFIGURABLE como `AMARILLO_SEG`, gemela en `protocolo.h` de
+   las dos puntas, junto a él (`costura_01_contratos` compara la cabecera).
+12. **Carga:** el Degradado cambia de fases (SPEC 2 §8 (e.ter)); un poste con `D-53` y otro sin él se desfasan. Los
+   dos postes se cargan en la misma visita.
 
 ## 4. Los modos que existen HOY
 
@@ -234,6 +291,10 @@ de rojo y de despeje—. Verde y rojo en **minutos**; el despeje, en **segundos*
   dura dos `AMARILLO_SEG` más que antes de `D-45`** (uno por sentido) y el Degradado, igual (SPEC 2 §8 (e)). El rango
   del despeje y su mínimo no cambian; el mínimo tiene que cubrir el amarillo (`static_assert(DESPEJE_SEG_MIN >
   AMARILLO_SEG)` en el coordinador).
+- **HUECO (`D-53`, §3.3): el rojo+amarillo, `ROJO_AMARILLO_SEG` = 2 s, FIJO, en `protocolo.h`, fuera de
+  `limites_ciclo.h`, de `SET_TIEMPOS` y del respaldo.** Se SUMA, no sale del verde: cada cambio de sentido pasa a ser
+  *verde → amarillo → despeje → rojo+amarillo → verde*, y el ciclo dura dos `ROJO_AMARILLO_SEG` más (uno por
+  sentido), también en el Degradado (SPEC 2 §8 (e.ter)). Va DESPUÉS del despeje: el todo-rojo puro no se acorta.
 
 ## 6. Modo Automático — el ciclo por tiempo
 
@@ -278,7 +339,8 @@ fuerza: partir un despeje por la mitad es justo lo que no se puede hacer.** Y **
 tiempos**: conserva el despeje que haya.
 **Con `D-45` (`cda33df`, sin banco):** `DAR PASO` con un verde encendido lo cierra por su amarillo; durante él el
 coordinador no está en `C_IDLE` y `CAMBIAR_TURNO` contesta `EN_TRANSICION_REINTENTE`, como en el despeje. Sigue
-terminando en rojo+verde: el verde se abre directo. El comentario de `coordinador_pedirCambio()` se reescribió, y el de
+terminando en rojo+verde: el verde se abre directo (HACE hoy; con `D-53` se abre por rojo+amarillo, §3.3 (6),
+HUECO). El comentario de `coordinador_pedirCambio()` se reescribió, y el de
 la cabecera de `modo_manual.cpp` ya no habla de «los 4 s de ambar».
 
 ## 9. El estado seguro
@@ -372,6 +434,7 @@ Cada uno trae con qué reproducirlo.
    🟢 ~~**(b) Las dos puntas ABREN su verde DISTINTO**~~ → **cerrado con `D-45` en `cda33df`:** las dos abren directo
    (`semaforo_forzarVerde()`) y las dos cierran por su amarillo (SPEC 2 §8 (e.bis)). El margen de desfase que se
    apoyaba en el ámbar con que abría el Esclavo es ahora el despeje en los dos sentidos (fila 19, `C3`/`C4`).
+   `D-53` cambia la apertura de las dos a rojo+amarillo, también la misma en las dos (§3.3, HUECO).
    ⚠️ **No confundir con la asimetría de la SALIDA a ámbar, que sí está razonada.**
    `grep -n "DEG_VERDE_SEG\|forzarVerde" 01_Firmware/{Maestro,Esclavo}/src/modo_degradado.cpp`
 4. ⚠️ **Queda UN plazo literal sin nombre en la máquina de luces**: el medio periodo del parpadeo de fallo. No se
@@ -426,6 +489,11 @@ Cada uno trae con qué reproducirlo.
    Manual y DAR PASO (§8) y el Degradado se pide con el testigo `SET_MODO:DEG_T` (SPEC 2 §7.bis). La puerta
    `modo_degradado_evaluarEntrada()` y su `DEG_RECHAZO` del Poste 1 quedan inalcanzables y se conservan. **Se
    quedan** `J14`/`PB0` (reservada al fin de carrera), el andamio `SFTY-20` y los pines de peatón y zumbador.
+12. 🔴 **EL ROJO+AMARILLO ANTES DE CADA VERDE (`D-53`, `N-176`): DECIDIDO EL 05/10, SIN CONSTRUIR.** El equipo abre
+   hoy de rojo a verde directo en todos los caminos (§3.2 (1)); lo que debe hacer, §3.3, con la radio en SPEC 2
+   §2.2.ter, la fase del Degradado en SPEC 2 §8 (e.ter), la app en SPEC 4 §6 y la pluma en SPEC 8 §1. Abiertos para
+   el arquitecto: §3.3 (4) (la espera del coordinador si el rojo+amarillo acaba en rojo) y (10)(a) (el test).
+   `grep -rn "S_ROJO_AMARILLO\|ROJO_AMARILLO_SEG" 01_Firmware/{Maestro,Esclavo}` da hoy cero.
 
 ## 13. QUIÉN EJERCE CADA BARRERA DE ESTE DOCUMENTO
 
@@ -447,10 +515,10 @@ Cada uno trae con qué reproducirlo.
 | **Los vetos del ámbar del Poste 2** (`D-8`, §4) | ✅ **fila 18**, que compila el bucle y el Bluetooth del Esclavo REALES. La cuenta, SPEC 2 §2.3 |
 | **El suelo y el techo del Inteligente** (`D-19`, §7) | ✅ **fila 17** (el factor de techo y las tres entradas de presencia) |
 | **El amarillo de cierre** (`D-45`, §3.2) | ✅ **filas 17, 18 y 19** (rojo a verde directo, cierre por amarillo, el orden de la luz en las dos puntas y la fase del Degradado), con las pruebas que exigían lo contrario invertidas en `cda33df` · fila 15, la fase pura. Sin acta de compuerta sobre `cda33df` |
+| **El rojo+amarillo antes de cada verde** (`D-53`, §3.3) | 🔴 **NADIE: sin construir** (`N-176`). Las filas 17, 18, 19 y 15 aseveran hoy la apertura directa: se invierten |
 
-**Cuenta: ~~13 barreras — 8 ejecutadas~~ ~~12 barreras — 7 ejecutadas, 2 sin nadie, 3 partidas~~ 13 barreras — 8
-ejecutadas, 2 sin nadie, 3 partidas** *(15/09: sale la interceptación; 02/10: entra el amarillo de cierre, en rojo
-hasta `cda33df` y ejecutado desde entonces)*. Los otros dos rojos **no son casillas sueltas**: el menú y
+**Cuenta: 14 barreras — 8 ejecutadas, 3 sin nadie, 3 partidas** *(05/10: entra el rojo+amarillo, sin construir)*.
+Los otros dos rojos **no son casillas sueltas**: el menú y
 el test de lámparas son **los dos caminos a los pines de luz que ningún arnés recorre**, y el segundo es justo el que
 enciende VERDE sin mirar nada. Y de las tres partidas la más cara es el enclavamiento: **el del ESCLAVO —la punta que
 obedece— no lo ejecuta nadie.**
