@@ -204,6 +204,11 @@ module.exports = async function pruebaTextosSpec4(montarAppLimpia, assert) {
       const t = ev('SYNC:-- AVISO:SI VENCIDA:NO');
       assert(AVISO(t) && !/lleva/.test(t) && !/28 dias/.test(t), `13: sin horas (SYNC:--) es el mismo aviso sin la cifra: "${t}"`);
     }
+    {
+      // Sin testigo y sin fecha el firmware publica AVISO:NO VENCIDA:SI (modo_degradado_avisoLimite/syncVencida): cae a ambar.
+      const t = ev('SYNC:-- AVISO:NO VENCIDA:SI');
+      assert(/ambar/i.test(t) && /fechar/i.test(t) && /recupere la radio/i.test(t), `13: SYNC:-- AVISO:NO VENCIDA:SI avisa de la caida a ambar: "${t}"`);
+    }
   }
 
   // 14. SPEC_2 §7.quater (e) (MENU sin radio: ambar), SPEC_4 §3.1 (SET_TIEMPOS solo rechaza en AUTOMATICO; ALCANCE e

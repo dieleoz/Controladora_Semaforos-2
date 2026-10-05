@@ -293,10 +293,11 @@ paleteros se casa por NOMBRE de orden, no por la trama: `DEG_FIN` lleva un `ahor
 telefono y el poste con el suyo, asi que en el borde pueden discrepar: manda el `$ERR` del poste.
 
 **Aviso `$EVENT DEGRADADO ... SYNC:<h>h AVISO:SI [VENCIDA:SI|NO]` (HACE, sin banco; `deg_auto.js`).** El evento no
-dice si el poste tiene testigo y la app no lo deduce de `h`. `VENCIDA:SI`: «limite de 48 h sin radio ALCANZADO» (el
-equipo pasa a ambar intermitente, `LIMITE_48H`). `AVISO:SI` sin `VENCIDA:SI`: un solo texto, «lleva <h> h sin radio»
-(sin la cifra si falta `h`), «si este poste tiene testigo, renuevelo en los dos postes; si no, recupere la radio antes
-de 48 h».
+dice si el poste tiene testigo y la app no lo deduce de `h`. `VENCIDA:SI` va primero, con o sin `AVISO`: «limite de 48
+h sin radio ALCANZADO», o con `SYNC:--` (sin testigo y sin fecha sale `AVISO:NO VENCIDA:SI`) «no se puede fechar la
+ultima sincronizacion»; en los dos el equipo pasa a ambar intermitente. `AVISO:SI` sin `VENCIDA:SI`: un solo texto,
+«lleva <h> h sin radio» (sin la cifra si falta `h`), «si este poste tiene testigo, renuevelo en los dos postes; si no,
+recupere la radio antes de 48 h».
 
 ## 4. El PIN
 

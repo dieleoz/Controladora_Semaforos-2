@@ -100,15 +100,17 @@ const DegAuto = {
     }
     // El aviso de limite que ya publica el firmware (SYNC:.. AVISO:SI VENCIDA:..): con
     // testigo sale a los 28 dias. El testigo ya no vence (29/09): solo pide renovarlo.
+    // SPEC_4 3.ter.ter: el evento no dice si hay testigo y no se deduce de h. VENCIDA:SI va primero, con o sin AVISO:
+    // sin testigo y sin fecha el firmware publica AVISO:NO VENCIDA:SI y cae a ambar igual.
+    if (/(^| )VENCIDA:SI( |$)/.test(d)) {
+      const sinFecha = /(^| )SYNC:--( |$)/.test(d);
+      return { tono: 'red', toast: 'Sin radio: el equipo pasa a ambar',
+        texto: (sinFecha ? 'No se puede fechar la ultima sincronizacion por radio: el equipo se rinde a ambar intermitente. '
+                         : 'Limite de 48 h sin radio ALCANZADO: el equipo se rinde a ambar intermitente. ') +
+               'Recupere la radio entre postes; poner la hora con el telefono no lo renueva.' };
+    }
     if (/(^| )AVISO:SI( |$)/.test(d)) {
-      // SPEC_4 3.ter.ter: el evento no dice si hay testigo y no se deduce de h. VENCIDA:SI -> limite de 48 h alcanzado
-      // (el equipo pasa a ambar); AVISO:SI sin VENCIDA:SI -> un solo texto, con h si viene.
       const h = /(^| )SYNC[:](\d+)h( |$)/.exec(d);
-      if (/(^| )VENCIDA:SI( |$)/.test(d)) {
-        return { tono: 'red', toast: 'Limite de 48 h alcanzado: el equipo pasa a ambar',
-          texto: 'Limite de 48 h sin radio ALCANZADO: el equipo se rinde a ambar intermitente. ' +
-                 'Recupere la radio entre postes; poner la hora con el telefono no lo renueva.' };
-      }
       return { tono: 'red', toast: 'Aviso de radio: renueve el testigo o recupere la radio',
         texto: (h ? 'Este poste lleva ' + h[2] + ' h sin radio. ' : 'Este poste avisa del limite sin radio. ') +
                'Si este poste tiene testigo, renuevelo en los dos postes; si no lo tiene, recupere la radio antes de 48 h.' };
