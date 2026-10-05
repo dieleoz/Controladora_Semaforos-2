@@ -110,7 +110,7 @@ prometia rojo y hacia ambar con la talanquera arriba. Lo rechaza **nombrando el 
 | `CONSULTA_DEG_FIN` | no (es una consulta) | Construido el 04/10, sin banco. `RESULT:NINGUNA` o `RESULT:SALE_HHMMSS_FALTAN_<s>S_<RESPALDADA/SIN_RESPALDO>` (`_SIN_RESPALDO` tambien tras `FORZAR_ROJO` o hora perdida). Molde `CONSULTA_DEG_AUTO`; el contador no cabe en `$STATUS` (SPEC 2 §7.quater (c)). Igual en el Esclavo |
 | `MANUAL:CAMBIAR_TURNO` | si | **tres, y el ORDEN importa** (`N-151`): `$ERR ... MODO_SIN_CICLO_SALGA_PRIMERO` si `modoMueveElCoordinador()` es falso; si no, `RESULT:OK` cuando `pedirCambioVerificado()` devuelve true, y `$ERR ... EN_TRANSICION_REINTENTE` cuando no |
 | `TEST_LEDS` | si | Solo fuera de servicio (`N-82.bis`): `testLedsAdmitido()` exige modo `MENU` o `ALCANCE`, luz en `S_ROJO` y `ACK_RED` del Esclavo (`coordinador_rojoEsclavoConfirmado()`). `RESULT:STARTING_6S` si quedo armado; `$ERR` `SIN_ENLACE_AMBAR_NO_SE_PRUEBA` en `S_FALLO`, `ESPERANDO_ROJO_DEL_ESCLAVO` sin acuse, `EN_SERVICIO_PASE_A_MENU` en el resto |
-| `SET_TIEMPOS:v,r,d` | si | **EL MOLDE. Cuatro respuestas, una por motivo:** `$ERR ... FORMATO_INVALIDO` si el `sscanf` con el `%c` centinela no convierte 3 exactos —dos ordenes pegadas convierten 4—; `$ERR ... EN_MARCHA_PARE_EL_MODO` si `modoAutomatico_enMarcha()`; `$ERR ... RANGO` si `modoAutomatico_fijarTiempos()` devuelve false; `RESULT:OK` **solo** si devolvio true |
+| `SET_TIEMPOS:v,r,d` | si | **EL MOLDE. Cuatro respuestas, una por motivo:** `$ERR ... FORMATO_INVALIDO` si el `sscanf` con el `%c` centinela no convierte 3 exactos —dos ordenes pegadas convierten 4—; `$ERR ... EN_MARCHA_PARE_EL_MODO` si `modoAutomatico_enMarcha()`; `$ERR ... RANGO` si `modoAutomatico_fijarTiempos()` devuelve false; `RESULT:OK` **solo** si devolvio true; la app, en DEGRADADO, dice solo «guardados» y que sigue en Degradado (con rojo fijo no da verdes) |
 | `REINICIAR_RELOJ` | si | **cuatro, y el `$ACK` NO sale en la rama** (1.49 (a), `622a20b`). ~~depende del bool de `reloj_reiniciarDominioRespaldo()`: `RESULT:CRISTAL_OK_PONGA_LA_HORA` o ...~~ → el bool solo decide si hay algo que verificar. `$ERR ... REPITA_EN_UNOS_SEGUNDOS` si ya hay una orden esperando veredicto —sin tocar nada: reiniciar otra vez abriria otra ventana y dejaria dos ordenes para un veredicto—; `$ERR ... SIGUE_PARADO_VEA_CONSULTA_RELOJ` si el oscilador no arranca, con el `$EVENT` `ORIGEN:RELOJ` de `reportarBitsDelReloj()`; y si arranca, **no contesta todavia**: publica `$EVENT ... ORIGEN:APP_BLUETOOTH, DETALLE:RELOJ_REINICIADO_VERIFICANDO` y deja la orden pendiente. **El veredicto sale despues, una sola vez**, desde `bluetooth_loop()` cuando `reloj_estadoCristal()` deja de decir VIGILANDO: `RESULT:CRISTAL_OK_PONGA_LA_HORA` **solo** con CUENTA, o `$ERR ... ARRANCA_Y_NO_CUENTA_VEA_CONSULTA_RELOJ` con CONGELADO, otra vez con los bits. **Llega unos segundos despues de pulsar**: el plazo es la ventana de vigilancia del cristal y no se copia aqui. La app traduce los tres `DESC` |
 | `DEMANDA` | si | **tres**: `$ERR ... SOLO_EN_MODO_INTELIGENTE` fuera del modo —registrar una peticion que ningun ciclo va a mirar es fingirla—; `RESULT:REGISTRADA` si `demanda_solicitar()` devuelve true; `$ERR ... REPITA_EN_UNOS_SEGUNDOS` si devuelve false |
 
@@ -292,9 +292,11 @@ paleteros se casa por NOMBRE de orden, no por la trama: `DEG_FIN` lleva un `ahor
 «FALTA el Esclavo», aunque la tarjeta si refleja la consulta; y la app mide la ventana de 12 h con el reloj del
 telefono y el poste con el suyo, asi que en el borde pueden discrepar: manda el `$ERR` del poste.
 
-**Aviso `$EVENT DEGRADADO ... SYNC:<h>h AVISO:SI` (HACE, sin banco; `deg_auto.js`).** Con `h` menor de 48 dice «quedan
-menos de N h» (N = 48 − h; `h` llega truncada); con `h` de 48 o mas, o `VENCIDA:SI`, dice «limite de 48 h alcanzado» (el
-equipo se rinde a ambar; no son los 28 dias); sin horas, el texto de 28 dias (SPEC 6 hueco 2).
+**Aviso `$EVENT DEGRADADO ... SYNC:<h>h AVISO:SI [VENCIDA:SI|NO]` (HACE, sin banco; `deg_auto.js`).** El evento no
+dice si el poste tiene testigo y la app no lo deduce de `h`. `VENCIDA:SI`: «limite de 48 h sin radio ALCANZADO» (el
+equipo pasa a ambar intermitente, `LIMITE_48H`). `AVISO:SI` sin `VENCIDA:SI`: un solo texto, «lleva <h> h sin radio»
+(sin la cifra si falta `h`), «si este poste tiene testigo, renuevelo en los dos postes; si no, recupere la radio antes
+de 48 h».
 
 ## 4. El PIN
 

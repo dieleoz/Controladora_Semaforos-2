@@ -101,21 +101,17 @@ const DegAuto = {
     // El aviso de limite que ya publica el firmware (SYNC:.. AVISO:SI VENCIDA:..): con
     // testigo sale a los 28 dias. El testigo ya no vence (29/09): solo pide renovarlo.
     if (/(^| )AVISO:SI( |$)/.test(d)) {
-      // SPEC_4 3.ter.ter (SYNC:<h>h): h < 48 -> "quedan menos de N h" (h viene truncada); h >= 48 o VENCIDA:SI -> limite
-      // alcanzado (el equipo se rinde a ambar, no es el aviso de 28 dias); sin horas, el texto de 28 dias.
+      // SPEC_4 3.ter.ter: el evento no dice si hay testigo y no se deduce de h. VENCIDA:SI -> limite de 48 h alcanzado
+      // (el equipo pasa a ambar); AVISO:SI sin VENCIDA:SI -> un solo texto, con h si viene.
       const h = /(^| )SYNC[:](\d+)h( |$)/.exec(d);
-      if (h && (Number(h[2]) >= 48 || /(^| )VENCIDA:SI( |$)/.test(d))) {
+      if (/(^| )VENCIDA:SI( |$)/.test(d)) {
         return { tono: 'red', toast: 'Limite de 48 h alcanzado: el equipo pasa a ambar',
-          texto: 'Limite de 48 h sin sincronizar con el otro poste ALCANZADO: el equipo se rinde a ambar. ' +
+          texto: 'Limite de 48 h sin radio ALCANZADO: el equipo se rinde a ambar intermitente. ' +
                  'Recupere la radio entre postes; poner la hora con el telefono no lo renueva.' };
       }
-      if (h) {
-        const falta = 48 - Number(h[2]);
-        return { tono: 'red', toast: 'Quedan menos de ' + falta + ' h para el limite: recupere la radio',
-          texto: 'Lleva ' + h[2] + ' h sin sincronizar con el otro poste: quedan menos de ' + falta + ' h para el ' +
-                 'limite de 48 h. Recupere la radio entre postes o renueve el testigo en los dos postes.' };
-      }
-      return this.RENOVAR;
+      return { tono: 'red', toast: 'Aviso de radio: renueve el testigo o recupere la radio',
+        texto: (h ? 'Este poste lleva ' + h[2] + ' h sin radio. ' : 'Este poste avisa del limite sin radio. ') +
+               'Si este poste tiene testigo, renuevelo en los dos postes; si no lo tiene, recupere la radio antes de 48 h.' };
     }
     // ENLACE_DISPONIBLE (repetido cada 60 s) no va aqui: es un cartel, js/carteles_equipo.js.
     return null;

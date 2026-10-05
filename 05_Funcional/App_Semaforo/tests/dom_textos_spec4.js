@@ -185,16 +185,25 @@ module.exports = async function pruebaTextosSpec4(montarAppLimpia, assert) {
   // 13. SPEC_6 hueco 2: el mismo $EVENT sirve para 28 dias con testigo y para las ultimas horas del limite sin testigo.
   {
     const ev = (det) => { const a = montar(M, 'DEGRADADO'); a.entra(`EVENT,NODE:MAESTRO,ORIGEN:DEGRADADO,DETALLE:${det},HORA:14:36:00`); return a.ultimo(); };
-    const t45 = ev('SYNC:45h AVISO:SI VENCIDA:NO');
-    assert(/\b3\b/.test(t45) && /radio/i.test(t45) && /testigo/i.test(t45) && !/28 dias/.test(t45),
-      `13: SYNC:45h dice que faltan 3 h (48-45), recuperar la radio o renovar, sin "28 dias": "${t45.slice(0, 220)}"`);
-    assert(/menos de 1 h/.test(ev('SYNC:47h AVISO:SI VENCIDA:NO')) && !/28 dias/.test(ev('SYNC:47h AVISO:SI VENCIDA:NO')),
-      '13: SYNC:47h dice "menos de 1 h" (h viene truncada)');
-    for (const d of ['SYNC:48h AVISO:SI VENCIDA:SI', 'SYNC:700h AVISO:SI VENCIDA:NO', 'SYNC:49h AVISO:SI VENCIDA:SI']) {
-      const t = ev(d);
-      assert(/limite de 48 h/i.test(t) && /ambar/i.test(t) && !/28 dias/.test(t), `13: ${d} es el limite de 48 h alcanzado, no 28 dias: "${t}"`);
+    // SPEC_4 §3.ter.ter: el evento no dice si hay testigo; la app no lo deduce de h. VENCIDA:SI = limite alcanzado;
+    // AVISO:SI sin VENCIDA:SI = un solo texto ("lleva h h sin radio" + testigo o radio), con cualquier h.
+    const AVISO = (t) => /testigo/i.test(t) && /renuevelo en los dos postes/i.test(t) && /recupere la radio antes de 48 h/i.test(t) &&
+                         !/ALCANZADO|28 dias|quedan menos|se rinde/i.test(t);
+    for (const h of ['0', '45', '47', '696']) {
+      const t = ev(`SYNC:${h}h AVISO:SI VENCIDA:NO`);
+      assert(AVISO(t) && t.toLowerCase().indexOf(`lleva ${h} h sin radio`) >= 0, `13: SYNC:${h}h VENCIDA:NO es el aviso unico con "lleva ${h} h sin radio": "${t}"`);
     }
-    assert(/28 dias/.test(ev('SYNC:-- AVISO:SI VENCIDA:NO')), '13: sin horas (SYNC:--) queda el texto de 28 dias');
+    for (const d of ['SYNC:47h AVISO:SI', 'SYNC:0h AVISO:SI']) {
+      assert(AVISO(ev(d)), `13: ${d} (sin VENCIDA) tambien es el aviso unico`);
+    }
+    for (const d of ['SYNC:48h AVISO:SI VENCIDA:SI', 'SYNC:49h AVISO:SI VENCIDA:SI', 'SYNC:700h AVISO:SI VENCIDA:SI']) {
+      const t = ev(d);
+      assert(/limite de 48 h/i.test(t) && /ALCANZADO/.test(t) && /ambar/i.test(t) && !/28 dias|testigo/i.test(t), `13: ${d} es el limite de 48 h alcanzado: "${t}"`);
+    }
+    {
+      const t = ev('SYNC:-- AVISO:SI VENCIDA:NO');
+      assert(AVISO(t) && !/lleva/.test(t) && !/28 dias/.test(t), `13: sin horas (SYNC:--) es el mismo aviso sin la cifra: "${t}"`);
+    }
   }
 
   // 14. SPEC_2 §7.quater (e) (MENU sin radio: ambar), SPEC_4 §3.1 (SET_TIEMPOS solo rechaza en AUTOMATICO; ALCANCE e
@@ -205,7 +214,7 @@ module.exports = async function pruebaTextosSpec4(montarAppLimpia, assert) {
     for (const modo of ['DEGRADADO', 'INTELIGENTE']) {
       const a = montar(M, modo); a.entra('ACK,CMD:SET_TIEMPOS,RESULT:OK');
       const t = a.ultimo();
-      assert(/SIGUE en/.test(t) && !/NO esta ciclando|no cicla|no va a empezar/i.test(t) &&
+      assert(/SIGUE en/.test(t) && !/verdes/i.test(t) && !/NO esta ciclando|no cicla|no va a empezar/i.test(t) &&
              a.d.getElementById('aviso-tiempos-parado').hidden === true,
         `14: SET_TIEMPOS|OK en ${modo}: el equipo sigue en su modo y no sale el cartel de "parado en rojo": "${t}"`);
     }

@@ -56,7 +56,8 @@ const TextosSpec4 = {
 
   // SPEC_4 §3.1: SET_TIEMPOS solo se rechaza en AUTOMATICO; el texto depende del modo del ultimo $STATUS. Sin ciclo
   // (MENU, AMBAR, MANUAL, ALCANCE) los tiempos esperan al arranque del ciclo; en Degradado e Inteligente el equipo SIGUE
-  // dando verdes; con otro modo o sin telemetria solo se dice "guardados", sin prometer cuando entran.
+  // en su modo (sin prometer verdes: con rojo fijo, D-47, no los da); con otro modo o sin telemetria solo se dice
+  // "guardados", sin prometer cuando entran.
   SIN_CICLO: ['MENU', 'AMBAR', 'MANUAL', 'ALCANCE'],
   sinCiclo(modo) { return this.SIN_CICLO.indexOf(modo) >= 0; },
   tiempos(clave, modo) {
@@ -68,7 +69,7 @@ const TextosSpec4 = {
     }
     if (modo === 'DEGRADADO' || modo === 'INTELIGENTE') {
       return { tono: 'cyan', toast: 'Tiempos guardados - el equipo sigue en ' + modo,
-        texto: 'Equipo: TIEMPOS GUARDADOS. El equipo SIGUE en ' + modo + ' y sigue dando verdes: no ha cambiado de modo.' };
+        texto: 'Equipo: TIEMPOS GUARDADOS. El equipo SIGUE en ' + modo + ': no ha cambiado de modo.' };
     }
     return { tono: 'cyan', toast: 'Tiempos guardados',
       texto: 'Equipo: TIEMPOS GUARDADOS. No se sabe en que modo esta el equipo: mire la luz.' };
