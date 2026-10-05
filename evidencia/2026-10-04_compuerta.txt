@@ -1,7 +1,7 @@
 ACTA DE VERIFICACION - Controladora de Semaforos
 ==============================================================================
 Fecha        : 2026-10-04
-HEAD         : 98aaa87   rama: main
+HEAD         : b5d0a2d   rama: main
 Arbol        : LIMPIO
 Modo         : completo
 PlatformIO   : PlatformIO Core, version 6.1.19
@@ -20,17 +20,17 @@ RESULTADOS
   PASS      test funcional de la app          [TEST] RESUMEN: 70/70 comprobaciones funcionales de la app en PASS
   PASS      test unitarios de la app          RESUMEN DE PRUEBAS: 63 PASS | 0 FALLAS  (Total: 63)
   PASS      test unitarios TDD de la app      RESUMEN TDD: 85 PASS | 0 FALLAS  (Total: 85)
-  PASS      app ejecutada en DOM              RESULTADO JSDOM: 495 PASS | 0 FALLAS
+  PASS      app ejecutada en DOM              RESULTADO JSDOM: 507 PASS | 0 FALLAS
   FALLA     banco por packs                   RESUMEN: 1368/1369 comprobaciones  |  packs: 69 PASS, 1 FALLA, 0 ABORTADO
   PASS      arnes del ciclo                   RESULTADO: 22/22 comprobaciones OK
   PASS      arnes del respaldo                respaldo.cpp y respaldo.h identicos entre puntas | arnes vivo (PING/PONG)
   PASS      arnes del automatico              RESULTADO: 76/76 comprobaciones OK
   PASS      arnes de las dos puntas           RESULTADO: 122/122 comprobaciones OK
-  PASS      arnes del Degradado a dos puntas  RESULTADO: 139/139 comprobaciones OK
+  PASS      arnes del Degradado a dos puntas  RESULTADO: 141/141 comprobaciones OK
   PASS      simulador del puente ESP32        RESULTADO: 150/150 comprobaciones del contrato del puente en PASS
 ------------------------------------------------------------------------------
   RESUMEN: 18 PASS | 1 FALLA | 0 ABORTADO
 
 ABORTADO no es PASS: una comprobacion que no pudo correr no dice nada del
-firmware. Esta acta se verifica volviendo a 98aaa87 y re-corriendo
+firmware. Esta acta se verifica volviendo a b5d0a2d y re-corriendo
 python 01_Firmware/compuerta.py.
