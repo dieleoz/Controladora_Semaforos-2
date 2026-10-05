@@ -65,7 +65,7 @@ module.exports = async function pruebaDegAuto(montarAppLimpia, assert) {
     entra('ACK,CMD:SET_DEG_AUTO,RESULT:' + res);
     assert(salio.length === 1 && salio[0] === 'CMD:PIN:1234:SET_DEG_AUTO:' + v + '\r\n' && re.test(ultimo()),
       `DegAuto: $ACK RESULT:${res} tras SET_DEG_AUTO:${v} pinta su texto: [${salio.join('|')}] "${ultimo().slice(0, 120)}"`);
-    assert(!on.disabled && on.textContent === 'Activar' && off.textContent === 'Desactivar' &&
+    assert(!on.disabled && on.textContent === a.w.DegAuto.ETIQUETA_ON && off.textContent === a.w.DegAuto.ETIQUETA_OFF &&
            a.tramas.length === 1 && a.tramas[0] === 'CMD:CONSULTA_DEG_AUTO\r\n',
       `DegAuto: tras RESULT:${res} se sueltan los botones y se vuelve a consultar: ${a.tramas.join(' | ')}`);
   }

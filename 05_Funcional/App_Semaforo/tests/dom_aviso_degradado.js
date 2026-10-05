@@ -56,7 +56,9 @@ module.exports = async function pruebaAvisoDegradado(montarAppLimpia, assert) {
     `Aviso: el vale es de un solo uso; la siguiente pulsacion vuelve a preguntar: ${a.tramas.join(' | ')}`);
   d.getElementById('btn-aviso-deg-cancelar').click();
 
-  // (4) Desactivar el degradado automatico tambien cambia el modo: pregunta igual.
+  // (4) Desactivar el degradado automatico tambien cambia el modo: pregunta igual. Con RF medido:
+  // sin radio la eleccion ni se ofrece (encargo C, lo prueba dom_deg_eleccion.js).
+  modo('DEGRADADO', 'RF:97');
   a.tramas.length = 0;
   d.getElementById('btn-degauto-off').click();
   assert(modal.classList.contains('active') && a.tramas.length === 0,

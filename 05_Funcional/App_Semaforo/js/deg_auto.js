@@ -19,7 +19,11 @@
 const DegAuto = {
   ORDEN: 'SET_DEG_AUTO',
   CONSULTA: 'CONSULTA_DEG_AUTO',
-  ESPERA_MS: 20000,           // la pantalla deja de esperar; el firmware contesta antes
+  ESPERA_MS: 20000,
+  // La eleccion (encargo C): una pregunta con dos respuestas, no un ON/OFF. (a) va primero: es la de fabrica (D-43).
+  ETIQUETA_OFF: '(a) Ambar intermitente y voy con el testigo',
+  ETIQUETA_ON: '(b) Entran solos en Degradado a los 5 min sin radio',
+  SIN_RADIO: 'Sin radio no se puede cambiar: se elige con los dos postes enlazados.',           // la pantalla deja de esperar; el firmware contesta antes
   // La consulta al conectar sale un poco DESPUES del primer $STATUS: no se cruza con lo
   // que el operario pulse nada mas conectar ni con la ventana de N-124 de app.js.
   CONSULTA_TRAS_MS: 2000,
@@ -94,6 +98,7 @@ const DegAuto = {
     const d = String(data.DETALLE || '');
     const m = /^AUTO_ENTRADA_INICIO_(\d{2}):(\d{2}):\d{2}$/.exec(d);
     if (m) {
+      if (typeof DegAutoEleccion !== 'undefined') DegAutoEleccion.entrada();
       return { tono: 'red', toast: 'Degradado automatico: rojo hasta ' + m[1] + ':' + m[2],
         texto: 'Sin radio 5 min: modo degradado automatico, rojo hasta ' + m[1] + ':' + m[2] +
                '. Despues los dos postes alternan solos por reloj.' };
@@ -153,6 +158,7 @@ const DegAuto = {
     this._timerConsulta = setTimeout(() => {
       if (this.ctx.state.node === node) this._consultar();
     }, this.CONSULTA_TRAS_MS);
+    if (typeof DegAutoEleccion !== 'undefined') DegAutoEleccion.olvidar();  // el aviso vuelve en cada conexion
     setTimeout(() => this.render(), 0);  // app.js guarda el NODE justo despues
   },
 
@@ -203,9 +209,10 @@ const DegAuto = {
   iniciar(ctx) {
     this.ctx = ctx;
     if (typeof DegFin !== 'undefined') DegFin.iniciar(ctx);   // js/deg_fin.js
+    if (typeof DegAutoEleccion !== 'undefined') DegAutoEleccion.iniciar(ctx);
     const $ = (id) => document.getElementById(id);
     this._el = { este: $('degauto-este'), otro: $('degauto-otro'), apto: $('degauto-apto'),
-                 on: $('btn-degauto-on'), off: $('btn-degauto-off') };
+                 on: $('btn-degauto-on'), off: $('btn-degauto-off'), nota: $('degauto-sin-radio') };
     if (this._el.on) this._el.on.addEventListener('click', () => this._pulsar('1'));
     if (this._el.off) this._el.off.addEventListener('click', () => this._pulsar('0'));
     this.render();
@@ -232,14 +239,20 @@ const DegAuto = {
     el.otro.textContent = l[1];
     el.apto.textContent = l[2];
     const esperando = 'Esperando al otro poste...';
-    if (el.on) {
-      el.on.disabled = !!this._espera;
-      el.on.textContent = this._espera && this._espera.valor === '1' ? esperando : 'Activar';
-    }
-    if (el.off) {
-      el.off.disabled = !!this._espera;
-      el.off.textContent = this._espera && this._espera.valor === '0' ? esperando : 'Desactivar';
-    }
+    const sinRadio = this.sinRadio();
+    [[el.on, '1', this.ETIQUETA_ON, true], [el.off, '0', this.ETIQUETA_OFF, false]].forEach(([b, v, etq, on]) => {
+      if (!b) return;
+      b.disabled = !!this._espera || sinRadio;
+      b.textContent = this._espera && this._espera.valor === v ? esperando : etq;
+      b.setAttribute('aria-pressed', String(!!e && e.este === on));
+    });
+    if (el.nota) el.nota.hidden = !sinRadio;
+    if (typeof DegAutoEleccion !== 'undefined') DegAutoEleccion.render();
+  },
+
+  // Sin radio la orden se rechaza (SIN_ENLACE_CON_EL_OTRO_POSTE): no se ofrece. La regla vive en DegAutoEleccion.
+  sinRadio() {
+    return typeof DegAutoEleccion !== 'undefined' && !!this.ctx && DegAutoEleccion.sinRadio(this.ctx.state);
   },
 
   // D-52: la salida programada sale por la misma puerta que el resto de la familia (censo app_01: este fichero).
@@ -263,6 +276,7 @@ const DegAuto = {
     const c = this.ctx;
     if (this._espera) { c.showToast('Ya hay una orden esperando al otro poste'); return; }
     if (!c.state.node) { c.showToast('Conectese a un poste primero'); return; }
+    if (this.sinRadio()) { c.showToast(this.SIN_RADIO); return; }
     if (!c.state.pinVerificado) { c.pedirPin(() => this._pulsar(valor)); return; }
     if (!c.enviarComandoFirmware(this.ORDEN, valor)) return;
     this._espera = { valor, timer: setTimeout(() => {

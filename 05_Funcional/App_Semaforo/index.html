@@ -80,6 +80,19 @@
     </div>
     <!-- Carteles fijos que abre un $EVENT repetido (radio en Degradado): js/carteles_equipo.js. -->
     <div id="carteles-equipo" hidden></div>
+    <!-- La eleccion del Degradado automatico, dicha en el momento: js/deg_auto_eleccion.js. -->
+    <div class="card card-camara-pluma" id="degauto-pide" hidden>
+      <strong class="camara-pluma-titulo">Si se cae la radio entre los postes, ¿qué hacen?</strong>
+      <p class="camara-pluma-medida" id="degauto-pide-motivo"></p>
+      <button type="button" class="btn-secondary-bt" id="btn-degauto-pide-off">(a) Ámbar y voy con el testigo</button>
+      <button type="button" class="btn-degradado" id="btn-degauto-pide-on">(b) Entran solos en Degradado a los 5 min</button>
+      <p class="camara-pluma-accion" id="degauto-pide-sin-radio" hidden>Sin radio no se puede cambiar: se elige con los dos postes enlazados.</p>
+      <button type="button" class="btn-top" id="btn-degauto-pide-luego">Más tarde</button>
+    </div>
+    <div class="card card-camara-pluma" id="degauto-sinradio" hidden>
+      <strong class="camara-pluma-titulo" id="degauto-sinradio-txt"></strong>
+      <button type="button" class="btn-degradado" id="btn-degauto-ir-testigo" hidden>Ir a Degradado con testigo</button>
+    </div>
 
     <!-- ===================================================================
          TAB 1: OPERACIÓN PRINCIPAL (LA VISTA QUE USA EL OPERARIO EN CAMPO)
@@ -160,6 +173,9 @@
              telefono de 320 px. Un renglon fijo ahi taparia un mando. Medido, no
              supuesto. -->
         <div class="pluma-estado" id="pluma-estado" hidden>PLUMA</div>
+        <!-- Lo que hacen los postes si cae la radio (CONSULTA_DEG_AUTO). Oculto sin poste, como la pluma. -->
+        <div class="pluma-estado" id="degauto-linea" hidden><span id="degauto-linea-txt"></span>
+          <strong id="degauto-linea-difieren" style="color: var(--red-lamp);" hidden> · Los postes no coinciden</strong></div>
       </div>
 
       <!-- ===============================================================
@@ -798,19 +814,21 @@
            estado lo dice el equipo (CONSULTA_DEG_AUTO), no el boton pulsado. -->
       <div class="card card-degradado" id="card-deg-auto">
         <div class="card-header-flex">
-          <h3>📡 Degradado automático (sin radio)</h3>
+          <h3>📡 Si se cae la radio entre los postes:</h3>
           <span class="badge badge-degradado">PELIGROSO</span>
         </div>
         <p class="card-sub"><strong>Con los dos postes en degradado sin radio, no cambie el modo de uno solo sin paleteros en los dos extremos.</strong></p>
-        <p class="card-sub">Hay que activarlo <strong>en los dos postes</strong>: en uno solo no hace nada. Con los dos activados, si la radio cae 5 min, <strong>los dos pasan a ROJO</strong> y después arrancan solos a una hora fija, alternando por reloj, sin nadie mirando.</p>
+        <p class="card-sub">Se elige al montar el equipo, con los dos postes enlazados por radio; el otro poste se entera por radio. Hay que elegirlo <strong>en los dos postes</strong>.</p>
+        <p class="card-sub">(a) es la de fábrica y la recomendada en carretera. Con (b) en los dos, si la radio cae 5 min, <strong>los dos pasan a ROJO</strong> y después arrancan solos a una hora fija, alternando por reloj, sin nadie mirando.</p>
         <p class="card-sub">Cuando la radio vuelve <strong>siguen en degradado</strong> hasta que el técnico los saque (Volver al menú en el POSTE 1).</p>
         <p class="card-sub">Este poste: <strong id="degauto-este">sin conectar</strong><br>
           Otro poste: <strong id="degauto-otro">-</strong><br>
           Listo para entrar solo: <strong id="degauto-apto">-</strong></p>
         <div class="card-header-flex">
-          <button class="btn-degradado" id="btn-degauto-on">Activar</button>
-          <button class="btn-secondary-bt" id="btn-degauto-off">Desactivar</button>
+          <button class="btn-secondary-bt" id="btn-degauto-off">(a) Ambar intermitente y voy con el testigo</button>
+          <button class="btn-degradado" id="btn-degauto-on">(b) Entran solos en Degradado a los 5 min sin radio</button>
         </div>
+        <p class="card-sub" id="degauto-sin-radio" hidden><strong>Sin radio no se puede cambiar: se elige con los dos postes enlazados.</strong></p>
       </div>
     </section>
 
@@ -1145,6 +1163,7 @@
   <script src="js/testigo.js"></script>
   <script src="js/deg_auto.js"></script>
   <script src="js/deg_fin.js"></script>
+  <script src="js/deg_auto_eleccion.js"></script>
   <script src="js/aviso_degradado.js"></script>
   <script src="js/textos_spec4.js"></script>
   <script src="js/serial_pc.js"></script>

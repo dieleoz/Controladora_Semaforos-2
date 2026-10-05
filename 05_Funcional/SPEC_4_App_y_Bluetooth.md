@@ -217,12 +217,21 @@ sin uno nuevo.
 
 ## 3.ter.bis EL DEGRADADO AUTOMATICO EN LA APP — construido en `js/deg_auto.js` (`A-15`, SPEC 2 §7.ter)
 
-**Tarjeta nueva en la pestana Tecnico, en LAS DOS pantallas**: «Degradado automatico (sin radio)». Al conectar, y
-tras cada orden, la app manda `CONSULTA_DEG_AUTO` y pinta tres lineas: **este poste** ON/OFF, **el otro poste** ON/OFF
-(«ultimo visto por radio») y **listo para entrar solo** SI/NO. Debajo, un boton ON/OFF que pide el PIN y manda
-`SET_DEG_AUTO:1|0`. **Mientras espera el `$ACK` diferido** (hasta `DEG_AUTO_ACUSE_MS`) el boton queda en «esperando al
-otro poste», no en el valor pedido: el cambio no esta hecho hasta que el otro lo acusa. Al activar, la app avisa del
-riesgo: sin radio, los dos postes pasan solos a rojo y despues alternan por reloj, sin nadie mirando.
+**Es una ELECCION DE MONTAJE, no un modo que se pone cuando ya cayo la radio** (decidido el 05/10, tras el banco del
+funcional: lo intento sin radio y no entendio el rechazo `SIN_ENLACE_CON_EL_OTRO_POSTE`). Construido en
+`js/deg_auto.js` y `js/deg_auto_eleccion.js` (`N-176`, sin banco):
+- **La tarjeta (pestana Tecnico, las dos pantallas) es una pregunta**: «Si se cae la radio entre los postes:»
+  (a) «Ambar intermitente y voy con el testigo» = `SET_DEG_AUTO:0`, la de fabrica y la de carretera (`D-43`);
+  (b) «Entran solos en Degradado a los 5 min sin radio» = `SET_DEG_AUTO:1`. Pide PIN; se elige en LOS DOS postes.
+- **Sin radio los botones quedan desactivados** y la orden no sale: con `FALLO COM` fuera de `MODO:AMBAR` o `RF:0%`.
+  No se bloquea por `APTO_NO`: con la opcion en OFF el apto es siempre NO.
+- **Pantalla principal, linea fija** con lo que dio `CONSULTA_DEG_AUTO`: «Si se cae la radio: AMBAR, ir con
+  testigo» o «… DEGRADADO SOLO a los 5 min»; «Los postes no coinciden» en rojo si ESTE y OTRO difieren.
+- **Al conectar**, si no consta o no coincide, aviso que pide elegir («Mas tarde» lo pospone hasta la siguiente).
+- **Al caer la radio**, cartel segun la eleccion: (a) «quedan en AMBAR y NO arrancan solos: hay que ir con el
+  testigo», con boton al testigo; (b) cuenta «aprox. m:ss» desde que la app ve `FALLO COM` (llega tarde respecto al
+  reloj del firmware: por eso «aprox.»), y con `AUTO_ENTRADA_INICIO` o `MODO:DEGRADADO`, «En Degradado por reloj».
+- Mientras espera el `$ACK` diferido (hasta `DEG_AUTO_ACUSE_MS`) queda «esperando al otro poste», no el valor pedido.
 
 **Eventos y alarmas que traduce, a texto de operario:**
 - `DEGRADADO` / `AUTO_ENTRADA_INICIO_HH:MM:SS` — «Sin radio 5 min: modo degradado automatico, rojo hasta HH:MM».

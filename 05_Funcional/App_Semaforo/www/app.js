@@ -1394,20 +1394,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // El vocabulario que este bloque leia -V1_R2, Y1_R2, R1_R2, ALL_RED, R1_V2, R1_Y2,
   // AMBAR_FAIL- describe LOS DOS semaforos a la vez, y NO LO EMITE NINGUN FIRMWARE:
   // sale del puente de PC (servidor_puente_simulador.py:28), que es un simulador.
-  // Lo que manda el equipo es el enum de cuatro valores de semaforo_nombreEstado()
-  // -Maestro/src/semaforo.cpp:336-344 y Esclavo/src/semaforo.cpp:331-339, identicos-:
+  // Lo que manda el equipo es el enum de semaforo_nombreEstado() (semaforo.cpp de las
+  // dos puntas, identicos): "ROJO" "ROJO+AMAR" (D-53) "VERDE" "AMARILLO" "FALLO COM".
+  // La interseccion con el del simulador es VACIA; lo vigila app_04_valores_de_status.
   //
-  //     "ROJO"   "VERDE"   "AMARILLO"   "FALLO COM"
-  //
-  // MEDIDO: la interseccion de las dos listas es VACIA. Con el enlace vivo no casaba
-  // ni un case, las seis lamparas se quedaban apagadas por el forEach de arriba y
-  // nadie volvia a encenderlas, y s1Text/s2Text/phase-desc conservaban lo ultimo que
-  // hubiera -que tras marcarSinEnlace() es "SIN ENLACE - sin datos del equipo"-. O
-  // sea: el tablero declaraba que no tenia datos MIENTRAS los estaba recibiendo.
-  //
-  // POR QUE ESTO NO SE ARREGLA RENOMBRANDO LOS `case`.
-  //
-  // No hay a que renombrarlos. `V1_R2` afirma algo de DOS postes y la trama habla de
+  // No se renombran los `case`: `V1_R2` afirma algo de DOS postes y la trama habla de
   // UNO: el que dice NODE:. La app NO TIENE el estado del otro extremo -no llega por
   // Bluetooth, y ninguna punta lo pone en $STATUS-. Deducirlo -"si este da verde, el
   // otro estara en rojo"- seria inventar justo la cifra que decide si se cruza, y
@@ -1427,6 +1418,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const ESTADOS = {
     'ROJO':      { lampara: 'red',   texto: 'ROJO (ESPERA)',  color: 'var(--red-text)',   anillo: 'red',
                    frase: 'ROJO, este poste no da paso' },
+    // D-53 (05/10): antes de cada verde, rojo y amarillo encendidos a la vez. Es la
+    // UNICA fila con dos lamparas (`lamparas`); `lampara` sigue siendo la que manda en el
+    // anillo y en lo que lee una sola luz: rojo, porque todavia no da paso.
+    'ROJO+AMAR': { lampara: 'red', lamparas: ['red', 'amber'], texto: 'ROJO Y AMARILLO',
+                   color: 'var(--amber-lamp)', anillo: 'amber',
+                   frase: 'Rojo y amarillo: va a abrir el verde' },
     'VERDE':     { lampara: 'green', texto: 'VERDE (PASO)',   color: 'var(--green-lamp)', anillo: 'green',
                    frase: 'VERDE, este poste da paso' },
     'AMARILLO':  { lampara: 'amber', texto: 'AMARILLO',       color: 'var(--amber-lamp)', anillo: 'amber',
@@ -1601,7 +1598,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // D-45 (SPEC_4 6 (2)): el amarillo es el CIERRE de cada verde, y la pluma sigue arriba
       // en el por diseno (SFTY-28), no por un veto: baja al llegar el rojo.
       if (state.estadoLuces === 'AMARILLO') return 'amarillo de cierre: baja al pasar a rojo';
-      if (state.estadoLuces === 'ROJO') {
+      if (state.estadoLuces === 'ROJO' || state.estadoLuces === 'ROJO+AMAR') {  // D-53: la pluma sube con el VERDE
         // D-13. Con las camaras habra ratos de LUZ ROJA CON LA PLUMA ARRIBA: hay algo
         // debajo y la barrera no baja. Hoy un operario eso lo lee como averia y llama.
         // La frase lo DICE, no lo insinua.
@@ -1913,7 +1910,9 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    propias[{ red: 0, amber: 1, green: 2 }[info.lampara]].classList.add('active');
+    (info.lamparas || [info.lampara]).forEach(l => {
+      propias[{ red: 0, amber: 1, green: 2 }[l]].classList.add('active');
+    });
     if (textoPropio) {
       textoPropio.textContent = info.texto;
       textoPropio.style.color = info.color;
@@ -3980,7 +3979,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Mismo dato, misma trama: se pinta ademas en la caja de la Prueba de Alcance si
       // el equipo esta en ese modo (28/09). state.modo ya viene actualizado de arriba.
       pintarCajaAlcance(lectura);
-      registrarMuestraEnlace(lectura);
+      registrarMuestraEnlace(lectura); DegAuto.render();  // eleccion del automatico: botones y avisos sin radio
       if (data.BAT !== undefined) {
         // N-108 (31/08): EL FIRMWARE DEJO DE INVENTARSE ESTE NUMERO Y AHORA MANDA "--".
         //
