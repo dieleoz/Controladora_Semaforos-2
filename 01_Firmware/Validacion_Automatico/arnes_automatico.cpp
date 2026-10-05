@@ -181,9 +181,8 @@ static unsigned long g_margenSenalMs = MARGEN_MUESTREO_MS;
 static long discrepanciasPluma = 0;
 
 // D-53 (05/10): ROJO - ROJO+AMARILLO (2 s) - VERDE. Manual de Senalizacion Vial 4.4.2 y
-// Fig. 4-9. El valor viene de la DECISION, no del fuente: si se leyera de protocolo.h, un
-// firmware sin la constante haria ABORTAR el arnes en vez de dejarlo en ROJO, y uno que la
-// cambiara se mediria contra si mismo. Cambiarla cuesta dos ediciones (CLAUDE.md 15).
+// Fig. 4-9. Viene de la DECISION, no del fuente: leida de protocolo.h, sin la constante el
+// arnes ABORTARIA en vez de dar ROJO. Cambiarla cuesta dos ediciones (CLAUDE.md 15).
 static const unsigned long RA_MS = 2000UL;
 
 // D-53: EL VIGILANTE DE LA APERTURA, sobre los PINES de la cara 1 y en cada tick. Cuenta
@@ -192,9 +191,10 @@ static const unsigned long RA_MS = 2000UL;
 // inventar: la ventana EXTERIOR (ultimo tick sin R+A -> primer verde) no puede ser menor
 // que RA_MS, y la INTERIOR (primer tick R+A -> ultimo tick R+A) no puede ser mayor. Ningun
 // muestreo da un falso rojo con estas dos; el milisegundo exacto lo mide el bloque A.
-// La pluma no SUBE en R+A (sube con el verde): arriba solo si ya lo estaba (S_FALLO, veto).
+// La pluma no SUBE en R+A; si viene arriba baja en PLUMA_RETARDO_BAJADA_MS desde el primer tick
+// sin luz que la pida (verde, S_FALLO, S_AMARILLO), salvo veto vivo (SPEC_1 3.3 (7)), como SFTY-28.
 static unsigned long g_verdesVistos = 0, g_verdesSinRA = 0, g_raMalMedido = 0;
-static unsigned long g_plumaEnRA = 0, g_raVistos = 0;
+static unsigned long g_plumaEnRA = 0, g_raVistos = 0, g_plumaRAFueraCota = 0, g_tBajadaDesde = 0;
 static bool g_prevRA = false, g_prevV = false, g_prevPluma = false;
 static unsigned long g_tPrevMuestra = 0, g_tAntesDeRA = 0, g_tRAPrimera = 0, g_tRAUltima = 0;
 
@@ -206,10 +206,14 @@ static void vigilarApertura() {
   const bool r = arnes_pines[ROJO1] == HIGH, a = arnes_pines[AMARILLO1] == HIGH;
   const bool v = arnes_pines[VERDE1] == HIGH;
   const bool ra = r && a && !v, pl = arnes_pines[MOTOR_TALANQUERA] == TALANQUERA_ABRIR;
+  if (!pl || v || semaforo_estado() == S_FALLO || semaforo_estado() == S_AMARILLO) g_tBajadaDesde = 0;
+  else if (g_tBajadaDesde == 0) g_tBajadaDesde = ahora + 1;   // 0 = sin bajada pendiente
   if (ra && !g_prevRA) { g_tAntesDeRA = g_tPrevMuestra; g_tRAPrimera = ahora; g_raVistos++; }
   if (ra) {
     g_tRAUltima = ahora;
     if (pl && !g_prevPluma) g_plumaEnRA++;   // una SUBIDA abajo->arriba en R+A
+    if (pl && ahora + 1 - g_tBajadaDesde > g_retardoPlumaMs + g_margenSenalMs &&
+        !(semaforo_plumaVetada() && camara_presenciaJ16())) g_plumaRAFueraCota++;
   }
   if (v && !g_prevV) {
     g_verdesVistos++;
@@ -584,18 +588,12 @@ int main() {
   // Constantes releidas del C++ real. Ni una se escribe a mano: si el patron no
   // aparece, el arnes ABORTA antes de comprobar nada (ver leerConstante()).
   // -------------------------------------------------------------------------
-  // D-33: ESTA VA LA PRIMERA, y no por orden alfabetico. vigilarEnclavamiento() la usa
-  // para decidir si una pluma arriba sin verde esta justificada; si se leyera despues de
-  // arrancar los bloques, los primeros ticks compararian contra un cero y acusarian al
-  // firmware de un defecto que no tiene.
+  // D-33: ESTA VA LA PRIMERA: vigilarEnclavamiento() y vigilarApertura() la usan desde el
+  // primer tick; leida despues, compararian contra un cero y acusarian al firmware.
   g_retardoPlumaMs = (unsigned long)leerConstante("semaforo.cpp",
       R"(PLUMA_RETARDO_BAJADA_MS\s*=\s*(\d+)UL)",
       "el retardo con el que la pluma baja DESPUES del rojo (D-33)");
 
-  // D-30 (14/09): AQUI SE LEIA DESTELLO_ON_MS DEL C++ PARA EL MARGEN DE LA PLUMA, y ya
-  // no se lee: esa constante salio de semaforo.cpp con el mando. El margen de hoy es una
-  // propiedad de ESTE arnes -su paso de muestreo- y no del firmware; vive en
-  // MARGEN_MUESTREO_MS, con el porque escrito al lado de su declaracion.
 
   // D-45: el amarillo de cierre, en segundos y en el contrato de las dos puntas.
   long AMBAR_MS = 1000L * leerConstante("../include/protocolo.h",
@@ -1903,7 +1901,7 @@ int main() {
   // que sale de ROJO sin R+A y otro con un R+A de la mitad, y se exige que los cuente.
   // Despues se restaura TODO su estado: lo que se falsea aqui no lo hizo el firmware.
   const bool pR = g_prevRA, pV = g_prevV;
-  const unsigned long pT = g_tPrevMuestra, pA = g_tAntesDeRA, p1 = g_tRAPrimera, p2 = g_tRAUltima;
+  const unsigned long pT = g_tPrevMuestra, pA = g_tAntesDeRA, p1 = g_tRAPrimera, p2 = g_tRAUltima, pL = g_tBajadaDesde;
   const unsigned long nV = g_verdesVistos, nS = g_verdesSinRA, nM = g_raMalMedido, nR = g_raVistos;
   const int gR = arnes_pines[ROJO1], gA = arnes_pines[AMARILLO1], gV = arnes_pines[VERDE1];
   const unsigned long gT = arnes_millis_valor;
@@ -1926,7 +1924,7 @@ int main() {
   arnes_pines[ROJO1] = gR; arnes_pines[AMARILLO1] = gA; arnes_pines[VERDE1] = gV;
   arnes_millis_valor = gT;
   g_prevRA = pR; g_prevV = pV; g_tPrevMuestra = pT; g_tAntesDeRA = pA;
-  g_tRAPrimera = p1; g_tRAUltima = p2;
+  g_tRAPrimera = p1; g_tRAUltima = p2; g_tBajadaDesde = pL;
   g_verdesVistos = nV; g_verdesSinRA = nS; g_raMalMedido = nM; g_raVistos = nR;
   comprobar(cazaDirecto && cazaCorto,
             "control negativo (D-53): el vigilante de la apertura SI cuenta un verde que "
@@ -2039,14 +2037,16 @@ int main() {
             "bajando en el mismo instante del rojo y el reparto de la invariante habria "
             "cambiado una comprobacion por una tapia (CLAUDE.md 9)");
   {
-    char ra[420];
+    char ra[560];
     std::snprintf(ra, sizeof(ra),
         "RESUMEN (D-53): de %lu encendidos de verde vistos en los pines, %lu NO venian de "
         "ROJO+AMARILLO, %lu tuvieron un R+A incompatible con %lu ms, y en %lu ticks de R+A la "
-        "pluma SUBIO de abajo a arriba (%lu fases R+A vistas)",
-        g_verdesVistos, g_verdesSinRA, g_raMalMedido, RA_MS, g_plumaEnRA, g_raVistos);
+        "pluma SUBIO de abajo a arriba (%lu fases R+A vistas); %lu ticks de R+A con la pluma "
+        "arriba sin veto pasado el retardo de %lu ms",
+        g_verdesVistos, g_verdesSinRA, g_raMalMedido, RA_MS, g_plumaEnRA, g_raVistos,
+        g_plumaRAFueraCota, g_retardoPlumaMs);
     comprobar(g_verdesVistos > 0 && g_verdesSinRA == 0 && g_raMalMedido == 0 &&
-              g_plumaEnRA == 0, ra);
+              g_plumaEnRA == 0 && g_plumaRAFueraCota == 0, ra);
   }
   comprobar(vetoSinPresencia == 0,
             "RESUMEN (D-33): en NINGUN instante semaforo_plumaVetada() dijo que si con "

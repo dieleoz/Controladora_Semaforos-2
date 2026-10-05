@@ -57,7 +57,7 @@ CIERRA, porque el pin cae a reposo. Y **ninguna avería de la pluma detiene el c
 | luz | pluma |
 |---|---|
 | Rojo · todo-rojo de despeje · ~~ámbar de transición~~ *(salió con `D-45`, `cda33df`)* · ~~destellos y ámbar rápido del mando~~ *(salieron con el mando, 14/09)* | ABAJO |
-| **Rojo + amarillo de apertura** (`D-53`, §3.3; construido sin banco, `N-176`) | **ABAJO**: sube con el VERDE real |
+| **Rojo + amarillo de apertura** (`D-53`, §3.3; construido sin banco, `N-176`) | **No SUBE**: sube con el VERDE real; si llega arriba, baja con el retardo (§3.3 (7)) |
 | Verde de ciclo | ARRIBA |
 | **Amarillo de cierre** (`D-45`, §3.2; construido en `cda33df`, sin banco) | **ARRIBA**: `luzPideArriba` lleva `estado == S_AMARILLO`; el retardo de bajada cuenta desde el ROJO (SPEC 8 §1) |
 | Verde y amarillo de test de lámparas | **ABAJO** (en el test `estado` sigue en `S_ROJO`) |
@@ -183,8 +183,10 @@ el rojo-amarillo dentro del tiempo de seguridad. Transcripción: `fuentes/md/Man
    son del verde (§7). El backstop del Poste 2 (`tInicioVerdeEsclavo`) ya se arma sólo en `S_VERDE` (§9).
 6. **`DAR PASO` y `MANUAL:CAMBIAR_TURNO` (§8):** durante el rojo+amarillo el coordinador no está en `C_IDLE` y la
    orden contesta `EN_TRANSICION_REINTENTE`, como en el despeje y el amarillo.
-7. **La pluma sigue ABAJO durante el rojo+amarillo y sube con el verde real** (`D-53`): `luzPideArriba` no gana
-   término, porque mira el verde ya enclavado y `S_FALLO`/`S_AMARILLO`. SPEC 8 §1.
+7. **La pluma no SUBE durante el rojo+amarillo; sube con el verde real** (`D-53`): `luzPideArriba` no gana término,
+   porque mira el verde ya enclavado y `S_FALLO`/`S_AMARILLO`. **Excepción: si llega arriba** (de `S_FALLO`, del
+   retardo de bajada o retenida por el veto de cámara), es una bajada pendiente: baja como mucho
+   `PLUMA_RETARDO_BAJADA_MS` después de que la luz dejó de pedirla arriba, salvo veto de cámara activo. SPEC 8 §1.
 8. **El veto de margen al ABRIR el verde propio del Poste 1** (`puedeSostenerVerde()`, SPEC 2 §4) lleva además
    `ROJO_AMARILLO_MS`, para que el verde empiece con el margen de hoy. El umbral de silencio y la suelta de `D-50`,
    abiertos para el arquitecto: SPEC 2 §2.2.ter.
