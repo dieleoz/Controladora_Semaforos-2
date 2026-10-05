@@ -42,15 +42,15 @@ trinquete 1,665); la 5, lo duplicado a `lib/`, despues de banco.
 
 ## Verificacion en escritorio
 
-Cifras copiadas del acta [`evidencia/2026-10-04_compuerta.txt`](evidencia/2026-10-04_compuerta.txt), que dice en su
+Cifras copiadas del acta [`evidencia/2026-10-05_compuerta.txt`](evidencia/2026-10-05_compuerta.txt), que dice en su
 cabecera con que HEAD y que arbol se midio; las comprueba `documentos_01` en cada corrida.
 
 | | |
 |---|---|
-| Flash | Maestro **69.7 %** · Esclavo **61.9 %** · Repetidor **20.6 %** · ESP32 **35.7 %** |
-| Banco por packs | **1368/1369 comprobaciones** en **70 packs**; el unico FALLA, `D-22`, es correcto: pide una tarjeta delante (`CLAUDE.md` §1) |
-| Arneses de C++ real | 76/76 automatico · 22/22 ciclo · 122/122 dos puntas · 141/141 Degradado a dos puntas |
-| App y puente | **513/513** jsdom · **70/70** funcional · **63/63** unitarios · 85/85 TDD · puente 150/150 |
+| Flash | Maestro **70.4 %** · Esclavo **62.6 %** · Repetidor **20.6 %** · ESP32 **35.7 %** |
+| Banco por packs | **1372/1373 comprobaciones** en **70 packs**; el unico FALLA, `D-22`, es correcto: pide una tarjeta delante (`CLAUDE.md` §1) |
+| Arneses de C++ real | 88/88 automatico · 55/55 ciclo · 127/127 dos puntas · 143/143 Degradado a dos puntas |
+| App y puente | **540/540** jsdom · **70/70** funcional · **63/63** unitarios · 85/85 TDD · puente 150/150 |
 
 ## BLOQUEANTES: lo que no se cierra con teclado (roadmap §1 y §4)
 

@@ -92,7 +92,7 @@ entonces cada lector deriva su propia versión.
 > tabla. Mismo cobre, distinto `pinMode`, distinta tensión. Ver `05_Funcional/historico/DECISIONES_hist.md`, cerradas.)*
 
 **Verificación actual** — cifras **copiadas del acta**
-[`evidencia/2026-10-04_compuerta.txt`](evidencia/2026-10-04_compuerta.txt), que genera
+[`evidencia/2026-10-05_compuerta.txt`](evidencia/2026-10-05_compuerta.txt), que genera
 `python 01_Firmware/compuerta.py` en una sola corrida. No se escriben a mano — y desde **N-62**
 eso ya no es una promesa: el pack `documentos_01_cifras_del_acta` compara esta tabla contra la
 última acta en cada corrida del banco. Cuando se escribió por primera vez, **falló**: esta tabla
@@ -102,22 +102,22 @@ publicaba 32 rutas y 86,4 % de flash cuando el acta que ella misma citaba medía
 | Comprobación | Estado | |
 |---|---|---|
 | guarda de rutas de los instrumentos | ✅ | 61 rutas parseadas, todas existen |
-| banco por packs *(70 packs)* | 🔴 **FALLA** | **1368/1369 comprobaciones en 70 packs** — 69 PASS, **1 FALLA**. El rojo es CORRECTO: `decisiones_01_anclas` acusa a **`D-22`**, la única decisión vigente sin construir, y **necesita una tarjeta delante** (`CLAUDE.md` §1: no se decora) |
-| compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **69.7 %** · 61.9 % · 20.6 % · 35.7 % — *el Maestro ocupa **44988 de 64512 B** (la ultima pagina queda para el testigo de `D-35`); el Esclavo, **39932 B**. Bajo al quitar la libreria RTC (`N-172`) y subio con la salida programada (`D-52`)* |
+| banco por packs *(70 packs)* | 🔴 **FALLA** | **1372/1373 comprobaciones en 70 packs** — 69 PASS, **1 FALLA**. El rojo es CORRECTO: `decisiones_01_anclas` acusa a **`D-22`**, la única decisión vigente sin construir, y **necesita una tarjeta delante** (`CLAUDE.md` §1: no se decora) |
+| compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **70.4 %** · 62.6 % · 20.6 % · 35.7 % — *el Maestro ocupa **45408 de 64512 B** (la ultima pagina queda para el testigo de `D-35`); el Esclavo, **40360 B**. Bajo al quitar la libreria RTC (`N-172`) y subio con la salida programada (`D-52`)* |
 | simulador funcional | ✅ | 9/9 — eran 20, y 11 de aquellas no medían nada: se retiraron una a una con su evidencia |
 | simulador de repetidor | ✅ | 10/10 |
 | compila ESP32 | ✅ | 35.7 % — 1123581 de 3.145.728 B |
 | simulador del puente ESP32 | ✅ | **150/150** — las tres puntas: `bluetooth.cpp` compilado, la app en jsdom, y solo el ESP32 modelado |
 | simulador de app y bluetooth | ✅ | **12/12** — estuvo en `ABORTADO` unas horas el 05/09: **N-149** le añadió el campo `ESC` al `$STATUS` y el instrumento no supo con qué compararlo. Se enseñó a leerlo el mismo día. Queda escrito porque **mientras duró, todo lo que vigilaba entró sin mirar** (`CLAUDE.md` §1) |
-| **app ejecutada en DOM** | ✅ | **513/513** — carga `index.html` en jsdom, más `app.js` y **los `js/*.js` que el propio HTML declara, en su orden**, y los **ejercita**: pestañas, modales, ingesta de telemetría, *fuzzing* de 200 tramas corruptas y los botones que mandan comandos. Es el único instrumento que **ejecuta** la app en vez de leerla |
+| **app ejecutada en DOM** | ✅ | **540/540** — carga `index.html` en jsdom, más `app.js` y **los `js/*.js` que el propio HTML declara, en su orden**, y los **ejercita**: pestañas, modales, ingesta de telemetría, *fuzzing* de 200 tramas corruptas y los botones que mandan comandos. Es el único instrumento que **ejecuta** la app en vez de leerla |
 | test funcional de la app | ✅ | **70/70** — decía «22/22» a mano y ejecuta 34; su prueba de Courier RTC era una tautología |
 | test unitarios TDD de la app | ✅ | **85/85** — la **segunda** suite unitaria, que hasta el 01/09 **no estaba en la compuerta**: 23 pruebas verdes que no medían nada. *(Esta fila publicó `55/55` hasta el 07/09: era la cifra del 02/09, y `documentos_01` **no la vigila** — no está en su tupla `CIFRAS`.)* |
 | test unitarios de la app | ✅ | **63/63** — seis suites que no cargan el navegador: NMEA y *checksums*, generador de comandos y barrera de PIN, validación de `SET_TIEMPOS`, Courier RTC, gestor de cruces y escala de 20 cruces |
-| arnés del ciclo | ✅ | **22/22** — corre sobre el `ciclo_degradado.h` real compilado, sin espejo en Python |
+| arnés del ciclo | ✅ | **55/55** — corre sobre el `ciclo_degradado.h` real compilado, sin espejo en Python |
 | arnés del respaldo | ✅ | compila el `calcularSuma()` real; identidad de `respaldo.cpp` entre puntas + prueba de vida |
-| arnés del Degradado a dos puntas | ✅ | **141/141** — las dos puntas en Degradado **cada una con su reloj**. Entrega **el número**: el cruce aguanta **29 s** de desfase contra los **20,2 s** que el equipo puede acumular en 48 h, o sea factor **1,44** — y no el 2 que afirmaban los comentarios de las dos puntas |
-| arnés de las dos puntas | ✅ | **122/122** — 🟢 **`1.49` (15/09)**: `G3D` —la cámara pidiendo paso ya no sostiene el silencio del Maestro— y el bloque G del Degradado —el cristal parado ya no deja reanudar—. 🟢 **`D-34` (15/09): el sentido contrario —verde del Esclavo frente al ámbar del Maestro, hasta 23 s medidos— queda en CERO en `G12`–`G14`, vistas fallar antes del arreglo. Sin banco.** ~~la que cae es **G3** (la punta en verde no suelta antes del silencio de SFTY-6: 250 ms de verde frente a ámbar) y espera una decisión del responsable~~ 🟢 **`G3` CERRADO el 12/09 (`N-163`): la ventana pasó de 250 ms a CERO.** El responsable decidió con una condición que fue el criterio de aceptación —*«que no sea que por microcortes de radio el esclavo se pase a ámbar cada nada»*—, y se midió caso por caso sobre **32 cortes**: los ámbares no subieron ni uno (Esclavo 8→8, Maestro 10→10). **El umbral de 25 s no se tocó**; lo que cambió es cuándo se suelta el verde. Los 180 s de verde en las dos del bloque G están CERRADOS (N-162, 11/09). — el C++ **real de las DOS puntas** ejecutándose en el mismo proceso y el mismo instante: verde simultáneo en **0** instantes *(el total lo imprime el arnés; aquí ponía «de 53.236» y ya no casaba)* |
-| arnés del automático | ✅ | **76/76** — compila `coordinador.cpp` + `semaforo.cpp` + `modo_automatico.cpp` + `modo_inteligente.cpp`, `demanda.cpp` y el `botones.cpp` real, y comprueba SFTY-2 sobre las escrituras de pin. Las 16 nuevas son el **Bloque G de `D-33`**: el retardo de bajada de la pluma y el veto de la cámara, ejecutados |
+| arnés del Degradado a dos puntas | ✅ | **143/143** — las dos puntas en Degradado **cada una con su reloj**. Entrega **el número**: el cruce aguanta **29 s** de desfase contra los **20,2 s** que el equipo puede acumular en 48 h, o sea factor **1,44** — y no el 2 que afirmaban los comentarios de las dos puntas |
+| arnés de las dos puntas | ✅ | **127/127** — el C++ **real de las DOS puntas** en el mismo proceso y el mismo instante: verde simultáneo en **0** instantes. Cubre `G3`/`N-163` (suelta del verde), `D-34` (verde del Esclavo frente al ámbar del Maestro, `G12`–`G14`) y `D-53` (rojo+amarillo antes de cada verde). Sin banco |
+| arnés del automático | ✅ | **88/88** — compila `coordinador.cpp` + `semaforo.cpp` + `modo_automatico.cpp` + `modo_inteligente.cpp`, `demanda.cpp` y el `botones.cpp` real, y comprueba SFTY-2 sobre las escrituras de pin. Las 16 nuevas son el **Bloque G de `D-33`**: el retardo de bajada de la pluma y el veto de la cámara, ejecutados |
 
 > 🛑 **Aquí había una fila más, `arnés de pantalla`, y NO se actualiza: se RETIRA.** Compilaba los cuatro
 > `lcd.cpp`/`menu.cpp` reales contra 131 `.c` de U8g2, y **se fue con el LCD** el 13/09 (`D-32` (1), `17d3a1f`).
