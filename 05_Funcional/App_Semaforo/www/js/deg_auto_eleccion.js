@@ -24,6 +24,10 @@ const DegAutoEleccion = {
   NO_COINCIDEN: 'Los postes no coinciden',
   CARTEL_OFF: 'Sin radio. Los postes quedan en AMBAR intermitente y NO arrancan solos: hay que ir ' +
               'con el testigo (Degradado con testigo)',
+  MOTIVO_DISTINTOS: 'Los postes no tienen la misma eleccion',
+  MOTIVO_NO_APTO: 'Este poste no esta listo para entrar solo',
+  MARGEN_MS: 60000,           // retraso con que la app ve FALLO COM respecto al reloj del firmware
+  CARTEL_NO_ENTRARON: 'No entraron solos: quedan en AMBAR. Hay que ir con el testigo',
   CARTEL_DEG: 'En Degradado por reloj, sin radio',
 
   ctx: null,
@@ -85,8 +89,16 @@ const DegAutoEleccion = {
     if (!sinRadio) { this._caidaMs = null; this._entrada = false; return null; }
     if (this._caidaMs === null) this._caidaMs = ahora;
     if (!e) return 'Sin radio. No consta que hacen los postes sin radio: mire el modo de cada poste.';
+    // Cuenta solo si el firmware puede entrar: degAuto_loop() pide respaldo_otroApto() (OTRO) y
+    // puertaAbierta(), y entrar() repite lo de degAuto_aptoPropio() (APTO). Si no, se queda en ambar.
+    if (e.este !== e.otro) return this.CARTEL_OFF + '. Motivo: ' + this.MOTIVO_DISTINTOS;
     if (!e.este) return this.CARTEL_OFF;
-    return 'Sin radio. Entran SOLOS en Degradado en aprox. ' + this._mmss(this.ESPERA_MS - (ahora - this._caidaMs));
+    if (!e.apto) return this.CARTEL_OFF + '. Motivo: ' + this.MOTIVO_NO_APTO;
+    // El ECO (respaldo_aptoDado()) no llega a la app: si la cuenta vence y pasa el margen sin
+    // AUTO_ENTRADA_INICIO ni MODO:DEGRADADO, no entraron.
+    const resta = this.ESPERA_MS - (ahora - this._caidaMs);
+    if (!this._entrada && resta < -this.MARGEN_MS) return this.CARTEL_NO_ENTRARON;
+    return 'Sin radio. Entran SOLOS en Degradado en aprox. ' + this._mmss(resta);
   },
 
   render() {
@@ -127,7 +139,7 @@ const DegAutoEleccion = {
       const t = conectado ? this.textoCartel(s, e, ahora) : null;
       el.cartel.hidden = !t;
       if (el.cartelTxt) el.cartelTxt.textContent = t || '';
-      if (el.irTestigo) el.irTestigo.hidden = t !== this.CARTEL_OFF;
+      if (el.irTestigo) el.irTestigo.hidden = !t || (t.indexOf(this.CARTEL_OFF) !== 0 && t !== this.CARTEL_NO_ENTRARON);
     }
   },
 };

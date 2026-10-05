@@ -97,4 +97,29 @@ module.exports = async function pruebaDegEleccion(montarAppLimpia, assert) {
     `Eleccion: en Degradado, "${eb('degauto-sinradio-txt').textContent}"`);
   stB('AUTO', 'ROJO', '95');
   assert(!veB('degauto-sinradio'), 'Eleccion: de vuelta en AUTO con radio, el cartel se va');
+
+  // (6) La cuenta solo con ESTE_ON, OTRO_ON y APTO_SI (SPEC_4 3.ter.bis; firmware degAuto_loop():
+  // respaldo_otroApto() y puertaAbierta()). Si no, el firmware se queda en ambar: cartel (a) y motivo.
+  const sinCuenta = (carga, motivo, nombre) => {
+    stB('AUTO', 'ROJO', '97');
+    entraB(`ACK,CMD:CONSULTA_DEG_AUTO,RESULT:${carga}`);
+    stB('AUTO', 'FALLO COM', '0');
+    const tx = eb('degauto-sinradio-txt').textContent;
+    assert(veB('degauto-sinradio') && /NO arrancan solos: hay que ir con el testigo/.test(tx) && motivo.test(tx) &&
+           !/Entran SOLOS/.test(tx) && veB('btn-degauto-ir-testigo'),
+      `Eleccion: con ${nombre}, ambar y testigo con motivo: "${tx}"`);
+  };
+  sinCuenta('ESTE_ON_OTRO_OFF_APTO_SI', /Los postes no tienen la misma eleccion/, 'ESTE_ON_OTRO_OFF');
+  sinCuenta('ESTE_ON_OTRO_ON_APTO_NO', /Este poste no esta listo para entrar solo/, 'APTO_NO');
+
+  // (6) Cuenta a 0 y 60 s mas sin MODO:DEGRADADO ni AUTO_ENTRADA_INICIO: no entraron (p. ej. sin ECO).
+  stB('AUTO', 'ROJO', '97');
+  entraB('ACK,CMD:CONSULTA_DEG_AUTO,RESULT:ESTE_ON_OTRO_ON_APTO_SI');
+  stB('AUTO', 'FALLO COM', '0');
+  Eb._caidaMs -= 300000 + 59000; Eb.render();
+  const m0 = eb('degauto-sinradio-txt').textContent;
+  Eb._caidaMs -= 2000; Eb.render();
+  const m1 = eb('degauto-sinradio-txt').textContent;
+  assert(/Entran SOLOS/.test(m0) && m1 === 'No entraron solos: quedan en AMBAR. Hay que ir con el testigo' &&
+         veB('btn-degauto-ir-testigo'), `Eleccion: cuenta vencida +60 s: "${m0}" -> "${m1}"`);
 };

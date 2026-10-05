@@ -231,6 +231,13 @@ funcional: lo intento sin radio y no entendio el rechazo `SIN_ENLACE_CON_EL_OTRO
 - **Al caer la radio**, cartel segun la eleccion: (a) «quedan en AMBAR y NO arrancan solos: hay que ir con el
   testigo», con boton al testigo; (b) cuenta «aprox. m:ss» desde que la app ve `FALLO COM` (llega tarde respecto al
   reloj del firmware: por eso «aprox.»), y con `AUTO_ENTRADA_INICIO` o `MODO:DEGRADADO`, «En Degradado por reloj».
+  La cuenta (b) sale solo con `ESTE_ON`, `OTRO_ON` y `APTO_SI`: es lo que el firmware exige para entrar
+  (`degAuto_loop()`: `respaldo_otroApto()` y `puertaAbierta()`, y `entrar()` repite la comprobacion de
+  `degAuto_aptoPropio()`; el ECO `respaldo_aptoDado()` no llega a la app). En cualquier otro caso sale el cartel (a),
+  con boton al testigo y una linea con el motivo: ESTE y OTRO distintos, «Los postes no tienen la misma eleccion»;
+  `ESTE_ON_OTRO_ON` con `APTO_NO`, «Este poste no esta listo para entrar solo». Si la cuenta pasa de 0 en mas de
+  60 s sin `MODO:DEGRADADO` ni `AUTO_ENTRADA_INICIO` (cubre el ECO, que la app no ve): «No entraron solos: quedan en
+  AMBAR. Hay que ir con el testigo», con boton al testigo.
 - Mientras espera el `$ACK` diferido (hasta `DEG_AUTO_ACUSE_MS`) queda «esperando al otro poste», no el valor pedido.
 
 **Eventos y alarmas que traduce, a texto de operario:**
