@@ -103,10 +103,11 @@ const DegAuto = {
     // SPEC_4 3.ter.ter: el evento no dice si hay testigo y no se deduce de h. VENCIDA:SI va primero, con o sin AVISO:
     // sin testigo y sin fecha el firmware publica AVISO:NO VENCIDA:SI y cae a ambar igual.
     if (/(^| )VENCIDA:SI( |$)/.test(d)) {
-      return { tono: 'red', toast: 'Sin radio valida: este poste deja de dar verdes por reloj',
-        texto: 'Sin sincronizacion de radio valida (48 h o mas, o sin fecha): este poste deja de dar verdes por reloj. ' +
-               'Lo que hace ahora (ambar o rojo fijo) lo dice su alarma. Recupere la radio entre postes; ' +
-               'poner la hora con el telefono no lo renueva.' };
+      // Vale dentro y fuera del Degradado y en las dos puntas: la rendicion del Esclavo no emite alarma (SPEC_4).
+      return { tono: 'red', toast: 'Sin radio valida: este poste no da verdes por reloj',
+        texto: 'Sin sincronizacion de radio valida (48 h o mas, o sin fecha): este poste no da verdes por reloj. ' +
+               'La luz que tiene la ve en su estado en esta pantalla: ambar, o rojo fijo si llega la alarma de reloj ' +
+               'parado. Recupere la radio entre postes; poner la hora con el telefono no lo renueva.' };
     }
     if (/(^| )AVISO:SI( |$)/.test(d)) {
       const h = /(^| )SYNC[:](\d+)h( |$)/.exec(d);

@@ -293,13 +293,15 @@ paleteros se casa por NOMBRE de orden, no por la trama: `DEG_FIN` lleva un `ahor
 telefono y el poste con el suyo, asi que en el borde pueden discrepar: manda el `$ERR` del poste.
 
 **Aviso `$EVENT DEGRADADO ... SYNC:<h>h AVISO:SI|NO VENCIDA:SI|NO` (HACE, sin banco; `deg_auto.js`).** El evento no
-dice si el poste tiene testigo y la app no lo deduce de `h`. `VENCIDA:SI` va primero, con o sin `AVISO` (sin testigo y
-sin fecha el Maestro publica `AVISO:NO VENCIDA:SI`): «sin sincronizacion de radio valida (48 h o mas, o sin fecha):
-este poste deja de dar verdes por reloj; lo que hace ahora (ambar o rojo fijo) lo dice su alarma». No nombra una sola
-luz: con el reloj parado (`D-49`) el poste esta en rojo fijo y la trama sigue diciendo `VENCIDA:SI`. `AVISO:SI` sin
-`VENCIDA:SI`: un solo texto, «lleva <h> h sin radio» (sin la cifra si falta `h`), «si este poste tiene testigo,
-renuevelo en los dos postes; si no, recupere la radio antes de 48 h». La orden de renovar la da tambien la alarma
-`RENOVAR_TESTIGO`, que no sale sin fecha.
+dice si el poste tiene testigo y la app no lo deduce de `h`; se publica en todo modo y en las dos puntas. `VENCIDA:SI`
+va primero, con o sin `AVISO` (sin testigo y sin fecha el Maestro publica `AVISO:NO VENCIDA:SI`): «sin sincronizacion
+de radio valida (48 h o mas, o sin fecha): este poste no da verdes por reloj; la luz que tiene la ve en su estado en
+esta pantalla: ambar, o rojo fijo si llega la alarma de reloj parado». No remite a una alarma de la rendicion: el
+Maestro emite `LIMITE_48H` pero el Esclavo se rinde sin ninguna (SPEC 6, fila `LIMITE_48H`, solo Maestro), y con el
+reloj parado (`D-49`) el poste esta en rojo fijo con la trama diciendo `VENCIDA:SI`. `AVISO:SI` sin `VENCIDA:SI`: un
+solo texto, «lleva <h> h sin radio» (sin la cifra si falta `h`), «si este poste tiene testigo, renuevelo en los dos
+postes; si no, recupere la radio antes de 48 h». La orden de renovar la da tambien la alarma `RENOVAR_TESTIGO`, que no
+sale sin fecha.
 
 ## 4. El PIN
 
