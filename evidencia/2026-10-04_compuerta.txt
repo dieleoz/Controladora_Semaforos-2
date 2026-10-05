@@ -1,7 +1,7 @@
 ACTA DE VERIFICACION - Controladora de Semaforos
 ==============================================================================
 Fecha        : 2026-10-04
-HEAD         : b5d0a2d   rama: main
+HEAD         : fea210e   rama: main
 Arbol        : LIMPIO
 Modo         : completo
 PlatformIO   : PlatformIO Core, version 6.1.19
@@ -32,5 +32,5 @@ RESULTADOS
   RESUMEN: 18 PASS | 1 FALLA | 0 ABORTADO
 
 ABORTADO no es PASS: una comprobacion que no pudo correr no dice nada del
-firmware. Esta acta se verifica volviendo a b5d0a2d y re-corriendo
+firmware. Esta acta se verifica volviendo a fea210e y re-corriendo
 python 01_Firmware/compuerta.py.
