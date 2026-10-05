@@ -9,8 +9,13 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
    `Pruebas_Funcional_2026-10-04.html`: catorce casos, los cinco ultimos de banco con dos tarjetas (salida programada
    `D-52`, rojo total `D-51`). Sus cintas se leen enteras y contando. Arquitecto y QA: APTO CON CONDICIONES, cerradas.
 2. **Lunes 05/10, montaje en campo** con `Montaje_Campo_2026-10-05.html` (sin Degradado desatendido).
-3. **Fase F** (partir `17_...`, `ARQUITECTURA.map`, planos KiCad, worktrees viejos) y `N-166` (renombrar `A-15`).
-4. **Pendiente del responsable:** `N-175` modo nocturno; C3 renombrar `Validacion_LCD`; C4 donde vive el grafo;
+   **Falta que el responsable diga que firmware se graba**: el paquete del 04/10 no va a campo sin banco, y
+   `Camaras_Sisga_4x.html` (pluma sin veto) solo es verdad con `7ff7d12`/V8.4 (roadmap B7).
+3. **Ramas de revision por leer** (dictamenes, sin merge): `revision/spec-manuales-2026-10-04`,
+   `revision/opinion-spec-manuales-...`, `revision/spec-vs-firmware-...`, `revision/app-por-spec-...` (2026-10-04);
+   lo que aplicaba ya esta en main (roadmap B6-B8).
+4. **Fase F** (partir `17_...`, `ARQUITECTURA.map`, planos KiCad, worktrees viejos) y `N-166` (renombrar `A-15`).
+5. **Pendiente del responsable:** `N-175` modo nocturno; C3 renombrar `Validacion_LCD`; C4 donde vive el grafo;
    B3 actualizar el plugin del metodo (fuera del repo).
 
 ## Frentes abiertos (tres como maximo)
