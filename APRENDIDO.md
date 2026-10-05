@@ -123,3 +123,20 @@ sin su visto bueno.
   banco no ejerce.
 - **Que hacer en el siguiente:** el paquete rapido sale `_SIN_BANCO` con la deuda escrita en ESTADO el mismo dia.
 - **Destino:** SE QUEDA.
+
+## L-15 — A un agente con worktree no se le pide crear ni cambiar rama; y "perdi el trabajo" se mira en el reflog
+- **Paso:** tres revisores con `isolation: worktree` recibieron `git switch -c revision/...` y lo ejecutaron en el arbol
+  principal. A las 17:51 uno puso el arbol en `revision/spec-manuales-2026-10-04`; a las 17:52 mi cherry-pick `bd494c3`
+  cayo en esa rama y el push subio `main` sin el (recuperado con fast-forward). Dos agentes dijeron haber perdido el
+  worktree y el trabajo; estaba comiteado en `revision/spec-vs-firmware-2026-10-04` (`bf08b0b`) y
+  `revision/app-por-spec-2026-10-04` (`b08a090`).
+- **Leccion:** la rama la crea el arnes; el encargo no pide crear ni cambiar rama; el agente empieza por `pwd` y
+  `git branch --show-current`; el principal comprueba su rama antes de cada commit; ante "perdi el trabajo",
+  `git reflog` y `git branch -a --contains` antes de relanzar.
+- **Que hacer en el siguiente:** lo de `ORQUESTAR.md` regla 1 del orquestador; y el hook M29 cuando exista.
+- **Destino:** SUBE — recogido por el orquestador (`Arquitec_Orquestador` `ee985ea`, `7c4a5cd`; M29 pendiente).
+
+## L-16 — La memoria no frena una recaida; un hook si (04/10)
+- **Paso:** tercera vez volviendo a `DECISIONES.md` como si fuera el producto; la memoria lo tenia escrito dos veces.
+- **Leccion:** lo que debe cumplirse siempre va en un hook: `.claude/hooks/decisiones_recordatorio.py` (PreToolUse).
+- **Destino:** SE QUEDA (sube si se repite en otro proyecto, segun el orquestador).
