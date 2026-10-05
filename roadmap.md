@@ -131,6 +131,7 @@ candidata crecio con I (`cda33df`) y G (`f9cad1f`): un solo runbook sobre todo.
 | B5 | Hecho: hook de proyecto `.claude/hooks/decisiones_recordatorio.py` al editar `DECISIONES.md` | orquestador | hook |
 | B6 | Dictamen de SPEC y manuales (`revision/opinion-spec-manuales-2026-10-04`, `6f38ba4`): SPEC_5 con dos numeraciones; tachados en README y SPEC_1/2/4/5; `HUECOS MEDIDOS` con otro nombre en SPEC_5/8 y ausente en SPEC_0; `17_...` sobre 1000 lineas; `.docx` viejos; hoja de pruebas que remite a hojas en `historico/`; tres hojas cortas de operador, APK y conexionado cuando haya banco | orquestador | fase F |
 | B7 | `Camaras_Sisga_4x.html` dice que la pluma baja con un coche debajo: cierto con `7ff7d12` (Sisga, sin veto) y falso desde `d3606be` (veto de `D-33`); se corrige cuando se sepa que firmware queda en campo | orquestador | tras decision del responsable |
+| B8 | Firmware: el Esclavo se rinde por las 48 h sin `$ALARM` (solo el Maestro emite `LIMITE_48H`; comentario de `Esclavo/src/bluetooth.cpp`). La app ya no promete una alarma; falta la del Esclavo y el aviso del `$EVENT` con 28 d y 48 h en el mismo campo (SPEC_6 hueco 2) | orquestador | SPEC -> prueba -> codigo, tras banco |
 
 **C. Decisiones del responsable** (no las cierra nadie escribiendo)
 
