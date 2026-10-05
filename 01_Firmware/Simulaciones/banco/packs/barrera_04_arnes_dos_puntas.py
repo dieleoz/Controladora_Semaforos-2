@@ -57,8 +57,9 @@ DESCRIPCION = "el arnes de las dos puntas cubre todo lo que puede encender un ve
 PUNTAS = ("Maestro", "Esclavo")
 
 # Las puertas publicas al verde. D-45 retiro semaforo_iniciarTransicionAVerde: el verde
-# abre directo por semaforo_forzarVerde. D-44 retiro semaforo_toggle(), sin llamador, que
-# era la otra.
+# abre por semaforo_forzarVerde (D-53: que pone el ROJO+AMARILLO y semaforo_actualizar()
+# lo pasa a verde; la puerta sigue siendo una). D-44 retiro semaforo_toggle(), sin
+# llamador, que era la otra.
 PUERTAS_AL_VERDE = (
     "semaforo_forzarVerde",
 )

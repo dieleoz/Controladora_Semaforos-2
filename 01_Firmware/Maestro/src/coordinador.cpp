@@ -260,14 +260,7 @@ const uint8_t CICLO_MAX_REINTENTOS = 5;
 // aire medio duplex es el tiempo de cable, 2 x ENVIO_TRAMA_MS. El borde de costura_09 es
 // el que acota lo que este aviso puede gastar, y es el que el responsable tuvo delante.
 //
-// ~~ENVIO_TRAMA_MS no se lee de ningun sitio porque no existe como constante en el
-// firmware~~ -> FALSO, y corregido el 14/09: existe cuatro lineas mas abajo y se lee
-// TRES veces -PASO_RADIO_MS, el comentario del coste del aviso y el static_assert del
-// presupuesto-. El comentario se escribio cuando el valor era un numero a mano, alguien
-// lo convirtio en constante y esta frase se quedo negandola. Lo cazo el pack que vigila
-// las spec, porque una spec la habia COPIADO LITERAL y publicaba la misma mentira.
-//
-// LO QUE SI ES CIERTO Y ES LO QUE HABIA QUE DECIR: su valor NO SE DERIVA de ninguna otra
+// ENVIO_TRAMA_MS: su valor NO SE DERIVA de ninguna otra
 // constante del firmware. Es tiempo de CABLE -4 tramas x 3 copias de rafaga a 9600
 // baudios mas la conmutacion del MAX485-, o sea una medida de fuera, y por eso se escribe
 // aqui a la vista en vez de dentro de una suma; costura_09 lleva el mismo 0,06 s escrito
@@ -283,6 +276,14 @@ static constexpr unsigned long AMARILLO_MS = AMARILLO_SEG * 1000UL;
 static constexpr unsigned long PEOR_CASO_CICLO_MS =
     LATIDO_MS + AMARILLO_MS + CICLO_MAX_REINTENTOS * PASO_RADIO_MS;
 static constexpr unsigned long PRESUPUESTO_LIBRE_MS = SFTY6_SILENCIO_MS - PEOR_CASO_CICLO_MS;
+// D-53 (05/10): EL ROJO+AMARILLO DEL ESCLAVO RETRASA SU ACK_GREEN COMO EL AMARILLO SU
+// ACK_RED, PERO NO SE SUMAN: son dos intercambios distintos (GO_RED y GO_GREEN), separados
+// por el despeje con el latido corriendo y precedido el GO_GREEN de un PONG reciente (D-34).
+// Cuenta el MAYOR, y PEOR_CASO_CICLO_MS lleva el amarillo; SFTY6_SILENCIO_MS no se mueve.
+static constexpr unsigned long ROJO_AMARILLO_MS = ROJO_AMARILLO_SEG * 1000UL;
+static_assert(ROJO_AMARILLO_SEG <= AMARILLO_SEG,
+              "D-53: el ROJO+AMARILLO supera al amarillo de cierre y PEOR_CASO_CICLO_MS "
+              "(que solo lleva AMARILLO_MS) ya no acota la espera del ACK_GREEN");
 
 // El plazo del acuse del aviso es EL MISMO que el del ciclo, y no dos numeros que alguien
 // tenga que acordarse de mover a la vez (N-69: tres copias a mano fue como se
@@ -384,11 +385,13 @@ static_assert(PEOR_CASO_CICLO_MS + TIMEOUT_ACK_MS <= SFTY6_SILENCIO_MS,
 // Al arranque -tUltimaRespuestaEsclavo == 0, el Esclavo no ha contestado nunca- se mira el
 // mismo reloj que la gracia de SFTY-6 de mas abajo, adelantado por el mismo margen.
 // D-45: el margen lleva ademas el amarillo de cierre, para que el ROJO caiga donde caia.
-static bool puedeSostenerVerde() {
+// D-53: al ABRIR se pide ademas el ROJO+AMARILLO (extraMs = ROJO_AMARILLO_MS): el verde se
+// enciende ese rato despues, y tiene que encenderse con el mismo margen que hoy.
+static bool puedeSostenerVerde(unsigned long extraMs = 0UL) {
   return (tUltimaRespuestaEsclavo > 0)
-             ? (millis() - tUltimaRespuestaEsclavo + TIMEOUT_ACK_MS + AMARILLO_MS <=
+             ? (millis() - tUltimaRespuestaEsclavo + TIMEOUT_ACK_MS + AMARILLO_MS + extraMs <=
                 SFTY6_SILENCIO_MS)
-             : (millis() + TIMEOUT_ACK_MS + AMARILLO_MS <= SFTY6_SILENCIO_MS);
+             : (millis() + TIMEOUT_ACK_MS + AMARILLO_MS + extraMs <= SFTY6_SILENCIO_MS);
 }
 
 // --- SFTY-23: Sincronizacion horaria por radio (lado Maestro) --------------
@@ -879,8 +882,8 @@ void coordinador_pedirCambio() {
         tEsperandoAck = millis();
         retryCount = 0;
         estadoC = C_ESPERANDO_ACK_RED;
-      } else if (millis() - tRef >= tiempoDespejeMs && puedeSostenerVerde()) {
-        semaforo_forzarVerde();   // D-45: directo
+      } else if (millis() - tRef >= tiempoDespejeMs && puedeSostenerVerde(ROJO_AMARILLO_MS)) {
+        semaforo_forzarVerde();   // D-53: por ROJO+AMARILLO; C_*_A_VERDE espera el VERDE
         estadoC = C_INICIAL_MASTER_A_VERDE;
       } else {
         // N-163: la tercera puerta al verde propio, y lleva el mismo veto. Sin el, con el
@@ -1312,8 +1315,8 @@ void coordinador_actualizar() {
       // despeje puede terminar con el silencio ya casi vencido y esta punta encenderia un
       // verde nuevo con el otro poste a segundos de irse a ambar por orfandad. Aqui no se
       // pierde nada: si el enlace vuelve, el despeje ya esta cumplido y abre en el acto.
-      if (millis() - tRef >= tiempoDespejeMs && puedeSostenerVerde()) {
-        semaforo_forzarVerde();   // D-45: directo
+      if (millis() - tRef >= tiempoDespejeMs && puedeSostenerVerde(ROJO_AMARILLO_MS)) {
+        semaforo_forzarVerde();   // D-53: por ROJO+AMARILLO; C_*_A_VERDE espera el VERDE
         estadoC = C_INICIAL_MASTER_A_VERDE;
       }
       break;
@@ -1347,12 +1350,8 @@ void coordinador_actualizar() {
       //
       // tUltimaRespuestaEsclavo > 0: sin ninguna respuesta no hay PONG que fechar, y la
       // resta contra 0 daria una edad falsa.
-      // ~~OJO, "PONG" es el caso normal y no la letra: lo refresca CUALQUIER trama del
-      // Esclavo -un CMD_DEMANDA tambien-. Para esta guarda basta, porque lo que tiene que
-      // constar es que la SUBIDA vive~~ -> 1.49c: AHORA SI ES LA LETRA. En este estado el
-      // latido es un PING, asi que lo unico que renueva el reloj es su PONG, y un PONG
-      // prueba las DOS direcciones. Aquella frase bastaba para esta guarda y era el mismo
-      // reloj que sostenia el verde de G3D.
+      // 1.49c: en este estado el latido es un PING, asi que lo unico que renueva el reloj es
+      // su PONG, y un PONG prueba las DOS direcciones.
       static_assert(LATIDO_MS < TIMEOUT_ACK_MS,
                     "D-34: el PONG exigido antes del GO_GREEN tiene que ser mas joven que un "
                     "viaje de acuse, o el desfase entre las dos puntas deja de quedar dentro "
@@ -1375,13 +1374,13 @@ void coordinador_actualizar() {
       if (llego && pkt.command == CMD_ACK_GREEN) {
         quienVerde = QV_ESCLAVO;
         estadoC = C_IDLE;
-      } else if (millis() - tEsperandoAck > TIMEOUT_ACK_MS) {
+      } else if (millis() - tEsperandoAck >
+                 TIMEOUT_ACK_MS + (retryCount == 0 ? ROJO_AMARILLO_MS : 0UL)) {
+        // D-53: la PRIMERA espera lleva el ROJO+AMARILLO del Esclavo, como la del ACK_RED su
+        // amarillo: el ACK_GREEN acusa el verde ENCENDIDO y no debe gastar un reintento.
         retryCount++;
         if (retryCount >= CICLO_MAX_REINTENTOS) {
-            // N-71: 5 x TIMEOUT_ACK_MS = 17,5 s. Con el techo de orfandad en 12 s este
-            // camino NUNCA se alcanzaba -saltaba el ambar sobre el 2o o 3er reintento- y
-            // el comentario decia "12.5s" porque venia de un timeout de 2500 ms retirado
-            // el 31/07. Con 28 s (D-48) los cinco reintentos existen de verdad.
+            // N-71: 5 x TIMEOUT_ACK_MS = 17,5 s; con 28 s (D-48) los cinco reintentos existen.
             //
             // N-73: y por eso esta alarma importa. Distinguir "se agotaron los cinco
             // reintentos" de "silencio total" es la diferencia entre un enlace que se
@@ -1434,8 +1433,8 @@ void coordinador_actualizar() {
 
     case C_ESPERA_ESTATICO_TRAS_ESCLAVO:
       // N-163: mismo veto que en C_INICIAL_ESPERA_ESTATICO, y por el mismo motivo.
-      if (millis() - tRef >= tiempoDespejeMs && puedeSostenerVerde()) {
-        semaforo_forzarVerde();   // D-45: directo
+      if (millis() - tRef >= tiempoDespejeMs && puedeSostenerVerde(ROJO_AMARILLO_MS)) {
+        semaforo_forzarVerde();   // D-53: por ROJO+AMARILLO; C_*_A_VERDE espera el VERDE
         estadoC = C_MASTER_A_VERDE;
       }
       break;

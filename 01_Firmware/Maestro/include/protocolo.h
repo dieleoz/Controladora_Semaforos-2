@@ -162,6 +162,14 @@
 // (ciclo_degradado.h). Lo enciende solo semaforo.cpp: semaforo_forzarRojo() sobre un verde.
 #define AMARILLO_SEG        3UL
 
+// D-53 (05/10): ROJO+AMARILLO ANTES DE CADA VERDE. ROJO - ROJO+AMARILLO - VERDE - AMARILLO
+// - ROJO (Manual de Senalizacion Vial 4.4.2 y Fig. 4-9); deroga solo la apertura directa
+// de D-45. FIJO y gemelo, como AMARILLO_SEG: SE SUMA al ciclo (el verde dura lo mismo y su
+// reloj cuenta desde el VERDE encendido), entra en la fase del Degradado y en la primera
+// espera del ACK_GREEN (el Esclavo acusa el verde ENCENDIDO). Lo enciende solo semaforo.cpp:
+// semaforo_forzarVerde() sobre cualquier luz que no sea verde ni amarillo de cierre.
+#define ROJO_AMARILLO_SEG   2UL
+
 #define CMD_DEMANDA        0x11
 #define CMD_ACK_DEMANDA    0x12
 

@@ -27,15 +27,13 @@
 #
 # Estaba SOLO en el Esclavo, dentro del enclavamiento. Tres cosas a la vez:
 #
-#   1. `S_ROJO_AMARILLO` NO EXISTE. Los estados son S_ROJO, S_VERDE, S_AMARILLO y
-#      S_FALLO. El comentario delibera sobre un estado inventado y, sobre esa premisa
-#      falsa, anade una sentencia viva a la barrera.
-#   2. Hoy no cambiaba el comportamiento -ninguna de las 8 llamadas pasa rojo y ambar
-#      a la vez-, asi que era CODIGO MUERTO DENTRO DE UNA REGLA DE SEGURIDAD: no
-#      falla, no se nota, y nadie lo mide.
-#   3. Era una trampa a plazo. El dia que alguien anada una transicion rojo+ambar -que
-#      es practica corriente y bien puede pedirla el auditor-, el Maestro la mostraria
-#      y el Esclavo no, en silencio y sin que ninguna prueba se enterase.
+#   1. `S_ROJO_AMARILLO` NO EXISTIA el 26/08 (S_ROJO, S_VERDE, S_AMARILLO y S_FALLO): el
+#      comentario deliberaba sobre un estado inventado y anadia una sentencia viva a la
+#      barrera. Existe desde D-53 (05/10, ROJO_AMARILLO_SEG antes de cada verde).
+#   2. Entonces no cambiaba el comportamiento -ninguna llamada pasaba rojo y ambar a la
+#      vez-: CODIGO MUERTO DENTRO DE UNA REGLA DE SEGURIDAD, que no falla ni se mide.
+#   3. Era una trampa a plazo, y D-53 la habria disparado: con ese `amarillo = false` el
+#      Esclavo pintaria el rojo+amarillo como rojo solo y el Maestro no, en silencio.
 #
 # LA COMPARACION ES POR CODIGO, NO BYTE A BYTE.
 #

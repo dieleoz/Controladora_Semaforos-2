@@ -79,6 +79,17 @@ static long leerConstante(const std::string& patron, const std::string& que) {
 
 static int total = 0, fallos = 0;
 
+// D-53 (05/10): ROJO+AMARILLO de RA_S segundos tras el despeje y antes de CADA verde: OCHO
+// fases, con la posicion 0 = R+A del Poste 1 (SPEC_2 8 (e.ter)). El valor sale de la
+// decision. Las fases nuevas NO se nombran: un firmware sin ellas no compilaria este arnes
+// (ABORTADO en vez de FALLA). Se reconocen por EXCLUSION: lo que no es ninguna de las seis
+// fases de D-45 es un R+A, y se exige que tenga la forma de uno.
+static const uint32_t RA_S = 2;
+static bool esConocida(FaseDegradado f) {
+  return f == FD_VERDE_MAESTRO || f == FD_AMARILLO_MAESTRO || f == FD_DESPEJE_A ||
+         f == FD_VERDE_ESCLAVO || f == FD_AMARILLO_ESCLAVO || f == FD_DESPEJE_B;
+}
+
 static void comprobar(bool ok, const char* que) {
   total++;
   if (ok) {
@@ -101,6 +112,8 @@ static const Config CONFIGS_EXTRA[] = {
   { 120,  30, "ciclo 300 s: divide exacto, el caso comodo" },
   {   7,   3, "ciclo  20 s, muy corto" },
   { 255, 255, "el tope del byte" },
+  { 180, 180, "C2: al salir del tramo inicial al verde le quedan RA_S s" },
+  { 180, 181, "C2: al salir del tramo inicial al verde le queda 1 s" },
 };
 static const int N_CONFIGS_EXTRA = sizeof(CONFIGS_EXTRA) / sizeof(CONFIGS_EXTRA[0]);
 
@@ -138,10 +151,36 @@ int main() {
     // delante. El viejo "de verde se pasa a despeje" es justo lo que esto hace fallar.
     long verde_a_verde = 0;
     uint32_t tAmarillo = 0;
+    // D-53: la apertura. Todo verde viene de un R+A de RA_S s que viene de un despeje; un R+A
+    // solo sale a SU verde; y el R+A de cada punta es siempre la MISMA fase, distinta de la
+    // de la otra (si no, una punta no sabria si el R+A es suyo).
+    long apertura_mala = 0, aperturas = 0;
+    uint32_t tRA = 0, sRA = 0;
+    int raDeM = -1, raDeE = -1;
     FaseDegradado ant = ciclo_degradado_fase(0, v, d);
     for (uint32_t s = 1; s < SEGUNDOS_DEL_DIA; s++) {
       FaseDegradado f = ciclo_degradado_fase(s, v, d);
       if (f != ant) {
+        const bool aVerde = (f == FD_VERDE_MAESTRO || f == FD_VERDE_ESCLAVO);
+        if (!esConocida(f)) {
+          if (ant != FD_DESPEJE_A && ant != FD_DESPEJE_B) apertura_mala++;
+          tRA = 0;
+        }
+        if (!esConocida(f)) sRA = s;
+        // SPEC_2 8 (e.ter): a la salida de la guarda de medianoche la fase puede saltar a
+        // mitad de un verde o de un R+A; ahi el R+A entero lo pone el SEMAFORO, no la fase.
+        // Solo en s == despeje; en cualquier otro segundo se exige el R+A entero.
+        const bool entradaDelDia = (s == (uint32_t)d) || (!esConocida(ant) && sRA == (uint32_t)d);
+        if (aVerde && entradaDelDia) {
+          aperturas++;
+        } else if (aVerde) {
+          int& suyo = (f == FD_VERDE_MAESTRO) ? raDeM : raDeE;
+          if (esConocida(ant) || tRA != RA_S) apertura_mala++;
+          else if (suyo < 0) suyo = (int)ant;
+          else if (suyo != (int)ant) apertura_mala++;
+          aperturas++;
+        }
+        if (!esConocida(ant) && !aVerde) apertura_mala++;   // un R+A sin su verde
         const bool deVerde = (ant == FD_VERDE_MAESTRO || ant == FD_VERDE_ESCLAVO);
         const bool aAmarillo = (f == FD_AMARILLO_MAESTRO || f == FD_AMARILLO_ESCLAVO);
         const bool deAmarillo = (ant == FD_AMARILLO_MAESTRO || ant == FD_AMARILLO_ESCLAVO);
@@ -155,13 +194,69 @@ int main() {
         ant = f;
       }
       if (f == FD_AMARILLO_MAESTRO || f == FD_AMARILLO_ESCLAVO) tAmarillo++;
+      if (!esConocida(f)) tRA++;
     }
-    char msg[220];
+    char msg[400];
     snprintf(msg, sizeof(msg),
              "las 86.400 posiciones del dia en ORDEN: verde -> amarillo de su punta (%lu s) "
              "-> despeje, sin amarillo huerfano (transiciones malas: %ld)",
              (unsigned long)AMARILLO_SEG, verde_a_verde);
     comprobar(verde_a_verde == 0, msg);
+    snprintf(msg, sizeof(msg),
+             "D-53: en las 86.400 posiciones, los %ld verdes abren tras un ROJO+AMARILLO de %lu s "
+             "que sigue a un despeje, cada punta con SU fase R+A, y ningun R+A sin su verde "
+             "(aperturas malas: %ld)", aperturas, (unsigned long)RA_S, apertura_mala);
+    comprobar(aperturas > 0 && apertura_mala == 0 && raDeM >= 0 && raDeE >= 0 && raDeM != raDeE,
+              msg);
+
+    // D-53 (C2, SPEC_2 8 (e.ter)): en R+A y verde la punta llama a forzarVerde() y el SEMAFORO
+    // pone RA_S s de R+A antes del verde. Cada racha de una punta en {su R+A, su verde} dura
+    // pues al menos RA_S + 1 s, INCLUIDA la salida del tramo inicial (s == despeje), que la
+    // fila anterior exime: si no, la luz da R+A -> rojo, o un verde de milisegundos.
+    {
+      long rachas = 0, cortas = 0;
+      // Los R+A sin nombre (ver esConocida): el de la posicion 0 y el de tras el despeje A.
+      const FaseDegradado raP[2] = { ciclo_degradado_faseCruda(0, v, d),
+          ciclo_degradado_faseCruda(RA_S + v + AMARILLO_SEG + d, v, d) };
+      const FaseDegradado veP[2] = { FD_VERDE_MAESTRO, FD_VERDE_ESCLAVO };
+      for (int p = 0; p < 2; p++) {
+        uint32_t run = 0;
+        for (uint32_t s = 0; s < SEGUNDOS_DEL_DIA; s++) {
+          const FaseDegradado f = ciclo_degradado_fase(s, v, d);
+          if (f == raP[p] || f == veP[p]) { run++; continue; }
+          if (run > 0) { rachas++; if (run < RA_S + 1) cortas++; }
+          run = 0;
+        }
+      }
+      snprintf(msg, sizeof(msg),
+               "D-53 C2: las %ld rachas R+A+verde de cada punta dan >= %lu s, todo R+A seguido de "
+               ">= 1 s de verde, tambien a la salida del tramo inicial (cortas: %ld)",
+               rachas, (unsigned long)(RA_S + 1), cortas);
+      comprobar(rachas > 0 && cortas == 0, msg);
+    }
+
+    // D-53: LA FORMA DEL CICLO, sobre la fase CRUDA: 8 fases y posicion 0 = R+A del Poste 1.
+    {
+      const uint32_t ciclo = 2UL * ((uint32_t)v + RA_S + AMARILLO_SEG + (uint32_t)d);
+      uint32_t nVM = 0, nVE = 0, nAM = 0, nAE = 0, nDA = 0, nDB = 0, nRA = 0;
+      for (uint32_t p = 0; p < ciclo; p++) {
+        const FaseDegradado f = ciclo_degradado_faseCruda(p, v, d);
+        if (f == FD_VERDE_MAESTRO) nVM++; else if (f == FD_VERDE_ESCLAVO) nVE++;
+        else if (f == FD_AMARILLO_MAESTRO) nAM++; else if (f == FD_AMARILLO_ESCLAVO) nAE++;
+        else if (f == FD_DESPEJE_A) nDA++; else if (f == FD_DESPEJE_B) nDB++;
+        else nRA++;
+      }
+      const bool pos0 = !esConocida(ciclo_degradado_faseCruda(0, v, d)) &&
+                        ciclo_degradado_faseCruda(RA_S, v, d) == FD_VERDE_MAESTRO;
+      snprintf(msg, sizeof(msg),
+               "D-53: ciclo de %lu s = 2 x (verde + R+A + amarillo + despeje), posicion 0 = R+A "
+               "del Poste 1 (%d); segundos por fase VM/VE %lu/%lu, AM/AE %lu/%lu, DA/DB %lu/%lu, "
+               "R+A %lu", (unsigned long)ciclo, (int)pos0, (unsigned long)nVM, (unsigned long)nVE,
+               (unsigned long)nAM, (unsigned long)nAE, (unsigned long)nDA, (unsigned long)nDB,
+               (unsigned long)nRA);
+      comprobar(pos0 && nVM == v && nVE == v && nAM == AMARILLO_SEG && nAE == AMARILLO_SEG &&
+                nDA == d && nDB == d && nRA == 2UL * RA_S, msg);
+    }
 
     // 3. La guarda de medianoche, en los dos sentidos. El dia no dura un numero
     //    entero de ciclos, asi que el ultimo ciclo antes de las 00:00 queda cortado:

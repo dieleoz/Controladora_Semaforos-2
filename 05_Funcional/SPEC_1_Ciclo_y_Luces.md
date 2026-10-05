@@ -57,7 +57,7 @@ CIERRA, porque el pin cae a reposo. Y **ninguna avería de la pluma detiene el c
 | luz | pluma |
 |---|---|
 | Rojo · todo-rojo de despeje · ~~ámbar de transición~~ *(salió con `D-45`, `cda33df`)* · ~~destellos y ámbar rápido del mando~~ *(salieron con el mando, 14/09)* | ABAJO |
-| **Rojo + amarillo de apertura** (`D-53`, §3.3; HUECO, sin construir, `N-176`) | **ABAJO**: sube con el VERDE real |
+| **Rojo + amarillo de apertura** (`D-53`, §3.3; construido sin banco, `N-176`) | **ABAJO**: sube con el VERDE real |
 | Verde de ciclo | ARRIBA |
 | **Amarillo de cierre** (`D-45`, §3.2; construido en `cda33df`, sin banco) | **ARRIBA**: `luzPideArriba` lleva `estado == S_AMARILLO`; el retardo de bajada cuenta desde el ROJO (SPEC 8 §1) |
 | Verde y amarillo de test de lámparas | **ABAJO** (en el test `estado` sigue en `S_ROJO`) |
@@ -150,7 +150,7 @@ las pruebas que celebraban lo contrario invertidas y vistas en rojo con el defec
 **Sin acta de compuerta sobre `cda33df` en `evidencia/` y sin banco ni tarjeta.** Las que aseveran «rojo a verde
 directo» CELEBRAN lo que `D-53` deroga: se invierten con §3.3 (`CLAUDE.md` §9).
 
-### 3.3 ROJO – ROJO+AMARILLO – VERDE – AMARILLO – ROJO (`D-53`, `N-176`) — HUECO: DECIDIDO, SIN CONSTRUIR
+### 3.3 ROJO – ROJO+AMARILLO – VERDE – AMARILLO – ROJO (`D-53`, `N-176`) — CONSTRUIDO EL 05/10, SIN BANCO
 
 Todo este apartado es lo que el equipo DEBE hacer; nada de él está en el fuente de `a5db18e`.
 **La norma.** Manual de Señalización Vial 2024, 4.4.2 (p. 394), primera secuencia vehicular: «Rojo – Rojo y Amarillo -
@@ -489,11 +489,11 @@ Cada uno trae con qué reproducirlo.
    Manual y DAR PASO (§8) y el Degradado se pide con el testigo `SET_MODO:DEG_T` (SPEC 2 §7.bis). La puerta
    `modo_degradado_evaluarEntrada()` y su `DEG_RECHAZO` del Poste 1 quedan inalcanzables y se conservan. **Se
    quedan** `J14`/`PB0` (reservada al fin de carrera), el andamio `SFTY-20` y los pines de peatón y zumbador.
-12. 🔴 **EL ROJO+AMARILLO ANTES DE CADA VERDE (`D-53`, `N-176`): DECIDIDO EL 05/10, SIN CONSTRUIR.** El equipo abre
+12. 🔴 **EL ROJO+AMARILLO ANTES DE CADA VERDE (`D-53`, `N-176`): CONSTRUIDO EL 05/10, SIN BANCO.** Antes el equipo abria
    hoy de rojo a verde directo en todos los caminos (§3.2 (1)); lo que debe hacer, §3.3, con la radio en SPEC 2
    §2.2.ter, la fase del Degradado en SPEC 2 §8 (e.ter), la app en SPEC 4 §6 y la pluma en SPEC 8 §1. Abiertos para
    el arquitecto: §3.3 (4) (la espera del coordinador si el rojo+amarillo acaba en rojo) y (10)(a) (el test).
-   `grep -rn "S_ROJO_AMARILLO\|ROJO_AMARILLO_SEG" 01_Firmware/{Maestro,Esclavo}` da hoy cero.
+   Cerrados por el arquitecto: (4) ningun estado del coordinador queda colgado; (10)(a) de taller, no se objeta.
 
 ## 13. QUIÉN EJERCE CADA BARRERA DE ESTE DOCUMENTO
 
@@ -515,9 +515,9 @@ Cada uno trae con qué reproducirlo.
 | **Los vetos del ámbar del Poste 2** (`D-8`, §4) | ✅ **fila 18**, que compila el bucle y el Bluetooth del Esclavo REALES. La cuenta, SPEC 2 §2.3 |
 | **El suelo y el techo del Inteligente** (`D-19`, §7) | ✅ **fila 17** (el factor de techo y las tres entradas de presencia) |
 | **El amarillo de cierre** (`D-45`, §3.2) | ✅ **filas 17, 18 y 19** (rojo a verde directo, cierre por amarillo, el orden de la luz en las dos puntas y la fase del Degradado), con las pruebas que exigían lo contrario invertidas en `cda33df` · fila 15, la fase pura. Sin acta de compuerta sobre `cda33df` |
-| **El rojo+amarillo antes de cada verde** (`D-53`, §3.3) | 🔴 **NADIE: sin construir** (`N-176`). Las filas 17, 18, 19 y 15 aseveran hoy la apertura directa: se invierten |
+| **El rojo+amarillo antes de cada verde** (`D-53`, §3.3) | ✅ **filas 15, 17, 18 y 19 invertidas** (`N-176`), vistas en rojo; sin acta de compuerta |
 
-**Cuenta: 14 barreras — 8 ejecutadas, 3 sin nadie, 3 partidas** *(05/10: entra el rojo+amarillo, sin construir)*.
+**Cuenta: 14 barreras — 9 ejecutadas, 2 sin nadie, 3 partidas** *(05/10: entra el rojo+amarillo, construido)*.
 Los otros dos rojos **no son casillas sueltas**: el menú y
 el test de lámparas son **los dos caminos a los pines de luz que ningún arnés recorre**, y el segundo es justo el que
 enciende VERDE sin mirar nada. Y de las tres partidas la más cara es el enclavamiento: **el del ESCLAVO —la punta que

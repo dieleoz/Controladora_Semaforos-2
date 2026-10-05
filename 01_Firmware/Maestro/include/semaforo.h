@@ -2,12 +2,16 @@
 #pragma once
 #include <Arduino.h>
 
-enum EstadoSemaforo { S_ROJO, S_VERDE, S_AMARILLO, S_FALLO };
+// D-53 (05/10): S_ROJO_AMARILLO, rojo y amarillo a la vez ROJO_AMARILLO_SEG antes de cada
+// verde (Manual de Senalizacion Vial 4.4.2). Va al final: no renumera los otros.
+enum EstadoSemaforo { S_ROJO, S_VERDE, S_AMARILLO, S_FALLO, S_ROJO_AMARILLO };
 
 void semaforo_setup();
 void semaforo_apagarTodo();
 // D-45: sobre un VERDE, forzarRojo() arranca el amarillo de cierre (AMARILLO_SEG) y el
 // rojo llega despues; con el cierre en curso no lo reinicia, y forzarVerde() no lo reabre.
+// D-53: forzarVerde() abre por S_ROJO_AMARILLO y el verde llega despues; sobre el R+A o el
+// verde no reinicia nada. forzarRojo() durante el R+A va a ROJO directo (no hubo verde).
 void semaforo_forzarRojo();
 void semaforo_forzarVerde();
 void semaforo_iniciarFallo();

@@ -1,47 +1,21 @@
 // ===== 01_Firmware/Validacion_Automatico/arnes_automatico.cpp =====
 //
-// EL ARNES QUE FALTABA: coordinador.cpp + semaforo.cpp + modo_automatico.cpp
-// REALES, compilados y ejecutados en el PC.
+// coordinador.cpp + semaforo.cpp + modo_automatico.cpp REALES, compilados y ejecutados en
+// el PC. La regresion "el Automatico no arranca el ciclo" paso con todo en verde porque
+// ningun instrumento ejercia el ciclo sobre el C++ real: los modelos en Python prueban el
+// modelo, no el codigo. Molde de Validacion_Ciclo (el .h/.cpp REAL, sin espejo), un nivel
+// mas arriba: tres modulos con estado, con un Esclavo simulado que contesta al protocolo,
+// un reloj que mueve el arnes y botones que pulsa el arnes. Lo medido se compila tal cual.
 //
-// POR QUE ESTE ARNES Y NO OTRO.
+// QUE NO CUBRE: solo el lado MAESTRO; "verde simultaneo en las dos puntas" es de
+// Validacion_Ciclo y del arnes de las dos puntas. Aqui: que el Maestro LLEGA a dar verde,
+// lo suelta al tiempo configurado, no salta el amarillo y ante una respuesta ausente o
+// incorrecta cae al estado seguro.
 //
-// La regresion del Modo Automatico -no arranca el ciclo- paso con TODAS las
-// comprobaciones en verde porque NINGUN instrumento ejercia el ciclo automatico
-// sobre el C++ real. validador_maestro.py y simulador_sistema_v7_6.py son Python
-// escrito a mano que REIMPLEMENTA lo que hace coordinador.cpp: su PASS prueba el
-// modelo, no el codigo. Si coordinador.cpp se rompe y el modelo no, el banco sigue
-// diciendo PASS mientras el semaforo real se queda sin arrancar.
-//
-// El molde es Validacion_Ciclo: incluir el .h/.cpp REAL del firmware y barrer sobre
-// EL, sin espejo. Aqui es un nivel mas arriba -no una funcion pura como
-// ciclo_degradado_fase(), sino tres modulos con estado y con E/S simulada- y por eso
-// hace falta un driver mas grande: un Esclavo simulado que contesta al protocolo, un
-// reloj simulado que el arnes mueve, y botones simulados que pulsa el arnes. Lo que
-// NO se simula es lo que se esta midiendo: coordinador.cpp, semaforo.cpp y
-// modo_automatico.cpp se compilan tal cual van a la tarjeta.
-//
-// QUE NO CUBRE. Este arnes compila solo el lado MAESTRO. No hay Esclavo real aqui
-// -su firmware no se compila-, asi que "verde simultaneo en las dos puntas" sigue
-// sin poder medirse en este camino (esa propiedad es la de Validacion_Ciclo, sobre
-// ciclo_degradado.h, que es pura y corre en las dos puntas). Lo que este arnes SI
-// puede medir, y hasta hoy nadie media sobre el C++ real, es que el propio Maestro
-// LLEGA a dar verde, que lo suelta solo transcurrido el tiempo configurado, que
-// nunca salta el amarillo de aviso, y que ante una respuesta ausente o incorrecta
-// del otro lado cae al estado seguro en vez de quedarse esperando o de aceptar
-// cualquier cosa como buena.
-//
-// A-12 (05/09): SE SUMAN modo_inteligente.cpp Y demanda.cpp REALES (Bloque E). El
-// Modo Inteligente no leia ni uno de los tiempos que configura el operario y su
-// Regla 1 podia cortar un verde a los 15 s. La propiedad que hace seguro el arreglo
-// es de COMPORTAMIENTO -"con las camaras muertas se comporta EXACTAMENTE como el
-// Automatico"- y no se puede leer en el fuente: hay que correr LOS DOS modos con la
-// MISMA configuracion y comparar las dos duraciones con la misma regla. Eso es lo que
-// hace el Bloque E, y por eso vive aqui y no en un pack.
-//
-// LO QUE EL BLOQUE E NO CUBRE, escrito para que no se lea como permiso: la camara es
-// un bool que mueve el arnes. El antirrebote de 1 ms de camara_leerPin() vive en
-// botones.cpp, que aqui NO se compila, y el cableado de J16 es cobre -M3-. Lo que se
-// mide es que hace una deteccion con el ciclo en marcha, no como se detecta.
+// A-12: modo_inteligente.cpp y demanda.cpp REALES (Bloque E): "con las camaras muertas se
+// comporta EXACTAMENTE como el Automatico" es comportamiento, y se mide corriendo los dos
+// modos con la MISMA configuracion. NO CUBRE: la camara es un bool del arnes; el
+// antirrebote vive en botones.cpp (no compilado) y el cableado de J16 es cobre.
 //
 #include <cstdio>
 #include <cstdlib>
@@ -92,15 +66,10 @@ static std::string dirDeEsteArchivo() {
   return (p == std::string::npos) ? std::string(".") : f.substr(0, p);
 }
 
-// Maestro/src, calculada a partir de donde vive ESTE fichero y no del directorio
-// de trabajo: el arnes puede invocarse desde cualquier sitio (compilar.ps1, la
-// compuerta, o a mano) y la ruta tiene que seguir siendo la misma.
+// Maestro/src e include/, resueltas desde ESTE fichero (el arnes se invoca desde cualquier
+// sitio). N-137: los limites del ciclo viven en include/limites_ciclo.h; rutaDe() elige por
+// extension (.h a include/, .cpp a src/).
 static const std::string MAESTRO_SRC = dirDeEsteArchivo() + "/../Maestro/src/";
-// N-137 (04/09): los seis limites del ciclo se mudaron de modo_automatico.cpp a
-// include/limites_ciclo.h -vivian `static` y por eso otros modos no los veian, lo que
-// produjo tres agujeros el mismo dia-. Este arnes ABORTO en la corrida siguiente, que
-// es §5 funcionando: lee el fuente POR RUTA y la ruta cambio. Se resuelve por nombre
-// de fichero, no anadiendo un segundo directorio a cada llamada.
 static const std::string MAESTRO_INC = dirDeEsteArchivo() + "/../Maestro/include/";
 static std::string rutaDe(const std::string& archivo) {
   return (archivo.size() > 2 && archivo.substr(archivo.size() - 2) == ".h")
@@ -165,55 +134,28 @@ static void comprobar(bool ok, const char* que) {
 }
 
 // ---------------------------------------------------------------------------
-// SFTY-2, VIGILADO DE BALDE. Con digitalWrite() de Arduino.h grabando en
-// arnes_pines[], cada barrido de este arnes puede comprobar -sobre lo que
-// escribirPines() REALMENTE escribio, no sobre lo que la logica dijo que queria-
-// que Rojo y Verde nunca coincidieron encendidos en la misma cara. Es la barrera de
-// salidas (regla 6 de CLAUDE.md) medida, no supuesta.
+// SFTY-2, VIGILADO DE BALDE: con digitalWrite() grabando en arnes_pines[], cada barrido
+// comprueba sobre lo que escribirPines() ESCRIBIO que Rojo y Verde nunca coinciden en la
+// misma cara (barrera de salidas, medida y no supuesta).
 // ---------------------------------------------------------------------------
 static long violacionesEnclavamiento = 0;
 
-// SFTY-28. La pluma sale por la misma puerta que las luces, asi que se vigila igual y
-// en el mismo tick: CON LA PLUMA ARRIBA TIENE QUE HABER VERDE ENCENDIDO -o el equipo
-// tiene que estar en S_FALLO-. Al reves no se exige -verde con la pluma abajo es
-// degradado, feo pero no peligroso-; lo que mata es lo contrario: una barrera
-// levantada invitando a pasar con la luz en rojo, porque el conductor le hace mas
-// caso a la barrera que a la lampara.
-//
-// LA EXCEPCION DE S_FALLO ESTA AQUI POR NOMBRE, Y ES DELIBERADO. S_FALLO es el ambar
-// intermitente de SFTY-6: sin enlace, el equipo ya no sabe quien tiene el paso, y la
-// politica elegida por el cliente el 27/08 es dejar pasar con precaucion en vez de
-// cerrar la via. Escribirla como excepcion explicita -y no relajando el invariante a
-// "solo cuando hay rojo"- hace que el dia que alguien abra la pluma en CUALQUIER otro
-// estado, esto siga cazandolo.
+// SFTY-28: CON LA PLUMA ARRIBA TIENE QUE HABER VERDE ENCENDIDO -o S_FALLO-. Al reves no se
+// exige (verde con pluma abajo es feo, no peligroso); lo que mata es una barrera levantada
+// con la luz en rojo. LA EXCEPCION DE S_FALLO VA POR NOMBRE (politica del cliente, 27/08:
+// sin enlace se deja pasar con precaucion), y no relajando a "solo cuando hay rojo": asi
+// una pluma abierta en CUALQUIER otro estado se sigue cazando.
 static long violacionesTalanquera = 0;
 
-// ---------------------------------------------------------------------------
-// D-33 (14/09/2026) - EL REPARTO DE LA INVARIANTE DE ARRIBA (CLAUDE.md 9).
-//
-// LA LINEA DE ARRIBA AFIRMABA TRES COSAS, Y SOLO UNA HA CAMBIADO. Se cuentan antes de
-// tocarla porque casi ninguna invariante afirma una sola (N-83):
-//
-//   1. "la pluma arriba SIEMPRE tiene una razon nombrada, nunca sube sola"
-//      -> SE CONSERVA ENTERA. Lo que crece es la lista de razones, de dos a cuatro.
-//   2. "esa razon es el verde encendido"
-//      -> SE REPARTE. Sigue siendo cierta fuera de la ventana de bajada -y ahi se
-//         mide igual que siempre-; dentro, las razones son el retardo de D-33 y el
-//         veto de la camara, y cada una se mide con su propia cota.
-//   3. "la unica excepcion nombrada es S_FALLO"
-//      -> SE CONSERVA LITERAL, con su nombre y su motivo.
-//
-// LAS DOS RAZONES NUEVAS NO SE CONCEDEN POR NOMBRE: SE MIDEN. Una excepcion escrita y
-// no comprobada es una lista de defectos con permiso (CLAUDE.md 6):
-//
-//   EL RETARDO se CRONOMETRA contra PLUMA_RETARDO_BAJADA_MS leido del C++ real. No se
-//   pregunta al firmware si "esta en el retardo" -eso seria creerle-: se mide cuanto
-//   lleva la pluma arriba con la luz ya en rojo y se compara con su propia constante.
-//
-//   EL VETO se cruza con la OTRA funcion real: si semaforo_plumaVetada() dice que si,
-//   camara_presenciaJ16() tiene que decir que si TAMBIEN. Un veto que se quedara
-//   pegado -true sin nadie debajo- dejaria la pluma arriba para siempre y pasaria
-//   cualquier comprobacion que se limitara a aceptar la excusa.
+// D-33 - EL REPARTO DE ESA INVARIANTE (CLAUDE.md 9):
+//   1. "la pluma arriba SIEMPRE tiene una razon nombrada"  -> SE CONSERVA (de dos a cuatro).
+//   2. "esa razon es el verde encendido"                    -> SE REPARTE: fuera de la
+//      ventana de bajada igual; dentro, el retardo de D-33 y el veto, cada uno con su cota.
+//   3. "la unica excepcion nombrada es S_FALLO"             -> SE CONSERVA LITERAL.
+// LAS RAZONES NUEVAS SE MIDEN (CLAUDE.md 6). EL RETARDO se CRONOMETRA contra
+// PLUMA_RETARDO_BAJADA_MS leido del C++, sin preguntar al firmware. EL VETO se cruza con la
+// otra funcion real: si semaforo_plumaVetada(), camara_presenciaJ16() tambien; un veto
+// pegado sin nadie debajo dejaria la pluma arriba para siempre.
 static long vetoSinPresencia = 0;
 static unsigned long g_plumaSinVerdeDesde = 0;   // 0 = no hay ventana abierta
 static unsigned long g_peorVentanaPlumaMs = 0;     // la mas larga, sea cual sea la razon
@@ -221,50 +163,70 @@ static unsigned long g_peorVentanaSinVetoMs = 0;  // la mas larga con el veto SU
 static unsigned long g_ventanasPluma = 0;
 static unsigned long g_retardoPlumaMs = 0;       // leido del C++ al principio de main()
 
-// EL MARGEN DEL RETARDO, RE-DERIVADO CON EL MANDO FUERA (D-30, 14/09).
-//
-// EL BORDE CAMBIO DE DUENO, Y POR ESO SE VUELVE A DERIVAR EN VEZ DE HEREDARSE
-// (CLAUDE.md §7 y §14: una cifra que nadie recalcula envejece). Antes el margen era
-// DESTELLO_ON_MS y el motivo era el mando: con una senal en curso las escrituras estaban
-// INTERCEPTADAS -aplicarSalidas() guardaba sin escribir- y la unica puerta que volvia a
-// pasar por escribirPines() era actualizarSenal(), cada DESTELLO_ON_MS. Esa interceptacion
-// ya no existe, asi que ese borde no solo esta caducado: ha perdido el sujeto que lo
-// justificaba, y copiarlo tal cual seria dejar una tolerancia sin motivo.
-//
-// EL BORDE DE HOY, Y POR QUE ES EL CORRECTO. El retardo se suelta en la siguiente
-// entrada por escribirPines(), y hoy hay UNA sola y ocurre en cada vuelta:
-// semaforo_actualizar() termina con "if (plumaCierrePendiente) aplicarSalidas(ultR, ultA,
-// ultV)". O sea que el firmware no anade retraso ninguno -mira otra vez en la vuelta
-// siguiente-, y lo unico que puede hacer que la ventana OBSERVADA pase del retardo es la
-// granularidad con que ESTE ARNES muestrea: entre dos llamadas a vigilarEnclavamiento()
-// pasa un paso de bombeo. El margen es, por tanto, UNA PROPIEDAD DEL ARNES y no del
-// firmware, y por eso NO se lee del C++: leerlo de alli fingiria que el firmware la
-// gobierna.
-//
-// Su valor es el mayor paso de bombeo con el que puede estar abierta una ventana SIN
-// VETO. Los bloques que mueven la pluma sin camara son A-C (paso 200 ms) y G (paso
-// PASO_G = 100 ms); el Bloque F corre a 60 s por vuelta, pero sus ventanas las sostiene
-// el veto de una camara y por eso no entran en esta cota -son las que mide
-// g_peorVentanaPlumaMs, que no tiene tope-. Medido tras el cambio: la peor ventana SIN
-// VETO de todo el barrido se imprime en el RESUMEN del final, y si algun dia rebasa este
-// margen la linea FALLA en vez de ensancharse.
+// EL MARGEN DEL RETARDO ES DEL ARNES, NO DEL FIRMWARE (re-derivado con D-30, CLAUDE.md 7 y
+// 14). El retardo se suelta en la siguiente entrada por escribirPines(), y semaforo_
+// actualizar() la hace en cada vuelta ("if (plumaCierrePendiente) aplicarSalidas(...)"):
+// el firmware no anade retraso, y lo unico que alarga la ventana OBSERVADA es el paso de
+// bombeo entre dos vigilarEnclavamiento(). Por eso no se lee del C++. Vale el mayor paso con
+// una ventana SIN VETO abierta: A-C a 200 ms, G a PASO_G = 100 ms (las ventanas del Bloque F
+// las sostiene el veto y las mide g_peorVentanaPlumaMs, sin tope). La peor ventana sin veto
+// sale en el RESUMEN; si rebasa el margen, FALLA en vez de ensancharse.
 static const unsigned long MARGEN_MUESTREO_MS = 200;
 static unsigned long g_margenSenalMs = MARGEN_MUESTREO_MS;
 
-// N-153. LO QUE EL EQUIPO PUBLICA DE LA PLUMA TIENE QUE SER LO QUE HAY EN EL PIN.
-//
-// Desde N-153 el $STATUS lleva un campo PLUMA que sale de semaforo_plumaArriba(), y la
-// app dibuja la barrera con el. Un getter que se desincronice del pin no rompe ninguna
-// luz -el cruce sigue funcionando igual- y por eso ningun pack de texto puede verlo:
-// barrera_03 comprueba la FORMA de la orden, no su resultado. Lo unico que puede medir
-// esto es un arnes que compile semaforo.cpp de verdad, escriba el pin y pregunte al
-// getter en el MISMO instante, que es lo que se hace aqui en cada tick.
-//
-// Y lo que se compara no es la formula: es el pin. Recalcular la condicion aqui seria
-// una tercera copia de SFTY-28 -y las copias es justo lo que este campo evita-.
+// N-153: EL CAMPO PLUMA DEL $STATUS (semaforo_plumaArriba()) TIENE QUE SER EL PIN. Un getter
+// desincronizado no rompe ninguna luz y ningun pack de texto lo ve; se pregunta al getter en
+// el MISMO tick en que se lee el pin. Se compara contra el pin, no contra la formula: una
+// tercera copia de SFTY-28 es lo que el campo evita.
 static long discrepanciasPluma = 0;
 
+// D-53 (05/10): ROJO - ROJO+AMARILLO (2 s) - VERDE. Manual de Senalizacion Vial 4.4.2 y
+// Fig. 4-9. El valor viene de la DECISION, no del fuente: si se leyera de protocolo.h, un
+// firmware sin la constante haria ABORTAR el arnes en vez de dejarlo en ROJO, y uno que la
+// cambiara se mediria contra si mismo. Cambiarla cuesta dos ediciones (CLAUDE.md 15).
+static const unsigned long RA_MS = 2000UL;
+
+// D-53: EL VIGILANTE DE LA APERTURA, sobre los PINES de la cara 1 y en cada tick. Cuenta
+// cada encendido del verde y exige que el tick anterior fuera ROJO+AMARILLO (verde OFF).
+// La duracion se acota por las dos puntas con lo que el muestreo permite saber sin
+// inventar: la ventana EXTERIOR (ultimo tick sin R+A -> primer verde) no puede ser menor
+// que RA_MS, y la INTERIOR (primer tick R+A -> ultimo tick R+A) no puede ser mayor. Ningun
+// muestreo da un falso rojo con estas dos; el milisegundo exacto lo mide el bloque A.
+// La pluma no SUBE en R+A (sube con el verde): arriba solo si ya lo estaba (S_FALLO, veto).
+static unsigned long g_verdesVistos = 0, g_verdesSinRA = 0, g_raMalMedido = 0;
+static unsigned long g_plumaEnRA = 0, g_raVistos = 0;
+static bool g_prevRA = false, g_prevV = false, g_prevPluma = false;
+static unsigned long g_tPrevMuestra = 0, g_tAntesDeRA = 0, g_tRAPrimera = 0, g_tRAUltima = 0;
+
+static bool g_aperturaEnPausa = false;   // los controles negativos falsean pines
+
+static void vigilarApertura() {
+  if (g_aperturaEnPausa) return;
+  const unsigned long ahora = arnes_millis_valor;
+  const bool r = arnes_pines[ROJO1] == HIGH, a = arnes_pines[AMARILLO1] == HIGH;
+  const bool v = arnes_pines[VERDE1] == HIGH;
+  const bool ra = r && a && !v, pl = arnes_pines[MOTOR_TALANQUERA] == TALANQUERA_ABRIR;
+  if (ra && !g_prevRA) { g_tAntesDeRA = g_tPrevMuestra; g_tRAPrimera = ahora; g_raVistos++; }
+  if (ra) {
+    g_tRAUltima = ahora;
+    if (pl && !g_prevPluma) g_plumaEnRA++;   // una SUBIDA abajo->arriba en R+A
+  }
+  if (v && !g_prevV) {
+    g_verdesVistos++;
+    if (!g_prevRA) {
+      g_verdesSinRA++;
+    } else if (ahora - g_tAntesDeRA < RA_MS || g_tRAUltima - g_tRAPrimera > RA_MS) {
+      g_raMalMedido++;
+    }
+  }
+  g_prevRA = ra;
+  g_prevV = v;
+  g_prevPluma = pl;
+  g_tPrevMuestra = ahora;
+}
+
 static void vigilarEnclavamiento() {
+  vigilarApertura();
   if ((arnes_pines[ROJO1] == HIGH && arnes_pines[VERDE1] == HIGH) ||
       (arnes_pines[ROJO2] == HIGH && arnes_pines[VERDE2] == HIGH)) {
     violacionesEnclavamiento++;
@@ -307,32 +269,13 @@ static void vigilarEnclavamiento() {
 }
 
 // ---------------------------------------------------------------------------
-// ---------------------------------------------------------------------------
-// LOS BOTONES YA NO SE SIMULAN: botones.cpp REAL SE COMPILA AQUI (D-13, 05/09).
-//
-// Aqui vivian seis definiciones -botones_setup(), botones_actualizar() y los cuatro
-// botonX()- sobre cuatro bools, mas un camara_leerPin() que devolvia otro bool. Con eso,
-// botones.cpp no se compilaba en NINGUN arnes del proyecto y su vigilante de camaras
-// -675 lineas de pack mirandolo- no se habia ejecutado nunca.
-//
-// SE RETIRARON Y NO SE PIERDE COBERTURA, y esto esta censado antes de tocarlo, no
-// despues: de los seis, los unicos que algun fuente compilado aqui llama son
-// botonCancelar() -modo_automatico.cpp y modo_inteligente.cpp- y nada mas.
-// botonArriba(), botonAbajo() y botonAceptar() tienen CERO llamadores en este binario
-// desde que el asistente de tres pantallas del Automatico se retiro (N-42), y los bools
-// que los movian no se ponian a true en ningun escenario salvo Arriba/Abajo, que nadie
-// leia. El botonCancelar() real devuelve false SIEMPRE -sus pines son camaras desde el
-// 31/08-, que es exactamente lo que devolvia el bool, que nunca se armaba.
-//
-// Lo que se GANA es lo que no se podia medir: el flanco de J16 lo produce ahora
-// camaras_actualizar() de verdad, sobre un pin de verdad, con su antirrebote de verdad.
+// botones.cpp REAL SE COMPILA AQUI (D-13): el flanco de J16 lo produce camaras_actualizar()
+// sobre un pin, con su antirrebote. Solo se llama botonCancelar(), que con sus pines ya
+// camaras devuelve false siempre.
 // ---------------------------------------------------------------------------
 
-// N-73: la Caja Negra. El stub no puede limitarse a callar: si solo devolviera vacio,
-// el arnes enlazaria y nadie sabria si la alarma se emite o no -que es exactamente el
-// defecto que N-73 arreglo, una funcion que existe y no se llama-. Aqui se GUARDA lo
-// ultimo reportado, y mas abajo se exige que al caer a ambar por reintentos agotados
-// haya salido una alarma con su causa.
+// N-73: la Caja Negra. El stub GUARDA lo ultimo reportado (sin eso enlazaria sin saber si
+// la alarma sale) y mas abajo se exige la alarma con su causa al caer por reintentos.
 char g_ultimaAlarmaEvento[48] = "";
 char g_ultimaAlarmaCausa[48]  = "";
 // D-34 (15/09): la ACCION tambien se guarda. La alarma de reintentos agotados decia
@@ -357,11 +300,8 @@ void bluetooth_reportarEvento(const char* tipo, const char* detalle) {
   g_eventosEmitidos++;
 }
 
-// Lo que hacia pulsarAceptar(): tres confirmaciones para atravesar el asistente del
-// Automatico. El asistente se retiro con N-42 -modoAutomatico_setup() deja el modo en
-// marcha directamente- y botonAceptar() devuelve false desde el 31/08, asi que lo unico
-// que quedaba de aquello era llamar al loop. Se conserva el nombre para no reescribir
-// once llamadas por un cambio que no cambia comportamiento.
+// pulsarAceptar(): el asistente del Automatico salio con N-42 y botonAceptar() devuelve
+// false; queda el loop, con el nombre de siempre para no reescribir once llamadas.
 static void pulsarAceptar() {
   modoAutomatico_loop();
 }
@@ -369,14 +309,9 @@ static void pulsarAceptar() {
 void menu_setup() {}
 
 // ---------------------------------------------------------------------------
-// LA CAMARA YA NO SE SIMULA: SE CIERRA EL CONTACTO EN EL PIN.
-//
-// Aqui habia un `static bool g_camaraLocal` y un camara_leerPin() propio que lo
-// devolvia. Con botones.cpp real compilado, camara_leerPin() es LA DE VERDAD -con su
-// digitalRead(), su delay(5) y su segunda lectura-, asi que el escenario deja de mover
-// un bool y pasa a mover EL PIN. La diferencia no es cosmetica: J14 y J16 son pines
-// distintos, y con un solo bool detras de todos ellos la pregunta "una deteccion en J16
-// llega al Modo Inteligente?" salia que si por construccion.
+// LA CAMARA NO SE SIMULA: el escenario mueve EL PIN y camara_leerPin() es la real
+// (digitalRead, delay(5), segunda lectura). J14 y J16 son pines distintos: un solo bool
+// detras de los dos contestaba "llega al Modo Inteligente?" que si por construccion.
 // ---------------------------------------------------------------------------
 
 // Cierra o abre el contacto seco de una entrada de camara. No pasa por digitalWrite()
@@ -391,42 +326,19 @@ static void cerrarContacto(int pin, bool cerrado) {
 static void camaraJ14(bool hayCoche) { cerrarContacto(CAM_DEMANDA_PIN, hayCoche); }
 
 // ---------------------------------------------------------------------------
-// modoActual_get()/set() DE VERDAD, y siguen haciendo falta con el mando fuera: los
-// llaman coordinador.cpp (tres sitios) y modo_automatico.cpp / modo_inteligente.cpp,
-// que SI se compilan aqui -modoAutomatico_enMarcha() es literalmente una lectura de
-// este valor-. Medido con grep antes de tocarlos, no supuesto.
-//
-// Arranca en MENU, igual que el enum real: es el valor con el que main.cpp llega
-// al primer loop() antes de que nadie pulse nada.
+// modoActual_get()/set() DE VERDAD: los llaman coordinador.cpp, modo_automatico.cpp y
+// modo_inteligente.cpp. Arranca en MENU, como llega main.cpp al primer loop().
 // ---------------------------------------------------------------------------
 static ModoSistema g_modoActual = MENU;
 ModoSistema modoActual_get() { return g_modoActual; }
 void modoActual_set(ModoSistema m) { g_modoActual = m; }
 
 // ---------------------------------------------------------------------------
-// D-30 (14/09): AQUI VIVIAN LOS STUBS DE MODO_AMBAR Y MODO_DEGRADADO, Y SALEN LOS CINCO.
-//
-// modo_ambar_setup(), modo_ambar_fijarMotivo(), modo_degradado_evaluarEntrada() y
-// modo_degradado_setup() existian por una sola razon, escrita en el comentario que
-// habia aqui: "se stubean SOLO las funciones que mando.cpp llama de verdad". Retirado
-// mando.cpp, se comprobo con grep cual de los .cpp que este arnes SI compila
-// -coordinador, botones, semaforo, modo_automatico, modo_inteligente, demanda- las
-// llama: ninguno, y las unicas apariciones que quedan son comentarios. El enlazador es
-// el segundo instrumento: si alguna hiciera falta, no enlaza.
-//
-// Con ellas sale g_entradaDegradado, la perilla con la que el arnes elegia el veredicto
-// de la puerta del Degradado para ejercer las dos ramas de A.B.A.B.
-// ---------------------------------------------------------------------------
-
-// ---------------------------------------------------------------------------
-// RELOJ SIMULADO. SFTY-23 (sincronizacion horaria) esta fuera del alcance de este
-// arnes -es una segunda maquina de estados independiente del ciclo, con arnes
-// propio pendiente-. Con reloj_enHora() en false, atenderSincronizacion() no
-// encola nada (pendHora/pendConfig/pendDelta solo se activan por
-// coordinador_reiniciarConexion() o por la recuperacion SFTY-9, que este arnes no
-// ejercita), asi que las funciones de reloj de aqui abajo nunca se llegan a usar
-// para nada que afecte al ciclo: existen solo porque coordinador.cpp las referencia
-// y el enlazador las exige.
+// D-30: los stubs de modo_ambar y modo_degradado salieron con mando.cpp: ningun .cpp
+// compilado aqui los llama (lo confirma el enlazador).
+// RELOJ SIMULADO. SFTY-23 queda fuera: con reloj_enHora() en false atenderSincronizacion()
+// no encola nada (pendHora/Config/Delta solo los activan reiniciarConexion() o SFTY-9, no
+// ejercidos aqui). Existen porque coordinador.cpp las referencia.
 // ---------------------------------------------------------------------------
 bool reloj_enHora() { return false; }
 uint8_t reloj_hora() { return 0; }
@@ -438,15 +350,9 @@ uint32_t reloj_contadorSegundos() { return 0; }   // N-49: sin reloj en este arn
 
 void respaldo_marcarSync(uint32_t) {}   // N-49: ahora recibe el contador del RTC
 
-// N-133/N-135: EL RESPALDO DE LOS TIEMPOS DEL CICLO, DOBLADO CON MEMORIA DE VERDAD.
-//
-// No es un stub vacio a proposito. Un doble que devolviera siempre "no hay nada
-// guardado" dejaria el camino de recuperacion de modo_automatico.cpp sin ejercer, y
-// este arnes existe para ejecutar ese .cpp, no para enlazarlo. Con memoria, guardar y
-// recuperar se recorren de verdad.
-//
-// No replica el checksum ni la FIRMA -eso lo mide maestro_02_respaldo sobre el
-// respaldo.cpp real-: aqui solo importa que lo que se guardo es lo que vuelve.
+// N-133/N-135: EL RESPALDO DE LOS TIEMPOS, DOBLADO CON MEMORIA: un stub que dijera "no hay
+// nada guardado" dejaria sin ejercer la recuperacion de modo_automatico.cpp. No replica
+// checksum ni FIRMA (los mide maestro_02_respaldo): solo que vuelve lo guardado.
 static uint8_t _bkRojo = 0, _bkVerde = 0, _bkDespeje = 0;
 
 void respaldo_guardarTiemposCiclo(uint8_t rojoMin, uint8_t verdeMin, uint8_t despejeSeg) {
@@ -598,33 +504,11 @@ static void arrancarAutomaticoPorDefecto() {
 }
 
 // ---------------------------------------------------------------------------
-// D-30 (14/09): AQUI VIVIA LA CADENA DE BOMBEO DEL BLOQUE D, Y SE VA ENTERA.
+// D-30: pasoPrincipal()/avanzar()/bombearPrincipal() salieron con el Bloque D.
 //
-// Eran tres piezas encadenadas y con un unico consumidor entre las tres:
-//
-//   pasoPrincipal()    la vuelta COMPLETA de main.cpp -botones_actualizar(),
-//                      semaforo_actualizar(), el loop del modo y, hasta hoy,
-//                      mando_actualizar()-. Hacia falta porque una senal del mando solo
-//                      podia empezar y terminar si se llamaba a las dos funciones del
-//                      mando en el sitio exacto que les toca en la vuelta real.
-//   avanzar()          corria N ms de reloj a base de pasoPrincipal().
-//   bombearPrincipal() como bombear(), pero con pasoPrincipal() como paso.
-//
-// Las tres las usaba SOLO el Bloque D. Los bloques que quedan avanzan con bombear() (el
-// lazo del modo), bombearInteligente(), o con sus propios lazos -correrConPluma() en el
-// F y correrG() en el G-, que llaman a botones_actualizar() por su cuenta y en el orden
-// de main.cpp, con su porque escrito alli. Dejarlas seria dejar tres huerfanas nuevas.
-// ---------------------------------------------------------------------------
-
-// ---------------------------------------------------------------------------
-// A-12 — EL BOMBEO DEL MODO INTELIGENTE, Y POR QUE ES OTRO.
-//
-// bombear() llama a modoAutomatico_loop() a pelo. Para el Bloque E hace falta el
-// otro loop, y ademas hay que poder correr LOS DOS con la MISMA configuracion y el
-// MISMO paso para que la comparacion de duraciones signifique algo: la propiedad
-// que sostiene todo el modo es "con las camaras muertas se comporta EXACTAMENTE
-// como el Automatico", y eso solo se puede afirmar midiendo las dos cosas con la
-// misma regla.
+// A-12 - EL BOMBEO DEL MODO INTELIGENTE: el Bloque E corre modoInteligente_loop() y
+// modoAutomatico_loop() con la MISMA configuracion y el MISMO paso, para que comparar
+// duraciones signifique algo.
 // ---------------------------------------------------------------------------
 template <typename Cond>
 static long bombearInteligente(unsigned long pasoMs, unsigned long presupuestoMs,
@@ -821,10 +705,43 @@ int main() {
     // que es justo lo que la norma prohibe (4.4.3). Se mira el ORDEN entero, no el final:
     // rojo -> verde directo; verde -> amarillo SOLO en la cara; el cierre no se reabre ni se
     // reinicia; rojo al vencer AMARILLO_SEG; y la pluma arriba hasta el retardo DESDE EL ROJO.
+    // D-53 (05/10): SE INVIERTE OTRA VEZ, solo la apertura. "Rojo->Verde es DIRECTO" afirmaba
+    // dos cosas (CLAUDE.md 9): (1) sin AMARILLO SOLO antes del verde -> SE CONSERVA (el
+    // amarillo solo es cierre, D-45); (2) el verde llega en la misma llamada -> SE INVIERTE:
+    // primero ROJO+AMARILLO RA_MS, verde OFF, pluma ABAJO, no estable, $STATUS "ROJO+AMAR".
     semaforo_forzarVerde();
     vigilarEnclavamiento();
-    comprobar(semaforo_estado() == S_VERDE && arnes_pines[AMARILLO1] == LOW,
-              "Rojo->Verde es DIRECTO: una sola llamada, sin amarillo previo (D-45)");
+    comprobar(arnes_pines[ROJO1] == HIGH && arnes_pines[AMARILLO1] == HIGH &&
+              arnes_pines[VERDE1] == LOW && arnes_pines[ROJO2] == HIGH &&
+              arnes_pines[AMARILLO2] == HIGH && arnes_pines[VERDE2] == LOW,
+              "D-53: Rojo->Verde pasa por ROJO+AMARILLO: rojo y amarillo ENCENDIDOS y verde "
+              "APAGADO en las dos caras, en la misma llamada");
+    comprobar(arnes_pines[MOTOR_TALANQUERA] == TALANQUERA_CERRAR && !semaforo_plumaArriba(),
+              "D-53: durante ROJO+AMARILLO la pluma NO sube (sube con el VERDE real, SPEC_8 1)");
+    comprobar(!semaforo_estable(),
+              "D-53: ROJO+AMARILLO no es estable: el coordinador no cuenta el verde todavia");
+    comprobar(std::string(semaforo_nombreEstado()) == "ROJO+AMAR",
+              "D-53: el ESTADO del $STATUS en ROJO+AMARILLO es el literal \"ROJO+AMAR\"");
+
+    const unsigned long tRA = arnes_millis_valor;
+    arnes_millis_valor = tRA + 700UL;
+    semaforo_forzarVerde();    // el reintento de una orden de verde no reinicia el R+A
+    semaforo_actualizar();
+    arnes_millis_valor = tRA + RA_MS - 1UL;
+    semaforo_actualizar();
+    vigilarEnclavamiento();
+    comprobar(arnes_pines[ROJO1] == HIGH && arnes_pines[AMARILLO1] == HIGH &&
+              arnes_pines[VERDE1] == LOW,
+              "D-53: un ms antes de RA_MS sigue en ROJO+AMARILLO, y una segunda orden de verde "
+              "a mitad no lo reinicia ni lo acorta");
+    arnes_millis_valor = tRA + RA_MS;
+    semaforo_actualizar();
+    vigilarEnclavamiento();
+    comprobar(semaforo_estado() == S_VERDE && arnes_pines[VERDE1] == HIGH &&
+              arnes_pines[ROJO1] == LOW && arnes_pines[AMARILLO1] == LOW &&
+              arnes_pines[MOTOR_TALANQUERA] == TALANQUERA_ABRIR && semaforo_estable(),
+              "D-53: en el limite EXACTO de RA_MS abre el VERDE solo (sin amarillo, D-45 "
+              "conservado), estable y con la pluma arriba");
 
     t0 = arnes_millis_valor;
     semaforo_forzarRojo();
@@ -861,6 +778,47 @@ int main() {
     comprobar(arribaAntes && arnes_pines[MOTOR_TALANQUERA] == TALANQUERA_CERRAR,
               "la pluma baja PLUMA_RETARDO_BAJADA_MS despues del ROJO, no del amarillo "
               "(SPEC_8 1): arriba un ms antes, abajo en el limite");
+
+    // D-53 (diseno 3): un paso a rojo DURANTE ROJO+AMARILLO va a ROJO directo, sin
+    // amarillo de cierre: nunca hubo verde. Y ni un ms despues aparece un verde.
+    arnes_millis_valor += 60000UL;
+    semaforo_actualizar();
+    semaforo_forzarVerde();
+    const unsigned long tRA2 = arnes_millis_valor;
+    arnes_millis_valor = tRA2 + RA_MS / 2UL;
+    semaforo_actualizar();
+    const bool enRA = arnes_pines[ROJO1] == HIGH && arnes_pines[AMARILLO1] == HIGH &&
+                      arnes_pines[VERDE1] == LOW;
+    semaforo_forzarRojo();
+    vigilarEnclavamiento();
+    const bool rojoSolo = semaforo_estado() == S_ROJO && arnes_pines[ROJO1] == HIGH &&
+                          arnes_pines[AMARILLO1] == LOW && arnes_pines[VERDE1] == LOW;
+    arnes_millis_valor = tRA2 + RA_MS + AMBAR_MS + 1000UL;
+    semaforo_actualizar();
+    vigilarEnclavamiento();
+    comprobar(enRA && rojoSolo && semaforo_estado() == S_ROJO && arnes_pines[VERDE1] == LOW &&
+              arnes_pines[AMARILLO1] == LOW,
+              "D-53: FORZAR_ROJO a mitad de ROJO+AMARILLO va a ROJO en la misma llamada, SIN "
+              "amarillo de cierre, y pasado RA_MS no aparece ningun verde");
+
+    // D-53 (SPEC_1 3.3): desde el ambar intermitente el verde tambien abre por R+A.
+    // Dos destellos y no uno: el 'static bool ambarStatus' de semaforo.cpp no lo resiembra
+    // iniciarFallo(), y un numero impar de conmutaciones desfasaria el bloque A2.
+    semaforo_iniciarFallo();
+    arnes_millis_valor += 500UL;
+    semaforo_actualizar();
+    arnes_millis_valor += 500UL;
+    semaforo_actualizar();
+    vigilarEnclavamiento();   // la pluma de S_FALLO, vista antes del R+A
+    semaforo_forzarVerde();
+    vigilarEnclavamiento();
+    comprobar(arnes_pines[ROJO1] == HIGH && arnes_pines[AMARILLO1] == HIGH &&
+              arnes_pines[VERDE1] == LOW,
+              "D-53: desde S_FALLO (ambar intermitente) una orden de verde abre por "
+              "ROJO+AMARILLO, no en verde directo");
+    arnes_millis_valor += RA_MS;
+    semaforo_actualizar();
+    vigilarEnclavamiento();
   }
 
   std::printf("\n-- Bloque A2: parpadeo de FALLO (ambar intermitente) --\n");
@@ -919,8 +877,14 @@ int main() {
     // llega a dar VERDE. simulador_sistema_v7_6.py y validador_maestro.py median
     // un modelo en Python que podia seguir "funcionando" aunque coordinador.cpp
     // real se hubiera roto.
-    long msHastaVerde = bombear(200, SEG_ESTATICO_MS + (unsigned long)AMBAR_MS + 5000UL,
+    // D-53: el presupuesto suma RA_MS (los 2 s se SUMAN al ciclo) y se exige que ESE verde
+    // venga de ROJO+AMARILLO, contado por el vigilante de la apertura sobre los pines.
+    const unsigned long raAntesB = g_raVistos, sinRAAntesB = g_verdesSinRA;
+    long msHastaVerde = bombear(200, SEG_ESTATICO_MS + (unsigned long)AMBAR_MS + RA_MS + 5000UL,
         [](){ return semaforo_estado() == S_VERDE; });
+    comprobar(msHastaVerde >= 0 && g_raVistos == raAntesB + 1 && g_verdesSinRA == sinRAAntesB,
+              "D-53: el primer verde del ciclo automatico llega tras UNA fase de ROJO+AMARILLO "
+              "vista en los pines, no directo desde el rojo");
     comprobar(msHastaVerde >= 0,
               "EL MODO AUTOMATICO ARRANCA EL CICLO: el Maestro llega a VERDE tras el "
               "todo-rojo inicial, dentro del presupuesto de tiempo");
@@ -936,8 +900,21 @@ int main() {
     // contador no arrancara (la forma concreta en que la regresion se manifiesta en
     // campo), esto se quedaria en VERDE para siempre y el bombeo agotaria el
     // presupuesto-.
+    const unsigned long tVerdeB = arnes_millis_valor;   // bombear() para en el tick del cambio
     long msHastaRojo = bombear(200, MIN_VERDE_MS + 2000UL,
         [](){ return semaforo_estado() != S_VERDE; });
+    {
+      // D-53 (diseno 1): EL VERDE DURA LO MISMO. El reloj del verde cuenta desde el VERDE
+      // real, no desde el R+A: si contara desde el R+A, el verde duraria RA_MS menos.
+      const long durVerde = (long)(arnes_millis_valor - tVerdeB);
+      char dv[300];
+      std::snprintf(dv, sizeof(dv),
+          "D-53: el verde configurado dura lo mismo con el R+A delante: %ld ms de VERDE contra "
+          "%lu ms configurados (tolerancia: dos pasos de bombeo, 400 ms; un verde contado "
+          "desde el R+A daria %lu ms)", durVerde, MIN_VERDE_MS, MIN_VERDE_MS - RA_MS);
+      comprobar(msHastaRojo >= 0 && durVerde >= (long)MIN_VERDE_MS - 400 &&
+                durVerde <= (long)MIN_VERDE_MS + 400, dv);
+    }
     comprobar(msHastaRojo >= 0,
               "agotado el minuto de VERDE configurado, el Maestro suelta el verde solo, "
               "sin intervencion externa -el sintoma de campo era exactamente que esto NO "
@@ -1061,11 +1038,9 @@ int main() {
     // CAUSA concreta -distinguir "se agotaron los reintentos" de "silencio total" es
     // la diferencia entre un enlace que se degrada y uno que se corta-.
     //
-    // D-34 (15/09): ESTA LINEA AFIRMABA DOS COSAS, Y EL TEXTO CELEBRABA LA MENTIRA (CLAUDE.md 9).
-    // (1) la causa REINTENTOS_AGOTADOS -> SE CONSERVA. (2) "al caer a ambar" -> SE INVIERTE:
-    // el firmware decia CAMBIO_A_AMBAR y la luz iba a ROJO, porque esta rama solo corre con
-    // enlace y SFTY-9 la recoge en la vuelta siguiente. Se exige ahora la ACCION que publica,
-    // y la luz que de verdad hace se mide en la linea nueva de debajo, sobre los pines.
+    // D-34 (CLAUDE.md 9): (1) la causa REINTENTOS_AGOTADOS SE CONSERVA; (2) "al caer a
+    // ambar" SE INVIERTE: la rama solo corre con enlace y SFTY-9 la lleva a ROJO. Se exige
+    // la ACCION publicada, y la luz real se mide debajo, sobre los pines.
     comprobar(g_alarmasEmitidas > 0 &&
               std::strcmp(g_ultimaAlarmaEvento, "FALLO_RF") == 0 &&
               std::strcmp(g_ultimaAlarmaCausa, "REINTENTOS_AGOTADOS") == 0 &&
@@ -1141,16 +1116,28 @@ int main() {
     // D-45: SE INVIERTE la primera mitad (el verde abre DIRECTO desde el ACK_RED, sin
     // amarillo) y se REPARTE la segunda: con la configuracion imposible el amarillo de
     // CIERRE sigue durando AMARILLO_SEG -el contrato no depende de que la UI valide-.
+    // D-53: SE INVIERTE la apertura otra vez y se CONSERVA el plazo desde el ACK_RED: lo
+    // que sale del rojo casi al instante es el ROJO+AMARILLO, y el VERDE llega RA_MS despues,
+    // al ms (paso de 1 ms). Ni la configuracion imposible se salta el R+A.
     long msHastaVerdeDirecto = bombearGenerico(1, 200,
         [](){ coordinador_actualizar(); },
         [](){ return semaforo_estado() != S_ROJO; });
+    const bool salioARA = arnes_pines[ROJO1] == HIGH && arnes_pines[AMARILLO1] == HIGH &&
+                          arnes_pines[VERDE1] == LOW;
     const std::string queVerde =
         "CONTROL NEGATIVO: con despeje=0 el todo-rojo se salta casi al instante DESDE EL "
         "ACK_RED (" + std::to_string(msHastaVerdeDirecto) + " ms, acuse a " +
-        std::to_string(g_latenciaEsclavoMs) + " ms) y no antes, y abre en VERDE DIRECTO";
+        std::to_string(g_latenciaEsclavoMs) + " ms) y no antes, y sale a ROJO+AMARILLO "
+        "(D-53), no a verde directo (" + std::to_string(salioARA) + ")";
     comprobar(msHastaVerdeDirecto >= (long)g_latenciaEsclavoMs &&
               msHastaVerdeDirecto <= (long)g_latenciaEsclavoMs + 5 &&
-              semaforo_estado() == S_VERDE, queVerde.c_str());
+              salioARA, queVerde.c_str());
+    long msRA = bombearGenerico(1, RA_MS + 500UL,
+        [](){ coordinador_actualizar(); },
+        [](){ return semaforo_estado() == S_VERDE; });
+    comprobar(msRA >= (long)RA_MS - 2 && msRA <= (long)RA_MS + 2,
+              ("CONTROL NEGATIVO (D-53): aun con despeje=0 el ROJO+AMARILLO dura RA_MS antes "
+               "del verde (" + std::to_string(msRA) + " ms)").c_str());
 
     bombearGenerico(1, 50, [](){ coordinador_actualizar(); }, [](){ return false; });
     coordinador_pedirCambio();
@@ -1163,35 +1150,17 @@ int main() {
   }
 
   // ===========================================================================
-  // D-30 (14/09): AQUI ESTABA EL BLOQUE D - EL MANDO DE RELES (SFTY-21)
-  // ===========================================================================
-  //
-  // Nueve escenarios (D1-D8 mas el fuzz D9) que pulsaban A.A.A, B.B.B y A.B.A.B sobre
-  // mando.cpp REAL y median los destellos sobre los PINES. Se retiran porque su sujeto
-  // se retiro: no hay mando.cpp, no hay semaforo_destellosRojos() ni semaforo_ambarRapido()
-  // ni semaforo_senalEnCurso(), y la interceptacion de escrituras que hacia falta medir
-  // salio entera de aplicarSalidas(). No es una prueba que se acalla: es una prueba sin
-  // sujeto (CLAUDE.md §9, "se BORRA si solo documentaba el defecto" -- aqui, si solo
-  // documentaba un mecanismo que ya no existe).
-  //
-  // Las CUATRO comprobaciones del D9 que NO median el mando se mudaron con su bloque
-  // literal al resumen de invariantes del final de main(). Ver alli, que ademas lleva
-  // escrito lo que se perdio por el camino.
+  // D-30: el BLOQUE D (mando de reles, SFTY-21) se retiro con su sujeto; las cuatro
+  // comprobaciones del D9 que no median el mando estan en el resumen del final de main().
 
   // ===========================================================================
   // BLOQUE E: EL MODO INTELIGENTE — modo_inteligente.cpp REAL, contra el Automatico
   // ===========================================================================
   //
-  // A-12 (05/09). Este modo se fijaba los tiempos por su cuenta -VERDE_MIN_MIN en el
-  // arranque, y nadie mas los escribia nunca- y su Regla 1 podia cortar un verde a los
-  // 15 SEGUNDOS. Un operario que configuraba 6 minutos veia el cruce correr a 3, y la
-  // app no tenia la culpa: mandaba bien el dato.
-  //
-  // LO QUE SE MIDE AQUI, Y POR QUE NINGUN PACK PODIA HACERLO: la propiedad que hace
-  // seguro este modo es de COMPORTAMIENTO -"con las camaras muertas hace exactamente lo
-  // que el Automatico"- y solo se puede afirmar corriendo los dos modos con la misma
-  // configuracion y comparando las dos duraciones. Leer el fuente diria que las lineas
-  // estan; no diria que las dos fases duran lo mismo.
+  // A-12 (05/09): este modo se fijaba sus tiempos y su Regla 1 cortaba un verde a los 15 s.
+  // LO QUE SE MIDE, que ningun pack puede: "con las camaras muertas hace exactamente lo que
+  // el Automatico" es comportamiento, y se afirma corriendo los dos modos con la misma
+  // configuracion y comparando las dos duraciones.
   //
   // 🔴 LO QUE ESTE BLOQUE NO EJERCE, ESCRITO PARA QUE NO SE LEA COMO APROBADO: la
   // recuperacion PEREZOSA del respaldo. modoAutomatico_tiemposCiclo() llama a
@@ -1443,9 +1412,18 @@ int main() {
     // de semaforo_plumaArriba(), que devuelve LO QUE escribirPines() dejo en el pin. Se
     // levanta llamando al semaforo real: fabricar aqui la condicion seria una segunda
     // copia de SFTY-28, que es justo lo que el firmware evita.
+    // D-53: SE CONSERVA lo que mide (el silencio con la pluma arriba) y se ADAPTA el
+    // escenario: el verde llega tras RA_MS de ROJO+AMARILLO, asi que se corre ese tiempo,
+    // vigilado, hasta el VERDE real. Sin esto el bloque F mediria con la pluma ABAJO.
     auto abrirPaso = [&]() {
       semaforo_forzarVerde();
       semaforo_actualizar();
+      vigilarEnclavamiento();
+      for (unsigned long h = 0; h <= RA_MS && arnes_pines[VERDE1] != HIGH; h += 100UL) {
+        arnes_millis_valor += 100UL;
+        semaforo_actualizar();
+        vigilarEnclavamiento();
+      }
     };
 
     // Corre 'ms' de reloj con la pluma como este, en pasos de 'pasoMs', llamando a
@@ -1670,21 +1648,11 @@ int main() {
   // BLOQUE G - EL VETO DE LA PLUMA Y SU RETARDO (D-33, 14/09), EJECUTADOS
   // ===========================================================================
   //
-  // POR QUE ESTE BLOQUE EXISTE Y NO BASTA CON HABER REPARTIDO LA INVARIANTE.
-  //
-  // El reparto de vigilarEnclavamiento() dice "la pluma no se queda arriba MAS DE LA
-  // CUENTA". Eso lo pasaria igual de bien un firmware que no hubiera construido nada:
-  // una pluma que sigue bajando en el mismo instante del rojo cumple la cota trivialmente
-  // (CLAUDE.md 9: el escenario nuevo no es relleno, es el control que le falta a toda
-  // inversion). Aqui se exige lo CONTRARIO -que el comportamiento nuevo OCURRA- y se
-  // miden las dos mitades por separado, porque son dos mecanismos distintos:
-  //
-  //   EL RETARDO no depende de ninguna camara. Tiene que cumplirse con las borneras
-  //   vacias, que es como esta la mayoria de los equipos hoy.
-  //   EL VETO depende de la camara, y su direccion de fallo esta DECIDIDA por el
-  //   responsable el 14/09: ante error, falsa alarma o contacto pegado, LA BARRERA NO
-  //   BAJA. No se acota para que acabe bajando; se AVISA. G4 es el control de que el
-  //   fail-safe apunta a donde se dijo, y no al reves.
+  // El reparto de vigilarEnclavamiento() ("no se queda arriba MAS DE LA CUENTA") lo pasaria
+  // un firmware que no construyo nada; aqui se exige que el comportamiento OCURRA (CLAUDE.md
+  // 9), en dos mitades: EL RETARDO, sin camaras (como estan casi todos los equipos), y EL
+  // VETO, cuya direccion de fallo decidio el responsable el 14/09: ante error o contacto
+  // pegado LA BARRERA NO BAJA; se AVISA. G4 controla que el fail-safe apunta ahi.
   std::printf("\n-- Bloque G: el veto de la pluma y su retardo (D-33) --\n");
   {
     const unsigned long PASO_G = 100UL;
@@ -1747,6 +1715,8 @@ int main() {
       semaforo_actualizar();   // D-45: un cierre que quedara de antes acaba aqui, en rojo
       semaforo_forzarVerde();
       semaforo_actualizar();
+      vigilarEnclavamiento();
+      correrG(RA_MS);          // D-53: el R+A, vigilado; el verde abre al vencer RA_MS
       correrG(2000UL);
       g_eventosEmitidos = 0;
       g_ultimoEventoDetalle[0] = 0;
@@ -1913,30 +1883,12 @@ int main() {
 
 
   // ===========================================================================
-  // LO QUE SE REPARTIO DEL BLOQUE D AL RETIRAR EL MANDO (D-30, 14/09, CLAUDE.md §9)
-  // ===========================================================================
-  //
-  // Estas cuatro comprobaciones vivian DENTRO del fuzz del Bloque D9. Su sujeto nunca
-  // fue el mando: son D-33 (la pluma y su retardo) y N-153 (el getter de PLUMA contra
-  // el pin). Estaban alli porque el fuzz era el barrido mas largo del arnes, no porque
-  // midieran el mando, asi que se MUDAN con su bloque literal al sitio donde viven sus
-  // hermanas -el resumen de invariantes de abajo- en vez de irse con el bloque.
-  //
-  // SIGUEN MIDIENDO SOBRE TODO EL BARRIDO, y eso no es suerte: violacionesTalanquera y
-  // discrepanciasPluma son contadores GLOBALES que vigilarEnclavamiento() alimenta en
-  // cada tick de cada bloque desde el arranque de main(), y nadie los reinicia. Leerlos
-  // aqui -despues del Bloque G- es leerlos sobre mas barrido del que veian antes.
-  //
-  // LO QUE SI SE PERDIO, ESCRITO SIN DISIMULAR: el fuzz metia 600 pulsos
-  // pseudoaleatorios que hacian CAMBIAR DE MODO al equipo una y otra vez -A.A.A
-  // relanzaba el Automatico, B.B.B se iba a MODO_AMBAR, A.B.A.B al Degradado-, y esa
-  // agitacion de modos era la que mas escenarios distintos le daba a estos cuatro
-  // contadores. Con el mando fuera este arnes no tiene ningun otro camino para
-  // provocarla: los modos que quedan se entran desde la pantalla o por radio, y ninguno
-  // de los dos se compila aqui. O sea que las cuatro propiedades SIGUEN VIGILADAS pero
-  // sobre un barrido MENOS AGITADO que el de ayer. No se ha sustituido por un fuzz
-  // inventado: eso seria escribir un instrumento nuevo para tapar el hueco en vez de
-  // decir que existe.
+  // LO QUE SE REPARTIO DEL BLOQUE D AL RETIRAR EL MANDO (D-30, CLAUDE.md 9). Estas cuatro
+  // vivian en el fuzz D9 sin medir el mando (son D-33 y N-153) y se mudaron aqui. Siguen
+  // midiendo TODO el barrido: violacionesTalanquera y discrepanciasPluma son globales que
+  // vigilarEnclavamiento() alimenta en cada tick y nadie reinicia. LO QUE SE PERDIO: la
+  // agitacion de modos del fuzz (A.A.A, B.B.B, A.B.A.B); aqui no hay otro camino para
+  // provocarla, y no se sustituye por un fuzz inventado.
   comprobar(violacionesTalanquera == 0,
           "en NINGUN instante del barrido la talanquera estuvo ARRIBA sin una razon "
           "nombrada (SFTY-28 con la derogacion parcial de D-33, medido sobre el pin que "
@@ -1946,6 +1898,41 @@ int main() {
           "la camara, CRUZADO contra camara_presenciaJ16(). El rojo, el ambar de "
           "transicion y el todo-rojo la dejan abajo igual que antes, solo que unos "
           "segundos despues");
+  {
+  // D-53: CONTROL NEGATIVO DEL VIGILANTE DE LA APERTURA. Se fabrica en los pines un verde
+  // que sale de ROJO sin R+A y otro con un R+A de la mitad, y se exige que los cuente.
+  // Despues se restaura TODO su estado: lo que se falsea aqui no lo hizo el firmware.
+  const bool pR = g_prevRA, pV = g_prevV;
+  const unsigned long pT = g_tPrevMuestra, pA = g_tAntesDeRA, p1 = g_tRAPrimera, p2 = g_tRAUltima;
+  const unsigned long nV = g_verdesVistos, nS = g_verdesSinRA, nM = g_raMalMedido, nR = g_raVistos;
+  const int gR = arnes_pines[ROJO1], gA = arnes_pines[AMARILLO1], gV = arnes_pines[VERDE1];
+  const unsigned long gT = arnes_millis_valor;
+  arnes_pines[ROJO1] = HIGH; arnes_pines[AMARILLO1] = LOW; arnes_pines[VERDE1] = LOW;
+  vigilarApertura();
+  arnes_millis_valor += 100UL;
+  arnes_pines[ROJO1] = LOW; arnes_pines[VERDE1] = HIGH;
+  vigilarApertura();
+  const bool cazaDirecto = (g_verdesSinRA == nS + 1);
+  arnes_millis_valor += 100UL;
+  arnes_pines[ROJO1] = HIGH; arnes_pines[VERDE1] = LOW;
+  vigilarApertura();
+  arnes_millis_valor += 100UL;
+  arnes_pines[AMARILLO1] = HIGH;
+  vigilarApertura();
+  arnes_millis_valor += RA_MS / 2UL;
+  arnes_pines[ROJO1] = LOW; arnes_pines[AMARILLO1] = LOW; arnes_pines[VERDE1] = HIGH;
+  vigilarApertura();
+  const bool cazaCorto = (g_raMalMedido == nM + 1);
+  arnes_pines[ROJO1] = gR; arnes_pines[AMARILLO1] = gA; arnes_pines[VERDE1] = gV;
+  arnes_millis_valor = gT;
+  g_prevRA = pR; g_prevV = pV; g_tPrevMuestra = pT; g_tAntesDeRA = pA;
+  g_tRAPrimera = p1; g_tRAUltima = p2;
+  g_verdesVistos = nV; g_verdesSinRA = nS; g_raMalMedido = nM; g_raVistos = nR;
+  comprobar(cazaDirecto && cazaCorto,
+            "control negativo (D-53): el vigilante de la apertura SI cuenta un verde que "
+            "sale de ROJO sin R+A y uno con R+A de la mitad de RA_MS");
+  }
+  g_aperturaEnPausa = true;   // los dos controles de abajo falsean el pin de verde
   {
   // Control negativo del vigilante de la pluma: se falsea el pin a mano y se exige
   // que el detector lo cace. Sin esto, el dia que MOTOR_TALANQUERA dejara de
@@ -2027,6 +2014,7 @@ int main() {
   }
 
   // ===========================================================================
+  g_aperturaEnPausa = false;
   comprobar(violacionesEnclavamiento == 0,
             "en NINGUN instante de todo el barrido -los siete bloques que quedan, A a G- coincidieron "
             "ROJO y VERDE encendidos a la vez en la misma cara (SFTY-2, medido sobre "
@@ -2050,6 +2038,16 @@ int main() {
             "CONTROL de D-33: esas ventanas EXISTIERON. Si fueran cero, la pluma seguiria "
             "bajando en el mismo instante del rojo y el reparto de la invariante habria "
             "cambiado una comprobacion por una tapia (CLAUDE.md 9)");
+  {
+    char ra[420];
+    std::snprintf(ra, sizeof(ra),
+        "RESUMEN (D-53): de %lu encendidos de verde vistos en los pines, %lu NO venian de "
+        "ROJO+AMARILLO, %lu tuvieron un R+A incompatible con %lu ms, y en %lu ticks de R+A la "
+        "pluma SUBIO de abajo a arriba (%lu fases R+A vistas)",
+        g_verdesVistos, g_verdesSinRA, g_raMalMedido, RA_MS, g_plumaEnRA, g_raVistos);
+    comprobar(g_verdesVistos > 0 && g_verdesSinRA == 0 && g_raMalMedido == 0 &&
+              g_plumaEnRA == 0, ra);
+  }
   comprobar(vetoSinPresencia == 0,
             "RESUMEN (D-33): en NINGUN instante semaforo_plumaVetada() dijo que si con "
             "camara_presenciaJ16() diciendo que no. Un veto pegado dejaria la barrera "

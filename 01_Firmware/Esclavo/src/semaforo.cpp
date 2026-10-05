@@ -3,7 +3,7 @@
 #include "pines.h"
 // D-33: la pluma pregunta a las camaras antes de bajar. El porque, en escribirPines().
 #include "botones.h"
-#include "protocolo.h"   // D-45: AMARILLO_SEG, gemelo en las dos puntas
+#include "protocolo.h"   // D-45/D-53: AMARILLO_SEG y ROJO_AMARILLO_SEG, gemelos
 
 static EstadoSemaforo estado = S_ROJO;
 static unsigned long tCambio = 0;
@@ -193,6 +193,7 @@ static void escribirPines(bool rojo, bool amarillo, bool verde) {
   // un tope que baja igual devuelve el peligro que el veto evita; tope es ALARMA, no
   // accion-. Quien avisa es el vigilante de botones.cpp: CAM_PEGADA a los 20 min si el
   // contacto se queda cerrado, y el $EVENT del contador en cuanto el veto actua.
+  // D-53: S_ROJO_AMARILLO no la sube (verde apagado, fuera de la lista): sube con el VERDE.
   const bool luzPideArriba = (verde && !testLedsActivo) || estado == S_FALLO || estado == S_AMARILLO;
   bool plumaArriba;
   if (luzPideArriba) {
@@ -304,15 +305,17 @@ void semaforo_forzarRojo() {
     return;
   }
   if (estado == S_AMARILLO) return;
-  estado = S_ROJO;
+  estado = S_ROJO;   // D-53: tambien desde S_ROJO_AMARILLO, directo: nunca hubo verde
   aplicarSalidas(HIGH, LOW, LOW);
 }
 
-// D-45: se ABRE directo; el ambar previo al verde no es ninguna secuencia de 4.4.2.
+// D-53 (05/10): SE ABRE POR ROJO+AMARILLO (Manual 4.4.2) y el VERDE lo pone actualizar() a los
+// ROJO_AMARILLO_SEG; deroga la apertura directa de D-45. Repetida, no reinicia: repinta.
 void semaforo_forzarVerde() {
   if (estado == S_AMARILLO) return;
-  estado = S_VERDE;
-  aplicarSalidas(LOW, LOW, HIGH);
+  if (estado == S_VERDE) return aplicarSalidas(LOW, LOW, HIGH);
+  if (estado != S_ROJO_AMARILLO) { estado = S_ROJO_AMARILLO; tCambio = millis(); }
+  aplicarSalidas(HIGH, HIGH, LOW);
 }
 
 // N-153: lo ULTIMO que se le mando al pin de la pluma. Lo publica el campo PLUMA: del
@@ -342,6 +345,9 @@ void semaforo_actualizar() {
   if (estado == S_AMARILLO && (ahora - tCambio >= AMARILLO_SEG * 1000UL)) {
     estado = S_ROJO;
     aplicarSalidas(HIGH, LOW, LOW);
+  } else if (estado == S_ROJO_AMARILLO && (ahora - tCambio >= ROJO_AMARILLO_SEG * 1000UL)) {
+    estado = S_VERDE;   // D-53: el R+A acaba en VERDE
+    aplicarSalidas(LOW, LOW, HIGH);
   } else if (estado == S_FALLO) {
     if (ahora - tCambio >= 500) {
       tCambio = ahora;
@@ -381,6 +387,7 @@ const char* semaforo_nombreEstado() {
     case S_VERDE: return "VERDE";
     case S_AMARILLO: return "AMARILLO";
     case S_FALLO: return "FALLO COM";
+    case S_ROJO_AMARILLO: return "ROJO+AMAR";   // D-53: 9, como FALLO COM
   }
   return "";
 }

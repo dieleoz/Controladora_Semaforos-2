@@ -199,10 +199,8 @@ static void avisarRenovacion() {
 //
 // Desde D-26 la hora de esta punta se re-siembra del DS3231 de su ESP32 cada ~5 min
 // TAMBIEN EN DEGRADADO, y la fase del ciclo sale de reloj_segundosDelDia(): cada siembra
-// MUEVE LA FASE de golpe lo que el HSI derivo desde la anterior. Hasta hoy esa vuelta
-// hacia semaforo_forzarVerde() en la MISMA iteracion si el salto caia en la fase del verde
-// de esta punta: un salto hacia delante desde el verde del OTRO poste, por encima del
-// despeje, pasaba de su verde al nuestro sin un solo instante de rojo por medio.
+// MUEVE LA FASE de golpe lo que el HSI derivo desde la anterior: un salto por encima del
+// despeje pasaria del verde del OTRO poste al nuestro sin rojo por medio.
 //
 // EL UMBRAL SALE DEL DESPEJE, NO SE ESCOGE: DEG_DESPEJE_SEG - 1 = el margen del cruce.
 //   - Un salto de J segundos enteros solo puede llevar del ultimo segundo del verde del
@@ -215,20 +213,12 @@ static void avisarRenovacion() {
 //   - Coincide con el desfase que el cruce aguanta medido sobre el C++ de las dos puntas
 //     (compilar_degradado.ps1: 29 s con el despeje en 30), y no es casualidad: es la misma
 //     frontera vista desde el salto. esp32_13 lo recalcula.
-// Un salto menor se aplica directo: es la correccion normal de la deriva y el despeje la
-// absorbe igual que absorbe la deriva entre cristales. Mandarlo a rojo pararia el cruce
-// en cada siembra.
-//
-// PASAR POR ROJO ES EL CAMINO QUE YA EXISTE: DEG_ENTRADA_ROJO, con su ROJO_TRANSICION_MS
-// completo Y esperando a que la fase deje atras el verde de esta punta, de modo que el
-// siguiente verde sea uno entero contado desde su frontera. No hay un camino nuevo.
+// Un salto menor se aplica directo (la deriva normal; el despeje la absorbe). El mayor pasa
+// por DEG_ENTRADA_ROJO: ROJO_TRANSICION_MS completo y el siguiente verde, entero desde su frontera.
 static const uint32_t SALTO_SIN_ROJO_MAX_S = (uint32_t)DEG_DESPEJE_SEG - 1UL;
 
-// LA OTRA MITAD, Y ES LA QUE HACE QUE EL UMBRAL NO SEA UNA TAPIA: una siembra NORMAL
-// -la deriva del HSI en su peor caso durante una cadencia, redondeada hacia arriba, mas el
-// segundo del truncado- tiene que quedar POR DEBAJO. Si no, el Degradado pasaria por rojo
-// en cada siembra. Las constantes estan en reloj.h, y la cadencia se contrasta con la del
-// ESP32 en esp32_13.
+// Y una siembra NORMAL (deriva HSI peor en una cadencia, hacia arriba, +1 s de truncado)
+// queda POR DEBAJO, o pasaria por rojo en cada una. Constantes en reloj.h; cadencia, esp32_13.
 static_assert((HORA_ESP32_CADENCIA_MS / 1000UL * HSI_PPM_PEOR + 999999UL) / 1000000UL + 1UL
                   < SALTO_SIN_ROJO_MAX_S,
               "D-26 (4): una siembra normal saltaria mas que el margen y el Degradado "
@@ -598,11 +588,19 @@ bool modo_degradado_reanudarTrasCorte() {
   return true;
 }
 
-// Fase del instante actual. Aisla la lectura del reloj para que el resto del modulo
-// no toque nunca los segundos del dia por su cuenta.
+// Fase del instante actual (D-35: con el despeje EN USO). Solo aqui se leen los segundos del dia.
 static FaseDegradado faseAhora() {
-  // D-35: el despeje es el EN USO (el del testigo, si lo hay); el verde es 180 en los dos.
   return ciclo_degradado_fase(reloj_segundosDelDia(), DEG_VERDE_SEG, despejeEnUso());
+}
+
+// D-53 (C2): ABRIR desde rojo solo si el verde se va a encender (SPEC_2 8 (e.ter)). Tras un salto de
+// hora, en los ultimos ROJO_AMARILLO_SEG s del verde, la luz seria R+A -> rojo: ese R+A es despeje.
+static bool verdeConTiempo() {
+  const uint32_t s = reloj_segundosDelDia();
+  const uint16_t d = despejeEnUso();
+  const FaseDegradado f = ciclo_degradado_fase(s, DEG_VERDE_SEG, d);
+  return f == FD_ROJO_AMARILLO_MAESTRO ||
+         (f == FD_VERDE_MAESTRO && ciclo_degradado_restante(s, DEG_VERDE_SEG, d) > ROJO_AMARILLO_SEG);
 }
 
 static void irAAmbar(const char* l1, const char* l2) {
@@ -818,7 +816,9 @@ MotivoTestigo modo_degradado_entrarTestigo(uint32_t ahora, uint32_t inicio, int 
   // (su despeje es 30). La flash solo se escribe con esta punta en rojo; en su verde se
   // rechaza y se repite en rojo. Lo guardado lleva inicio = ahora: ya empezo.
   if (enModo && estado == DEG_ACTIVO && despejeEnUso() == (uint8_t)despeje) {
-    if (faseAhora() == FD_VERDE_MAESTRO || semaforo_estado() == S_AMARILLO) return MDT_EN_VERDE;
+    if (faseAhora() == FD_VERDE_MAESTRO || faseAhora() == FD_ROJO_AMARILLO_MAESTRO ||
+        semaforo_estado() == S_AMARILLO || semaforo_estado() == S_ROJO_AMARILLO)
+      return MDT_EN_VERDE;   // D-53: el R+A cuenta como verde propio
     soltarSalida();   // D-52: renovar es entrar de nuevo
     rojoPorOrden = false;
     if (!guardarTestigoFlash(ahoraS, ahoraS, (uint8_t)despeje, 0)) return MDT_NO_GUARDADO;
@@ -1064,7 +1064,9 @@ void modo_degradado_loop() {
     // tambien un verde, y el tramo tiene que vaciarse); 2. NO estar dentro de un verde del Maestro (se daria paso sin
     // el despeje que le precede: el primer verde es un verde entero desde su principio); 3. D-35, con testigo, haber
     // llegado a inicio (el tiempo para ir al otro poste; hasta entonces, rojo fijo), con el todo-rojo del TESTIGO.
+    // D-53: ni dentro de su R+A, que es el principio de ese mismo verde.
     if (millis() - tEstado >= ROJO_TRANSICION_MS && fase != FD_VERDE_MAESTRO &&
+        fase != FD_ROJO_AMARILLO_MAESTRO &&
         (!testigo || (millis() - tEstado >= rojoTransicionMs() &&
                       reloj_segundosDesde2000() >= testigoInicioS))) {
       estado = DEG_ACTIVO;
@@ -1075,17 +1077,15 @@ void modo_degradado_loop() {
     // cambios: asi, si una senal del mando ocupo las salidas un momento, al terminar
     // se vuelve a lo que manda el reloj sin necesidad de detectar nada.
     //
-    // Verde SOLO en FD_VERDE_MAESTRO. En cualquier otra fase, rojo. Esta es la unica
-    // linea del firmware que enciende un verde sin confirmacion del otro extremo, y
-    // por eso no admite ni un caso mas.
-    if (fase == FD_VERDE_MAESTRO) {
+    // Verde SOLO en FD_VERDE_MAESTRO y en su ROJO+AMARILLO (D-53: un forzarRojo() ahi cancelaria el
+    // R+A cada vuelta), y desde rojo solo con verde por delante (C2). Unica linea que enciende un
+    // verde sin confirmacion del otro extremo: no admite ni un caso mas.
+    const EstadoSemaforo luz = semaforo_estado();
+    if ((fase == FD_ROJO_AMARILLO_MAESTRO || fase == FD_VERDE_MAESTRO) &&
+        (luz == S_VERDE || luz == S_ROJO_AMARILLO || verdeConTiempo())) {
       semaforo_forzarVerde();
     } else {
       semaforo_forzarRojo();
     }
   }
-
-  // --- Pantalla: RETIRADA POR D-32 (1) el 13/09: aqui se pintaba la fase y la cuenta atras; no decidia ninguna luz.
-  // El aviso de las 48 h lo publica bluetooth.cpp en el $EVENT ORIGEN:DEGRADADO con AVISO_LIMITE_MS. Se pierde que
-  // ciclo_degradado_restante() y degradado_segundosParaCambio() no tienen llamador: la cuenta atras no se publica.
 }

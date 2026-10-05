@@ -11,42 +11,19 @@
 #     aplicarSalidas()  -> enclavamiento SFTY-2 -> ultR/ultA/ultV -> escribirPines()
 #     escribirPines()   -> los pines, sin mas
 #
-# El test de lamparas llamaba al de abajo. Un `grep escribirPines` daba doce llamadas
-# y todas dentro del fichero permitido, asi que barrera_01 salia verde; el censo que
-# hacia falta era otro: CUANTAS DE ESAS LLAMADAS PASAN ANTES POR EL ENCLAVAMIENTO.
+# El test de lamparas llamaba al de abajo: barrera_01 salia verde porque todas las llamadas
+# estaban en el fichero permitido. Una barrera solo lo es si vive EN la funcion que todos llaman.
 #
-# > La regla que queda: "todo pasa por una funcion" solo es una barrera si la barrera
-# > esta EN esa funcion. Si vive un nivel por encima, basta llamar al nivel de abajo
-# > para rodearla sin salirse del fichero, y ninguna guarda de rutas lo ve.
+# LAS LLAMADAS DIRECTAS LEGITIMAS EXISTEN (los caminos de la senal del mando, SFTY-21, que
+# INTERCEPTAN las escrituras): exigir cero llamadas seria imposible de aprobar. Se exige que
+# NINGUNA meta un VERDE CRUDO en los pines: `escribirPines(false, false, true)` es N-82.
 #
-# LAS LLAMADAS DIRECTAS LEGITIMAS EXISTEN, Y POR ESO ESTO NO ES "CERO LLAMADAS".
+# LA TALANQUERA SE MIDE EVALUANDO LA CONDICION, NO BUSCANDO UN TEXTO: se EXTRAE el ternario
+# del pin y se EVALUA sobre su tabla de verdad, con la bandera del test sacada del C++. Un
+# identificador que el pack no sabe leer ABORTA: lo que no se sabe evaluar no se aprueba.
 #
-# Los cuatro caminos de la senal del mando (SFTY-21) llaman a escribirPines() a
-# proposito: INTERCEPTAN las escrituras en vez de rodearlas, para no dejar colgado al
-# coordinador esperando un S_VERDE que no llegaria. Exigir cero llamadas seria una
-# comprobacion que ningun firmware puede aprobar -CLAUDE.md §3-.
-#
-# Lo que si se puede exigir, y es la propiedad de verdad, es que NINGUNA de esas
-# llamadas meta un VERDE CRUDO en los pines: la senal pide siempre rojo, ambar o todo
-# apagado, y el volcado del final pide el ultV que el enclavamiento ya saneo. Un
-# `escribirPines(false, false, true)` -que es literalmente el defecto de N-82- no tiene
-# ningun sitio donde ser legitimo.
-#
-# LA TALANQUERA SE MIDE EVALUANDO LA CONDICION, NO BUSCANDO UN TEXTO.
-#
-# Comprobar que en escribirPines() aparece la cadena "testLedsActivo" seria medir la
-# ortografia. Aqui se EXTRAE la condicion del ternario del pin y se EVALUA sobre su
-# tabla de verdad, con la bandera del test descubierta del propio C++. Si la condicion
-# deja de entenderse -un identificador que este pack no sabe leer- ABORTA, que es lo
-# unico honesto: una expresion que no se sabe evaluar no se aprueba.
-#
-# POR QUE LA PLUMA ABAJO CON EL VERDE ENCENDIDO NO ES UNA CONTRADICCION.
-#
-# SFTY-28 dice que la pluma sigue al verde. La direccion peligrosa es una sola: pluma
-# ARRIBA sin verde, porque el conductor le hace mas caso a la barrera que a la lampara.
-# Al reves -verde con la pluma abajo- la barrera es MAS restrictiva que la luz, y el
-# arnes del automatico lo dice con todas las letras al declarar su invariante. Un test
-# de lamparas es exactamente ese caso: se ensena la lampara, no se concede el paso.
+# LA PLUMA ABAJO CON EL VERDE ENCENDIDO NO ES CONTRADICCION (SFTY-28): lo peligroso es pluma
+# ARRIBA sin verde. Un test de lamparas ensena la lampara, no concede el paso.
 
 import re
 
@@ -123,18 +100,19 @@ def _condicion_pluma(cuerpo):
     return m.group(1).strip(), m.group(2), m.group(3)
 
 
-def _evaluar_pluma(cond, bandera, verde, test, fallo, amarillo=False):
+def _evaluar_pluma(cond, bandera, verde, test, fallo, amarillo=False, ra=False):
     """Evalua la condicion REAL del C++ con la tabla de verdad dada.
 
     No se reescribe la logica en Python -eso seria una segunda copia que alguien
     tendria que sincronizar, que es el defecto que este banco persigue-: se traduce
     la expresion y se evalua tal cual esta escrita en el fuente."""
     py = re.sub(r"estado\s*==\s*S_FALLO", "ES_FALLO", cond)
+    py = re.sub(r"estado\s*==\s*S_ROJO_AMARILLO", "ES_RA", py)    # D-53: antes que S_AMARILLO
     py = re.sub(r"estado\s*==\s*S_AMARILLO", "ES_AMARILLO", py)   # D-45: el cierre
     py = py.replace("&&", " and ").replace("||", " or ").replace("!", " not ")
     return bool(eval(py, {"__builtins__": {}},  # noqa: S307
                      {"verde": verde, bandera: test, "ES_FALLO": fallo,
-                      "ES_AMARILLO": amarillo}))
+                      "ES_AMARILLO": amarillo, "ES_RA": ra}))
 
 
 def correr(b, fw):
@@ -298,9 +276,7 @@ def correr(b, fw):
 
     # ---- 6. LA MAQUINA DE LUCES AVANZA EN TODOS LOS MODOS ----
     #
-    # BLOQUE MUDADO LITERAL DESDE maestro_01_mando (D-30, 14/09), que se retira con el
-    # mando. NO era una comprobacion del mando aunque viviera en su pack: lo que exige
-    # es que main.cpp llame a semaforo_actualizar() SIN CONDICION dentro del loop().
+    # Exige que main.cpp llame a semaforo_actualizar() SIN CONDICION en loop() (de maestro_01).
     #
     # POR QUE SIGUE HACIENDO FALTA, con lo que cuelga de esa llamada HOY:
     #   - el parpadeo del ambar de S_FALLO, que vive dentro de semaforo_actualizar();
@@ -309,12 +285,6 @@ def correr(b, fw):
     #     ultR, ultA, ultV)`-, que es la unica forma de que la pluma baje cuando la
     #     camara deja de ver algo sin que cambie la luz. Sin esta llamada la pluma se
     #     queda ARRIBA hasta el proximo cambio de luz, que son minutos.
-    #
-    # Lo que este bloque exigia ANTES en su pack de origen era que el test de lamparas
-    # esperase con una senal del mando en curso. Eso murio con la senal: no hay ya nada
-    # que pueda ocupar las lamparas por encima de la logica, que es justo lo que hace
-    # que esta llamada sea ahora el unico motor de las luces.
-    #
     # maestro_10 tambien la mira, pero con reportar(), que NO CUENTA. Aqui cuenta.
     _main = fw.codigo("Maestro", "src", "main.cpp")
     _llamada_incondicional = bool(re.search(
@@ -353,7 +323,8 @@ def correr(b, fw):
         expr = d33["tabla"]
 
     desconocidos = sorted(set(_IDENT.findall(expr)) -
-                          {"verde", bandera, "estado", "S_FALLO", "S_AMARILLO"})
+                          {"verde", bandera, "estado", "S_FALLO", "S_AMARILLO",
+                           "S_ROJO_AMARILLO"})   # D-53: se evalua como ES_RA
     if desconocidos:
         raise fw.Abortado(
             "la condicion de la pluma menciona %s, que este pack no sabe evaluar. Una "
@@ -393,6 +364,16 @@ def correr(b, fw):
         "CIERRE sigue arriba (D-45, SPEC_8 1: el retardo cuenta desde el rojo)",
         "la pluma abre sin verde y sin S_FALLO. Es la direccion peligrosa: una barrera "
         "levantada invitando a pasar con la luz en rojo")
+
+    # D-53 (SPEC_1 3.3 (7), SPEC_8 1): en ROJO+AMARILLO el verde esta apagado y la pluma
+    # sigue ABAJO; sube con el verde real. Se evalua la condicion REAL con el estado nuevo.
+    b.verificar(
+        not _evaluar_pluma(expr, bandera, False, False, False, False, True) and
+        not _evaluar_pluma(expr, bandera, False, True, False, False, True),
+        "D-53: en ROJO+AMARILLO (verde apagado) la condicion de la pluma da ABAJO, haya "
+        "test o no: la pluma sube con el VERDE real",
+        "D-53: la condicion de la pluma ABRE en ROJO+AMARILLO, con el verde apagado: "
+        "barrera arriba invitando a pasar antes del verde")
 
     b.verificar(
         pluma(False, False, True) and pluma(False, True, True),
@@ -529,8 +510,19 @@ def correr(b, fw):
             "el final de rojo fijo de antes del 28/09, reinyectado en el bloque real del "
             "test, se detecta")
 
+    # D-53 (SPEC_1 3.3 (1)-(2)): terminarTestLeds() devuelve tambien S_ROJO_AMARILLO. SE REPARTE la
+    # igualdad de arriba: los tres pares de siempre igual; el cuarto estado, por su case.
+    raCase = re.search(r"case\s+S_ROJO_AMARILLO\s*:", fin or "") is not None
+    paresSinRA = {k: v for k, v in pares.items() if k != "S_ROJO_AMARILLO"}
     b.verificar(
-        fin is not None and pares == esperado and amarilloOk and _final_bueno(bloqueTest),
+        raCase,
+        "D-53: terminarTestLeds() devuelve tambien S_ROJO_AMARILLO (tiene su case): un "
+        "test cortado en mitad del rojo+amarillo deja la lampara en rojo+amarillo",
+        "D-53: terminarTestLeds() no tiene case S_ROJO_AMARILLO. Un test cortado en mitad "
+        "del rojo+amarillo dejaria la ultima fase del test en la lampara")
+
+    b.verificar(
+        fin is not None and paresSinRA == esperado and amarilloOk and _final_bueno(bloqueTest),
         "al acabar el test la lampara vuelve a la luz de `estado` por su propio setter "
         "(%d estados): luz, estado y PLUMA: dicen lo mismo" % len(pares),
         "el final del test no devuelve la luz del estado (fases=%s, pares=%s). Es el "

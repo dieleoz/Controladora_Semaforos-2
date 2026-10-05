@@ -162,6 +162,11 @@ def correr(b, fw):
 
     # D-45 (02/10): SE INVIERTE. Exigia la asimetria del ambar con que el Esclavo abria su
     # verde; ese ambar salio y las dos puntas abren directo y cierran por su amarillo.
+    # D-53 (05/10): SE CONSERVA esta y la de arriba. Las dos puntas abren por ROJO+AMARILLO
+    # (simetrico), y SPEC_2 8 (e.ter): "el margen de desfase sigue siendo el despeje; el
+    # rojo+amarillo no abre paso, pero no se cuenta como margen". Para que siga midiendolo,
+    # el espejo de banco/modelos/costura.py tiene que contar el R+A en paso() al rehacerse
+    # sobre el ciclo_degradado.h de ocho fases.
     b.verificar(
         adelantado == atrasado,
         f"los dos sentidos son SIMETRICOS ({adelantado} s): sin el ambar que abria el verde "

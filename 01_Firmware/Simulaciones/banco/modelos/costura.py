@@ -178,6 +178,12 @@ M_AMARILLO_MS = 1000 * num(T_M_PROTO_H, PAT_AMARILLO, "amarillo de cierre (Maest
 E_AMARILLO_MS = 1000 * num(texto(E_PROTO_H), PAT_AMARILLO, "amarillo de cierre (Esclavo)")
 AMARILLO_S = M_AMARILLO_MS // 1000
 
+# --- D-53: el ROJO+AMARILLO antes de cada verde, del contrato de cada punta (ROJO_AMARILLO_SEG) ---
+PAT_ROJO_AMARILLO = r"#define\s+ROJO_AMARILLO_SEG\s+(\d+)UL"
+M_ROJO_AMARILLO_MS = 1000 * num(T_M_PROTO_H, PAT_ROJO_AMARILLO, "rojo+amarillo (Maestro)")
+E_ROJO_AMARILLO_MS = 1000 * num(texto(E_PROTO_H), PAT_ROJO_AMARILLO, "rojo+amarillo (Esclavo)")
+RA_S = M_ROJO_AMARILLO_MS // 1000
+
 
 # --------------------------------------------------------------------------
 # PORTS COMPARTIDOS ENTRE SECCIONES.
@@ -196,47 +202,65 @@ AMARILLO_S = M_AMARILLO_MS // 1000
 # importarse decide el veredicto de quien lo use, y ademas lo cuenta una vez por cada
 # pack que lo importe.
 # --------------------------------------------------------------------------
-# D-45 (02/10): seis fases, el amarillo de cierre entre cada verde y su despeje.
-(FD_VERDE_MAESTRO, FD_AMARILLO_MAESTRO, FD_DESPEJE_A,
- FD_VERDE_ESCLAVO, FD_AMARILLO_ESCLAVO, FD_DESPEJE_B) = 0, 1, 2, 3, 4, 5
+# D-53 (05/10): ocho fases, en el orden del enum FaseDegradado de ciclo_degradado.h: el
+# ROJO+AMARILLO (ROJO_AMARILLO_SEG) delante de cada verde, el amarillo de cierre detras.
+(FD_ROJO_AMARILLO_MAESTRO, FD_VERDE_MAESTRO, FD_AMARILLO_MAESTRO, FD_DESPEJE_A,
+ FD_ROJO_AMARILLO_ESCLAVO, FD_VERDE_ESCLAVO, FD_AMARILLO_ESCLAVO, FD_DESPEJE_B) = range(8)
 
 
-def _cruda(pos, v, d, a):
-    if pos < v:
+def _cruda(pos, v, d, a, r=None):
+    """ciclo_degradado_faseCruda(). r = ROJO_AMARILLO_SEG."""
+    r = RA_S if r is None else r
+    if pos < r:
+        return FD_ROJO_AMARILLO_MAESTRO
+    if pos < r + v:
         return FD_VERDE_MAESTRO
-    if pos < v + a:
+    if pos < r + v + a:
         return FD_AMARILLO_MAESTRO
-    if pos < v + a + d:
+    if pos < r + v + a + d:
         return FD_DESPEJE_A
-    if pos < 2 * v + a + d:
+    if pos < 2 * r + v + a + d:
+        return FD_ROJO_AMARILLO_ESCLAVO
+    if pos < 2 * (r + v) + a + d:
         return FD_VERDE_ESCLAVO
-    if pos < 2 * (v + a) + d:
+    if pos < 2 * (r + v + a) + d:
         return FD_AMARILLO_ESCLAVO
     return FD_DESPEJE_B
 
 
 def fase(seg_dia, verde, despeje):
-    """Espejo EXACTO de ciclo_degradado_fase() de ciclo_degradado.h, con las dos guardas
-    de medianoche y las dos reglas del amarillo de D-45. Mas abajo se comprueba contra el
-    C++ que el espejo sigue correspondiendose."""
+    """Espejo de ciclo_degradado_fase() (D-53): las guardas de medianoche, el verde que no
+    cabe tras el despeje de las 00:00, el amarillo que naceria sin verde, el R+A que no cabe
+    antes del tramo final y el amarillo forzado al final del dia. Mas abajo, sus huellas en
+    el C++ (espejo_ok)."""
     if verde == 0 or despeje == 0:
         return FD_DESPEJE_A
-    a = AMARILLO_S
-    ciclo = 2 * (verde + a + despeje)
+    a, r = AMARILLO_S, RA_S
+    ciclo = 2 * (r + verde + a + despeje)
     fin_dia = SEGUNDOS_DEL_DIA - despeje
     if seg_dia < despeje or seg_dia >= fin_dia:
         return FD_DESPEJE_B
     pos = seg_dia % ciclo
-    f = _cruda(pos, verde, despeje, a)
+    f = _cruda(pos, verde, despeje, a, r)
+    if f in (FD_ROJO_AMARILLO_MAESTRO, FD_VERDE_MAESTRO, FD_ROJO_AMARILLO_ESCLAVO, FD_VERDE_ESCLAVO):
+        de_m = f in (FD_ROJO_AMARILLO_MAESTRO, FD_VERDE_MAESTRO)
+        fin_verde = r + verde if de_m else 2 * (r + verde) + a + despeje
+        if seg_dia + (fin_verde - pos) <= despeje + r:
+            return FD_DESPEJE_B
     if f in (FD_AMARILLO_MAESTRO, FD_AMARILLO_ESCLAVO):
-        inicio = verde if f == FD_AMARILLO_MAESTRO else 2 * verde + a + despeje
-        if seg_dia - (pos - inicio) <= despeje:
+        inicio = r + verde if f == FD_AMARILLO_MAESTRO else 2 * (r + verde) + a + despeje
+        if seg_dia - (pos - inicio) <= despeje + r:
             return FD_DESPEJE_A if f == FD_AMARILLO_MAESTRO else FD_DESPEJE_B
+    if f in (FD_ROJO_AMARILLO_MAESTRO, FD_ROJO_AMARILLO_ESCLAVO):
+        fin_ra = r if f == FD_ROJO_AMARILLO_MAESTRO else 2 * r + verde + a + despeje
+        if seg_dia + (fin_ra - pos) + a >= fin_dia:
+            return FD_DESPEJE_B if f == FD_ROJO_AMARILLO_MAESTRO else FD_DESPEJE_A
     if seg_dia + a >= fin_dia:
-        f0 = _cruda((fin_dia - a) % ciclo, verde, despeje, a)
-        if f0 == FD_VERDE_MAESTRO:
+        f0 = _cruda((fin_dia - a) % ciclo, verde, despeje, a, r)
+        encendido = f0 == _cruda((fin_dia - a - 1) % ciclo, verde, despeje, a, r)
+        if encendido and f0 == FD_VERDE_MAESTRO:
             return FD_AMARILLO_MAESTRO
-        if f0 == FD_VERDE_ESCLAVO:
+        if encendido and f0 == FD_VERDE_ESCLAVO:
             return FD_AMARILLO_ESCLAVO
         if f == FD_VERDE_MAESTRO:
             return FD_DESPEJE_B
@@ -252,20 +276,24 @@ cuerpo_fase = re.search(r"ciclo_degradado_fase\(uint32_t segDia.*?\n\}", T_M_CIC
 cuerpo_cruda = re.search(r"ciclo_degradado_faseCruda\(uint32_t pos.*?\n\}", T_M_CICLO_H, re.S)
 huellas_c = [
     r"if\s*\(verdeSeg\s*==\s*0\s*\|\|\s*despejeSeg\s*==\s*0\)\s*return\s+FD_DESPEJE_A",
-    r"ciclo\s*=\s*2UL\s*\*\s*\(\(uint32_t\)verdeSeg\s*\+\s*a\s*\+\s*\(uint32_t\)despejeSeg\)",
+    r"ciclo\s*=\s*2UL\s*\*\s*\(r\s*\+\s*\(uint32_t\)verdeSeg\s*\+\s*a\s*\+\s*\(uint32_t\)despejeSeg\)",
     r"finDia\s*=\s*SEGUNDOS_DEL_DIA\s*-\s*despejeSeg",
     r"if\s*\(segDia\s*<\s*despejeSeg\)\s*return\s+FD_DESPEJE_B",
     r"if\s*\(segDia\s*>=\s*finDia\)\s*return\s+FD_DESPEJE_B",
     r"pos\s*=\s*segDia\s*%\s*ciclo",
-    r"if\s*\(segDia\s*-\s*\(pos\s*-\s*inicio\)\s*<=\s*despejeSeg\)",
+    r"if\s*\(segDia\s*\+\s*\(finVerde\s*-\s*pos\)\s*<=\s*\(uint32_t\)despejeSeg\s*\+\s*r\)",
+    r"if\s*\(segDia\s*-\s*\(pos\s*-\s*inicio\)\s*<=\s*\(uint32_t\)despejeSeg\s*\+\s*r\)",
+    r"if\s*\(segDia\s*\+\s*\(finRA\s*-\s*pos\)\s*\+\s*a\s*>=\s*finDia\)",
     r"if\s*\(segDia\s*\+\s*a\s*>=\s*finDia\)",
 ]
 huellas_cruda = [
-    r"if\s*\(pos\s*<\s*v\)\s*return\s+FD_VERDE_MAESTRO",
-    r"if\s*\(pos\s*<\s*v\s*\+\s*a\)\s*return\s+FD_AMARILLO_MAESTRO",
-    r"if\s*\(pos\s*<\s*v\s*\+\s*a\s*\+\s*d\)\s*return\s+FD_DESPEJE_A",
-    r"if\s*\(pos\s*<\s*2UL\s*\*\s*v\s*\+\s*a\s*\+\s*d\)\s*return\s+FD_VERDE_ESCLAVO",
-    r"if\s*\(pos\s*<\s*2UL\s*\*\s*\(v\s*\+\s*a\)\s*\+\s*d\)\s*return\s+FD_AMARILLO_ESCLAVO",
+    r"if\s*\(pos\s*<\s*r\)\s*return\s+FD_ROJO_AMARILLO_MAESTRO",
+    r"if\s*\(pos\s*<\s*r\s*\+\s*v\)\s*return\s+FD_VERDE_MAESTRO",
+    r"if\s*\(pos\s*<\s*r\s*\+\s*v\s*\+\s*a\)\s*return\s+FD_AMARILLO_MAESTRO",
+    r"if\s*\(pos\s*<\s*r\s*\+\s*v\s*\+\s*a\s*\+\s*d\)\s*return\s+FD_DESPEJE_A",
+    r"if\s*\(pos\s*<\s*2UL\s*\*\s*r\s*\+\s*v\s*\+\s*a\s*\+\s*d\)\s*return\s+FD_ROJO_AMARILLO_ESCLAVO",
+    r"if\s*\(pos\s*<\s*2UL\s*\*\s*\(r\s*\+\s*v\)\s*\+\s*a\s*\+\s*d\)\s*return\s+FD_VERDE_ESCLAVO",
+    r"if\s*\(pos\s*<\s*2UL\s*\*\s*\(r\s*\+\s*v\s*\+\s*a\)\s*\+\s*d\)\s*return\s+FD_AMARILLO_ESCLAVO",
 ]
 espejo_ok = (cuerpo_fase is not None and cuerpo_cruda is not None and
              all(re.search(p, cuerpo_fase.group(0)) for p in huellas_c) and
@@ -294,25 +322,40 @@ rama_verde = re.search(r"void\s+config_rxVerde\([^)]*\)\s*\{(.*?)\n\}", T_E_CONF
 rama_despeje = re.search(r"bool\s+config_rxDespeje\([^)]*\)\s*\{(.*?)\n\}", T_E_CONFIG_C, re.S)
 
 # Codigos de luz. Iban sueltos en la seccion [2] y los usa la [6] al comparar lo
-# que enciende cada punta tras un corte.
-ROJO, AMBAR_FIJO, VERDE, AMBAR_INTERMITENTE = 0, 1, 2, 3
+# que enciende cada punta tras un corte. D-53: ROJO_AMARILLO, rojo y amarillo a la vez.
+ROJO, AMBAR_FIJO, VERDE, AMBAR_INTERMITENTE, ROJO_AMARILLO = 0, 1, 2, 3, 4
+
+
+def _luz_de(f, ra, verde, amarillo):
+    """La luz de una punta en DEG_ACTIVO segun la fase: semaforo_forzarVerde() abre por
+    S_ROJO_AMARILLO (ROJO_AMARILLO_SEG, lo que dura la fase R+A) y semaforo_actualizar() pone
+    el VERDE al vencer; fuera, semaforo_forzarRojo(), que sobre el verde da el amarillo de
+    cierre (D-45). SIMPLIFICA: sin estado, asi que no ve verdeConTiempo() (una entrada a mitad
+    de la fase que no abre un verde sin tiempo); eso lo mide el arnes del Degradado."""
+    if f == ra:
+        return ROJO_AMARILLO
+    if f == verde:
+        return VERDE
+    return AMBAR_FIJO if f == amarillo else ROJO
 
 
 def luz_maestro(seg_dia, verde, despeje):
-    """modo_degradado.cpp (Maestro), DEG_ACTIVO: verde SOLO en FD_VERDE_MAESTRO; fuera,
-    semaforo_forzarRojo(), que sobre el verde da el amarillo de cierre (D-45)."""
-    f = fase(seg_dia, verde, despeje)
-    return VERDE if f == FD_VERDE_MAESTRO else (AMBAR_FIJO if f == FD_AMARILLO_MAESTRO else ROJO)
+    """modo_degradado.cpp (Maestro), DEG_ACTIVO: abre en FD_ROJO_AMARILLO_MAESTRO y
+    FD_VERDE_MAESTRO (D-53); FD_AMARILLO_MAESTRO es su amarillo de cierre."""
+    return _luz_de(fase(seg_dia, verde, despeje), FD_ROJO_AMARILLO_MAESTRO, FD_VERDE_MAESTRO,
+                   FD_AMARILLO_MAESTRO)
 
 
 def luz_esclavo(seg_dia, verde, despeje, amarillo_s=None):
-    """modo_degradado.cpp (Esclavo), DEG_ACTIVO: aplicarLuz(fase == FD_VERDE_ESCLAVO). D-45:
-    abre DIRECTO y cierra por su amarillo; amarillo_s queda por compatibilidad: ya no hay
-    ambar que se coma el principio del verde."""
-    f = fase(seg_dia, verde, despeje)
-    return VERDE if f == FD_VERDE_ESCLAVO else (AMBAR_FIJO if f == FD_AMARILLO_ESCLAVO else ROJO)
+    """modo_degradado.cpp (Esclavo), DEG_ACTIVO: aplicarLuz(fase R+A o VERDE del Esclavo)
+    (D-53). amarillo_s queda por compatibilidad: no hay ambar que se coma el verde."""
+    return _luz_de(fase(seg_dia, verde, despeje), FD_ROJO_AMARILLO_ESCLAVO, FD_VERDE_ESCLAVO,
+                   FD_AMARILLO_ESCLAVO)
 
 
 def paso(luz):
-    """D-45: el amarillo de cierre es paso abierto -quien no puede parar, entra-."""
-    return luz in (VERDE, AMBAR_FIJO)
+    """Luz COMPROMETIDA en el solape. D-45: el amarillo de cierre es paso abierto -quien no
+    puede parar, entra-. D-53: el ROJO+AMARILLO no abre paso, pero no se cuenta como margen
+    (SPEC_2 8 (e.ter)): el margen de desfase sigue siendo el despeje, como en vigilar() del
+    arnes del Degradado."""
+    return luz in (VERDE, AMBAR_FIJO, ROJO_AMARILLO)

@@ -35,16 +35,12 @@
 // las dos puntas ejecutandose a la vez, cada una con su reloj: el cruce aguanta 29 s de
 // desfase, el equipo puede acumular 20,2 s en 48 h, MARGEN 8,8 s, factor 1,44.
 //
-// Alargar el plazo sigue obligando a alargar el todo-rojo -una semana pide ~90 s, que
-// destroza la fluidez del paso-, y la alternativa real sigue sin ser estirar el limite:
-// es ir a arreglar el radio. Lo que cambia es que ahora hay un instrumento que
-// recalcula la desigualdad desde el C++ en cada corrida, en vez de una cuenta escrita
-// dentro de un comentario.
+// Alargar el plazo obliga a alargar el todo-rojo (una semana pide ~90 s): lo que toca es
+// arreglar el radio. La desigualdad la recalcula un instrumento desde el C++.
 static const unsigned long LIMITE_SIN_SYNC_MS = 48UL * 3600UL * 1000UL;
 
-// El mismo limite expresado en horas, que es la unidad en la que el respaldo sabe
-// contar a traves de un reinicio. Se deriva del de arriba en vez de escribir un 48
-// suelto: dos numeros que significan lo mismo se separan el dia que alguien toca uno.
+// El mismo limite en horas (la unidad del respaldo a traves de un reinicio), derivado del de
+// arriba: dos numeros que significan lo mismo se separan el dia que alguien toca uno.
 static const uint32_t LIMITE_SIN_SYNC_H = LIMITE_SIN_SYNC_MS / 3600000UL;
 
 // Aviso anticipado: ocho horas es un turno completo, tiempo de programar la subida al gabinete; avisar mas tarde
@@ -69,7 +65,6 @@ static const int      TESTIGO_DESPEJE_MIN    = 30;
 static const int      TESTIGO_DESPEJE_MAX    = 255;
 static const uint8_t  TESTIGO_VERDE_SEG      = 180;
 static const uint32_t TESTIGO_INICIO_MAX_S   = 43200UL;           // 12 h: mas es "ya paso"
-// 29/09 (responsable, H9): el testigo YA NO VENCE -se retiro TESTIGO_VIGENCIA_S-. Queda el aviso.
 static const uint32_t TESTIGO_AVISO_S        = 28UL * 86400UL;    // 28 dias: solo aviso
 
 // true desde que entra un testigo hasta que el modo vuelve a DEG_INACTIVO o DEG_RENDIDO:
@@ -174,9 +169,7 @@ static unsigned long tFaseCache = 0;
 //
 // EL UMBRAL SALE DEL DESPEJE QUE MANDO EL MAESTRO -config_despejeSegundos(), el numero con el que se calcula la fase-
 // menos el segundo del truncado: la misma cuenta que alli sobre el mismo valor (SFTY-23); esp32_13 comprueba que las
-// dos formulas digan lo mismo. PASAR POR ROJO ES EL CAMINO QUE YA EXISTE: DEG_ENTRANDO, con rojoObligatorioMs() y la
-// espera a que la fase deje atras el verde de esta punta (aqui el verde abre por ambar, asi que "directo" era ambar
-// -> verde).
+// dos formulas digan lo mismo. Pasar por rojo es DEG_ENTRANDO: rojoObligatorioMs() y esperar a dejar atras el verde.
 static uint32_t segVisto = 0;
 static unsigned long tVisto = 0;
 
@@ -254,13 +247,22 @@ static FaseDegradado calcularFase() {
   return faseCache;
 }
 
-// Regla completa del modo: en FD_VERDE_ESCLAVO verde, en cualquier otra fase
-// rojo. No hay mas casos y no debe haberlos.
+// D-53 (C2): ABRIR desde rojo solo si el verde se va a encender (SPEC_2 8 (e.ter)). Tras un salto de
+// hora, en los ultimos ROJO_AMARILLO_SEG s del verde, la luz seria R+A -> rojo: ese R+A es despeje.
+static bool verdeConTiempo() {
+  const uint32_t s = reloj_segundosDelDia();
+  const FaseDegradado f = ciclo_degradado_fase(s, cicloVerde(), cicloDespeje());
+  return f == FD_ROJO_AMARILLO_ESCLAVO ||
+         (f == FD_VERDE_ESCLAVO && ciclo_degradado_restante(s, cicloVerde(), cicloDespeje()) > ROJO_AMARILLO_SEG);
+}
+
+// Regla del modo: verde (el semaforo pone antes el R+A) en FD_ROJO_AMARILLO_ESCLAVO y FD_VERDE_ESCLAVO,
+// desde rojo solo con verde por delante (C2); en cualquier otra fase rojo. No hay mas casos.
 static void aplicarLuz(bool verde) {
   if (verde == verdeAplicado) return;
   if (verde) {
-    // Misma secuencia que cuando la orden viene del Maestro (CMD_GO_GREEN): D-45, de rojo
-    // a verde DIRECTO. El conductor ve siempre lo mismo, decida quien decida el cambio.
+    // Misma secuencia que cuando la orden viene del Maestro (CMD_GO_GREEN): D-53, de rojo
+    // a verde por ROJO+AMARILLO. El conductor ve siempre lo mismo, decida quien decida.
     // El cierre lo pone la fase FD_AMARILLO_ESCLAVO por el rojo de abajo (semaforo.cpp).
     semaforo_forzarVerde();
   } else {
@@ -522,7 +524,8 @@ RechazoTestigo degradado_entrarTestigo(uint32_t ahora, uint32_t inicio, int desp
   // renueva y sigue, sin volver a rojo. La flash solo se escribe con esta punta en rojo.
   if (estado == DEG_ACTIVO && cicloVerde() == TESTIGO_VERDE_SEG &&
       cicloDespeje() == (uint8_t)despeje) {
-    if (verdeAplicado || semaforo_estado() == S_AMARILLO) return DEG_RECHAZO_T_EN_VERDE;
+    if (verdeAplicado || semaforo_estado() == S_AMARILLO ||
+        semaforo_estado() == S_ROJO_AMARILLO) return DEG_RECHAZO_T_EN_VERDE;   // D-53
     soltarSalida();   // D-52: renovar es entrar de nuevo
     if (!guardarTestigoFlash(ahoraS, ahoraS, (uint8_t)despeje, 0)) return DEG_RECHAZO_T_NO_GUARDADO;
     testigo = true;
@@ -785,17 +788,12 @@ void degradado_actualizar() {
 
   switch (estado) {
     case DEG_ENTRANDO:
-      // Se abandona el todo-rojo de entrada solo con DOS condiciones a la vez:
-      //
-      //   1. Que haya transcurrido un despeje completo. Es el margen que absorbe
-      //      la deriva entre los dos relojes, y recortarlo aqui seria recortarlo
-      //      justo en la transicion menos vigilada.
-      //   2. Que la fase actual NO sea nuestro verde. Engancharse a mitad de un
-      //      verde en curso daria una luz de duracion desconocida; asi el primer
-      //      verde del modo empieza siempre en su frontera, como los demas.
-      //   3. D-35: con testigo, haber llegado a inicio; hasta entonces, rojo fijo.
+      // Se abandona el todo-rojo de entrada con TRES condiciones a la vez: 1. un despeje completo (el
+      // margen de la deriva entre relojes); 2. la fase NO es nuestro verde ni su R+A: el primer verde
+      // empieza en su frontera; 3. D-35: con testigo, haber llegado a inicio (hasta entonces, rojo fijo).
       if ((ahora - tCambioEstado) >= rojoObligatorioMs() &&
           calcularFase() != FD_VERDE_ESCLAVO &&
+          calcularFase() != FD_ROJO_AMARILLO_ESCLAVO &&   // D-53: principio del verde
           (!testigo || reloj_segundosDesde2000() >= testigoInicioS)) {
         estado = DEG_ACTIVO;
         tCambioEstado = ahora;
@@ -803,7 +801,8 @@ void degradado_actualizar() {
       break;
 
     case DEG_ACTIVO:
-      aplicarLuz(calcularFase() == FD_VERDE_ESCLAVO);
+      aplicarLuz((calcularFase() == FD_ROJO_AMARILLO_ESCLAVO || calcularFase() == FD_VERDE_ESCLAVO) &&
+                 (verdeAplicado || verdeConTiempo()));   // D-53, C2
       break;
 
     case DEG_ROJO_SIN_HORA:   // D-38: rojo sostenido y el aviso cada minuto
@@ -851,5 +850,3 @@ bool degradado_rendicionEnCurso() { return rendicionEnCurso; }
 
 FaseDegradado degradado_fase() { return calcularFase(); }
 
-// D-44/D-46: aqui vivian los rotulos de la pantalla (estado, fase) y la tabla de rechazo de
-// SET_MODO:DEGRADADO; salieron sin lector con el menu y con la orden.

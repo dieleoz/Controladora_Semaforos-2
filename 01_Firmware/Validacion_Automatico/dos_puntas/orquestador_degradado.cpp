@@ -1,22 +1,14 @@
 // ===== Validacion_Automatico/dos_puntas/orquestador_degradado.cpp =====
 //
-// LAS DOS PUNTAS EN MODO DEGRADADO A LA VEZ, CADA UNA CON SU RELOJ, Y LA PREGUNTA
-// QUE NINGUN INSTRUMENTO HABIA HECHO SOBRE EL C++ REAL:
+// LAS DOS PUNTAS EN MODO DEGRADADO A LA VEZ, CADA UNA CON SU RELOJ: ?CUANTOS SEGUNDOS DE
+// DESFASE AGUANTA EL CRUCE ANTES DE QUE LOS DOS VERDES SE TOQUEN, Y CUANTO DERIVA EL EQUIPO?
 //
-//     ?CUANTOS SEGUNDOS DE DESFASE ENTRE LOS DOS RELOJES AGUANTA EL CRUCE ANTES DE
-//     QUE LOS DOS VERDES SE TOQUEN, Y CUANTO PUEDE DERIVAR EL EQUIPO DE VERDAD?
+// COMO SE HACE (cronica en HISTORIA.md y git): cabeceras REALES del Maestro (ninguna arrastra
+// U8g2); CADA PUNTA CON SU TICK (arnes_millis_valor por DLL) y millis() monotono; EL DESFASE
+// SE INYECTA EN LA HORA DE PARED conservando la fase sub-segundo; UN ESCALON Y NO UNA RAMPA:
+// ciclo_degradado_fase() no tiene memoria y el escalon da los mismos solapes que 48 h de rampa.
 //
-// COMO SE HACE (la cronica de por que, en HISTORIA.md y en git):
-//   - Las cabeceras del Maestro son las REALES (lcd.h, menu.h, botones.h): ninguna arrastra U8g2.
-//   - CADA PUNTA TIENE SU PROPIO TICK (arnes_millis_valor es una variable por DLL), y millis() es
-//     monotono en las dos: un salto atras venceria todos los temporizadores a la vez.
-//   - EL DESFASE SE INYECTA EN LA HORA DE PARED, conservando la fase sub-segundo: reanclar el
-//     reloj al millis() del momento fabricaba un residuo propio (los 950 ms del barrido).
-//   - UN ESCALON Y NO UNA RAMPA: ciclo_degradado_fase() no tiene memoria, solo depende de la
-//     diferencia instantanea; el escalon da el mismo conjunto de solapes que 48 h de rampa.
-//
-// QUE SE MIDE: lo que semaforo.cpp ESCRIBIO EN LOS PINES. El arnes orquesta y observa; no
-// calcula que fase tocaria (seria otra copia del firmware a mano).
+// QUE SE MIDE: lo que semaforo.cpp ESCRIBIO EN LOS PINES; el arnes no calcula fases.
 //
 // LO QUE NO CUBRE, para que nadie lo cuente como cubierto:
 //   - protocolo.cpp no se compila (CRC, rafaga y replay: costura_01 y el arnes del puente), ni
@@ -38,9 +30,7 @@
 #include <fstream>
 #include <sstream>
 #include <regex>
-// El orquestador NO incluye ninguna cabecera del firmware: si lo hiciera volveria a
-// tener nombres de las dos puntas en su propia tabla de simbolos, que es el problema
-// que la DLL resuelve.
+// Sin cabeceras del firmware: la tabla de simbolos del orquestador no lleva nombres de punta.
 #define HIGH 1
 #define LOW 0
 #include "comun/pines.h"
@@ -172,7 +162,9 @@ struct Punta {
     return reinterpret_cast<T>(reinterpret_cast<void*>(p));
   }
 
+  int cargas = 0;   // D-53: una recarga (microcorte) no es una transicion de la luz
   void cargar() {
+    cargas++;
     h = LoadLibraryA(ruta.c_str());
     if (!h) abortar("no se pudo cargar " + ruta + " (LoadLibrary devolvio NULL, error " +
                     std::to_string((unsigned long)GetLastError()) + ")");
@@ -252,11 +244,8 @@ static long g_siembrasIgnoradas[2] = {0, 0};
 static unsigned long g_tUltimaSiembraBuena[2] = {0, 0};
 
 // ---------------------------------------------------------------------------
-// LOS DOS RELOJES. g_t es el tiempo del BANCO; cada punta recibe el suyo.
-//
-// g_desfaseRtcS es la deriva acumulada del RTC del Esclavo respecto del Maestro. No
-// se aplica aqui: se aplica reanclando su RTC (ver aplicarDesfaseRtc), que es donde
-// vive de verdad.
+// LOS DOS RELOJES. g_t es el tiempo del BANCO; cada punta recibe el suyo. g_desfaseRtcS (deriva
+// del RTC del Esclavo contra el Maestro) se aplica reanclando su RTC (aplicarDesfaseRtc).
 // ---------------------------------------------------------------------------
 static unsigned long g_t = 2000;          // arranca por encima del delay(2000) de N-22
 static const unsigned long PASO_MS = 50;
@@ -271,13 +260,9 @@ static unsigned long g_ticksVerdeEsclavo = 0;
 static unsigned long g_enclavamientoRoto = 0;
 static unsigned long g_talanqueraSinVerde = 0;
 
-// D-33 (14/09/2026) - EL REPARTO DE LA INVARIANTE DE LA PLUMA (CLAUDE.md 9). El mismo
-// que en orquestador.cpp, y por el mismo motivo: la linea de arriba afirmaba "la pluma
-// arriba SIEMPRE tiene una razon nombrada" (se conserva), "esa razon es el verde" (se
-// reparte: fuera de la bajada sigue siendo cierta, dentro la razon es el retardo) y "la
-// unica excepcion es S_FALLO" (se conserva literal). La excepcion nueva NO se concede
-// por nombre: se CRONOMETRA contra PLUMA_RETARDO_BAJADA_MS leido del C++ real, porque
-// una excepcion sin cota aprobaria igual una pluma arriba diez minutos.
+// D-33 - EL REPARTO DE LA INVARIANTE DE LA PLUMA (CLAUDE.md 9), como en orquestador.cpp: la
+// excepcion del retardo se CRONOMETRA contra PLUMA_RETARDO_BAJADA_MS leido del C++; sin cota
+// aprobaria una pluma arriba diez minutos.
 static unsigned long g_plumaSinVerdeDesde[2] = {0, 0};
 static unsigned long g_peorVentanaPlumaMs[2] = {0, 0};
 static unsigned long g_retardoPlumaMs = 0;
@@ -289,9 +274,8 @@ static unsigned long g_pegados = 0;
 static bool g_antVerdeM = false, g_antVerdeE = false;
 static bool g_huboRojoTotalDesdeVerde = true;
 
-// La racha MAS LARGA de instantes seguidos con las dos en verde. Es lo que distingue
-// un solape estructural -de segundos- de uno de milisegundos, y a diferencia del total
-// NO depende de cuantos ciclos quepan en la ventana de observacion.
+// La racha MAS LARGA con las dos en verde: separa un solape estructural de uno de ms, y no
+// depende de cuantos ciclos quepan en la ventana.
 static unsigned long g_solapeRacha = 0;
 static unsigned long g_solapeMax = 0;
 
@@ -316,16 +300,53 @@ static void reiniciarObservacion() {
 // solape se cuenta con PASO ABIERTO en las dos puntas (verde o ese amarillo), no solo verde:
 // SPEC_2 8 (e.bis), "el margen frente al amarillo del otro es el despeje". Indice releido.
 static int g_sAmarillo = -1;
+
+// D-53: ROJO - ROJO+AMARILLO (RA_MS) - VERDE tambien en el Degradado (diseno 7), por PINES. El
+// valor sale de la decision (leerlo haria ABORTAR sin la constante). Tolerancia: un tick mas
+// RA_MS/40 por lado (HSI_PPM_PEOR = 25000 ppm: el R+A lo cronometra el reloj de la punta).
+static const unsigned long RA_MS = 2000UL;
+static unsigned long g_aperturasVistas = 0, g_aperturaSinRA = 0, g_raMalMedido = 0;
+static unsigned long g_plumaEnRA = 0;
+static int g_luzPinAnt[2] = { -1, -1 };   // 0 rojo, 1 R+A, 2 verde, 3 otra
+static int g_cargasVistas[2] = { 0, 0 };
+static bool g_plumaAnt[2] = { false, false };   // la pluma no SUBE en R+A: arriba si ya lo estaba
+static unsigned long g_tRADesde[2] = { 0, 0 };
+
+static void vigilarApertura(Punta* p, int i) {
+  const bool r = p->rojo(), am = p->ambar(), v = p->verde();
+  const int luz = v ? 2 : (r && am) ? 1 : (r && !am) ? 0 : 3;
+  const int la = g_luzPinAnt[i];
+  const bool misma = g_cargasVistas[i] == p->cargas;
+  const bool pl = p->pin(MOTOR_TALANQUERA) == TALANQUERA_ABRIR;
+  if (luz == 1 && pl && !(misma && g_plumaAnt[i])) g_plumaEnRA++;   // subida abajo->arriba
+  if (misma && la >= 0 && luz == 2 && la != 2) {
+    const unsigned long d = g_t - g_tRADesde[i];
+    const unsigned long tol = PASO_MS + RA_MS / 40UL;
+    if (la != 1) g_aperturaSinRA++;
+    else if (d + tol < RA_MS || d > RA_MS + tol) g_raMalMedido++;
+    else g_aperturasVistas++;
+  }
+  if (luz == 1 && (la != 1 || !misma)) g_tRADesde[i] = g_t;
+  g_luzPinAnt[i] = luz;
+  g_plumaAnt[i] = pl;
+  g_cargasVistas[i] = p->cargas;
+}
+
 static void vigilar() {
   g_instantes++;
+  vigilarApertura(&MAESTRO, 0);
+  vigilarApertura(&ESCLAVO, 1);
   const bool vM = MAESTRO.verde();
   const bool vE = ESCLAVO.verde();
   if (vM) g_ticksVerdeMaestro++;
   if (vE) g_ticksVerdeEsclavo++;
   vigilarH(vM, vE);
 
-  if (hayVerdeSimultaneo(vM || MAESTRO.estado() == g_sAmarillo,
-                         vE || ESCLAVO.estado() == g_sAmarillo)) {
+  // D-53: y el ROJO+AMARILLO, por pines: no abre paso, pero no es margen (SPEC_2 8 (e.ter)).
+  const bool raM = MAESTRO.rojo() && MAESTRO.ambar() && !vM;
+  const bool raE = ESCLAVO.rojo() && ESCLAVO.ambar() && !vE;
+  if (hayVerdeSimultaneo(vM || raM || MAESTRO.estado() == g_sAmarillo,
+                         vE || raE || ESCLAVO.estado() == g_sAmarillo)) {
     g_verdeSimultaneo++;
     g_solapeRacha++;
     if (g_solapeRacha > g_solapeMax) g_solapeMax = g_solapeRacha;
@@ -404,9 +425,7 @@ static void unTick() {
     }
   }
 
-  // Las dos puntas ejecutan el mismo instante del banco. millis() es MONOTONO en las
-  // dos: lo que difiere entre ellas es la hora de pared de su RTC, que es donde vive
-  // la deriva entre cristales.
+  // Mismo instante del banco; millis() MONOTONO en las dos: la deriva vive en la hora del RTC.
   MAESTRO.tick(g_t);
   ESCLAVO.tick(g_t);
 
@@ -463,9 +482,8 @@ static void aplicarDesfaseEsclavoAdelantado(long segundos) {
 // del arnes entre el coordinador y el despachador REALES, con sus ACK y reintentos.
 static int MODO_DEGRADADO_V = -1;   // se lee de modos.h, nunca se escribe a mano
 
-// El delay(2000) de N-22 que gasta el setup() de las dos puntas. Se le suma al reloj
-// del banco tras arrancar para que millis() no retroceda en la primera vuelta: un
-// millis() que retrocede hace vencer TODOS los temporizadores del firmware de golpe.
+// El delay(2000) de N-22 del setup(): se suma al reloj del banco para que millis() no
+// retroceda (venceria TODOS los temporizadores de golpe).
 static const unsigned long DELAY_ARRANQUE_MS = 2000;
 
 // 1.49b3 (G8): las dos puntas arrancan SIN CRISTAL -LSERDY nunca a 1-. Solo lo enciende G8.
@@ -556,13 +574,9 @@ static Escenario prepararSincronizadas(uint8_t dia, uint8_t hh, uint8_t mm, uint
   return e;
 }
 
-// Mete a las dos en Degradado, corta la radio y aplica la deriva. Devuelve cuando el
-// escenario esta montado; la observacion la hace quien llama.
-//
-// EL ORDEN LO IMPUSO EL FIRMWARE: Esclavo/src/main.cpp saca al Esclavo del Degradado al recibir
-// una trama de GOBIERNO (PING, GO_RED, GO_GREEN); metido primero, el PING del Maestro en el menu lo
-// expulsaba. El de la calle: 1. el Maestro entra y CALLA; 2. muere la radio; 3. el operario entra
-// en el otro poste.
+// Mete a las dos en Degradado, corta la radio y aplica la deriva. EL ORDEN LO IMPONE main.cpp
+// del Esclavo (una trama de GOBIERNO lo saca del Degradado): 1. el Maestro entra y CALLA;
+// 2. muere la radio; 3. el operario entra en el otro poste.
 static void entrarEnDegradadoLasDos(long desfaseSegEsclavo) {
   MAESTRO.orden("set_modo", MODO_DEGRADADO_V);
 
@@ -614,9 +628,8 @@ struct Medida {
   unsigned long pegados = 0;
 };
 
-// Un barrido completo para un desfase dado. msObservacion tiene que cubrir el
-// todo-rojo de entrada MAS varios ciclos completos, o el "no hubo solape" seria el de
-// un cruce que nunca llego a dar verde.
+// Un barrido para un desfase dado. msObservacion cubre el todo-rojo de entrada MAS varios
+// ciclos, o "no hubo solape" seria el de un cruce sin verde.
 static Medida correrConDesfase(long desfaseSegEsclavo, unsigned long msObservacion,
                                uint8_t dia, uint8_t hh, uint8_t mm, uint8_t ss) {
   prepararSincronizadas(dia, hh, mm, ss);
@@ -635,15 +648,10 @@ static Medida correrConDesfase(long desfaseSegEsclavo, unsigned long msObservaci
 }
 
 // ---------------------------------------------------------------------------
-// BLOQUE F - LOS DOS DS3231 CON SU PROPIA HORA (D-21 (1)).
-//
-// El origen comun es la hora que el Maestro tiene AHORA, en su ultima frontera de segundo, en
-// tiempo del banco: desde ahi, cada DS3231 cuenta el banco -mas su diferencia con el otro,
-// g_ds3231OffsetS-. Se llama con el HSI del Maestro todavia sin deriva (su millis() es el del
-// banco) y justo tras prepararSincronizadas(), con las dos puntas en la misma hora.
-//
-// Las ordenes se atienden con el millis() de la ULTIMA vuelta, que es g_t - PASO_MS: unTick()
-// avanza g_t al terminar. Por eso la frontera se situa desde ahi.
+// BLOQUE F - LOS DOS DS3231 CON SU PROPIA HORA (D-21 (1)). Origen comun: la hora del Maestro
+// en su ultima frontera de segundo; desde ahi cada DS3231 cuenta el banco (mas
+// g_ds3231OffsetS). Se llama tras prepararSincronizadas(), con el HSI del Maestro sin deriva.
+// Las ordenes se atienden con el millis() de la ULTIMA vuelta (g_t - PASO_MS).
 static void activarDs3231(unsigned long primeraM, unsigned long primeraE) {
   const long fase = MAESTRO.orden("fase_subsegundo");
   if (fase < 0) abortar("activarDs3231: el Maestro no tiene hora de la que partir");
@@ -672,12 +680,10 @@ static long desvioContraDs3231(Punta& p, int poste) {
 // directo, la punta enciende -verde, o el ambar con que el Esclavo abre el suyo- en los
 // 3 s siguientes; si lo manda a rojo, no, y el firmware lo dice con su $EVENT.
 //
-// LA FASE SUB-SEGUNDO SE CONTROLA, Y SE ESCRIBE POR QUE: saltoDeHora() mide el salto contra
-// lo que corrio millis() desde la vuelta anterior, en segundos enteros. Si la frontera de
-// segundo de la punta cae entre esa vuelta y la siguiente, el salto medido sale UNO MAS que
-// el aplicado. Con la fase a 900 ms o menos, la vuelta siguiente -50 ms despues- no cruza la
-// frontera y el salto medido es EXACTAMENTE J: el borde se mide donde esta, no un segundo al
-// lado. El error del truncado lo cubre el -1 de SALTO_SIN_ROJO_MAX_S, y ese es otro borde.
+// LA FASE SUB-SEGUNDO SE CONTROLA: saltoDeHora() mide en segundos enteros contra lo que corrio
+// millis(); si la frontera de segundo cae entre dos vueltas el salto sale UNO MAS. Con la fase
+// <= 900 ms la vuelta siguiente no la cruza y el salto medido es EXACTAMENTE J. El truncado lo
+// cubre el -1 de SALTO_SIN_ROJO_MAX_S, que es otro borde.
 struct Borde {
   bool listo = false;
   long eventos = 0;        // $EVENT SALTO_DE_HORA_POR_ROJO emitidos por el salto
@@ -763,20 +769,16 @@ int main() {
       R"(#define\s+AMARILLO_SEG\s+(\d+)UL)", "amarillo de cierre del Esclavo");
   (void)M_SEM; (void)E_SEM;
 
-  // LA DERIVA POR DIA NO ES UNA CONSTANTE DEL FIRMWARE: VIVE EN UN COMENTARIO.
-  // Se lee IGUAL del comentario, y con patron estricto, por dos motivos. Uno, para no
-  // escribir a mano un numero que sostiene una desigualdad de seguridad. Dos, para que
-  // el dia que alguien toque esa frase el arnes ABORTE en vez de seguir comparando
-  // contra una cifra que el fuente ya no dice. Ver el hallazgo del bloque D.
+  // LA DERIVA POR DIA VIVE EN UN COMENTARIO del firmware: se lee de ahi con patron estricto
+  // para no escribir a mano un numero de una desigualdad de seguridad y ABORTAR si la frase
+  // cambia. Ver el hallazgo del bloque D.
   const unsigned long DERIVA_ENTERO =
       leerNumero(E_DEG, R"(derivan hasta ~(\d+),\d+ s/dia)", "deriva diaria (entero)");
   const unsigned long DERIVA_DECIMA =
       leerNumero(E_DEG, R"(derivan hasta ~\d+,(\d+) s/dia)", "deriva diaria (decima)");
   const double DERIVA_S_POR_DIA = (double)DERIVA_ENTERO + (double)DERIVA_DECIMA / 10.0;
 
-  // El valor de MODO_DEGRADADO se lee del ENUM, contando su posicion. Escribir un 6
-  // aqui seria un modelo a mano de la superficie del firmware: basta que alguien meta
-  // un modo antes para que el arnes ponga al equipo en otro modo y siga en verde.
+  // MODO_DEGRADADO se lee del ENUM por posicion: un modo nuevo delante no lo descoloca.
   {
     std::string txt = leerFuente(MODOS);
     std::smatch m;
@@ -840,7 +842,9 @@ int main() {
   (void)MDG_OK_V;
 
   // D-45: el amarillo de cierre se ANADE antes de cada despeje (ciclo_degradado.h).
-  const unsigned long CICLO_S = 2UL * (DEG_VERDE_SEG + E_AMARILLO_MS / 1000UL + DEG_DESPEJE_SEG);
+  // D-53: y el ROJO+AMARILLO tras el despeje, antes de cada verde (8 fases).
+  const unsigned long CICLO_S =
+      2UL * (DEG_VERDE_SEG + RA_MS / 1000UL + E_AMARILLO_MS / 1000UL + DEG_DESPEJE_SEG);
 
   std::printf("\n Constantes releidas del C++ real:\n");
   std::printf("   ciclo degradado: verde %lu s, despeje %lu s -> ciclo %lu s\n",
@@ -1002,13 +1006,9 @@ int main() {
 
   // =========================================================================
   std::printf("\n--- BLOQUE C: EL BARRIDO DEL DESFASE -----------------------------\n");
-  // El numero que motiva este arnes. Se barre el desfase del RTC del Esclavo respecto
-  // del Maestro en los DOS SENTIDOS, porque cual de las dos puntas adelanta es un
-  // accidente del cristal y no una eleccion del diseno.
-  //
-  // La observacion de cada punto tiene que cubrir el todo-rojo de entrada MAS al menos
-  // dos ciclos completos: un solape que solo ocurre en la segunda vuelta no puede
-  // quedar fuera de la ventana.
+  // El numero que motiva este arnes: el desfase del RTC del Esclavo, en LOS DOS SENTIDOS (cual
+  // adelanta es accidente del cristal). Cada punto observa el todo-rojo de entrada MAS dos
+  // ciclos completos: un solape de la segunda vuelta no puede quedar fuera.
   const unsigned long OBS_BARRIDO_MS = (DEG_DESPEJE_SEG + 3UL * CICLO_S + 30UL) * 1000UL;
   const long TOPE_BARRIDO = (long)CICLO_S;   // un ciclo entero: mas alla se repite
 
@@ -1021,11 +1021,8 @@ int main() {
               TOPE_BARRIDO, TOPE_BARRIDO, OBS_BARRIDO_MS / 1000);
   std::printf("    muestreando cada %lu ms)\n", PASO_MS);
 
-  // Se sigue barriendo TRES puntos mas alla del primer solape en cada sentido, y se
-  // anota CUANTO dura. La duracion es el dato que distingue un solape estructural -de
-  // segundos, el que el diseno teme- de uno de milisegundos, que sale de un retardo
-  // del firmware y no de la geometria del ciclo. Sin ella, "rompe a los 30 s" y
-  // "rompe a los 35 s" se leerian igual.
+  // TRES puntos mas alla del primer solape en cada sentido, anotando CUANTO dura: separa un
+  // solape estructural (segundos) de uno de milisegundos de retardo del firmware.
   for (long d = 1; d <= TOPE_BARRIDO; d++) {
     Medida m = correrConDesfase(d, OBS_BARRIDO_MS, 15, 8, 0, 0);
     if (m.verdeM > 0 && m.verdeE > 0) verdesVistos++;
@@ -1091,6 +1088,9 @@ int main() {
             "fronteras medidas son la MISMA geometria vista desde los dos lados, no dos "
             "accidentes");
 
+  // D-53: SE CONSERVA. SPEC_2 8 (e.ter): "el margen de desfase sigue siendo el despeje: el
+  // rojo+amarillo no abre paso, pero no se cuenta como margen". Por eso vigilar() cuenta el
+  // R+A como comprometido en el solape, y la frontera sigue en el despeje.
   comprobar(primerSolapeNegativo == (long)DEG_DESPEJE_SEG,
             "C3: con el Esclavo ATRASADO -el sentido malo- el cruce rompe EXACTAMENTE en "
             "el despeje ampliado (" + std::to_string(DEG_DESPEJE_SEG) + " s). El colchon "
@@ -1195,13 +1195,8 @@ int main() {
     };
 
     // --- E0: main.cpp REAL le cuenta a reloj.cpp cada trama de radio (D-26 (3)) -------
-    //
-    // 11/09 - SE MUDA DE PREGUNTA, NO SE RELAJA (CLAUDE.md 9). Contaba las llamadas a
-    // reloj_notarRadio() en el doble del adaptador; con el reloj.cpp REAL no hay doble que
-    // cuente, y se pregunta a lo que esas llamadas ALIMENTAN: reloj_radioManda() real, que
-    // solo dice que si con la hora de radio puesta Y una trama oida en SFTY6_SILENCIO_MS. Es
-    // mas exigente que la cuenta: una llamada que existiera y no marcara el instante daria
-    // "N tramas" y aqui da 0.
+    // Se pregunta a reloj_radioManda() REAL (si solo con hora de radio Y una trama oida en
+    // SFTY6_SILENCIO_MS): una llamada que no marcara el instante da aqui 0.
     prepararSincronizadas(15, 8, 0, 0);
     const long radioManda = ESCLAVO.orden("radio_manda");
     comprobar(radioManda == 1,
@@ -1326,6 +1321,8 @@ int main() {
     // por punta, contra SU constante: con una sola, un plazo distinto en el Maestro acusaba al Esclavo.
     const unsigned long CADUCA_BANCO_MS =
         (unsigned long)((long long)CADUCA_M * 1000000LL / (1000000LL + PPM));
+    // F2.0/F3.0: todo-rojo + un ciclo (el 1er verde va entero desde su frontera) + la deriva HSI.
+    const unsigned long VENTANA_F = 1000UL * (DEG_DESPEJE_SEG + CICLO_S) + CICLO_S * PPM / 1000UL + PASO_MS;
     const unsigned long CADUCA_BANCO_E =
         (unsigned long)((long long)CADUCA_E * 1000000LL / (1000000LL + PPM));
     std::printf("   HORA_CADUCA_MS compilada: %ld ms (Maestro) / %ld ms (Esclavo); HSI %ld ppm;\n"
@@ -1454,7 +1451,7 @@ int main() {
       MAESTRO.orden("hsi_ppm", PPM);
       entrarEnDegradadoLasDos(0);
       reiniciarObservacion();
-      avanzar(5UL * 60UL * 1000UL);
+      avanzar(VENTANA_F);
       comprobar(g_ticksVerdeMaestro > 0 && g_ticksVerdeEsclavo > 0 && g_verdeSimultaneo == 0,
                 "F2.0 (control): con los dos J17 vivos, cada punta sembrada de su DS3231 y el HSI "
                 "del Maestro en su extremo rapido, las dos ciclan (" +
@@ -1562,7 +1559,7 @@ int main() {
       ESCLAVO.orden("hsi_ppm", PPM);
       entrarEnDegradadoLasDos(0);
       reiniciarObservacion();
-      avanzar(5UL * 60UL * 1000UL);
+      avanzar(VENTANA_F);
       comprobar(g_ticksVerdeMaestro > 0 && g_ticksVerdeEsclavo > 0 && g_verdeSimultaneo == 0,
                 "F3.0 (control): con el HSI del Esclavo en su extremo rapido y su J17 vivo, las "
                 "dos ciclan sin tocarse (" + std::to_string(g_ticksVerdeMaestro) + "/" +
@@ -1583,7 +1580,8 @@ int main() {
           tRojo = g_t - PASO_MS;
           cadAlRojo = ESCLAVO.orden("alarmas_caducada") - alarmas0;
         }
-        if (tRojo != 0 && ESCLAVO.estado() != S_ROJO_E) noRojo++;
+        if (tRojo != 0 && ESCLAVO.estado() != S_ROJO_E &&   // D-45: como F2.2
+            !(ESCLAVO.estado() == S_AMARILLO_E && g_t - tRojo <= E_AMARILLO_MS + PASO_MS)) noRojo++;
         if (tRojo != 0 && MAESTRO.verde()) verdeMTrasRojo++;
       }
       const long alarmas = ESCLAVO.orden("alarmas_caducada") - alarmas0;
@@ -1600,7 +1598,7 @@ int main() {
                     aRojo >= CADUCA_BANCO_E && aRojo <= (unsigned long)CADUCA_E + 2UL * PASO_MS &&
                     tUltVerde <= tUltima + (unsigned long)CADUCA_E &&
                     rojos >= rojosEsp - 1 && rojos <= rojosEsp + 2,
-                "F3.2 (D-38): el Esclavo paso a DEG_ROJO_SIN_HORA, sin despeje ni ambar, a los " +
+                "F3.2 (D-38): el Esclavo paso a DEG_ROJO_SIN_HORA (tras su amarillo de cierre, si estaba en verde) a " +
                 std::to_string(aRojo) + " ms, tras " + std::to_string(cadAlRojo) + " de " + std::to_string(alarmas) +
                 " CADUCADA,CAMBIO_A_ROJO; " + std::to_string(noRojo) + " vueltas fuera de S_ROJO y " +
                 std::to_string(rojos) + " ROJO_SIN_HORA (~" + std::to_string(rojosEsp) + ")");
@@ -1725,24 +1723,16 @@ int main() {
 
   // --- F6: 1.22 - EL CRISTAL QUE ARRANCA Y NO CUENTA ----------------------------------
   //
-  // EL TERCER ESTADO. Hasta el 14/09 ningun instrumento podia cazarlo, y no era un olvido:
-  // el defecto vive DENTRO del modelo del silicio. reloj_real/stm32f1xx_hal.h derivaba CNT
-  // de millis(), asi que un contador congelado no era un escenario que faltara sino un
-  // ESTADO QUE EL ARNES NO SABIA EXPRESAR. La perilla arnes_rtc_congelar() lo expresa, y es
-  // a la vez el CONTROL NEGATIVO que CLAUDE.md 6 exige: sin ella no se puede demostrar que
-  // el firmware lo detecta, solo que compila.
-  //
-  // CONGELA CNT Y DEJA LSERDY EN 1, que es justo lo que hace el cristal de la cinta del
-  // Sisga: el bit dice "el oscilador arranco" y no dice que el contador incremente.
+  // EL TERCER ESTADO: el contador congelado vivia DENTRO del modelo del silicio (reloj_real/
+  // derivaba CNT de millis()). arnes_rtc_congelar() lo expresa y es el CONTROL NEGATIVO de
+  // CLAUDE.md 6. CONGELA CNT Y DEJA LSERDY EN 1, como el cristal de la cinta del Sisga.
   {
     const std::string M_RELOJ_H = RAIZ + "/Maestro/include/reloj.h";
     const std::string E_RELOJ_H = RAIZ + "/Esclavo/include/reloj.h";
     const std::string M_RELOJ_C = RAIZ + "/Maestro/src/reloj.cpp";
 
-    // EL PLAZO NO SE ESCRIBE AQUI: se RECALCULA con la misma formula del reloj.h real y con
-    // sus dos terminos leidos del fuente. Copiar el numero seria un modelo a mano del
-    // firmware, y el dia que alguien mueva la ventana este bloque seguiria midiendo la
-    // vieja y diria PASS (CLAUDE.md 4).
+    // EL PLAZO SE RECALCULA con la formula del reloj.h real y sus dos terminos leidos del
+    // fuente (CLAUDE.md 4): una copia seguiria midiendo la ventana vieja.
     const unsigned long CNT_TICK_M =
         leerNumero(M_RELOJ_H, R"(CNT_TICK_MS\s*=\s*(\d+)UL)", "CNT_TICK_MS del Maestro");
     const unsigned long CNT_TICK_E =
@@ -1908,7 +1898,7 @@ int main() {
       bool congelado = false;
       unsigned long tCongelado = 0;
       for (unsigned long h = 0; h < OBS; h += PASO_MS) {
-        if (congelarTrasMs > 0 && !congelado && h >= congelarTrasMs) {
+        if (congelarTrasMs > 0 && !congelado && (h >= congelarTrasMs || (r.verdeMantes && r.verdeEantes))) {
           if (congM) MAESTRO.orden("rtc_congelar", 1);
           if (congE) ESCLAVO.orden("rtc_congelar", 1);
           congelado = true;
@@ -2016,10 +2006,9 @@ int main() {
     // Esclavo tenia esa MISMA marca copiada en RAM y, si la tratara como una medida propia,
     // seguiria dando verde frente a ese ambar. Y la caida del Maestro tiene que decirse.
     {
-      // A los 7 min: medido en G0, el primer verde del Esclavo tras el corte llega a los ~382 s
-      // y el del Maestro a los ~168 s; congelar antes dejaria al control G7.0 sin verde del
-      // Esclavo que ver, y "no dio verde despues" no distinguiria nada.
-      const ResG r = microcorte(true, true, 1000, 1000, 0, 1, 7UL * 60UL * 1000UL);
+      // Se congela en cuanto las DOS dieron verde (antes, G7.0 no veria el de una y "no dio verde
+      // despues" no distinguiria nada); tope: todo-rojo + un ciclo, lo que tarda el 1er verde.
+      const ResG r = microcorte(true, true, 1000, 1000, 0, 1, 1000UL * (DEG_DESPEJE_SEG + CICLO_S));
       comprobar(r.reanudoM && r.reanudoE && r.verdeMantes > 0 && r.verdeEantes > 0,
                 "G7.0 (control del escenario): con los cristales sanos al arrancar las dos "
                 "reanudan y dan verde antes de pararse el reloj (" + cifras(r) + ")");
@@ -2059,10 +2048,8 @@ int main() {
     // falta fecharla con el. Si la rama del limite junta "no hay cristal" con "cristal
     // parado", manda al tecnico lejos de la radio.
     //
-    // EL BORDE, ESCRITO: se simulan las 48 h enteras a PASO_MS, sin atajo -el limite sale de
-    // coordinador_msDesdeUltimaSync(), que es millis() menos la ultima sync, y no hay otra
-    // forma honesta de envejecerla-. El ESP32 siembra en eco todo el tiempo: sin el, la hora
-    // caducaria antes (D-21 (1)) y la caida seria la de "Reloj no fiable", no la del limite.
+    // EL BORDE: las 48 h enteras a PASO_MS, sin atajo (el limite es millis() menos la ultima
+    // sync). El ESP32 siembra en eco: sin el, la caida seria "Reloj no fiable", no el limite.
     {
       const unsigned long G8_LIMITE_MS = leerNumero(RAIZ + "/Maestro/src/modo_degradado.cpp",
                                                     R"(LIMITE_DURO_MS\s*=\s*(\d+))",
@@ -2130,6 +2117,16 @@ int main() {
   }
   bloqueH();
   bloqueJ(DEG_DESPEJE_SEG);
+  {
+    char ra[420];
+    std::snprintf(ra, sizeof(ra),
+        "RESUMEN (D-53): en todo el barrido del Degradado, en las dos puntas y sobre los pines, "
+        "%lu verdes abrieron tras ROJO+AMARILLO de %lu ms; %lu abrieron SIN R+A y %lu con un "
+        "R+A de otra duracion; %lu SUBIDAS de la pluma en R+A",
+        g_aperturasVistas, RA_MS, g_aperturaSinRA, g_raMalMedido, g_plumaEnRA);
+    comprobar(g_aperturasVistas > 0 && g_aperturaSinRA == 0 && g_raMalMedido == 0 &&
+              g_plumaEnRA == 0, ra);
+  }
   // =========================================================================
   std::printf("\n==============================================================\n");
   std::printf(" RESULTADO: %d/%d comprobaciones OK\n", total - fallos, total);

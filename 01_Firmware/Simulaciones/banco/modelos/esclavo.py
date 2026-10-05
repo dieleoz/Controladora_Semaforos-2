@@ -2,22 +2,13 @@
 #
 # MODELO DEL ESCLAVO — portado funcion a funcion del C++.
 #
-# POR QUE ESTA SEPARADO DE LAS PRUEBAS.
+# Separado de las pruebas (venia de validador_esclavo.py, 1.805 lineas): el modelo imita al
+# C++ y los packs le exigen. Donde simplifica se dice en el comentario: no hay pines, ni CRC,
+# ni RTC de verdad.
 #
-# Vivia dentro de validador_esclavo.py, mezclado con los cinco bloques de pruebas en
-# un fichero de 1.805 lineas. Para cambiar UNA comprobacion habia que abrir las 1.805,
-# y para reutilizar el modelo desde otro sitio, no habia forma.
-#
-# Es la misma separacion que el plan pide para el firmware: el modelo por un lado -lo
-# que imita al C++- y las comprobaciones por otro -lo que se le exige-. Un pack de 150
-# lineas se lee de una sentada; el modelo se toca solo cuando cambia el firmware.
-#
-# DONDE ESTE MODELO SIMPLIFICA SE DICE EN EL COMENTARIO, para que nadie de por probado
-# lo que aqui solo esta esbozado: no hay pines, ni CRC, ni RTC de verdad.
-#
-# ⚠️ ESTE FICHERO ES UNA COPIA DEL FIRMWARE ESCRITA A MANO, y por tanto puede quedarse
-# atras -es N-36 y N-39-. Cada constante que usa se RELEE del C++ en cada corrida, que
-# es la unica parte que no puede desincronizarse. La logica, si.
+# ⚠️ ES UNA COPIA DEL FIRMWARE ESCRITA A MANO y puede quedarse atras (N-36, N-39): cada
+# constante se RELEE del C++ en cada corrida; la logica, no. Rehecho para D-53 (05/10) desde
+# semaforo.cpp, main.cpp, modo_degradado.cpp y coordinador.cpp.
 
 from banco import fuente as _fw
 
@@ -34,14 +25,18 @@ _MAE_COORD = ("Maestro", "src", "coordinador.cpp")
 
 AMARILLO_CIERRE_MS = 1000 * _fw.constante(_ESC_PROTO, r"#define\s+AMARILLO_SEG\s+(\d+)UL",
                                           "amarillo de cierre (D-45)")
+# D-53: el ROJO+AMARILLO antes de cada verde (semaforo.cpp: ROJO_AMARILLO_SEG * 1000UL).
+ROJO_AMARILLO_SEG = _fw.constante(_ESC_PROTO, r"#define\s+ROJO_AMARILLO_SEG\s+(\d+)UL",
+                                  "rojo+amarillo (D-53)")
+ROJO_AMARILLO_MS = 1000 * ROJO_AMARILLO_SEG
+M_ROJO_AMARILLO_MS = 1000 * _fw.constante(("Maestro", "include", "protocolo.h"),
+                                          r"#define\s+ROJO_AMARILLO_SEG\s+(\d+)UL",
+                                          "rojo+amarillo del Maestro (D-53)")
 
 VENTANA_HORA_MS = _fw.constante(_ESC_MAIN, r"VENTANA_HORA_MS\s*=\s*(\d+)", "caducidad del buffer de hora")
 
-# N-41: la ventana de vigencia del VERDE. El modelo NO la tenia -ni la constante ni la
-# comprobacion- y por eso medía la conducta pegajosa de ANTES del arreglo. Se lee del
-# C++ como todas las demas: si manana alguien cambia los 3 s en config_ciclo.cpp, el
-# modelo cambia con el. Escribirla a mano aqui seria repetir la causa de N-36, N-39 y
-# N-40 sabiendo ya cual es.
+# N-41: la ventana de vigencia del VERDE del par de configuracion, leida del C++ (sin ella
+# el modelo media la conducta pegajosa de antes del arreglo).
 _ESC_CONFIG = ("Esclavo", "src", "config_ciclo.cpp")
 VENTANA_CONFIG_MS = _fw.constante(_ESC_CONFIG, r"VENTANA_CONFIG_MS\s*=\s*(\d+)",
                                   "ventana de vigencia del VERDE a la espera del DESPEJE")
@@ -93,18 +88,9 @@ DELTA_FUERA_DE_RANGO = -128
 # ==========================================================================
 # 1. MODELO DEL ESCLAVO
 # ==========================================================================
-# Portado funcion a funcion del C++. Donde el modelo simplifica -los pines, el
-# CRC, el reloj RTC- se dice en el comentario, para que nadie de por probado lo
-# que aqui solo esta esbozado.
 
 class Semaforo:
-    """Puerto de src/semaforo.cpp.
-
-    D-30 (14/09): de aqui salio la SENAL DE CONFIRMACION -destellos rojos y ambar
-    rapido-, que interceptaba la escritura a los pines mientras duraba. Su unico
-    armador era mando.cpp; retirado el mando, la bandera no podia volver a valer
-    true y la interceptacion era un camino que nadie podia ejercer.
-    """
+    """Puerto de src/semaforo.cpp (D-30: sin la senal de confirmacion del mando)."""
 
     def __init__(self, nodo):
         self.nodo = nodo
@@ -120,10 +106,10 @@ class Semaforo:
             self.verde_en_pines_alguna_vez = True
 
     def _aplicar(self, r, a, v):
-        # SFTY-2: enclavamiento logico. El rojo siempre gana.
+        # SFTY-2: enclavamiento logico. El rojo siempre gana AL VERDE; el amarillo no se toca
+        # (aplicarSalidas() del C++), y D-53 pide rojo y amarillo a la vez.
         if r:
             v = False
-            a = False
         elif v:
             r = False
         if r and v:
@@ -143,15 +129,21 @@ class Semaforo:
             return
         if self.estado == "S_AMARILLO":
             return
-        self.estado = "S_ROJO"
+        self.estado = "S_ROJO"   # D-53: tambien desde S_ROJO_AMARILLO, directo: no hubo verde
         self._aplicar(True, False, False)
 
     def forzar_verde(self):
-        # D-45: directo; con el cierre en curso no se reabre.
+        # D-53: abre por S_ROJO_AMARILLO y el VERDE lo pone actualizar() a ROJO_AMARILLO_MS;
+        # repetida no reinicia (repinta). Con el cierre en curso no se reabre (D-45).
         if self.estado == "S_AMARILLO":
             return
-        self.estado = "S_VERDE"
-        self._aplicar(False, False, True)
+        if self.estado == "S_VERDE":
+            self._aplicar(False, False, True)
+            return
+        if self.estado != "S_ROJO_AMARILLO":
+            self.estado = "S_ROJO_AMARILLO"
+            self.tCambio = self.nodo.t
+        self._aplicar(True, True, False)
 
     def iniciar_fallo(self):
         self.estado = "S_FALLO"
@@ -159,13 +151,21 @@ class Semaforo:
         self._aplicar(False, False, False)
 
     def estable(self):
-        return self.estado in ("S_ROJO", "S_VERDE", "S_FALLO")
+        return self.estado in ("S_ROJO", "S_VERDE", "S_FALLO")   # S_ROJO_AMARILLO no
+
+    def nombre_estado(self):
+        """semaforo_nombreEstado(): el ESTADO del $STATUS."""
+        return {"S_ROJO": "ROJO", "S_VERDE": "VERDE", "S_AMARILLO": "AMARILLO",
+                "S_FALLO": "FALLO COM", "S_ROJO_AMARILLO": "ROJO+AMAR"}.get(self.estado, "")
 
     def actualizar(self):
         ahora = self.nodo.t
         if self.estado == "S_AMARILLO" and (ahora - self.tCambio) >= AMARILLO_CIERRE_MS:
             self.estado = "S_ROJO"
             self._aplicar(True, False, False)
+        elif self.estado == "S_ROJO_AMARILLO" and (ahora - self.tCambio) >= ROJO_AMARILLO_MS:
+            self.estado = "S_VERDE"   # D-53: el R+A acaba en VERDE
+            self._aplicar(False, False, True)
         elif self.estado == "S_FALLO":
             if ahora - self.tCambio >= 500:
                 self.tCambio = ahora
@@ -173,8 +173,9 @@ class Semaforo:
                 self._aplicar(False, self.nodo._ambar_status, False)
 
 
-_NOMBRES_FASE = ("FD_VERDE_MAESTRO", "FD_AMARILLO_MAESTRO", "FD_DESPEJE_A",
-                 "FD_VERDE_ESCLAVO", "FD_AMARILLO_ESCLAVO", "FD_DESPEJE_B")
+_NOMBRES_FASE = ("FD_ROJO_AMARILLO_MAESTRO", "FD_VERDE_MAESTRO", "FD_AMARILLO_MAESTRO",
+                 "FD_DESPEJE_A", "FD_ROJO_AMARILLO_ESCLAVO", "FD_VERDE_ESCLAVO",
+                 "FD_AMARILLO_ESCLAVO", "FD_DESPEJE_B")
 
 
 def ciclo_degradado_fase(seg_dia, verde, despeje):
@@ -182,16 +183,21 @@ def ciclo_degradado_fase(seg_dia, verde, despeje):
     contra el C++ huella a huella), con los nombres de la fase en vez de su indice."""
     from banco.modelos.costura import fase as _fase
     return _NOMBRES_FASE[_fase(seg_dia, verde, despeje)]
-    if SEGUNDOS_DEL_DIA - seg_dia <= despeje:
-        return "FD_DESPEJE_B"
-    pos = seg_dia % ciclo
-    if pos < verde:
-        return "FD_VERDE_MAESTRO"
-    if pos < verde + despeje:
-        return "FD_DESPEJE_A"
-    if pos < 2 * verde + despeje:
-        return "FD_VERDE_ESCLAVO"
-    return "FD_DESPEJE_B"
+
+
+def ciclo_degradado_restante(seg_dia, verde, despeje):
+    """Puerto de ciclo_degradado_restante(): segundos hasta que cambia la fase (0 = no cambia
+    dentro del tope)."""
+    from banco.modelos.costura import fase as _fase, AMARILLO_S as a
+    if verde == 0 or despeje == 0:
+        return 0
+    actual = _fase(seg_dia, verde, despeje)
+    r = ROJO_AMARILLO_SEG
+    tope = 2 * (r + verde + a + despeje) + despeje + a + r + 2
+    for t in range(1, tope + 1):
+        if _fase((seg_dia + t) % SEGUNDOS_DEL_DIA, verde, despeje) != actual:
+            return t
+    return 0
 
 
 class ModoDegradado:
@@ -221,11 +227,20 @@ class ModoDegradado:
                                                    self.nodo.config_despeje_segundos())
         return self.fase_cache
 
+    def _verde_con_tiempo(self):
+        """verdeConTiempo() (D-53): en el R+A siempre; en el VERDE solo si le quedan mas de
+        ROJO_AMARILLO_SEG (sin la fase cacheada: el C++ la recalcula)."""
+        s = self.nodo.reloj_segundos_del_dia()
+        v, d = self.nodo.config_verde_segundos(), self.nodo.config_despeje_segundos()
+        f = ciclo_degradado_fase(s, v, d)
+        return f == "FD_ROJO_AMARILLO_ESCLAVO" or \
+            (f == "FD_VERDE_ESCLAVO" and ciclo_degradado_restante(s, v, d) > ROJO_AMARILLO_SEG)
+
     def _aplicar_luz(self, verde):
         if verde == self.verde_aplicado:
             return
         if verde:
-            self.nodo.semaforo.forzar_verde()   # D-45: directo
+            self.nodo.semaforo.forzar_verde()   # D-53: por ROJO+AMARILLO
         else:
             self.nodo.semaforo.forzar_rojo()
         self.verde_aplicado = verde
@@ -255,17 +270,9 @@ class ModoDegradado:
             return "DEG_RECHAZO_SIN_SYNC"
         if self.sync_vencida:
             return "DEG_RECHAZO_SYNC_VENCIDA"
-        # R-4: CON UN AMBAR DE LA APP VIGENTE NO SE ENTRA AL DEGRADADO.
-        #
-        # Faltaba en este modelo, y hasta el 14/09 no se notaba: el A.B.A.B del mando
-        # bajaba `ambarLocal` ANTES de llamar aqui, asi que por esa via la guarda nunca
-        # se alcanzaba con el latch puesto. Retirado el mando, la UNICA via de entrada
-        # es SET_MODO:DEGRADADO por app (D-18), que no revoca nada: pregunta, y con el
-        # ambar puesto se lleva un DEG_RECHAZO_AMBAR_VIGENTE.
-        #
-        # La diferencia importa y por eso se modela: el mando REVOCABA el ambar del
-        # operario para entrar -y si luego el modo se rechazaba, el equipo se quedaba
-        # sin ambar y sin Degradado-; la app no puede dejar ese hueco.
+        # R-4: CON UN AMBAR DE LA APP VIGENTE NO SE ENTRA AL DEGRADADO. La unica entrada es
+        # SET_MODO:DEGRADADO por app (D-18), que no revoca el ambar: pregunta y se lleva
+        # DEG_RECHAZO_AMBAR_VIGENTE (el mando lo revocaba y podia dejar el equipo sin nada).
         if self.nodo._ambar_emergencia():
             return "DEG_RECHAZO_AMBAR_VIGENTE"
         return "DEG_ACEPTADO"
@@ -300,12 +307,15 @@ class ModoDegradado:
             self._iniciar_salida(True)
             return
         if self.estado == "DEG_ENTRANDO":
+            # D-53: ni en el verde ni en el R+A que lo abre
             if (ahora - self.tCambioEstado) >= self._rojo_obligatorio_ms() and \
-                    self._calcular_fase() != "FD_VERDE_ESCLAVO":
+                    self._calcular_fase() not in ("FD_VERDE_ESCLAVO", "FD_ROJO_AMARILLO_ESCLAVO"):
                 self.estado = "DEG_ACTIVO"
                 self.tCambioEstado = ahora
         elif self.estado == "DEG_ACTIVO":
-            self._aplicar_luz(self._calcular_fase() == "FD_VERDE_ESCLAVO")
+            f = self._calcular_fase()
+            self._aplicar_luz(f in ("FD_ROJO_AMARILLO_ESCLAVO", "FD_VERDE_ESCLAVO") and
+                              (self.verde_aplicado or self._verde_con_tiempo()))   # D-53, C2
         elif self.estado == "DEG_SALIENDO":
             if (ahora - self.tCambioEstado) >= self._rojo_obligatorio_ms():
                 if self.rendicion_en_curso:
@@ -323,22 +333,10 @@ class ModoDegradado:
 class AmbarEmergencia:
     """Puerto del latch de ambar de la app: `ambarEmergencia` de src/bluetooth.cpp.
 
-    D-30 (14/09): AQUI VIVIA `class Mando`, el puerto de src/mando.cpp -el buffer de
-    pulsos, las ventanas, las tres secuencias y el latch `ambar_local` que armaba
-    B.B.B-. Se va con su fichero, y el latch NO se va con el: el firmware conserva el
-    de la app, y son LAS MISMAS TRES GUARDAS de main.cpp las que lo leen, que hasta el
-    14/09 preguntaban por los dos.
-
-    Por eso este modelo se REAPUNTA en vez de borrarse. La propiedad que el banco
-    ejerce -con un ambar pedido puesto, ninguna orden de luz por radio lo pisa ni se
-    acusa- es la misma, sobre el unico latch que queda. Borrarlo habria dejado esa
-    propiedad sin ningun instrumento que la EJECUTE: esclavo_07 la mira en el texto de
-    las guardas, que es otra cosa.
-
-    Lo que NO se modela, y se dice para que su ausencia no se lea como cobertura: el
-    dialogo de CANCELAR_AMBAR con el Maestro (CMD_CANCELA_AMBAR_ESCLAVO, el plazo del
-    acuse y su reenvio) vive en bluetooth.cpp y lo miden costura_14 y esclavo_07. Aqui
-    solo esta el latch y su sostenedor, que es lo que decide la LUZ.
+    D-30: sustituye a `class Mando` (mando.cpp). El latch de la app se queda y lo leen las
+    mismas guardas de main.cpp; se REAPUNTA para que la propiedad -con un ambar puesto,
+    ninguna orden de luz por radio lo pisa ni se acusa- siga teniendo quien la EJECUTE.
+    NO modela el dialogo de CANCELAR_AMBAR con el Maestro (costura_14, esclavo_07).
     """
 
     def __init__(self, nodo):
@@ -371,13 +369,8 @@ class AmbarEmergencia:
     def actualizar(self):
         """El SOSTENEDOR de bluetooth.cpp, al final de la vuelta.
 
-        Se RE-ARMA en vez de encenderse una sola vez porque la orden tiene que
-        sobrevivir a lo que pase despues -al todo-rojo de salida del Degradado, que
-        termina en INACTIVO y no en ambar-; un ambar que se apaga solo no es un estado
-        seguro, es un parpadeo.
-
-        Eran TRES guardas y hoy son dos: la tercera, `not senal_en_curso()`, protegia
-        los destellos del mando y se fue con ellos.
+        Se RE-ARMA en cada vuelta: la orden sobrevive al todo-rojo de salida del Degradado,
+        que termina en INACTIVO y no en ambar. Dos guardas (la del mando se fue con el).
         """
         n = self.nodo
         if self.armado and not n.degradado.gobierna_luz() and \
@@ -567,17 +560,21 @@ class Esclavo:
                 else:
                     self.ack_rojo_pendiente = True
         elif cmd == CMD["CMD_GO_GREEN"]:
-            # D-34: la repeticion (luz ya en ambar o verde) no refresca el silencio
-            if self.semaforo.estado not in ("S_AMARILLO", "S_VERDE"):
+            # D-34: la repeticion (luz ya en ambar, verde o, D-53, R+A) no refresca el silencio
+            if self.semaforo.estado not in ("S_AMARILLO", "S_VERDE", "S_ROJO_AMARILLO"):
                 self.tUltimoComando = self.t
             self.verde_soltado_por_margen = False   # D-34
-            # D-45: con el cierre en curso ni se reabre ni se acusa; en verde, se re-acusa.
-            if not self._ambar_emergencia() and self.semaforo.estado != "S_AMARILLO":
-                if self.semaforo.estado != "S_VERDE":
+            # D-45: con el cierre en curso ni se reabre ni se acusa. D-53: el ACK_GREEN acusa
+            # el VERDE ENCENDIDO: la orden nueva abre por R+A sin acusar (acusa el vigilante del
+            # final del bucle), repetida en el R+A ni reinicia ni acusa, sobre S_VERDE re-acusa.
+            luz = self.semaforo.estado
+            if not self._ambar_emergencia() and luz not in ("S_AMARILLO", "S_ROJO_AMARILLO"):
+                if luz != "S_VERDE":
                     self.semaforo.forzar_verde()
                     self.ack_verde_enviado = False
                     self.ack_rojo_pendiente = False
-                self.programar_respuesta(CMD["CMD_ACK_GREEN"])
+                else:
+                    self.programar_respuesta(CMD["CMD_ACK_GREEN"])
         elif cmd == CMD["CMD_HORA_H"]:
             if param <= 23:
                 self.buf_hora = param
@@ -642,7 +639,8 @@ class Esclavo:
 
         # D-34: el verde se suelta antes que el ambar; D-45: por su amarillo, que empieza un
         # AMARILLO_SEG antes para que el rojo caiga donde caia
-        if (not self.degradado.gobierna_luz() and self.semaforo.estado == "S_VERDE"
+        # D-53: y el ROJO+AMARILLO, que es el principio de ese verde
+        if (not self.degradado.gobierna_luz() and self.semaforo.estado in ("S_VERDE", "S_ROJO_AMARILLO")
                 and (self.t - self.tUltimoComando) + AVISO_AMBAR_TIMEOUT_MS + AMARILLO_CIERRE_MS
                 > SILENCIO_A_AMBAR_MS):
             self.semaforo.forzar_rojo()
@@ -697,16 +695,10 @@ class Esclavo:
 # ==========================================================================
 # 2. MODELO MINIMO DEL MAESTRO ESPERANDO UN ACK
 # ==========================================================================
-# Solo se modela la parte que responde a la pregunta del banco: si el Esclavo
-# calla, el Maestro cae a C_FALLO o se queda esperando para siempre. Las dos
-# vias que lo tumban son independientes y por eso van las dos:
-#
-#   a) el contador de reintentos del ACK (TIMEOUT_ACK_MS x REINTENTOS_MAX)
-#   b) el silencio total del Esclavo (MAESTRO_SIN_RX_MS)
-#
-# Todo lo demas del coordinador -el ciclo, la sincronizacion, la telemetria- no
-# se toca: no se pretende validar el Maestro aqui, solo comprobar que la
-# desobediencia del Esclavo termina en un final acotado.
+# Responde UNA pregunta: si el Esclavo calla, el Maestro cae a C_FALLO o espera para
+# siempre. Dos vias independientes: a) reintentos del ACK (TIMEOUT_ACK_MS x REINTENTOS_MAX;
+# D-53: la PRIMERA espera lleva el ROJO+AMARILLO dentro, coordinador.cpp) y b) el silencio
+# total del Esclavo (MAESTRO_SIN_RX_MS). El resto del coordinador no se modela.
 class MaestroEsperandoAck:
     def __init__(self, esclavo, ping_activo=True, limite_reintentos=True):
         self.esc = esclavo
@@ -752,7 +744,8 @@ class MaestroEsperandoAck:
                 self.estado != "C_FALLO":
             self.estado = "C_FALLO"
 
-        if self.estado == "C_ESPERANDO_ACK_GREEN" and (self.t - self.tEsperandoAck) > TIMEOUT_ACK_MS:
+        espera = TIMEOUT_ACK_MS + (M_ROJO_AMARILLO_MS if self.retry == 0 else 0)   # D-53
+        if self.estado == "C_ESPERANDO_ACK_GREEN" and (self.t - self.tEsperandoAck) > espera:
             self.retry += 1
             if self.limite_reintentos and self.retry >= REINTENTOS_MAX:
                 self.estado = "C_FALLO"
@@ -764,10 +757,7 @@ class MaestroEsperandoAck:
 # --------------------------------------------------------------------------
 # ESCENARIOS DE PARTIDA compartidos por los packs.
 #
-# Viven con el modelo y no con las pruebas porque describen COMO SE PONE EL NODO
-# en un estado, que es parte de imitar al firmware. Que los cinco bloques
-# arrancaran de aqui era una dependencia oculta del fichero monolitico; ahora es
-# una importacion explicita.
+# Viven con el modelo porque describen COMO SE PONE EL NODO en un estado.
 # --------------------------------------------------------------------------
 def preparar_nodo(**kw):
     """Esclavo en operacion normal: en hora, con ciclo configurado por radio y

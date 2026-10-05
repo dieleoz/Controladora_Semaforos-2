@@ -486,7 +486,8 @@ void loop() {
       // repeticiones mas, el Maestro caia a ambar y este verde seguia encendido hasta su
       // propia orfandad -hasta 23 s medidos en G12, roadmap 1.39-. Solo la orden que
       // arranca la transicion cuenta como orden; las demas de gobierno siguen igual.
-      if (semaforo_estado() != S_AMARILLO && semaforo_estado() != S_VERDE) {
+      if (semaforo_estado() != S_AMARILLO && semaforo_estado() != S_VERDE &&
+          semaforo_estado() != S_ROJO_AMARILLO) {   // D-53: el R+A ya es esta orden
         tUltimoComando = millis();
       }
       verdeSoltadoPorMargen = false;   // D-34: una orden de luz redefine la intencion
@@ -518,25 +519,26 @@ void loop() {
         // es lo unico que el Maestro esta pidiendo al repetir. Callar lo dejaria reintentando
         // a ciegas hasta C_FALLO. Lo ejerce el bloque F del arnes de las dos puntas.
         //
-        // D-45 (02/10): EL VERDE ABRE DIRECTO y S_AMARILLO ES EL CIERRE DE UN VERDE. Sobre el
-        // la orden de verde ni lo reabre ni se acusa: un cierre empezado no se revierte, y el
-        // ACK_GREEN diria "verde encendido" con el amarillo puesto. Acabado en rojo, la
-        // siguiente repeticion se trata como siempre. (Aqui decia que volver de verde a ambar
-        // era "contra la Resolucion (verde->rojo directo)": era una afirmacion normativa sin
-        // verificar, y la norma pide lo contrario, 4.4.3.)
+        // D-45: S_AMARILLO es el cierre de un verde: la orden ni lo reabre ni se acusa. Acabado
+        // en rojo, la siguiente repeticion se trata como siempre.
         //
         // ackVerdeEnviado no se toca en la repeticion: significa "ya se acuso que ESTE verde
         // esta encendido", y una orden repetida no crea un verde nuevo.
+        //
+        // D-53: EL ACK_GREEN ACUSA EL VERDE ENCENDIDO. La orden nueva abre por ROJO+AMARILLO sin
+        // acusar (acusa el vigilante del final del bucle al pasar a S_VERDE); repetida durante
+        // el R+A ni lo reinicia ni se acusa; sobre S_VERDE re-acusa como siempre.
         const EstadoSemaforo luz = semaforo_estado();
-        if (luz != S_AMARILLO) {
+        if (luz != S_AMARILLO && luz != S_ROJO_AMARILLO) {
           if (luz != S_VERDE) {
             semaforo_forzarVerde();
             // El backstop de verde maximo lo rearma el vigilante del final del bucle, que
             // mira la LUZ y no la orden: el verde del Degradado no lo ordena nadie por radio.
             ackVerdeEnviado = false;
             ackRojoPendiente = false;
+          } else {
+            programarRespuesta(CMD_ACK_GREEN);
           }
-          programarRespuesta(CMD_ACK_GREEN);
         }
       }
 
@@ -733,7 +735,9 @@ void loop() {
                 "D-34: el margen para soltar el verde no cabe dentro de SFTY6_SILENCIO_MS");
   static constexpr unsigned long SUELTA_VERDE_MS =
       SFTY6_SILENCIO_MS - AVISO_AMBAR_TIMEOUT_MS - AMARILLO_SEG * 1000UL;
-  if (!degradado_gobiernaLuz() && semaforo_estado() == S_VERDE &&
+  // D-53: tambien un R+A, que es el principio de un verde: a ROJO directo.
+  if (!degradado_gobiernaLuz() &&
+      (semaforo_estado() == S_VERDE || semaforo_estado() == S_ROJO_AMARILLO) &&
       millis() - tUltimoComando > SUELTA_VERDE_MS) {
     semaforo_forzarRojo();
     verdeSoltadoPorMargen = true;
@@ -804,14 +808,9 @@ void loop() {
     }
   }
 
-  // FIX H-1: Guardia de Verde Máximo de Seguridad (backstop de último recurso).
-  // CORRECCIÓN DE REGRESIÓN: estaba en 180000 (3 min), pero modo_automatico.cpp permite
-  // configurar hasta 99 minutos de verde. Con verdes > 3 min el Esclavo cortaba a Rojo por su
-  // cuenta, sin avisar al Maestro (el auto-ACK_RED se eliminó en H-6), dejando su carril
-  // cerrado el resto del ciclo mientras el Maestro lo seguía contando como verde.
-  // Se fija por encima del máximo configurable (99 min) para que nunca actúe sobre una
-  // configuración legítima. La protección real de H-1 son las otras dos vías: el Maestro
-  // emite CMD_GO_RED estando en C_FALLO, y este nodo cae a ámbar a los 12s sin recibir nada.
+  // FIX H-1: backstop de ultimo recurso del verde, por encima del maximo configurable (99 min)
+  // para no actuar nunca sobre una configuracion legitima. La proteccion real de H-1 son el
+  // CMD_GO_RED del Maestro en C_FALLO y el ambar por orfandad de este nodo.
   if (semaforo_estado() == S_VERDE && (millis() - tInicioVerdeEsclavo > MAX_VERDE_BACKSTOP_MS)) {
     semaforo_forzarRojo();   // D-45: tambien por el amarillo
   }

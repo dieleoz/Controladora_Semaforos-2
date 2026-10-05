@@ -44,14 +44,9 @@
 // reloj_radioManda() las ejecuta el bloque F del orquestador del Degradado, en vez de leerse
 // por regex. SIN el define -compilar_dos_puntas.ps1- entra el modelo de mas abajo.
 //
-// 12/09 (N-162, roadmap 1.16(c)) - AQUEL PUNTO CIEGO ESTABA DECLARADO Y HOY SE CIERRA.
-// Decia: "el bloque D de orquestador.cpp mide la reanudacion sobre un RTC que el firmware
-// de hoy ya no escribe", y era cierto -medido: el Esclavo del arnes despertaba con
-// gobierna=1 despues del microcorte-. El modelo guardaba la hora en el RTC al ponerla; el
-// reloj.cpp real dejo de hacerlo el 11/09. Lo que lo arregla NO es dejar de reponer el
-// dominio -eso mataria el escenario- sino PARTIR LA BANDERA: la hora sembrada vive en RAM
-// y el corte se la lleva, el marcador del RTC hardware vive en la pila y ningun firmware
-// lo escribe. Ver el bloque de las banderas, y D6b/D6c/D6d y D8/D9 del orquestador.
+// N-162 (roadmap 1.16(c)): LA BANDERA PARTIDA. La hora sembrada vive en RAM y el corte se la
+// lleva; el marcador del RTC hardware vive en la pila y ningun firmware lo escribe (el real
+// dejo de hacerlo el 11/09). Ver el bloque de las banderas, y D6b-D6d y D8/D9 del orquestador.
 
 #include "punta_api.h"
 
@@ -608,6 +603,9 @@ PUNTA_API long punta_mando(const char* que, long arg) {
   // -bluetooth_ambarEmergencia()-, que es la bandera que hoy sostienen las tres guardas
   // de main.cpp y la puerta unica de degradado_comprobar().
   if (!strcmp(que, "tramas_emitidas"))     return (long)g_tramasEmitidas;
+  // D-53: el literal del ESTADO que el $STATUS del Poste 2 publica (bluetooth.cpp lo toma de
+  // semaforo_nombreEstado()); 1 si es "ROJO+AMAR".
+  if (!strcmp(que, "nombre_es_rojo_amar")) return strcmp(semaforo_nombreEstado(), "ROJO+AMAR") == 0;
   if (!strcmp(que, "recargas_watchdog"))   return (long)IWatchdog.recargas;
   if (!strcmp(que, "replay_reseteos"))     return (long)g_replayReseteos;
   // 🔴 11/09 - AQUI VIVIA "ambar_emergencia_app", Y SE RETIRA EN VEZ DE ARREGLARSE.

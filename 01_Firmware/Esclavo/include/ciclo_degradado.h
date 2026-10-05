@@ -21,17 +21,18 @@
 // diferencia arrancaran el ciclo desfasados un minuto entero.
 // ---------------------------------------------------------------------------
 
-// D-45 (02/10): SEIS FASES. El amarillo de cierre va entre cada verde y su despeje, y se
-// ANADE: el verde y el despeje no se tocan. Ciclo = 2 x (verde + AMARILLO_SEG + despeje).
-// Cada punta enciende su amarillo en la fase suya; la otra sigue en rojo. Las dos puntas
-// tienen que llevar esta cabecera A LA VEZ: con ciclos de duracion distinta sobre la misma
-// hora se desfasan en cada vuelta (SPEC_2 8 (e.bis)).
-#include "protocolo.h"   // AMARILLO_SEG
+// D-53 (05/10): OCHO FASES. El rojo+amarillo va DESPUES del despeje y antes de cada verde,
+// y se ANADE: ciclo = 2 x (ROJO_AMARILLO_SEG + verde + AMARILLO_SEG + despeje); la posicion
+// 0 es el R+A del Maestro. En el R+A y en el verde la punta llama a forzarVerde() y el
+// semaforo pone el R+A y el verde (SPEC_2 8 (e.ter)). Firmware mixto entre postes: desfase.
+#include "protocolo.h"   // AMARILLO_SEG, ROJO_AMARILLO_SEG
 
 enum FaseDegradado {
+  FD_ROJO_AMARILLO_MAESTRO,  // D-53: Maestro rojo+amarillo, Esclavo rojo
   FD_VERDE_MAESTRO,     // Maestro verde, Esclavo rojo
   FD_AMARILLO_MAESTRO,  // D-45: Maestro amarillo de cierre, Esclavo rojo
   FD_DESPEJE_A,         // todo-rojo tras el verde del Maestro
+  FD_ROJO_AMARILLO_ESCLAVO,  // D-53: Esclavo rojo+amarillo, Maestro rojo
   FD_VERDE_ESCLAVO,     // Esclavo verde, Maestro rojo
   FD_AMARILLO_ESCLAVO,  // D-45: Esclavo amarillo de cierre, Maestro rojo
   FD_DESPEJE_B          // todo-rojo tras el verde del Esclavo
@@ -39,15 +40,17 @@ enum FaseDegradado {
 
 static const uint32_t SEGUNDOS_DEL_DIA = 86400UL;
 
-// La fase de una POSICION del ciclo, sin guardas. pos < 2 x (verde + amarillo + despeje).
+// La fase de una POSICION del ciclo, sin guardas. pos < 2 x (r + verde + amarillo + despeje).
 inline FaseDegradado ciclo_degradado_faseCruda(uint32_t pos, uint16_t verdeSeg,
                                                uint16_t despejeSeg) {
-  const uint32_t v = verdeSeg, a = AMARILLO_SEG, d = despejeSeg;
-  if (pos < v) return FD_VERDE_MAESTRO;
-  if (pos < v + a) return FD_AMARILLO_MAESTRO;
-  if (pos < v + a + d) return FD_DESPEJE_A;
-  if (pos < 2UL * v + a + d) return FD_VERDE_ESCLAVO;
-  if (pos < 2UL * (v + a) + d) return FD_AMARILLO_ESCLAVO;
+  const uint32_t r = ROJO_AMARILLO_SEG, v = verdeSeg, a = AMARILLO_SEG, d = despejeSeg;
+  if (pos < r) return FD_ROJO_AMARILLO_MAESTRO;
+  if (pos < r + v) return FD_VERDE_MAESTRO;
+  if (pos < r + v + a) return FD_AMARILLO_MAESTRO;
+  if (pos < r + v + a + d) return FD_DESPEJE_A;
+  if (pos < 2UL * r + v + a + d) return FD_ROJO_AMARILLO_ESCLAVO;
+  if (pos < 2UL * (r + v) + a + d) return FD_VERDE_ESCLAVO;
+  if (pos < 2UL * (r + v + a) + d) return FD_AMARILLO_ESCLAVO;
   return FD_DESPEJE_B;
 }
 
@@ -76,8 +79,8 @@ inline FaseDegradado ciclo_degradado_fase(uint32_t segDia, uint16_t verdeSeg,
   // respuesta segura, no un caso que "no deberia pasar".
   if (verdeSeg == 0 || despejeSeg == 0) return FD_DESPEJE_A;
 
-  const uint32_t a = AMARILLO_SEG;
-  const uint32_t ciclo = 2UL * ((uint32_t)verdeSeg + a + (uint32_t)despejeSeg);
+  const uint32_t a = AMARILLO_SEG, r = ROJO_AMARILLO_SEG;
+  const uint32_t ciclo = 2UL * (r + (uint32_t)verdeSeg + a + (uint32_t)despejeSeg);
   const uint32_t finDia = SEGUNDOS_DEL_DIA - despejeSeg;   // empieza el tramo final
 
   // Guarda de medianoche, en los dos sentidos de la frontera.
@@ -87,12 +90,32 @@ inline FaseDegradado ciclo_degradado_fase(uint32_t segDia, uint16_t verdeSeg,
   const uint32_t pos = segDia % ciclo;
   const FaseDegradado f = ciclo_degradado_faseCruda(pos, verdeSeg, despejeSeg);
 
-  // Un amarillo cuyo verde acabo dentro del tramo inicial no tiene verde delante.
+  // D-53 (C2): a la salida del tramo inicial el SEMAFORO pone r s de R+A antes del verde. Si
+  // al verde le quedan <= r s, la luz seria R+A -> rojo: ese R+A sale como despeje, y su
+  // amarillo tambien (no tiene verde delante). SPEC_2 8 (e.ter).
+  if (f == FD_ROJO_AMARILLO_MAESTRO || f == FD_VERDE_MAESTRO ||
+      f == FD_ROJO_AMARILLO_ESCLAVO || f == FD_VERDE_ESCLAVO) {
+    const bool deM = (f == FD_ROJO_AMARILLO_MAESTRO || f == FD_VERDE_MAESTRO);
+    const uint32_t finVerde = deM ? r + verdeSeg : 2UL * (r + verdeSeg) + a + despejeSeg;
+    if (segDia + (finVerde - pos) <= (uint32_t)despejeSeg + r) return FD_DESPEJE_B;
+  }
+
+  // Un amarillo cuyo verde no llego a encenderse tras el tramo inicial no tiene verde delante.
   if (f == FD_AMARILLO_MAESTRO || f == FD_AMARILLO_ESCLAVO) {
-    const uint32_t inicio = (f == FD_AMARILLO_MAESTRO) ? verdeSeg
-                                                       : 2UL * verdeSeg + a + despejeSeg;
-    if (segDia - (pos - inicio) <= despejeSeg) {
+    const uint32_t inicio = (f == FD_AMARILLO_MAESTRO) ? r + verdeSeg
+                                                       : 2UL * (r + verdeSeg) + a + despejeSeg;
+    if (segDia - (pos - inicio) <= (uint32_t)despejeSeg + r) {
       return (f == FD_AMARILLO_MAESTRO) ? FD_DESPEJE_A : FD_DESPEJE_B;
+    }
+  }
+
+  // D-53: un rojo+amarillo cuyo verde empezaria dentro de la ventana final (y no se
+  // encenderia) sale como despeje: el R+A anuncia un verde, y solo uno que va a abrir.
+  if (f == FD_ROJO_AMARILLO_MAESTRO || f == FD_ROJO_AMARILLO_ESCLAVO) {
+    const uint32_t finRA = (f == FD_ROJO_AMARILLO_MAESTRO) ? r
+                                                           : 2UL * r + verdeSeg + a + despejeSeg;
+    if (segDia + (finRA - pos) + a >= finDia) {
+      return (f == FD_ROJO_AMARILLO_MAESTRO) ? FD_DESPEJE_B : FD_DESPEJE_A;
     }
   }
 
@@ -100,8 +123,11 @@ inline FaseDegradado ciclo_degradado_fase(uint32_t segDia, uint16_t verdeSeg,
   if (segDia + a >= finDia) {
     const FaseDegradado f0 = ciclo_degradado_faseCruda((finDia - a) % ciclo, verdeSeg,
                                                        despejeSeg);
-    if (f0 == FD_VERDE_MAESTRO) return FD_AMARILLO_MAESTRO;
-    if (f0 == FD_VERDE_ESCLAVO) return FD_AMARILLO_ESCLAVO;
+    // D-53: un verde que EMPIEZA justo en la ventana no se encendio: sin amarillo de cierre.
+    const bool f0Encendido =
+        (f0 == ciclo_degradado_faseCruda((finDia - a - 1) % ciclo, verdeSeg, despejeSeg));
+    if (f0Encendido && f0 == FD_VERDE_MAESTRO) return FD_AMARILLO_MAESTRO;
+    if (f0Encendido && f0 == FD_VERDE_ESCLAVO) return FD_AMARILLO_ESCLAVO;
     if (f == FD_VERDE_MAESTRO) return FD_DESPEJE_B;
     if (f == FD_VERDE_ESCLAVO) return FD_DESPEJE_A;
     if (f != f0) return (f == FD_AMARILLO_MAESTRO) ? FD_DESPEJE_A : FD_DESPEJE_B;
@@ -121,7 +147,8 @@ inline uint32_t ciclo_degradado_restante(uint32_t segDia, uint16_t verdeSeg,
   // logica de fronteras -incluida la de medianoche-, que es justo donde estaria
   // el error si se calculara "a mano" por segunda vez.
   const uint32_t tope =
-      2UL * ((uint32_t)verdeSeg + AMARILLO_SEG + despejeSeg) + despejeSeg + AMARILLO_SEG + 2UL;
+      2UL * (ROJO_AMARILLO_SEG + (uint32_t)verdeSeg + AMARILLO_SEG + despejeSeg) + despejeSeg +
+      AMARILLO_SEG + ROJO_AMARILLO_SEG + 2UL;
   while (t < tope) {
     t++;
     uint32_t s = (segDia + t) % SEGUNDOS_DEL_DIA;

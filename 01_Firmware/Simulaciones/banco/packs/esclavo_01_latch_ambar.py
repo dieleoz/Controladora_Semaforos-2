@@ -41,6 +41,24 @@ NOMBRE = "esclavo_01_latch_ambar"
 DESCRIPCION = "el latch de ambar de la app: lo mas delicado del Esclavo"
 
 
+def _ordenar_y_ver_ra(e, cmd):
+    # D-53: sin la guarda, GO_GREEN abre un R+A que el sostenedor del ambar devuelve a
+    # S_FALLO en la misma vuelta: entre vueltas no se ve. Se mira DENTRO de la llamada
+    # que lo abre (se observa, no se altera). Abrirlo YA es obedecer la orden.
+    sem, visto = e.semaforo, []
+    original = sem.forzar_verde
+
+    def _espia():
+        original()
+        visto.append(sem.estado == "S_ROJO_AMARILLO")
+    sem.forzar_verde = _espia
+    for _ in range(6):
+        e.rx.append((cmd, 0))
+        e.correr(1500)
+    del sem.forzar_verde
+    return any(visto)
+
+
 def correr(b, fw):
     verificar = b.verificar
     propiedad = b.propiedad
@@ -68,9 +86,8 @@ def correr(b, fw):
                 violaciones.append(("no se armo el latch", estado_inicial, cmd))
                 continue
             marca_tx = len(e.tx)
-            for _ in range(6):
-                e.rx.append((cmd, 0))
-                e.correr(1500)
+            if _ordenar_y_ver_ra(e, cmd):
+                violaciones.append(("abrio ROJO+AMARILLO con el latch puesto", estado_inicial, cmd))
             if e.verde_encendido():
                 violaciones.append(("VERDE con el latch puesto", estado_inicial, cmd))
             acks = [c for (_, c, _) in e.tx[marca_tx:]
@@ -92,14 +109,12 @@ def correr(b, fw):
     e = preparar_nodo(obedece_ambar_emergencia=False)
     e.pedir_ambar_emergencia()
     e.correr(1000)
-    for _ in range(6):
-        e.rx.append((CMD["CMD_GO_GREEN"], 0))
-        e.correr(1500)
-    if e.verde_encendido() or CMD["CMD_ACK_GREEN"] in e.acks_de_luz():
+    abrio_ra = _ordenar_y_ver_ra(e, CMD["CMD_GO_GREEN"])
+    if abrio_ra or e.verde_encendido() or CMD["CMD_ACK_GREEN"] in e.acks_de_luz():
         caza = True
     verificar(caza,
               "El barrido SI distingue: quitando la guarda 'if (!bluetooth_ambarEmergencia())' "
-              "el mismo escenario da verde o ACK, y la prueba lo caza.",
+              "el mismo escenario abre R+A, da verde o ACK, y la prueba lo caza.",
               "PELIGRO METODOLOGICO: la prueba 1.1 da PASS tambien sin la guarda, "
               "asi que no estaba midiendo nada")
 
