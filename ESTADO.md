@@ -5,7 +5,7 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 
 ## Por donde se retoma, en este orden
 
-1. **Marco prueba `Paquete_Semaforos_2026-10-04_e831249_SIN_BANCO`** (`entregas/`, sha256 `1090eb92...`) con
+1. **Marco prueba `Paquete_Semaforos_2026-10-04_22fd0d8_SIN_BANCO`** (`entregas/`, sha256 `1f8b5be1...`) con
    `Pruebas_Funcional_2026-10-04.html`: catorce casos, los cinco ultimos de banco con dos tarjetas (salida programada
    `D-52`, rojo total `D-51`). Sus cintas se leen enteras y contando. Arquitecto y QA: APTO CON CONDICIONES, cerradas.
 2. **Lunes 05/10, montaje en campo** con `Montaje_Campo_2026-10-05.html` (sin Degradado desatendido).
@@ -32,7 +32,7 @@ trinquete 1,665); la 5, lo duplicado a `lib/`, despues de banco.
 | Maestro `179DB0` (El Sisga) | `7ff7d12` `SIN_BANCO`, probado despues `b354fe9` | cinta y diario en `evidencia/` |
 | Esclavo del Sisga | sin medir | su cinta no se ha traido |
 | Maestro `4D2007` y Esclavo `38EB53` (Marco, banco) | `6bd1e4f` en controlador y puente, medido: `$ACK,CMD:VERSION` el 01/10 | `evidencia/011020260934/` |
-| paquete para Marco | `Paquete_Semaforos_2026-10-04_e831249_SIN_BANCO` (D-50..D-52, N-172; arquitecto y QA APTO CON CONDICIONES, cerradas). El del 02/10, a `entregas/RETIRADOS/` | `entregas/` |
+| paquete para Marco | `Paquete_Semaforos_2026-10-04_22fd0d8_SIN_BANCO` (D-50..D-52, N-172 y la app corregida tras el cotejo; firmware igual a `e831249`; arquitecto, QA y Fable). Los anteriores, a `entregas/RETIRADOS/` | `entregas/` |
 
 ## Verificacion en escritorio
 
