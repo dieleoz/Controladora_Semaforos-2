@@ -8,6 +8,7 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 1. **Marco prueba `Paquete_Semaforos_2026-10-04_22fd0d8_SIN_BANCO`** (`entregas/`, sha256 `1f8b5be1...`) con
    `Pruebas_Funcional_2026-10-04.html`: catorce casos, los cinco ultimos de banco con dos tarjetas (salida programada
    `D-52`, rojo total `D-51`). Sus cintas se leen enteras y contando. Arquitecto y QA: APTO CON CONDICIONES, cerradas.
+   App para el navegador: `App_Web_Semaforos_2026-10-05_2cada57_SIN_BANCO.zip` (la de la APK; Chrome o Edge).
 2. **Lunes 05/10, montaje en campo** con `Montaje_Campo_2026-10-05.html` (sin Degradado desatendido).
    **Falta que el responsable diga que firmware se graba**: el paquete del 04/10 no va a campo sin banco, y
    `Camaras_Sisga_4x.html` (pluma sin veto) solo es verdad con `7ff7d12`/V8.4 (roadmap B7).
