@@ -127,10 +127,15 @@ module.exports = async function pruebaTextosSpec4(montarAppLimpia, assert) {
     assert(/^Aplicar testigo guardado — Maestro SEM-M-01, inicio \d\d:\d\d:\d\d$/.test(t), `10: rotulo del Esclavo segun SPEC_4 §3.ter 1: "${t}"`);
   }
 
-  // 11. SPEC_2 §7.quater (e): sin radio, al salir, los dos postes quedan en ambar intermitente.
-  assert(/ambar/i.test(dice(M, 'DEGRADADO', 'ACK,CMD:SET_MODO:DEG_FIN,RESULT:PROGRAMADA').t) &&
-         /sin radio/i.test(dice(M, 'DEGRADADO', 'ACK,CMD:SET_MODO:DEG_FIN,RESULT:PROGRAMADA').t),
-    '11: DEG_FIN|PROGRAMADA avisa de que sin radio los dos postes quedan en ambar intermitente');
+  // 11. SPEC_2 §7.quater (e) y (h).1: cada poste sale a SU hora; el otro, sin la misma salida, sigue con verde por reloj.
+  {
+    const p = dice(M, 'DEGRADADO', 'ACK,CMD:SET_MODO:DEG_FIN,RESULT:PROGRAMADA').t;
+    assert(!/ambar/i.test(p) && /verde/i.test(p) && /misma hora/i.test(p),
+      `11: DEG_FIN|PROGRAMADA no promete ambar en los dos y dice que sin la misma salida el otro sigue en verde: "${p}"`);
+    const r = dice(M, 'DEGRADADO', 'ACK,CMD:SET_MODO:DEG_FIN,RESULT:REPROGRAMADA').t;
+    assert(!/conserva la suya/i.test(r) && /misma hora/i.test(r),
+      `11: DEG_FIN|REPROGRAMADA no da por hecho que el otro tenga salida: "${r}"`);
+  }
 
   // Comprobacion de lo pedido: un CANCELADA de DEG_FIN pedido desde el Esclavo, ¿borra el registro local del Maestro?
   {
@@ -183,8 +188,41 @@ module.exports = async function pruebaTextosSpec4(montarAppLimpia, assert) {
     const t45 = ev('SYNC:45h AVISO:SI VENCIDA:NO');
     assert(/\b3\b/.test(t45) && /radio/i.test(t45) && /testigo/i.test(t45) && !/28 dias/.test(t45),
       `13: SYNC:45h dice que faltan 3 h (48-45), recuperar la radio o renovar, sin "28 dias": "${t45.slice(0, 220)}"`);
-    assert(/\b1\b/.test(ev('SYNC:47h AVISO:SI VENCIDA:NO')) && !/28 dias/.test(ev('SYNC:47h AVISO:SI VENCIDA:NO')), '13: SYNC:47h dice que falta 1 h');
-    assert(/28 dias/.test(ev('SYNC:700h AVISO:SI VENCIDA:NO')), '13: con h >= 48 queda el texto de 28 dias');
+    assert(/menos de 1 h/.test(ev('SYNC:47h AVISO:SI VENCIDA:NO')) && !/28 dias/.test(ev('SYNC:47h AVISO:SI VENCIDA:NO')),
+      '13: SYNC:47h dice "menos de 1 h" (h viene truncada)');
+    for (const d of ['SYNC:48h AVISO:SI VENCIDA:SI', 'SYNC:700h AVISO:SI VENCIDA:NO', 'SYNC:49h AVISO:SI VENCIDA:SI']) {
+      const t = ev(d);
+      assert(/limite de 48 h/i.test(t) && /ambar/i.test(t) && !/28 dias/.test(t), `13: ${d} es el limite de 48 h alcanzado, no 28 dias: "${t}"`);
+    }
     assert(/28 dias/.test(ev('SYNC:-- AVISO:SI VENCIDA:NO')), '13: sin horas (SYNC:--) queda el texto de 28 dias');
+  }
+
+  // 14. SPEC_2 §7.quater (e) (MENU sin radio: ambar), SPEC_4 §3.1 (SET_TIEMPOS solo rechaza en AUTOMATICO; ALCANCE e
+  // INTELIGENTE contestan $ERR en Degradado) y SPEC_4 §3.ter.ter (un CANCELADA que esta app no pidio a esa punta).
+  {
+    const m = dice(M, 'MENU', 'ACK,CMD:SET_MODO:MENU,RESULT:OK').t;
+    assert(/ambar/i.test(m) && /radio/i.test(m), `14: MENU|OK dice que el rojo depende de la radio (sin ella, ambar): "${m}"`);
+    for (const modo of ['DEGRADADO', 'INTELIGENTE']) {
+      const a = montar(M, modo); a.entra('ACK,CMD:SET_TIEMPOS,RESULT:OK');
+      const t = a.ultimo();
+      assert(/SIGUE en/.test(t) && !/NO esta ciclando|no cicla|no va a empezar/i.test(t) &&
+             a.d.getElementById('aviso-tiempos-parado').hidden === true,
+        `14: SET_TIEMPOS|OK en ${modo}: el equipo sigue en su modo y no sale el cartel de "parado en rojo": "${t}"`);
+    }
+    for (const modo of ['MENU', 'AMBAR', 'MANUAL']) {
+      const a = montar(M, modo); a.entra('ACK,CMD:SET_TIEMPOS,RESULT:OK');
+      assert(/no esta en AUTOMATICO/.test(a.ultimo()) && a.d.getElementById('aviso-tiempos-parado').hidden === false,
+        `14: SET_TIEMPOS|OK en ${modo}: guardados para el proximo arranque del ciclo y con el cartel: "${a.ultimo()}"`);
+    }
+    for (const c of ['ALCANCE', 'INTELIGENTE']) {
+      const t = dice(M, 'MENU', `ACK,CMD:SET_MODO:${c},RESULT:OK`).t;
+      assert(!/OK siempre/i.test(t), `14: ${c}|OK no dice que el equipo contesta OK siempre (en Degradado contesta $ERR): "${t}"`);
+    }
+    const a = montar(M, 'DEGRADADO'); const DF = a.w.DegFin;
+    DF.guardar({ estado: 'ACEPTADO', salida: '15:00:00', salidaMs: Date.now() + 600000, serie: 'SEM-M-01', esclavo: true });
+    DF._cancelando = 'ESCLAVO';
+    a.entra('ACK,CMD:SET_MODO:DEG_FIN,RESULT:CANCELADA');
+    const reg = DF.leer();
+    assert(!!reg && reg.esclavo === true, `14: un CANCELADA de otra punta que la pedida no borra g.esclavo: ${JSON.stringify(reg)}`);
   }
 };

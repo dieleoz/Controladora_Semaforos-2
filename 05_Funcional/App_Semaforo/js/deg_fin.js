@@ -147,7 +147,7 @@ const DegFin = {
       if (node === 'MAESTRO') { g.estado = 'ACEPTADO'; delete g.previa; } else if (node === 'ESCLAVO') g.esclavo = true;
       this.guardar(g);
     } else if (res === 'CANCELADA' && this._cancelando === 'MAESTRO' && node === 'MAESTRO') this.guardar(null);
-    else if (res === 'CANCELADA' && this._cancelando && g) { delete g.esclavo; this.guardar(g); }  // el registro es del Maestro
+    else if (res === 'CANCELADA' && this._cancelando === 'ESCLAVO' && node === 'ESCLAVO' && g) { delete g.esclavo; this.guardar(g); }  // el registro es del Maestro
     this._cancelando = false;
     this._consultar();
     this.render();

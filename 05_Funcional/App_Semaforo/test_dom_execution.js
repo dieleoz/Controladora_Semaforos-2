@@ -952,7 +952,7 @@ assert(avisoParado.hidden === false,
 //    ACK_TEXTO existe para evitar: un si a secas sobre algo que todavia no ha pasado.
 const eventoTiempos = document.querySelectorAll('.event-item')[0];
 assert(eventoTiempos && eventoTiempos.textContent.includes('TIEMPOS GUARDADOS') &&
-       /NO esta ciclando/.test(eventoTiempos.textContent),
+       /no esta en AUTOMATICO/.test(eventoTiempos.textContent),
   `N-150: el acuse de SET_TIEMPOS dice que el cruce sigue parado, no solo "ACEPTADA": "${eventoTiempos ? eventoTiempos.textContent.slice(0, 70) : '(sin evento)'}..."`);
 
 // 4. EL MANDO NO ARRANCA NADA SOLO. Arrancar el Automatico ABRE PASO, asi que tiene

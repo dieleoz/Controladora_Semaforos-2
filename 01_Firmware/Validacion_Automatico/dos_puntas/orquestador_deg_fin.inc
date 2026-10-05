@@ -210,6 +210,39 @@ static void bloqueJ456(unsigned long despejeS) {
               std::to_string(ESCLAVO.orden("da_texto_vencido_ok")) + ", M " +
               std::to_string(MAESTRO.orden("da_texto_vencido_ok")) + ")");
   }
+  // J10 (B1 en el ESCLAVO, SPEC (d)): con testigo la salida queda respaldada (control: reprogramar es REPROGRAMADA);
+  // el poste pierde la hora (J17 mudo) -> rojo fijo por irARojoSinHora -> la salida sigue y ya no esta respaldada.
+  {
+    prepararSincronizadas(15, 8, 0, 0);
+    activarDs3231(1000, 7000);
+    avanzar(30000);
+    g_enlace = false;   // sin radio: el Maestro no saca al Esclavo del modo
+    const bool entro = ESCLAVO.orden("da_testigo", ESCLAVO.orden("segundos_del_dia") + 120) == 1;
+    esperarRojo(ESCLAVO);
+    const long R = ESCLAVO.orden("segundos_del_dia");
+    const long pr = ESCLAVO.orden("da_salida_programar", R + 40000);
+    const long antes = ESCLAVO.orden("da_salida_respaldada");
+    const long rp = ESCLAVO.orden("da_salida_programar", R + 40600);   // control: con respaldo, REPROGRAMADA
+    g_esp32Vivo[1] = false;
+    for (unsigned long t = 0; t < 90UL * 60UL * 1000UL && ESCLAVO.orden("da_rojo_fijo") != 1; t += PASO_MS) unTick();
+    const long fijo = ESCLAVO.orden("da_rojo_fijo"), despues = ESCLAVO.orden("da_salida_respaldada");
+    const long sal = ESCLAVO.orden("da_salida_s");
+    g_esp32Vivo[1] = true; g_enlace = true;
+    comprobar(entro && pr == 0 && antes == 1 && rp == MDF_REPROGRAMADA_V && fijo == 1 && despues == 0 && sal != 0,
+              "J10 (D-52 (d), Esclavo): testigo + salida respaldada (" + std::to_string(antes) + ", reprogramar " +
+              std::to_string(rp) + "); hora perdida -> rojo fijo (" + std::to_string(fijo) + "): la salida sigue (" +
+              std::to_string(sal) + ") y respaldada " + std::to_string(despues) + " (SPEC: 0)");
+  }
+  // J11 (SPEC (c), precedencia en el ESCLAVO): sin respaldo (Degradado de D-18) y con salida previa gana
+  // PROGRAMADA_SIN_RESPALDO sobre REPROGRAMADA.
+  {
+    long s = 0;
+    const bool prog = montarSalida(0, 1500, s);
+    const long m = progEnRojo(ESCLAVO, s + 600);
+    comprobar(prog && m == MDF_SIN_RESPALDO_V && ESCLAVO.orden("da_salida_respaldada") == 0,
+              "J11 (D-52 (c), Esclavo): reprogramar SIN respaldo -> PROGRAMADA_SIN_RESPALDO (" + std::to_string(m) +
+              "), no REPROGRAMADA (" + std::to_string(MDF_REPROGRAMADA_V) + ")");
+  }
 }
 #else
 static void bloqueJ456(unsigned long) {

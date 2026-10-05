@@ -292,6 +292,10 @@ paleteros se casa por NOMBRE de orden, no por la trama: `DEG_FIN` lleva un `ahor
 «FALTA el Esclavo», aunque la tarjeta si refleja la consulta; y la app mide la ventana de 12 h con el reloj del
 telefono y el poste con el suyo, asi que en el borde pueden discrepar: manda el `$ERR` del poste.
 
+**Aviso `$EVENT DEGRADADO ... SYNC:<h>h AVISO:SI` (HACE, sin banco; `deg_auto.js`).** Con `h` menor de 48 dice «quedan
+menos de N h» (N = 48 − h; `h` llega truncada); con `h` de 48 o mas, o `VENCIDA:SI`, dice «limite de 48 h alcanzado» (el
+equipo se rinde a ambar; no son los 28 dias); sin horas, el texto de 28 dias (SPEC 6 hueco 2).
+
 ## 4. El PIN
 
 - La forma del cable es `CMD:PIN:<pin>:<accion>` y la comparacion es **literal en los dos despachadores**.

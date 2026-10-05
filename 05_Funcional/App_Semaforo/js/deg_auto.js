@@ -101,13 +101,18 @@ const DegAuto = {
     // El aviso de limite que ya publica el firmware (SYNC:.. AVISO:SI VENCIDA:..): con
     // testigo sale a los 28 dias. El testigo ya no vence (29/09): solo pide renovarlo.
     if (/(^| )AVISO:SI( |$)/.test(d)) {
-      // SPEC_6 hueco 2: el mismo evento avisa a los 28 dias con testigo y en las ultimas horas del limite de 48 h
-      // sin testigo. Con la marca SYNC de <h> horas y h < 48 se dice lo que falta; sin horas, el texto de 28 dias.
+      // SPEC_4 3.ter.ter (SYNC:<h>h): h < 48 -> "quedan menos de N h" (h viene truncada); h >= 48 o VENCIDA:SI -> limite
+      // alcanzado (el equipo se rinde a ambar, no es el aviso de 28 dias); sin horas, el texto de 28 dias.
       const h = /(^| )SYNC[:](\d+)h( |$)/.exec(d);
-      if (h && Number(h[2]) < 48) {
+      if (h && (Number(h[2]) >= 48 || /(^| )VENCIDA:SI( |$)/.test(d))) {
+        return { tono: 'red', toast: 'Limite de 48 h alcanzado: el equipo pasa a ambar',
+          texto: 'Limite de 48 h sin sincronizar con el otro poste ALCANZADO: el equipo se rinde a ambar. ' +
+                 'Recupere la radio entre postes; poner la hora con el telefono no lo renueva.' };
+      }
+      if (h) {
         const falta = 48 - Number(h[2]);
-        return { tono: 'red', toast: 'Faltan ' + falta + ' h para el limite: recupere la radio',
-          texto: 'Lleva ' + h[2] + ' h sin sincronizar con el otro poste: faltan ' + falta + ' h para el ' +
+        return { tono: 'red', toast: 'Quedan menos de ' + falta + ' h para el limite: recupere la radio',
+          texto: 'Lleva ' + h[2] + ' h sin sincronizar con el otro poste: quedan menos de ' + falta + ' h para el ' +
                  'limite de 48 h. Recupere la radio entre postes o renueve el testigo en los dos postes.' };
       }
       return this.RENOVAR;

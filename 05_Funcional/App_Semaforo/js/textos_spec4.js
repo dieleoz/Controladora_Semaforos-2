@@ -14,14 +14,13 @@ const TextosSpec4 = {
       texto: 'Equipo: orden MANUAL aceptada en ESTE poste. Entra por el todo-rojo y espera: el paso se da ' +
              'con DAR PASO.',
       toast: 'Manual aceptado: todo-rojo hasta DAR PASO' },
-    // SPEC_4 §3.1 y §7: ALCANCE e INTELIGENTE contestan OK sin condicion; la luz es lo que dice si entro.
+    // SPEC_4 §3.1 y §7: OK sin condicion fuera de Degradado (dentro, $ERR); la luz es lo que dice si entro.
     'SET_MODO:ALCANCE|OK': { tono: 'cyan',
-      texto: 'Equipo: orden PRUEBA DE ALCANCE aceptada. El equipo contesta OK siempre: mire la luz, que ' +
-             'debe quedar en rojo fijo.',
+      texto: 'Equipo: orden PRUEBA DE ALCANCE aceptada. Mire la luz: debe quedar en rojo fijo.',
       toast: 'Alcance aceptado: compruebe el rojo fijo' },
     'SET_MODO:INTELIGENTE|OK': { tono: 'cyan',
-      texto: 'Equipo: orden INTELIGENTE aceptada. El equipo contesta OK siempre: el modo se ve en el rotulo ' +
-             'del modo y en la luz, no en este aviso.',
+      texto: 'Equipo: orden INTELIGENTE aceptada. El modo se ve en el rotulo del modo y en la luz, ' +
+             'no en este aviso.',
       toast: 'Inteligente aceptado: compruebe el modo' },
     'TEST_LEDS|STARTING_6S': { tono: 'cyan',
       texto: 'Equipo: prueba de LEDs ARMADA, dura unos 6 s. Mire las lamparas mientras corre.',
@@ -53,6 +52,26 @@ const TextosSpec4 = {
       texto: 'Equipo: prueba de LEDs NO armada: el cruce esta en servicio y la prueba solo va fuera de ' +
              'servicio. Pase a MENU y repita.',
       toast: 'Prueba de LEDs no armada: pase a MENU' },
+  },
+
+  // SPEC_4 §3.1: SET_TIEMPOS solo se rechaza en AUTOMATICO; el texto depende del modo del ultimo $STATUS. Sin ciclo
+  // (MENU, AMBAR, MANUAL, ALCANCE) los tiempos esperan al arranque del ciclo; en Degradado e Inteligente el equipo SIGUE
+  // dando verdes; con otro modo o sin telemetria solo se dice "guardados", sin prometer cuando entran.
+  SIN_CICLO: ['MENU', 'AMBAR', 'MANUAL', 'ALCANCE'],
+  sinCiclo(modo) { return this.SIN_CICLO.indexOf(modo) >= 0; },
+  tiempos(clave, modo) {
+    if (clave !== 'SET_TIEMPOS|OK') return null;
+    if (this.sinCiclo(modo)) {
+      return { tono: 'red', toast: 'Tiempos guardados - el cruce no cicla hasta que arranque el ciclo',
+        texto: 'Equipo: TIEMPOS GUARDADOS. El equipo no esta en AUTOMATICO: no cicla y no va a empezar solo. ' +
+               'Los tiempos nuevos entran cuando alguien arranque el ciclo (boton AUTOMATICO, debajo del formulario).' };
+    }
+    if (modo === 'DEGRADADO' || modo === 'INTELIGENTE') {
+      return { tono: 'cyan', toast: 'Tiempos guardados - el equipo sigue en ' + modo,
+        texto: 'Equipo: TIEMPOS GUARDADOS. El equipo SIGUE en ' + modo + ' y sigue dando verdes: no ha cambiado de modo.' };
+    }
+    return { tono: 'cyan', toast: 'Tiempos guardados',
+      texto: 'Equipo: TIEMPOS GUARDADOS. No se sabe en que modo esta el equipo: mire la luz.' };
   },
 
   // SPEC_4 §3.ter.ter 1 y SPEC_2 §7.quater (b): en Degradado el rojo fijo es solo de ESTE poste; el otro sigue

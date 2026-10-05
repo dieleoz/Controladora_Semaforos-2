@@ -3259,15 +3259,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // D-52 (SPEC_4 3.ter.ter): solo hay $ACK si quedo programada en ESTE poste; del otro no se sabe nada.
     'SET_MODO:DEG_FIN|PROGRAMADA': {
       tono: 'green',
-      texto: 'Equipo: SALIDA PROGRAMADA en ESTE poste: a esa hora sale del Degradado por rojo. ' +
-             'El otro poste hay que programarlo aparte. Sin radio, al salir los dos postes quedan en ' +
-             'ambar intermitente.',
+      texto: 'Equipo: SALIDA PROGRAMADA en ESTE poste: a esa hora sale del Degradado por rojo. Cada poste sale ' +
+             'a SU hora: si el otro no tiene la misma, sigue con verde. Programe la misma hora en los dos.',
       toast: 'Salida programada en este poste'
     },
     'SET_MODO:DEG_FIN|REPROGRAMADA': {
       tono: 'green',
-      texto: 'Equipo: SALIDA REPROGRAMADA en ESTE poste: sustituye a la anterior. ' +
-             'El otro poste conserva la suya hasta que se cambie alli.',
+      texto: 'Equipo: SALIDA REPROGRAMADA en ESTE poste: sustituye a la anterior. Del otro poste no se sabe ' +
+             'nada: programe la misma hora en los dos.',
       toast: 'Salida reprogramada en este poste'
     },
     'SET_MODO:DEG_FIN|PROGRAMADA_SIN_RESPALDO': {
@@ -3284,8 +3283,8 @@ document.addEventListener('DOMContentLoaded', () => {
     },
     'SET_MODO:MENU|OK': {
       tono: 'green',
-      texto: 'Equipo: orden VOLVER AL MENU aceptada. La unidad queda en el menu: ' +
-             'sin ciclo y en rojo.',
+      texto: 'Equipo: orden VOLVER AL MENU aceptada. Queda en el menu, sin ciclo: en rojo si el otro poste ' +
+             'contesta por radio; sin radio, pasa a ambar intermitente.',
       toast: 'El equipo vuelve al menu'
     },
     // En Degradado no se salta al menu: se pide la salida, que es un todo-rojo de 30 s.
@@ -3331,15 +3330,6 @@ document.addEventListener('DOMContentLoaded', () => {
       texto: 'Equipo: el equipo YA ESTABA saliendo del Modo Degradado y ya esta en ROJO. ' +
              'Esta orden no cambia nada: al terminar el todo-rojo queda en el menu, sin ciclo.',
       toast: 'Ya estaba saliendo del Degradado, en rojo'
-    },
-    // N-150 (05/09): un solo RESULT y app_10 no la pide, pero el generico verde 'ACEPTADA'
-    // mentia: los tiempos quedan guardados con el cruce FUERA del ciclo, en rojo, y ahi sigue.
-    'SET_TIEMPOS|OK': {
-      tono: 'red',
-      texto: 'Equipo: TIEMPOS GUARDADOS. El equipo los acepta solo fuera de AUTOMATICO, asi ' +
-             'que el cruce NO esta ciclando y no va a empezar solo: los tiempos nuevos entran cuando alguien ' +
-             'arranque el ciclo. El mando esta debajo del formulario de tiempos y es el boton AUTOMATICO.',
-      toast: 'Tiempos guardados - el cruce no cicla hasta que arranque el ciclo'
     },
     // 🔴 D-15 (05/09) - LOS DOS TEXTOS DE ABAJO DECIAN ALGO QUE YA NO PASA, Y ERA LO
     // PEOR QUE PODIAN DECIR: PROMETIAN LA OTRA PUNTA.
@@ -4134,7 +4124,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // y state.hora es la hora del CONTROLADOR, la del $STATUS. Pintar una con la otra
       // tapaba justo lo que hay que ver: un STM32 que no recibio la hora.
       Testigo.anotarAcuse(data, state.node); const degAuto = DegAuto.acuse(data);  // A-15
-      const dicho = ACK_TEXTO[clave] || degAuto || TextosSpec4.ACK[clave];
+      const dicho = ACK_TEXTO[clave] || degAuto || TextosSpec4.ACK[clave] || TextosSpec4.tiempos(clave, state.modo);
       if (dicho) {
         addEvent(dicho.tono, dicho.texto);
         showToast(dicho.toast);
@@ -4173,7 +4163,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // de un modo que nadie pidio"-. Lo que la app puede hacer, y hasta hoy no hacia,
       // es no dejar al operario deduciendo que le toca a el.
       if (data.CMD === 'SET_TIEMPOS' && data.RESULT === 'OK') {
-        mostrarArranqueTrasTiempos(true);
+        mostrarArranqueTrasTiempos(TextosSpec4.sinCiclo(state.modo));
       }
     } else if (header === '$EVENT') {
       // $EVENT es la bitacora del propio equipo -quien movio que y desde donde-. No la
