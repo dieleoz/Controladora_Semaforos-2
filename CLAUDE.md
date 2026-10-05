@@ -1,4 +1,4 @@
-Orquestador: f34fac3 · Metodo: c968d2f
+Orquestador: f34fac3 · Metodo: 65eb2ef
 # CLAUDE.md — reglas permanentes del repositorio
 
 Aqui vive solo lo que sigue siendo cierto con el firmware cambiado entero, en linea imperativa y con su mecanica. Cobre
