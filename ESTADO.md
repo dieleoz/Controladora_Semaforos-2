@@ -5,10 +5,10 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 
 ## Por donde se retoma, en este orden
 
-1. **Marco prueba `Paquete_Semaforos_2026-10-04_22fd0d8_SIN_BANCO`** (`entregas/`, sha256 `1f8b5be1...`) con
-   `Pruebas_Funcional_2026-10-04.html`: catorce casos, los cinco ultimos de banco con dos tarjetas (salida programada
-   `D-52`, rojo total `D-51`). Sus cintas se leen enteras y contando. Arquitecto y QA: APTO CON CONDICIONES, cerradas.
-   App para el navegador: `App_Web_Semaforos_2026-10-05_2cada57_SIN_BANCO.zip` (la de la APK; Chrome o Edge).
+1. **Marco prueba `Paquete_Semaforos_2026-10-05_20739d9_SIN_BANCO`** (`entregas/`, sha256 `563a3eb3...`):
+   rojo+amarillo antes del verde (`D-53`) y Degradado automatico como eleccion de montaje (`N-176`). Trae firmware,
+   APK, `App_Web/` y `Pruebas_Funcional_2026-10-05.html` (8 casos, solo lo nuevo). Los DOS postes se cargan a la vez.
+   Arquitecto: APTO CON CONDICIONES, cerradas; QA en curso. Origen: su banco del 05/10 (`evidencia/051020261239/`).
 2. **Lunes 05/10, montaje en campo** con `Montaje_Campo_2026-10-05.html` (sin Degradado desatendido).
    **Falta que el responsable diga que firmware se graba**: el paquete del 04/10 no va a campo sin banco, y
    `Camaras_Sisga_4x.html` (pluma sin veto) solo es verdad con `7ff7d12`/V8.4 (roadmap B7).
@@ -21,7 +21,7 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 
 ## Frentes abiertos (tres como maximo)
 
-- **Banco de Marco** con el paquete del 04/10.
+- **Banco de Marco** con el paquete del 05/10 (`20739d9`).
 - **Campo**: lunes 05/10; `N-172` sin medir en tarjeta.
 - **Orden del repo** (fase F).
 
@@ -38,7 +38,7 @@ trinquete 1,665); la 5, lo duplicado a `lib/`, despues de banco.
 | Maestro `179DB0` (El Sisga) | `7ff7d12` `SIN_BANCO`, probado despues `b354fe9` | cinta y diario en `evidencia/` |
 | Esclavo del Sisga | sin medir | su cinta no se ha traido |
 | Maestro `4D2007` y Esclavo `38EB53` (Marco, banco) | `6bd1e4f` en controlador y puente, medido: `$ACK,CMD:VERSION` el 01/10 | `evidencia/011020260934/` |
-| paquete para Marco | `Paquete_Semaforos_2026-10-04_22fd0d8_SIN_BANCO` (D-50..D-52, N-172 y la app corregida tras el cotejo; firmware igual a `e831249`; arquitecto, QA y Fable). Los anteriores, a `entregas/RETIRADOS/` | `entregas/` |
+| paquete para Marco | `Paquete_Semaforos_2026-10-05_20739d9_SIN_BANCO` (D-53 y eleccion del Degradado automatico; firmware igual a `5f1d37f`, el del acta). Los anteriores, a `entregas/RETIRADOS/` | `entregas/` |
 
 ## Verificacion en escritorio
 
