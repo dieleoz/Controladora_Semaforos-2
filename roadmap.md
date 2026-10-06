@@ -95,18 +95,19 @@ a la vez; (d) `ESTADO:` nuevo de <= 9 caracteres y su fila en la app (si no, «E
 Diseno comun de los agentes: `D-53` y SPEC_1 §3.2 (al cerrar R1). Con Marco esperando, R1, R3 y R4 corren en
 paralelo con ficheros disjuntos contra el mismo diseno; el arquitecto revisa SPEC y diff juntos antes de la compuerta.
 
-| # | paso | quien | ficheros | estado |
-|---|---|---|---|---|
-| R1 | SPEC_1/2/4/8 al `D-53`; comitea el orquestador con la fila | agente, arbol principal | `05_Funcional/SPEC_{1,2,4,8}*` | en curso |
-| R3 | Pruebas que celebran el directo (§9) invertidas, vistas en rojo | agente, worktree | arneses `Validacion_*`, packs y modelos | en curso |
-| R4a | Firmware de las dos puntas | agente, worktree | `{Maestro,Esclavo}/{src,include}` | en curso |
-| R4b | App: estado `ROJO+AMAR`; Degradado automatico como eleccion de montaje (abajo); `.html` | agente, worktree | `App_Semaforo/**`, `Pruebas_Funcional_*.html` | en curso |
-| R2 | Integrar por el diff (§8); arquitecto (opus) sobre SPEC + diff: `SFTY6_SILENCIO_MS` 31 s y 8 fases | orquestador + opus | - | |
-| R5 | Compuerta completa en el arbol principal; QA (opus) una vez | orquestador + QA | - | |
-| R6 | `.zip` `SIN_BANCO` a `entregas/`: firmware (fuente PlatformIO y binarios con sha256), APK, app web, `.html` | orquestador | - | |
+| # | paso | estado |
+|---|---|---|
+| R1-R4 | SPEC, pruebas invertidas, firmware, app y `.html` | hecho (`264b98d`, `f608bf8`, `668c2be`) |
+| R2 | Arquitecto (opus), dos pasadas | APTO CON CONDICIONES, cerradas (`5f13011`, `5f1d37f`); `SFTY6` sigue en 28 s |
+| R5 | Compuerta y QA | acta `2026-10-05` sobre `5f1d37f` (solo `D-22`); QA APTO CON CONDICIONES |
+| R6 | Paquete | `Paquete_Semaforos_2026-10-06_42e7746_SIN_BANCO` (app con cabecera y frase corregidas en el telefono) |
 
 **El `.html` de R6 pide SOLO lo nuevo**: el rojo+amarillo (`D-53`), la eleccion del Degradado automatico y la carga
 de los dos postes a la vez. Lo que Marco ya probo con `22fd0d8` no se le vuelve a pedir.
+
+**Version siguiente (06/10, visto en el telefono):** la cabecera recorta el rotulo del enlace hasta no leerse
+(«(sin ...») en cuanto deja de pisar los iconos: dos intentos de CSS fallidos, congelado en `42e7746`, donde el
+texto se lee pero se monta sobre los iconos. Arreglo propuesto: el rotulo en su propia linea, no recortado.
 
 **Degradado automatico (`A-15`), sin cambio de firmware.** El 05/10 Marco lo intento sin radio y el firmware
 rechazo las 7 ordenes (`SIN_ENLACE_CON_EL_OTRO_POSTE`, `evidencia/051020261239/`): hizo lo que dice la spec, pero la
