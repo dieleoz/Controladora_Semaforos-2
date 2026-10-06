@@ -5,7 +5,7 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 
 ## Por donde se retoma, en este orden
 
-1. **Marco prueba `Paquete_Semaforos_2026-10-06_42e7746_SIN_BANCO`** (`entregas/`, sha256 `ff9b72d0...`):
+1. **Marco prueba `Paquete_Semaforos_2026-10-06_d810f81_SIN_BANCO`** (`entregas/`, sha256 `014ea336...`):
    rojo+amarillo antes del verde (`D-53`) y Degradado automatico como eleccion de montaje (`N-176`). Trae firmware,
    APK, `App_Web/` y `Pruebas_Funcional_2026-10-05.html` (8 casos, solo lo nuevo). Los DOS postes se cargan a la vez.
    Arquitecto y QA: APTO CON CONDICIONES, cerradas. Origen: su banco del 05/10 (`evidencia/051020261239/`).
@@ -21,7 +21,7 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 
 ## Frentes abiertos (tres como maximo)
 
-- **Banco de Marco** con el paquete del 06/10 (`42e7746`).
+- **Banco de Marco** con el paquete del 06/10 (`d810f81`).
 - **Campo**: lunes 05/10; `N-172` sin medir en tarjeta.
 - **Orden del repo** (fase F).
 
@@ -38,7 +38,7 @@ trinquete 1,665); la 5, lo duplicado a `lib/`, despues de banco.
 | Maestro `179DB0` (El Sisga) | `7ff7d12` `SIN_BANCO`, probado despues `b354fe9` | cinta y diario en `evidencia/` |
 | Esclavo del Sisga | sin medir | su cinta no se ha traido |
 | Maestro `4D2007` y Esclavo `38EB53` (Marco, banco) | `6bd1e4f` en controlador y puente, medido: `$ACK,CMD:VERSION` el 01/10 | `evidencia/011020260934/` |
-| paquete para Marco | `Paquete_Semaforos_2026-10-06_42e7746_SIN_BANCO` (D-53 y eleccion del Degradado automatico; firmware igual a `5f1d37f`, el del acta). Los anteriores, a `entregas/RETIRADOS/` | `entregas/` |
+| paquete para Marco | `Paquete_Semaforos_2026-10-06_d810f81_SIN_BANCO` (D-53 y eleccion del Degradado automatico; firmware igual a `5f1d37f`, el del acta). Los anteriores, a `entregas/RETIRADOS/` | `entregas/` |
 
 ## Verificacion en escritorio
 
