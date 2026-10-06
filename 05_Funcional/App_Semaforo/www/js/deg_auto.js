@@ -48,7 +48,8 @@ const DegAuto = {
     'FORMATO_INVALIDO': 'El equipo no entendio la orden. No ha cambiado nada: anote el ' +
       'literal y avise.',
     'CAMBIADO_AQUI_SIN_ACUSE_DEL_OTRO_POSTE': 'Cambiado en ESTE poste, pero el otro no lo ' +
-      'ha acusado. Mire la consulta de abajo y, si hace falta, repita con radio.',
+      'ha acusado. Con el Maestro en MENU no hay acuse: ponga el Maestro en AUTO o ' +
+      'INTELIGENTE, con radio, y repita.',
   },
 
   // CAUSA:AUTO_NO_<codigo>: nombreMotivo() del Maestro y nombreRechazo() del Esclavo, los

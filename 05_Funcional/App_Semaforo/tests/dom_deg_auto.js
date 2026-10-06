@@ -87,7 +87,7 @@ module.exports = async function pruebaDegAuto(montarAppLimpia, assert) {
     ['FORMATO_INVALIDO', /no entendio la orden/],
     ['SIN_ENLACE_CON_EL_OTRO_POSTE', /No hay radio con el otro poste/],
     ['EN_DEGRADADO_SALGA_PRIMERO', /Este poste esta en degradado: saquelo primero/],
-    ['CAMBIADO_AQUI_SIN_ACUSE_DEL_OTRO_POSTE', /Cambiado en ESTE poste, pero el otro no lo ha acusado/],
+    ['CAMBIADO_AQUI_SIN_ACUSE_DEL_OTRO_POSTE', /Cambiado en ESTE poste, pero el otro no lo ha acusado.*Con el Maestro en MENU no hay acuse.*AUTO o INTELIGENTE/],
   ];
   for (const [desc, re] of rechazos) {
     on.click();
