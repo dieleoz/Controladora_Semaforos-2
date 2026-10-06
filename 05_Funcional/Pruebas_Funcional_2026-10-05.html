@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Pruebas en banco 05-10</title>
+<title>Pruebas en banco</title>
 <style>
 :root{
   --papel:#f6f5f2; --tarjeta:#ffffff; --tinta:#17191c; --tinta-2:#55555a;
@@ -76,7 +76,7 @@ button#btnPdf{
 </head>
 <body>
 <header class="datos">
-  <h1>Pruebas en banco &mdash; 05/10</h1>
+  <h1>Pruebas en banco</h1>
   <label class="campo">Fecha
     <input type="date" id="fecha">
   </label>
@@ -97,29 +97,25 @@ button#btnPdf{
 <main>
 
 <div class="alto">
-  <strong>Avise de inmediato, sin esperar a terminar:</strong> cualquier momento en que los dos postes estén en
-  <strong>VERDE</strong> a la vez, o uno en verde y el otro en rojo y amarillo. Anote la hora, exporte el diario de
-  los dos postes y mande los archivos.
+  <strong>Si ve los dos postes en VERDE a la vez, avise de inmediato</strong> y anote la hora.
 </div>
 
 <div class="recordatorio">
-  <strong>Aquí va solo lo nuevo</strong>: el rojo y amarillo antes del verde y la elección de qué hacen los postes
-  si se cae la radio. Lo que ya probó con el paquete del 04/10 no se repite. <strong>Anote siempre la hora del
-  celular</strong> de cada cosa que vea.
+  Anote la hora del celular de cada cosa que vea.
 </div>
 
 <section class="prueba" id="p1">
-  <h2>1. Cargar la versión nueva en los dos postes a la vez</h2>
+  <h2>1. Cargar la versión nueva en los dos postes</h2>
   <ol>
-    <li>Cargue el firmware del paquete <strong>Paquete_Semaforos_2026-10-05_XXXXXXX_SIN_BANCO.zip</strong> en los <strong>dos postes en la misma tanda</strong>: los dos STM32 (controladores) y los dos ESP32 (puentes). No deje un poste con la versión de ayer y el otro con la de hoy.</li>
-    <li>Conéctese a cada poste. Pestaña Técnico: <strong>"Consultar version del firmware"</strong>. Anote el código (hash) de cada módulo.</li>
+    <li>Cargue <strong>Paquete_Semaforos_2026-10-05_XXXXXXX_SIN_BANCO.zip</strong> en los dos postes: controlador y puente.</li>
+    <li>En cada poste: pestaña Técnico &rarr; <strong>"Consultar version del firmware"</strong>.</li>
   </ol>
-  <div class="espera">Se espera: el código <strong>XXXXXXX</strong> en controlador y puente de los dos postes. Si un poste tiene otro código, no siga: con versiones distintas los postes se desfasan. Avise.</div>
+  <div class="espera">Se espera: código de versión <strong>XXXXXXX</strong> en los cuatro. Si no, no siga y avise.</div>
   <div class="horas">
-    <label class="campo">Poste 1 - Controlador: hash <input type="text" id="h1a" class="hora"></label>
-    <label class="campo">Poste 1 - Puente: hash <input type="text" id="h1b" class="hora"></label>
-    <label class="campo">Poste 2 - Controlador: hash <input type="text" id="h1c" class="hora"></label>
-    <label class="campo">Poste 2 - Puente: hash <input type="text" id="h1d" class="hora"></label>
+    <label class="campo">Poste 1 - Controlador: código <input type="text" id="h1a" class="hora"></label>
+    <label class="campo">Poste 1 - Puente: código <input type="text" id="h1b" class="hora"></label>
+    <label class="campo">Poste 2 - Controlador: código <input type="text" id="h1c" class="hora"></label>
+    <label class="campo">Poste 2 - Puente: código <input type="text" id="h1d" class="hora"></label>
   </div>
   <div class="resultado">
     <label><input type="radio" name="r1" value="OK" data-txt="OK"> OK</label>
@@ -133,31 +129,31 @@ button#btnPdf{
 <section class="prueba" id="p2">
   <h2>2. Rojo y amarillo 2 s antes de cada verde</h2>
   <ol>
-    <li>Radio entre postes funcionando. Mire los <strong>dos postes</strong> abrir el verde en <strong>Automático</strong>, en <strong>Inteligente</strong> y con <strong>DAR PASO</strong>.</li>
-    <li>Pase los dos postes a <strong>Degradado con testigo</strong> y mire otra vez los dos postes abrir el verde.</li>
+    <li>Con radio, mire abrir el verde en <strong>Automático</strong>, <strong>Inteligente</strong> y <strong>DAR PASO</strong>.</li>
+    <li>Repita en <strong>Degradado con testigo</strong>.</li>
   </ol>
-  <div class="espera">Se espera: antes de cada verde, <strong>rojo y amarillo encendidos a la vez durante 2 s</strong>, y después verde (Manual de Señalización 4.4.2). Al cerrar, igual que antes: verde, amarillo, rojo. Nunca amarillo solo antes del verde.</div>
+  <div class="espera">Se espera: antes de cada verde, <strong>rojo y amarillo juntos 2 s</strong>. Nunca amarillo solo antes del verde.</div>
   <div class="horas">
-    <label class="campo">Duración del rojo y amarillo medida (s) <input type="text" id="h2a" class="hora"></label>
-    <label class="campo">Poste 1: Automático / Inteligente / DAR PASO / Degradado (sí/no cada uno) <input type="text" id="h2b" class="hora"></label>
-    <label class="campo">Poste 2: Automático / Inteligente / DAR PASO / Degradado (sí/no cada uno) <input type="text" id="h2c" class="hora"></label>
+    <label class="campo">Rojo y amarillo medido (s) <input type="text" id="h2a" class="hora"></label>
+    <label class="campo">Poste 1: ¿en los cuatro modos? (sí/no) <input type="text" id="h2b" class="hora"></label>
+    <label class="campo">Poste 2: ¿en los cuatro modos? (sí/no) <input type="text" id="h2c" class="hora"></label>
   </div>
   <div class="resultado">
     <label><input type="radio" name="r2" value="OK" data-txt="OK"> OK</label>
     <label><input type="radio" name="r2" value="NO OK" data-txt="NO OK"> NO OK</label>
     <label><input type="radio" name="r2" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
   </div>
-  <textarea id="v2" placeholder="Si algún verde se abrió sin rojo y amarillo: en qué poste, en qué modo y a qué hora"></textarea>
+  <textarea id="v2" placeholder="Verde sin rojo y amarillo: poste, modo y hora"></textarea>
   <div class="print-only" id="pr2"></div>
 </section>
 
 <section class="prueba" id="p3">
   <h2>3. El verde dura lo mismo que antes</h2>
   <ol>
-    <li>En <strong>Automático</strong>, anote el tiempo de verde configurado (pestaña Tiempos).</li>
-    <li>Con el cronómetro del celular, mida un verde completo de cada poste: desde que se apaga el amarillo del rojo y amarillo hasta que se enciende el amarillo de cierre.</li>
+    <li>En <strong>Automático</strong>, anote el verde de la pestaña Tiempos.</li>
+    <li>Cronometre un verde de cada poste.</li>
   </ol>
-  <div class="espera">Se espera: el verde dura <strong>lo mismo que el configurado</strong>; los 2 s de rojo y amarillo se suman antes, no se le quitan al verde.</div>
+  <div class="espera">Se espera: el verde dura <strong>lo configurado</strong>.</div>
   <div class="horas">
     <label class="campo">Verde configurado (s) <input type="text" id="h3a" class="hora"></label>
     <label class="campo">Verde medido Poste 1 (s) <input type="text" id="h3b" class="hora"></label>
@@ -173,14 +169,14 @@ button#btnPdf{
 </section>
 
 <section class="prueba" id="p4">
-  <h2>4. La pluma sube con el verde, no con el rojo y amarillo</h2>
+  <h2>4. La pluma sube con el verde</h2>
   <ol>
-    <li>Con la talanquera conectada, mire en cada poste el momento en que sube la pluma.</li>
+    <li>Con talanquera, mire cuándo sube la pluma.</li>
   </ol>
-  <div class="espera">Se espera: durante el rojo y amarillo la pluma <strong>sigue abajo</strong>; empieza a subir cuando se enciende el <strong>verde</strong>.</div>
+  <div class="espera">Se espera: en rojo y amarillo la pluma <strong>sigue abajo</strong>; sube con el <strong>verde</strong>.</div>
   <div class="horas">
-    <label class="campo">Poste 1: ¿subió en el rojo y amarillo? (sí/no) <input type="text" id="h4a" class="hora"></label>
-    <label class="campo">Poste 2: ¿subió en el rojo y amarillo? (sí/no) <input type="text" id="h4b" class="hora"></label>
+    <label class="campo">Poste 1: ¿subió en rojo y amarillo? (sí/no) <input type="text" id="h4a" class="hora"></label>
+    <label class="campo">Poste 2: ¿subió en rojo y amarillo? (sí/no) <input type="text" id="h4b" class="hora"></label>
   </div>
   <div class="resultado">
     <label><input type="radio" name="r4" value="OK" data-txt="OK"> OK</label>
@@ -194,13 +190,13 @@ button#btnPdf{
 <section class="prueba" id="p5">
   <h2>5. ROJO TOTAL durante el rojo y amarillo</h2>
   <ol>
-    <li>En <strong>Automático</strong>, conectado al Poste 1. Pulse <strong>ROJO TOTAL</strong> justo cuando el Poste 1 encienda rojo y amarillo (dura 2 s: si no lo pilla, salga al menú y repita).</li>
+    <li>En <strong>Automático</strong>, pulse <strong>ROJO TOTAL</strong> en el Poste 1 mientras está en rojo y amarillo.</li>
   </ol>
-  <div class="espera">Se espera: el poste vuelve a <strong>rojo fijo directo, sin amarillo</strong> y sin verde (nunca llegó a dar paso). El otro poste, en rojo.</div>
+  <div class="espera">Se espera: pasa a <strong>rojo fijo</strong>, sin amarillo ni verde. El otro poste, en rojo.</div>
   <div class="horas">
     <label class="campo">Hora de la pulsación <input type="text" id="h5a" class="hora"></label>
     <label class="campo">¿Pilló el rojo y amarillo? (sí/no) <input type="text" id="h5b" class="hora"></label>
-    <label class="campo">¿Se encendió verde o amarillo solo después? (sí/no) <input type="text" id="h5c" class="hora"></label>
+    <label class="campo">¿Hubo verde o amarillo después? (sí/no) <input type="text" id="h5c" class="hora"></label>
   </div>
   <div class="resultado">
     <label><input type="radio" name="r5" value="OK" data-txt="OK"> OK</label>
@@ -214,9 +210,9 @@ button#btnPdf{
 <section class="prueba" id="p6">
   <h2>6. La app muestra el rojo y amarillo</h2>
   <ol>
-    <li>Conectado a cada poste, mire la pantalla principal mientras el poste está en rojo y amarillo.</li>
+    <li>Mire la pantalla principal durante el rojo y amarillo.</li>
   </ol>
-  <div class="espera">Se espera: el semáforo de la app con <strong>rojo y amarillo encendidos</strong>, el texto <strong>"ROJO Y AMARILLO"</strong> y la frase <strong>"Rojo y amarillo: va a abrir el verde"</strong>. Nunca "ESTADO NO RECONOCIDO".</div>
+  <div class="espera">Se espera: el texto <strong>"ROJO Y AMARILLO"</strong> y <strong>"Rojo y amarillo: va a abrir el verde"</strong>. Nunca "ESTADO NO RECONOCIDO".</div>
   <div class="horas">
     <label class="campo">Poste 1: ¿lo vio así? (sí/no) <input type="text" id="h6a" class="hora"></label>
     <label class="campo">Poste 2: ¿lo vio así? (sí/no) <input type="text" id="h6b" class="hora"></label>
@@ -226,23 +222,22 @@ button#btnPdf{
     <label><input type="radio" name="r6" value="NO OK" data-txt="NO OK"> NO OK</label>
     <label><input type="radio" name="r6" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
   </div>
-  <textarea id="v6" placeholder="Lo que vio distinto (si puede, una captura)"></textarea>
+  <textarea id="v6" placeholder="Lo que vio distinto (o una captura)"></textarea>
   <div class="print-only" id="pr6"></div>
 </section>
 
 <section class="prueba" id="p7">
-  <h2>7. Si se cae la radio, opción (a): ámbar y voy con el testigo</h2>
+  <h2>7. Sin radio, opción (a): ámbar y testigo</h2>
   <ol>
-    <li>Con la radio funcionando y los dos postes en <strong>Automático</strong>. En cada poste: pestaña Técnico &rarr; <strong>"Si se cae la radio entre los postes:"</strong> &rarr; <strong>(a) Ámbar intermitente y voy con el testigo</strong> (pide el PIN).</li>
-    <li>En la pantalla principal de cada poste, lea la línea de abajo.</li>
-    <li>Quite la <strong>antena de un poste</strong>. Espere a que la app diga que no hay radio y lea el aviso. Pruebe a cambiar la opción: debe estar bloqueada.</li>
-    <li>Espere <strong>6 minutos</strong> sin tocar nada. Vuelva a poner la antena.</li>
+    <li>Con radio, en cada poste: pestaña Técnico &rarr; <strong>"(a) Ambar intermitente y voy con el testigo"</strong>.</li>
+    <li>Quite la antena de un poste. Intente cambiar la opción.</li>
+    <li>Espere <strong>6 minutos</strong>. Ponga la antena.</li>
   </ol>
-  <div class="espera">Se espera: la línea dice <strong>"Si se cae la radio: AMBAR, ir con testigo"</strong>. Sin antena, los postes quedan en <strong>ámbar intermitente</strong>, la app avisa "Sin radio. Los postes quedan en AMBAR intermitente y NO arrancan solos" con un botón a Degradado con testigo, y la opción dice "Sin radio no se puede cambiar". A los 6 minutos <strong>no han arrancado solos</strong>.</div>
+  <div class="espera">Se espera: la pantalla principal dice <strong>"Si se cae la radio: AMBAR, ir con testigo"</strong>. Sin antena: ámbar intermitente, aviso <strong>"Sin radio. Los postes quedan en AMBAR intermitente y NO arrancan solos"</strong> y <strong>"Sin radio no se puede cambiar"</strong>.</div>
   <div class="horas">
-    <label class="campo">Línea en la pantalla principal (cópiela) <input type="text" id="h7a" class="hora"></label>
+    <label class="campo">Línea de la pantalla principal <input type="text" id="h7a" class="hora"></label>
     <label class="campo">Hora en que quitó la antena <input type="text" id="h7b" class="hora"></label>
-    <label class="campo">Aviso que dio la app (cópielo) <input type="text" id="h7c" class="hora"></label>
+    <label class="campo">Aviso de la app <input type="text" id="h7c" class="hora"></label>
     <label class="campo">¿Arrancaron solos? (sí/no) <input type="text" id="h7d" class="hora"></label>
   </div>
   <div class="resultado">
@@ -255,19 +250,18 @@ button#btnPdf{
 </section>
 
 <section class="prueba" id="p8">
-  <h2>8. Si se cae la radio, opción (b): entran solos en Degradado a los 5 min</h2>
+  <h2>8. Sin radio, opción (b): Degradado solo a los 5 min</h2>
   <ol>
-    <li>Con la radio funcionando, ponga los relojes en hora y los dos postes en <strong>Automático</strong>. En <strong>cada</strong> poste elija <strong>(b) Entran solos en Degradado a los 5 min sin radio</strong>.</li>
-    <li>En cada poste: la tarjeta debe decir Este poste <strong>ON</strong>, Otro poste <strong>ON</strong>, Listo para entrar solo <strong>SI</strong>. Si dice otra cosa, anótelo y no siga.</li>
-    <li>Desconéctese y vuelva a conectarse a un poste: si los postes no coinciden, la app lo dice al conectar.</li>
-    <li>Quite la <strong>antena de un poste</strong>. Mire el aviso de la app y su cuenta. Espere unos <strong>5 minutos</strong>.</li>
-    <li>Al terminar, saque los dos postes con <strong>VOLVER AL MENÚ</strong> en el Poste 1 y vuelva a elegir <strong>(a)</strong> en los dos.</li>
+    <li>Con radio y relojes en hora, en cada poste: pestaña Técnico &rarr; <strong>"(b) Entran solos en Degradado a los 5 min sin radio"</strong>.</li>
+    <li>La tarjeta debe decir Este poste ON, Otro poste ON, Listo para entrar solo SI. Si no, no siga.</li>
+    <li>Quite la antena de un poste. Espere unos <strong>5 minutos</strong>.</li>
+    <li>Al terminar: <strong>VOLVER AL MENÚ</strong> en el Poste 1 y elija (a) en los dos.</li>
   </ol>
-  <div class="espera">Se espera: la línea dice <strong>"Si se cae la radio: DEGRADADO SOLO a los 5 min"</strong>. Sin antena, la app avisa "Sin radio. Entran SOLOS en Degradado en aprox. m:ss" con la cuenta bajando (es aproximada). A los ~5 min los dos postes pasan a <strong>rojo</strong>, arrancan solos a la hora fija que dice la app y alternan por reloj, con rojo y amarillo antes de cada verde. La app pasa a "En Degradado por reloj, sin radio".</div>
+  <div class="espera">Se espera: la pantalla principal dice <strong>"Si se cae la radio: DEGRADADO SOLO a los 5 min"</strong>. Sin antena: <strong>"Sin radio. Entran SOLOS en Degradado en aprox. m:ss"</strong>. A los 5 min, los dos en <strong>rojo</strong>; luego alternan solos. La app dice <strong>"En Degradado por reloj, sin radio"</strong>.</div>
   <div class="horas">
-    <label class="campo">Consulta: Este / Otro / Listo (cada poste) <input type="text" id="h8a" class="hora"></label>
+    <label class="campo">Este / Otro / Listo (cada poste) <input type="text" id="h8a" class="hora"></label>
     <label class="campo">Hora en que quitó la antena <input type="text" id="h8b" class="hora"></label>
-    <label class="campo">Hora en que entraron solos (rojo) <input type="text" id="h8c" class="hora"></label>
+    <label class="campo">Hora en que pasaron a rojo <input type="text" id="h8c" class="hora"></label>
     <label class="campo">Hora de arranque que dijo la app <input type="text" id="h8d" class="hora"></label>
     <label class="campo">¿Algún verde contra verde? (sí/no) <input type="text" id="h8e" class="hora"></label>
   </div>
@@ -281,25 +275,22 @@ button#btnPdf{
 </section>
 
 <section class="prueba" id="pF">
-  <h2>Algo más que haya visto</h2>
-  <textarea id="vF" placeholder="Cualquier otra cosa que quiera anotar"></textarea>
+  <h2>Algo más</h2>
+  <textarea id="vF" placeholder="Otra cosa que quiera anotar"></textarea>
   <div class="print-only" id="prF"></div>
 </section>
 
 <div class="recordatorio">
-  <strong>Al terminar cada prueba, en CADA poste:</strong> pestaña <strong>Tramas</strong> &rarr;
-  <strong>Diario de órdenes</strong> &rarr; <strong>"Exportar todo como archivo"</strong>, con el número de prueba
-  y el poste en el nombre (por ejemplo "prueba8_poste1"). Envíe todos los archivos junto con este PDF y el log
-  de la app.
+  <strong>Tras cada prueba, en cada poste:</strong> pestaña <strong>Tramas</strong> &rarr; <strong>"Diario de
+  órdenes"</strong> &rarr; <strong>"Exportar todo como archivo"</strong>. Nómbrelo "prueba8_poste1".
+  Envíelos con este PDF.
 </div>
-
-<p class="nota-impresion">Referencia: Manual de Señalización 4.4.2 y figura 4-9 (rojo y amarillo antes del verde).</p>
 
 </main>
 
 <footer>
   <button id="btnPdf">Guardar en PDF</button>
-  <p class="nota-impresion">En el diálogo, elija "Guardar como PDF" y envíela por WhatsApp.</p>
+  <p class="nota-impresion">Elija "Guardar como PDF" y envíelo por WhatsApp.</p>
   <p id="estado"></p>
 </footer>
 

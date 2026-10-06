@@ -8,15 +8,14 @@ Va, y solo esto:
   -- sin `Simulaciones/`, sin `Validacion_*`, sin el `README.md` de cada carpeta.
 - **La APK** compilada (ver seccion 3).
 - **La guia/formulario `.html` de pruebas vigente** de `05_Funcional/` -- el que Diego este usando
-  en la sesion en curso, el que genera un PDF al rellenarlo (hoy: `Pruebas_Funcional_2026-10-04.html`;
+  en la sesion en curso, el que genera un PDF al rellenarlo (hoy: `Pruebas_Funcional_2026-10-05.html`;
   el nombre lleva fecha y caduca solo -- si hay mas de uno con fecha reciente, se confirma con Diego
   cual toca antes de mandarlo. `historico/Guia_Cableado_y_Pruebas_Banco.html` es de banco, no de campo: no se
-  manda salvo que se pida).
-- **`LEEME_PRIMERO.txt`**, corto, texto plano (no `.md`, no `.htm`), con exactamente este orden:
-  1. Si paso banco o no, con esas palabras (`SIN BANCO` si no paso). Nunca abre con una cifra en verde.
-  2. Que trae el paquete (la lista de arriba, con nombres de fichero reales).
-  3. Que hacer con ello (compilar y grabar por PlatformIO; instalar el APK).
-  4. Nombre del APK y su **SHA-256 recalculado sobre el fichero que se envia**.
+  manda salvo que se pida). Su marcador `XXXXXXX` lo sustituye el empaquetador por el hash de `HEAD`.
+- **La app web**: `05_Funcional/App_Semaforo/www/` entera, como `App_Web/` (la misma que lleva la APK).
+
+**Sin LEEME** (Diego, 06/10): el funcional ya sabe que un `.zip` nuevo se carga y se prueba. Lo que haya que
+decirle (`SIN BANCO`, cargar los dos postes, el SHA-256 de la APK) va en el mensaje de envio.
 
 No va: ningun `.bin`, ningun `.md`, el acta de la compuerta (se queda en `evidencia/` del repo), los
 manuales `.docx` viejos de `05_Funcional/`. Diego los quito del paquete del 28/09 porque "marean, un
@@ -26,7 +25,7 @@ el encargo -- entonces van aparte, no dentro de este paquete por defecto (ver se
 **No existe variante "paquete para auditor".** Nadie la ha decidido: si alguien la pide, se pregunta
 que lleva antes de armarla, no se improvisa sobre esta receta.
 
-**Si el SHA-256 que compila el funcional no coincide con el nuestro:** se anota en el LEEME que
+**Si el SHA-256 que compila el funcional no coincide con el nuestro:** se le dice en el mensaje que
 hacer -- el que carguen el binario que les compilo (con su hash), o que nos pidan el nuestro -- no se
 decide en silencio cual usar.
 
@@ -87,17 +86,13 @@ deja el paquete con documentos a medias y el nombre de un commit que no describe
   (`.gitignore`) y no se deja suelto donde otro commit lo recoja por accidente.
 - Nombre: `Paquete_Semaforos_<fecha>_<hash>_SIN_BANCO.zip` (o sin el sufijo si el banco ya paso).
 - Antes de comprimir: recuento de artefactos de compilacion (`.pio/`, `build/`, `__pycache__`,
-  `node_modules`) = **0**; el SHA-256 del APK que va dentro comprobado, no copiado; el LEEME cita el
-  nombre exacto del APK que le acompana.
+  `node_modules`) = **0**; el SHA-256 del APK que va dentro comprobado, no copiado.
 - Cero diferencias entre el contenido del zip y `HEAD`, comprobado por hash documento a documento.
 
-## 5. Las cifras del LEEME salen de la ultima acta, con el arbol quieto
+## 5. Las cifras que se citan salen de la ultima acta, con el arbol quieto
 
-La compuerta puede servir un binario incremental viejo tras intercambiar fuentes o con dos agentes
-tocando el arbol a la vez: una cifra de flash puede ser correcta y ser de un binario que ya no
-existe. **La pasada que da las cifras se corre con el arbol quieto y se confirma con una segunda**;
-si no coinciden, manda la segunda. Si el LEEME no lleva ninguna cifra de flash/RAM (no lo exige
-Diego para el paquete al funcional), esta seccion no aplica: no se inventa una cifra para rellenar.
+Si un mensaje cita una cifra de flash o RAM, sale de una compuerta corrida con el arbol quieto y
+confirmada con una segunda: un binario incremental viejo da una cifra correcta de algo que ya no existe.
 
 ## 6. Las SPEC `.docx`, solo si se piden
 
