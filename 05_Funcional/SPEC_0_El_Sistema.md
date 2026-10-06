@@ -24,11 +24,12 @@ el despachador del Maestro (`Maestro/src/bluetooth.cpp`) no tiene rama que devue
 solo los LEE al enviar**. El tecnico que llega a un cruce en marcha ve **los valores por defecto del `.html`**, no los del
 equipo, y **si pulsa «Aplicar tiempos» sin tocar nada los graba**. **No es un hueco de documento: falta la orden.**
 
-**B · UN CORTE DE ENERGIA EN AUTOMATICO DEJA EL CRUCE PARADO EN ROJO, Y NADIE LO AVISA NI LO ARRANCA.** Medido en
+**B · UN CORTE DE ENERGIA EN AUTOMATICO DEJA EL CRUCE EN AMBAR INTERMITENTE, Y NADIE LO ARRANCA.** Medido en
 `Maestro/src/main.cpp`: el `setup()` tiene **dos salidas y solo dos** — reanuda **Modo Degradado** si
-`modo_degradado_reanudarTrasCorte()` lo autoriza (`D-29`), y **en cualquier otro caso entra en `MENU`**, el todo-rojo de las
-dos puntas. **El Automatico no se reanuda: no se guarda el modo, solo los tiempos**, y volver a darlo exige **una persona con
-el telefono en el poste**. `SPEC_3` §6 y `SPEC_6` A.5.3 documentan la reanudacion del Degradado; **la del modo normal no.**
+`modo_degradado_reanudarTrasCorte()` lo autoriza (`D-29`), y **en cualquier otro caso pasa al ambar intermitente de
+arranque** (`entrarAmbarDeArranque()`, `D-40`), tras esperar en `MENU` mientras la reanudacion siga pendiente.
+**El Automatico no se reanuda: no se guarda el modo, solo los tiempos**, y volver a darlo exige **una persona con el
+telefono en el poste**. `SPEC_3` §6 y `SPEC_6` A.5.3 documentan la reanudacion del Degradado; **la del modo normal no.**
 
 **C · «Operacion normal» NO estaba escrita, y lo confirma el instrumento.** `grep -rincE "puesta en marcha|operacion
 normal|primera vez" 05_Funcional/SPEC_*.md` da **0 en las ocho** (reproducido hoy). Lo unico que habia: el procedimiento de

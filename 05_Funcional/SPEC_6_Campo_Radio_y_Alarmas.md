@@ -353,7 +353,7 @@ camara como aparato no lo cubre nadie**, y no se inventa. Ademas, **ninguna cama
 **8. ⚠️ Nada de este capitulo ha visto una tarjeta.** Ni el Degradado por app, ni las alarmas, ni una radio
 reconfigurada con este firmware dentro — **ni `T-2`**. Que firmware corre en cada equipo lo dice `ESTADO.md`.
 
-**9. 🔴 `T-2` NO TIENE FILA EN `DECISIONES.md`** (PARTE D). Recensado el 14/09: la tabla llega ya hasta `D-33` y **ninguna
+**9. 🔴 `T-2` NO TIENE FILA EN `DECISIONES.md`** (PARTE D). Recensado el 06/10: la tabla llega hasta `D-53` y **ninguna
 de sus filas habla de subir el techo de orfandad de la version de campo** —buscado por el propio nombre del parche, cero
 apariciones—. **Describe un binario construido, no una decision tomada**, y sin fila **no hay nada escrito que autorice
 cargarlo** ni que fije cual plazo es el bueno. Se nombra como hueco; esta spec no abre filas.

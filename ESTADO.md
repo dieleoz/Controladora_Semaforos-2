@@ -13,7 +13,11 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
    correccion, y solo despues de pasar el banco de Marco (`CLAUDE.md` §0.2). Pendiente: C3 `Validacion_LCD`;
    C4 el grafo; `N-175` bajo trafico por dias de la semana, en roadmap. El Degradado automatico se queda.
 3. **Version siguiente de la app:** el rotulo del enlace en la cabecera pisa los iconos (roadmap, `N-176`).
-4. **Ramas de revision por leer** del 04/10 (`revision/*`) y **fase F** (partir `17_...`, `ARQUITECTURA.map`).
+   Marco (06/10, foto `evidencia/061020261035/1.jpg`): «a los 5 min sin radio no pasa a Degradado». Dice `Otro
+   poste: OFF`; el firmware exige los dos (`respaldo_otroApto()`, SPEC_2 §7.ter) y no entra, correcto. Lo que falla es
+   lo que se ve: «Listo para entrar solo: SI» con el otro en OFF, y ningun aviso al cumplirse la cuenta. Falta su log.
+4. **Fase F** (partir `17_...`, `ARQUITECTURA.map`). Las ramas `revision/*` del 04/10 se leyeron el 06/10 contra
+   `aec07e7`: casi todo cerrado o falso; lo vigente son huecos ya declarados en la spec.
 
 ## Frentes abiertos (tres como maximo)
 
@@ -31,7 +35,7 @@ trinquete 1,665); la 5, lo duplicado a `lib/`, despues de banco.
 | equipo | firmware | como se sabe |
 |---|---|---|
 | instalacion certificada | V8.4, `e303485` | la ultima que paso banco |
-| Maestro `179DB0` (El Sisga) | `7ff7d12` `SIN_BANCO`, probado despues `b354fe9` | cinta y diario en `evidencia/` |
+| Maestro `179DB0` (El Sisga) | `7ff7d12` `SIN_BANCO`, probado despues `b354fe9`. Ninguno lleva el veto de camara a la pluma (`363e375`, `D-33`): `Camaras_Sisga_4x.html` se corrige en la MISMA visita en que se cargue un firmware posterior | cinta y diario en `evidencia/` |
 | Esclavo del Sisga | sin medir | su cinta no se ha traido |
 | Maestro `4D2007` y Esclavo `38EB53` (Marco, banco) | `6bd1e4f` en controlador y puente, medido: `$ACK,CMD:VERSION` el 01/10 | `evidencia/011020260934/` |
 | paquete para Marco | `Paquete_Semaforos_2026-10-06_d810f81_SIN_BANCO` (D-53 y eleccion del Degradado automatico; firmware igual a `5f1d37f`, el del acta). Los anteriores, a `entregas/RETIRADOS/` | `entregas/` |
