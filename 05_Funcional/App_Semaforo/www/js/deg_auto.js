@@ -212,7 +212,7 @@ const DegAuto = {
     if (typeof DegFin !== 'undefined') DegFin.iniciar(ctx);   // js/deg_fin.js
     if (typeof DegAutoEleccion !== 'undefined') DegAutoEleccion.iniciar(ctx);
     const $ = (id) => document.getElementById(id);
-    this._el = { este: $('degauto-este'), otro: $('degauto-otro'), apto: $('degauto-apto'),
+    this._el = { este: $('degauto-este'), otro: $('degauto-otro'), apto: $('degauto-apto'), falta: $('degauto-falta'),
                  on: $('btn-degauto-on'), off: $('btn-degauto-off'), nota: $('degauto-sin-radio') };
     if (this._el.on) this._el.on.addEventListener('click', () => this._pulsar('1'));
     if (this._el.off) this._el.off.addEventListener('click', () => this._pulsar('0'));
@@ -229,6 +229,24 @@ const DegAuto = {
   // SPEC_4, recuadro de la eleccion (06/10): SI solo con lo que exige degAuto_loop() para
   // entrar -las dos opciones y el APTO propio-. El APTO solo no basta: con el otro en OFF
   // pintaba SI y el poste no entraba.
+  // SPEC_4, «Que falta» (responsable, 06/10: «no dice que hacer»): el PRIMER paso pendiente y la
+  // accion. El modo solo se mira en el Maestro: es su puertaAbierta() la que exige AUTO/INTELIGENTE,
+  // y desde el Esclavo eso llega como OTRO (el ultimo APTO oido del Maestro).
+  _falta(e, nodo, modo) {
+    if (!e.este) return 'pulse (b) en este poste.';
+    if (nodo === 'MAESTRO' && modo !== 'AUTO' && modo !== 'INTELIGENTE') {
+      return 'ponga el POSTE 1 en AUTO o INTELIGENTE y espere a que cicle con radio. En MENU, AMBAR o ' +
+             'MANUAL no entra solo.';
+    }
+    if (!e.otro) {
+      return nodo === 'MAESTRO'
+        ? 'vaya al POSTE 2, pulse (b) y espere 10 s antes de cambiar de poste. Despues consulte en los dos.'
+        : 'el POSTE 1 debe estar en AUTO o INTELIGENTE con (b) pulsada. Vaya al POSTE 1.';
+    }
+    if (!e.apto) return 'ponga la hora y compruebe que hay radio entre los postes; despues consulte otra vez.';
+    return 'nada: si la radio cae 5 min, entran solos. Compruebe que el otro poste dice lo mismo.';
+  },
+
   _listo(e) {
     if (!e.este) return 'NO: este poste en OFF';
     if (!e.otro) return 'NO: el otro poste no esta listo';
@@ -248,6 +266,8 @@ const DegAuto = {
     el.este.textContent = l[0];
     el.otro.textContent = l[1];
     el.apto.textContent = l[2];
+    if (el.falta) el.falta.textContent = (e && this.ctx.state.node && !this._sinOpcion)
+      ? 'Que falta: ' + this._falta(e, this.ctx.state.node, this.ctx.state.modo) : '';
     const esperando = 'Esperando al otro poste...';
     const sinRadio = this.sinRadio();
     [[el.on, '1', this.ETIQUETA_ON, true], [el.off, '0', this.ETIQUETA_OFF, false]].forEach(([b, v, etq, on]) => {

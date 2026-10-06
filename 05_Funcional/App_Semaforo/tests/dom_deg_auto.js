@@ -73,6 +73,19 @@ module.exports = async function pruebaDegAuto(montarAppLimpia, assert) {
   entra('ACK,CMD:CONSULTA_DEG_AUTO,RESULT:ESTE_ON_OTRO_ON_APTO_SI');
   assert(txt('degauto-este') === 'ON' && /^ON /.test(txt('degauto-otro')) && txt('degauto-apto') === 'SI',
     `DegAuto: la consulta ESTE_ON_OTRO_ON_APTO_SI pinta ON / ON / SI: ${txt('degauto-este')} / ${txt('degauto-otro')} / ${txt('degauto-apto')}`);
+  // SPEC_4, «Que falta» (responsable, 06/10: «no dice que hacer»): el PRIMER paso pendiente, con la accion.
+  const falta = (r, nodo, modo) => (a.w.DegAuto._falta || (() => "(sin _falta)"))(a.w.DegAuto.leerConsulta(r), nodo, modo);
+  for (const [r, nodo, modo, re] of [
+    ['ESTE_OFF_OTRO_ON_APTO_NO', 'MAESTRO', 'AUTO', /pulse \(b\) en este poste/],
+    ['ESTE_ON_OTRO_OFF_APTO_NO', 'MAESTRO', 'MENU', /ponga el POSTE 1 en AUTO o INTELIGENTE/],
+    ['ESTE_ON_OTRO_OFF_APTO_SI', 'MAESTRO', 'INTELIGENTE', /vaya al POSTE 2, pulse \(b\) y espere 10 s/],
+    ['ESTE_ON_OTRO_OFF_APTO_SI', 'ESCLAVO', 'SUBORDINADO', /el POSTE 1 debe estar en AUTO o INTELIGENTE con \(b\) pulsada/],
+    ['ESTE_ON_OTRO_ON_APTO_NO', 'ESCLAVO', 'SUBORDINADO', /ponga la hora y compruebe que hay radio/],
+    ['ESTE_ON_OTRO_ON_APTO_SI', 'MAESTRO', 'AUTO', /nada: si la radio cae 5 min, entran solos/]]) {
+    assert(re.test(falta(r, nodo, modo)), `DegAuto: «Que falta» con ${r} en ${nodo}/${modo}: "${falta(r, nodo, modo)}"`);
+  }
+  assert(/entran solos/.test(txt('degauto-falta')),
+    `DegAuto: el recuadro pinta «Que falta» con ON/ON/SI: "${txt('degauto-falta')}"`);
   // SPEC_4, recuadro de la eleccion (06/10, foto de Marco): "Listo" es lo que exige degAuto_loop() -los dos ON y APTO-, no el APTO propio.
   for (const [res, esperado] of [['ESTE_ON_OTRO_OFF_APTO_SI', 'NO: el otro poste no esta listo'],
                                  ['ESTE_ON_OTRO_ON_APTO_NO', 'NO: este poste no cumple las condiciones']]) {
