@@ -13,9 +13,9 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
    correccion, y solo despues de pasar el banco de Marco (`CLAUDE.md` §0.2). Pendiente: C3 `Validacion_LCD`;
    C4 el grafo; `N-175` bajo trafico por dias de la semana, en roadmap. El Degradado automatico se queda.
 3. **Version siguiente de la app:** el rotulo del enlace en la cabecera pisa los iconos (roadmap, `N-176`).
-   Marco (06/10, foto `evidencia/061020261035/1.jpg`): «a los 5 min sin radio no pasa a Degradado». Dice `Otro
-   poste: OFF`; el firmware exige los dos (`respaldo_otroApto()`, SPEC_2 §7.ter) y no entra, correcto. Lo que falla es
-   lo que se ve: «Listo para entrar solo: SI» con el otro en OFF, y ningun aviso al cumplirse la cuenta. Falta su log.
+   Marco (06/10, `evidencia/061020261035` y `061020261110`): «la (b) no entra a los 5 min». El banco de `d810f81` no
+   da defecto de firmware: activo la (b) con el Maestro en MENU, donde no hay acuse (SPEC_2 §7.ter), y OTRO es el
+   ultimo APTO oido, no la opcion. App corregida (`394678a`, `b4894d8`, `6fc5ffa`); falta APK y repetir la prueba.
 4. **Fase F** (partir `17_...`, `ARQUITECTURA.map`). Las ramas `revision/*` del 04/10 se leyeron el 06/10 contra
    `aec07e7`: casi todo cerrado o falso; lo vigente son huecos ya declarados en la spec.
 
