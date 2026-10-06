@@ -74,7 +74,7 @@ module.exports = async function pruebaDegAuto(montarAppLimpia, assert) {
   assert(txt('degauto-este') === 'ON' && /^ON /.test(txt('degauto-otro')) && txt('degauto-apto') === 'SI',
     `DegAuto: la consulta ESTE_ON_OTRO_ON_APTO_SI pinta ON / ON / SI: ${txt('degauto-este')} / ${txt('degauto-otro')} / ${txt('degauto-apto')}`);
   // SPEC_4, recuadro de la eleccion (06/10, foto de Marco): "Listo" es lo que exige degAuto_loop() -los dos ON y APTO-, no el APTO propio.
-  for (const [res, esperado] of [['ESTE_ON_OTRO_OFF_APTO_SI', 'NO: el otro poste en OFF'],
+  for (const [res, esperado] of [['ESTE_ON_OTRO_OFF_APTO_SI', 'NO: el otro poste no esta listo'],
                                  ['ESTE_ON_OTRO_ON_APTO_NO', 'NO: este poste no cumple las condiciones']]) {
     entra('ACK,CMD:CONSULTA_DEG_AUTO,RESULT:' + res);
     assert(txt('degauto-apto') === esperado,

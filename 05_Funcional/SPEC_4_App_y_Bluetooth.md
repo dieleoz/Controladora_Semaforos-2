@@ -230,7 +230,8 @@ funcional: lo intento sin radio y no entendio el rechazo `SIN_ENLACE_CON_EL_OTRO
   y OTRO difieren.
 - **Recuadro de la eleccion, «Listo para entrar solo»** (06/10, foto de Marco: «SI» con el otro en OFF y no entro): SI
   solo con `ESTE_ON`, `OTRO_ON` y `APTO_SI`, lo mismo que exige el firmware para entrar. Si no, NO con el motivo:
-  «este poste en OFF», «el otro poste en OFF» o «este poste no cumple las condiciones».
+  «este poste en OFF», «el otro poste no esta listo» (su ultimo APTO oido) o «este poste no cumple las
+  condiciones».
 - **Al conectar**, si no consta o no coincide, aviso que pide elegir («Mas tarde» lo pospone hasta la siguiente).
 - **Al caer la radio**, cartel segun la eleccion: (a) «quedan en AMBAR y NO arrancan solos: hay que ir con el
   testigo», con boton al testigo; (b) cuenta «aprox. m:ss» desde que la app ve `FALLO COM` (llega tarde respecto al

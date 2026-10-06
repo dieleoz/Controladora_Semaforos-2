@@ -230,7 +230,7 @@ const DegAuto = {
   // pintaba SI y el poste no entraba.
   _listo(e) {
     if (!e.este) return 'NO: este poste en OFF';
-    if (!e.otro) return 'NO: el otro poste en OFF';
+    if (!e.otro) return 'NO: el otro poste no esta listo';
     return e.apto ? 'SI' : 'NO: este poste no cumple las condiciones';
   },
 
