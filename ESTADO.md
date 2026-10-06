@@ -5,24 +5,22 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 
 ## Por donde se retoma, en este orden
 
-1. **Marco prueba `Paquete_Semaforos_2026-10-06_d810f81_SIN_BANCO`** (`entregas/`, sha256 `014ea336...`):
-   rojo+amarillo antes del verde (`D-53`) y Degradado automatico como eleccion de montaje (`N-176`). Trae firmware,
-   APK, `App_Web/` y `Pruebas_Funcional_2026-10-05.html` (8 casos, solo lo nuevo). Los DOS postes se cargan a la vez.
-   Arquitecto y QA: APTO CON CONDICIONES, cerradas. Origen: su banco del 05/10 (`evidencia/051020261239/`).
-2. **Lunes 05/10, montaje en campo** con `Montaje_Campo_2026-10-05.html` (sin Degradado desatendido).
-   **Falta que el responsable diga que firmware se graba**: el paquete del 04/10 no va a campo sin banco, y
-   `Camaras_Sisga_4x.html` (pluma sin veto) solo es verdad con `7ff7d12`/V8.4 (roadmap B7).
-3. **Ramas de revision por leer** (dictamenes, sin merge): `revision/spec-manuales-2026-10-04`,
-   `revision/opinion-spec-manuales-...`, `revision/spec-vs-firmware-...`, `revision/app-por-spec-...` (2026-10-04);
-   lo que aplicaba ya esta en main (roadmap B6-B8).
-4. **Fase F** (partir `17_...`, `ARQUITECTURA.map`, planos KiCad, worktrees viejos) y `N-166` (renombrar `A-15`).
-5. **Pendiente del responsable:** `N-175` modo nocturno; C3 renombrar `Validacion_LCD`; C4 donde vive el grafo;
-   B3 actualizar el plugin del metodo (fuera del repo).
+1. **Leer los logs de Marco con `Paquete_Semaforos_2026-10-06_d810f81_SIN_BANCO`** (`entregas/`, sha256
+   `014ea336...`): llegan a `evidencia/<ddmmaaaahhmm>/` (cinta, diario de ordenes `IOTVIAL_*`, enlace, log) y el
+   PDF de `Pruebas_Funcional_2026-10-05.html` (8 casos). Se leen enteros y contando (`CLAUDE.md` §7): primero que
+   los cuatro equipos digan `d810f81`, despues caso por caso contra SPEC_1 §3.3 (`D-53`) y SPEC_4 §3.ter.bis.
+2. **Pendiente del responsable (06/10):** si a las cuatro tareas del orquestador (empaquetador del funcional a
+   `herramientas/entrega/` retirando `generar_entrega_v9_0.py`; regla del telefono «solo `am start -n`, nunca
+   `monkey`» en `particularidades/`; `compuerta.py --help` sin correr nada; `PYTHONIOENCODING`/`PYTHONUTF8` en
+   `.claude/settings.json`). Que firmware va a campo en El Sisga (`d810f81` no tiene banco). Retirar o no el
+   Degradado automatico. `N-175` modo nocturno; C3 `Validacion_LCD`; C4 el grafo.
+3. **Version siguiente de la app:** el rotulo del enlace en la cabecera pisa los iconos (roadmap, `N-176`).
+4. **Ramas de revision por leer** del 04/10 (`revision/*`) y **fase F** (partir `17_...`, `ARQUITECTURA.map`).
 
 ## Frentes abiertos (tres como maximo)
 
 - **Banco de Marco** con el paquete del 06/10 (`d810f81`).
-- **Campo**: lunes 05/10; `N-172` sin medir en tarjeta.
+- **Campo** El Sisga: firmware por decidir; `N-172` sin medir en tarjeta.
 - **Orden del repo** (fase F).
 
 ## Organizacion del repo por fases (con el arquitecto de plataforma)
