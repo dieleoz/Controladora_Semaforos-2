@@ -750,6 +750,9 @@ document.addEventListener('DOMContentLoaded', () => {
       rfEstadoEl.textContent = ENLACE_ROTULO[tramo];
       rfEstadoEl.className = 'enlace-estado enlace-' + tramo.toLowerCase().replace('_', '');
     }
+    if (rssiTextEl) rssiTextEl.textContent = !state.telemetriaViva ? '(sin enlace)'  // cabecera, 06/10: este
+      : DegAutoEleccion.sinRadio(state) ? '(sin radio entre postes)'  // enlace y el sinRadio() del cartel
+      : medido ? '(radio ' + lectura.pct + ' %)' : '(enlazado)';
 
     // La barra: sin dato se queda a CERO ANCHO Y CON EL FONDO RAYADO, que es distinto
     // de una barra corta. Una barra al 3% "por poner algo" seria un valor pintado.
@@ -1408,8 +1411,7 @@ document.addEventListener('DOMContentLoaded', () => {
   //
   // Asi que se pinta el poste que habla, con su valor literal, y del otro se dice que
   // no se sabe. Un tablero quieto que admite que no sabe es honesto; uno que pinta un
-  // cruce que no ha medido le miente a quien decide sobre el trafico mirandolo
-  // (CLAUDE.md 3.quinquies).
+  // cruce que no ha medido le miente a quien decide sobre el trafico mirandolo (CLAUDE.md 3.quinquies).
   //
   // Y el otro sentido, que se cobra al reves: "FALLO COM" NO ES "APAGADO" NI ES ROJO.
   // Es ambar intermitente CON LA TALANQUERA ARRIBA -SFTY-6, la politica que eligio el
@@ -1440,7 +1442,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // _fraseDeEstadoLuces(), que las dos llamadas de mas abajo usan en vez de leer
     // `.frase` directo.
     'FALLO COM': { lampara: 'amber', texto: 'ÁMBAR DESTELLO', color: 'var(--amber-lamp)', anillo: 'amber',
-                   frase: 'FALLO COM: ámbar intermitente y TALANQUERA ARRIBA, se pasa con precaución' }
+                   frase: 'ámbar y pluma arriba: pasar con precaución' }  // la falla: cabecera y cartel
   };
 
   // LA UNICA FUNCION QUE DECIDE SI 'FALLO COM' SE LEE COMO AVERIA O COMO PEDIDO.
@@ -1451,8 +1453,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const info = ESTADOS[estado];
     if (!info) return null;
     if (estado === 'FALLO COM' && state.modo === 'AMBAR') {
-      return 'ÁMBAR intermitente PEDIDO por el operario (Modo Ámbar) y TALANQUERA ' +
-             'ARRIBA, se pasa con precaución';
+      return 'ámbar pedido por el operario: pasar con precaución';
     }
     return info.frase;
   }
@@ -1593,7 +1594,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (state.estadoLuces === 'FALLO COM') {
         return state.modo === 'AMBAR'
           ? 'ámbar pedido por el operario: se pasa con precaución'
-          : 'sin enlace: se pasa con precaución';
+          : 'sin radio entre postes: se pasa con precaución';
       }
       // D-45 (SPEC_4 6 (2)): el amarillo es el CIERRE de cada verde, y la pluma sigue arriba
       // en el por diseno (SFTY-28), no por un veto: baja al llegar el rojo.
@@ -1868,7 +1869,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       ajenas[{ red: 0, amber: 1, green: 2 }[luz.lampara]].classList.add('active');
       decir(luz.texto, luz.color);
-      return rotuloAjeno + ': ' + luz.texto;
+      return null;   // 06/10: su columna ya lo dice; repetirlo partia la frase en ~9 renglones
     }
 
     pintarBadgeModo();
@@ -1928,7 +1929,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // info.frase NO se lee directo: FALLO COM tiene dos causas y solo MODO -de esta
       // MISMA trama- distingue cual es (_fraseDeEstadoLuces(), 28/09).
       phaseDescEl.textContent = (esEsclavo ? 'ESCLAVO' : 'MAESTRO') + ': ' +
-                                _fraseDeEstadoLuces(state.estadoLuces) + ' · ' + frAjeno;
+                                _fraseDeEstadoLuces(state.estadoLuces) + (frAjeno ? ' · ' + frAjeno : '');
     }
   }
 
@@ -4552,7 +4553,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // para que la llamada de despues no se lo pise con algo mas pesimista.
     if (btBtnText) btBtnText.textContent = (state.ultimoEquipo && state.ultimoEquipo.mac)
       ? 'Sin enlace' : 'Sin equipo';
-    if (nodeNameEl) nodeNameEl.textContent = '---';
+    if (nodeNameEl) nodeNameEl.textContent = '---'; if (rssiTextEl) rssiTextEl.textContent = '(sin enlace)';
     actualizarBotonDesconectar();
     // La punta deja de constar, asi que los mandos vuelven al reparto de "no se sabe que
     // poste hay": las dos emergencias visibles y RETIRAR AMBAR retirado. Lo hace la misma
@@ -5746,7 +5747,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // camino que lo pinta, sin un segundo escritor.
     state.cam = null;
     pintarCamaras();
-    if (rssiTextEl) rssiTextEl.textContent = '(sin enlace)';
     if (s1Text) { s1Text.textContent = 'SIN DATOS'; s1Text.style.color = 'var(--text-muted)'; }
     if (s2Text) { s2Text.textContent = 'SIN DATOS'; s2Text.style.color = 'var(--text-muted)'; }
     if (badgeModoEl) {

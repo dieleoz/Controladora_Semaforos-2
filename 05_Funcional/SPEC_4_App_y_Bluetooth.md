@@ -225,8 +225,9 @@ funcional: lo intento sin radio y no entendio el rechazo `SIN_ENLACE_CON_EL_OTRO
   (b) «Entran solos en Degradado a los 5 min sin radio» = `SET_DEG_AUTO:1`. Pide PIN; se elige en LOS DOS postes.
 - **Sin radio los botones quedan desactivados** y la orden no sale: con `FALLO COM` fuera de `MODO:AMBAR` o `RF:0%`.
   No se bloquea por `APTO_NO`: con la opcion en OFF el apto es siempre NO.
-- **Pantalla principal, linea fija** con lo que dio `CONSULTA_DEG_AUTO`: «Si se cae la radio: AMBAR, ir con
-  testigo» o «… DEGRADADO SOLO a los 5 min»; «Los postes no coinciden» en rojo si ESTE y OTRO difieren.
+- **Pantalla principal, linea fija encima de la tarjeta del cruce** con lo que dio `CONSULTA_DEG_AUTO`: «Si se
+  cae la radio: AMBAR, ir con testigo» o «… DEGRADADO SOLO a los 5 min»; «Los postes no coinciden» en rojo si ESTE
+  y OTRO difieren.
 - **Al conectar**, si no consta o no coincide, aviso que pide elegir («Mas tarde» lo pospone hasta la siguiente).
 - **Al caer la radio**, cartel segun la eleccion: (a) «quedan en AMBAR y NO arrancan solos: hay que ir con el
   testigo», con boton al testigo; (b) cuenta «aprox. m:ss» desde que la app ve `FALLO COM` (llega tarde respecto al
@@ -379,7 +380,7 @@ corrida, **y la cuenta no se copia aqui** (§14).
 | | **Poste 1 (Maestro)** | **Poste 2 (Esclavo)** |
 |---|---|---|
 | rotulo en Android | `<prefijo><serie>-M` | `<prefijo><serie>-E` (o el provisional en la primera arrancada del modulo) |
-| cabecera | `MAESTRO (POSTE 1)` | `ESCLAVO (POSTE 2)` — lo decide `NODE:`, no lo que el operario suponga |
+| cabecera | `MAESTRO (POSTE 1)` + «(radio N %)» con `RF:` medido | `ESCLAVO (POSTE 2)` + «(enlazado)» — lo decide `NODE:`, no lo que el operario suponga. En las dos, «(sin radio entre postes)» con `FALLO COM` fuera de `MODO:AMBAR` o `RF:0%`, y «(sin enlace)» sin `$STATUS` |
 | `MODO:` | `MENU` `MANUAL` `AUTO` `INTELIGENTE` `ALCANCE` `DEGRADADO` `AMBAR` (~~`HORA`~~, `D-44`) | `SUBORDINADO` `DEGRADADO` `RENDIDO` — el campo dice si esta punta esta obedeciendo o gobernando |
 | `ESTADO:` | `ROJO` `VERDE` `AMARILLO` `FALLO COM` (con espacio); *`ROJO+AMAR` con `D-53` (HUECO)* | los mismos |
 | cuenta atras `T:` | numero o `--` | **`--` FIJO** |
