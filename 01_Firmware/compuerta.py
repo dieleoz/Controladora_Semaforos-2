@@ -23,11 +23,9 @@
 # la compuerta se cierra igual que si hubiera fallado, y el resumen lo dice con esa
 # palabra para que la diferencia no se diluya.
 #
-# La convencion de codigos de salida es la que ya usaban los validadores:
-#   0 = PASS, 1 = FALLA (propiedad rota), 2 = ABORTADO (no se pudo medir).
-#
-# USO:  python 01_Firmware/compuerta.py
-#       python 01_Firmware/compuerta.py --rapido    (sin compilar, solo modelos)
+# Salida: 0 = PASS, 1 = FALLA (propiedad rota), 2 = ABORTADO (no se pudo medir).
+USO = ("uso: python 01_Firmware/compuerta.py [--rapido]\n"
+       "  sin argumentos compila y corre todo (pide memoria libre); --rapido no compila")
 
 import os
 import re
@@ -859,7 +857,9 @@ def simulador_puente_esp32():
 
 
 def main():
-    rapido = "--rapido" in sys.argv
+    if sys.argv[1:] not in ([], ["--rapido"]):  # --help u otra cosa: la ayuda, sin correr nada
+        print(USO); return 0 if sys.argv[1:] in (["--help"], ["-h"]) else 2
+    rapido = sys.argv[1:] == ["--rapido"]
     print("=" * 78)
     print(" COMPUERTA DE VERIFICACION - Controladora de Semaforos")
     print("=" * 78)

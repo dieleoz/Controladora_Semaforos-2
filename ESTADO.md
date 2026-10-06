@@ -9,11 +9,9 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
    `014ea336...`): llegan a `evidencia/<ddmmaaaahhmm>/` (cinta, diario de ordenes `IOTVIAL_*`, enlace, log) y el
    PDF de `Pruebas_Funcional_2026-10-05.html` (8 casos). Se leen enteros y contando (`CLAUDE.md` §7): primero que
    los cuatro equipos digan `d810f81`, despues caso por caso contra SPEC_1 §3.3 (`D-53`) y SPEC_4 §3.ter.bis.
-2. **Pendiente del responsable (06/10):** si a las cuatro tareas del orquestador (empaquetador del funcional a
-   `herramientas/entrega/` retirando `generar_entrega_v9_0.py`; regla del telefono «solo `am start -n`, nunca
-   `monkey`» en `particularidades/`; `compuerta.py --help` sin correr nada; `PYTHONIOENCODING`/`PYTHONUTF8` en
-   `.claude/settings.json`). Que firmware va a campo en El Sisga (`d810f81` no tiene banco). Retirar o no el
-   Degradado automatico. `N-175` modo nocturno; C3 `Validacion_LCD`; C4 el grafo.
+2. **A campo (El Sisga) va el firmware que salga de este banco** (responsable, 06/10): `d810f81` o su
+   correccion, y solo despues de pasar el banco de Marco (`CLAUDE.md` §0.2). Pendiente: C3 `Validacion_LCD`;
+   C4 el grafo; `N-175` bajo trafico por dias de la semana, en roadmap. El Degradado automatico se queda.
 3. **Version siguiente de la app:** el rotulo del enlace en la cabecera pisa los iconos (roadmap, `N-176`).
 4. **Ramas de revision por leer** del 04/10 (`revision/*`) y **fase F** (partir `17_...`, `ARQUITECTURA.map`).
 

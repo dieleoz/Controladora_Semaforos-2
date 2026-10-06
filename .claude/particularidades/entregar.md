@@ -67,18 +67,14 @@ export JAVA_HOME="D:/@Proyect/Baliza/7 sw apk/jdk-17/jdk-17.0.12+7"   # JDK 17, 
 - Antes de copiar: comprobar que `App_Semaforo/*` y `App_Semaforo/www/*` son identicos por md5. Si
   difieren, un cambio entro en una y no en la otra -- se para y se investiga, no se elige una.
 - Nombre: `IOT_VIAL_Semaforos_<fecha>_<hash>_SIN_BANCO.apk` -- solo despues de verificar el contenido.
+- **Probarla en el telefono de Diego** (personal): se abre SOLO con `am start -n com.iotvial.semaforos/.MainActivity`
+  y se maneja por CDP. Nunca `monkey` (inyecta eventos al azar, 06/10) ni `input`. Sin equipo, Bluetooth falso.
 
 ## 4. El `.zip`: de donde sale y donde se deja
 
-**Contenido desde `HEAD`, nunca del disco**, salvo el APK (compilado aparte, no versionado):
-
-```python
-import subprocess, zipfile
-contenido = subprocess.run(["git", "show", f"HEAD:{ruta}"], cwd=repo, capture_output=True).stdout
-```
-
-`git ls-files` da las rutas versionadas; leer el arbol de trabajo con agentes escribiendo a la vez
-deja el paquete con documentos a medias y el nombre de un commit que no describe lo que lleva dentro.
+**Lo arma `herramientas/entrega/empaquetar_funcional.py <fecha> <hoja.html> <acta>`** (el unico; el de
+revision con manuales se retiro el 06/10). Contenido desde `HEAD`, nunca del disco, salvo la APK: leer el
+arbol de trabajo con agentes escribiendo a la vez deja documentos a medias bajo el nombre de otro commit.
 
 - **Con `zipfile` de Python, nunca `Compress-Archive`**: muere por el `PSModulePath` que la sesion
   del IDE hereda mezclando modulos de PS7 con los de la extension.

@@ -123,8 +123,10 @@ acabar solo quedan C
 Contestado pieza a pieza por el responsable el 02/10: `FORZAR_ROJO` tambien pasa por amarillo (`D-45`); la
 tanda 2 de G retira `SOLICITAR_PASO` y `SET_MODO:DEGRADADO`; `J14`, SFTY-20 y los pines de peaton se quedan (`D-46`).
 Todo cambio de firmware respeta las E/S y pines que fijan las guias de campo `.html` entregadas a Marco.
-**`N-175` Modo nocturno (SFTY-20, diseno en `OPTIMIZACIONES.md`):** se construira; antes, decidir que hace en un
-paso alterno de un carril (ambar en los dos extremos = nadie gobierna el tramo).
+**`N-175` Modo de bajo trafico (SFTY-20, diseno en `OPTIMIZACIONES.md`), optimizacion, version siguiente.**
+Responsable, 06/10: lo programa el usuario cuando quiera, por DIAS DE LA SEMANA y franja horaria (p.ej. este mes
+martes a jueves; fines de semana no, hay mas trafico). Luces del diseno: Maestro ambar intermitente, Esclavo rojo
+intermitente (norma 4.4.3). Abierto: si en un paso alterno de un carril eso basta para que no entren los dos.
 
 **A. `N-173` Runbook de la candidata** (se salto para mandar a Marco; ahora entero, para dejar `main` ok). La
 candidata crecio con I (`cda33df`) y G (`f9cad1f`): un solo runbook sobre todo.
