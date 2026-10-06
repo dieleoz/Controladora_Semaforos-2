@@ -9,7 +9,8 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
    nueva: «Que falta» del Degradado automatico; firmware igual a `d810f81`). Esperado: la (b) probada con el POSTE 1
    en AUTO/INTELIGENTE, los dos «Listo: SI», radio cortada 5,5 min, y un `IOTVIAL_*` de CADA poste. Leerlos enteros
    y contando (`CLAUDE.md` §7). Lo del 06/10 (`evidencia/0610*`) ya esta leido: ningun defecto de firmware; la (b)
-   se activo en MENU o sin el POSTE 1 ciclando, y la app no decia que hacer (arreglado, `16c97e6`).
+   se activo en MENU o sin el POSTE 1 ciclando, y la app no decia que hacer (arreglado, `16c97e6`). 15:25: «ya
+   entro, pero queda en rojo»: esperado 7-12 min (`DEG_AUTO_ROJO_MIN_S`); si sigue pasada la hora, defecto.
 2. **A campo (El Sisga) va el firmware que salga de este banco** (responsable, 06/10), solo tras el banco de Marco
    (`CLAUDE.md` §0.2). Pendiente: C3 `Validacion_LCD`; C4 el grafo; `N-175`. El Degradado automatico se queda.
 3. **Pendientes de escribir** (no se pudieron leer `OPTIMIZACIONES.md` ni `roadmap.md` el 06/10: el clasificador
@@ -17,18 +18,14 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
    (cinta con mas tope o registro aparte de $STATUS de cambio; copia persistente fuera de CACHE para adb; el
    registro de enlace dentro del mismo .txt; en nativo, a fichero desde el principio). Y `N-176` (cabecera).
 4. **Sin explicar:** a las 10:43:30 del 06/10 los contadores de radio del Maestro bajan de 1789 a 91 sin reinicio
-   que conste (`evidencia/061020261110`, Enlace csv). **Fase F** (partir `17_...`, `ARQUITECTURA.map`).
+   que conste (`evidencia/061020261110`, Enlace csv). **Fase F** (partir `17_...`, `ARQUITECTURA.map`). Pregunta
+   abierta al responsable: construir los dos interruptores de SPEC_8 §6 (Marco cree que existen; no existen).
 
 ## Frentes abiertos (tres como maximo)
 
 - **Banco de Marco** con el paquete `16c97e6`: la (b) bien probada.
 - **Campo** El Sisga: firmware por decidir; `N-172` sin medir en tarjeta.
-- **Orden del repo** (fase F).
-
-## Organizacion del repo por fases (con el arquitecto de plataforma)
-
-Fases 0-4 hechas (paquetes a `entregas/`, inventario, `CLAUDE.md` a 200, plugin y pre-commit, poda B con
-trinquete 1,665); la 5, lo duplicado a `lib/`, despues de banco.
+- **Orden del repo** (fase F). Fases 0-4 hechas con el arquitecto de plataforma; la 5 (`lib/`), tras banco.
 
 ## Que firmware hay en cada equipo (`CLAUDE.md` §0.2)
 
