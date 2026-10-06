@@ -52,6 +52,10 @@ camara, y lo que hace con ella tiene una sola direccion:
   la luz dejo de pedirla arriba, salvo veto de camara activo. El rojo+amarillo va despues del despeje del otro poste
   y no lo acorta, asi que la bajada y su `static_assert` no cambian. Si el rojo+amarillo acaba en rojo (orden de
   rojo, perdida de radio), la pluma no ha subido.
+- **LA PLUMA ES LENTA, y se queda asi (`D-54`, 06/10).** La de El Sisga tarda ~60 s en subir (Marco, sin medir):
+  sube con el VERDE real y deja paso a mitad de un verde de 3 min como minimo (`D-5`); no se adelanta, porque la
+  abriria en rojo durante el despeje del otro sentido. **Y la camara solo veta el COMIENZO de la bajada:** mandada
+  bajar, `escribirPines()` toma la rama de «pluma ya abajo» y no mira camara durante el minuto que dura el recorrido.
 - **Pasado el retardo, CUALQUIERA de las dos camaras del poste VETA la bajada** mientras siga viendo
   algo. Sin consenso: con un AND, una camara muerta anularia el veto para siempre.
 - **Al soltarse el veto el firmware baja en el instante, pero la camara mantiene su alarma 5 s tras el evento**
@@ -222,8 +226,9 @@ la **4** (la concesion de paso por camara nunca se probo)—. Aqui, lo que falta
 | 4 | **Los dos interruptores de §6: DECIDIDOS y SIN CONSTRUIR.** No hay ni una linea de firmware ni de app; lo que hay que medir antes de escribirla esta en §6 |
 | 5 | **Que hace el equipo si se saca la barrera de servicio con el brazo abajo** — §6. El equipo arranca siempre con la barrera abajo |
 | 6 | **La cinta de campo no ayuda:** 253 tramas del Sisga (10/09) y **las 253 dicen `CAM:?`** — en veinte minutos ninguna camara le dio un flanco al equipo (`SPEC_5` §6) |
+| 7 | **El recorrido real de la pluma:** ~60 s de subida segun Marco (06/10), sin cronometrar; la bajada, sin dato |
 
-*Decisiones recogidas: `D-12`, `D-13` (lo no derogado), `D-24`, `D-25`, `D-27`, `D-33`, `D-39`, `D-42`. Abiertas
+*Decisiones recogidas: `D-12`, `D-13` (lo no derogado), `D-24`, `D-25`, `D-27`, `D-33`, `D-39`, `D-42`, `D-54`. Abiertas
 que nombra sin resolver: `A-1.bis`, `A-6`. 🔴 **Y una eleccion vial vigente que NO tiene fila y deberia tenerla:
 la pluma ARRIBA en `S_FALLO`, del cliente y el PMT el 27/08/2026 (§5).** Manda esta spec;
 `DECISIONES.md` es su indice; el cobre, `17_...` y `SPEC_5`. Nacido el 14/09/2026 al

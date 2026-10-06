@@ -5,23 +5,23 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 
 ## Por donde se retoma, en este orden
 
-1. **Leer los logs de Marco con `Paquete_Semaforos_2026-10-06_d810f81_SIN_BANCO`** (`entregas/`, sha256
-   `014ea336...`): llegan a `evidencia/<ddmmaaaahhmm>/` (cinta, diario de ordenes `IOTVIAL_*`, enlace, log) y el
-   PDF de `Pruebas_Funcional_2026-10-05.html` (8 casos). Se leen enteros y contando (`CLAUDE.md` §7): primero que
-   los cuatro equipos digan `d810f81`, despues caso por caso contra SPEC_1 §3.3 (`D-53`) y SPEC_4 §3.ter.bis.
-2. **A campo (El Sisga) va el firmware que salga de este banco** (responsable, 06/10): `d810f81` o su
-   correccion, y solo despues de pasar el banco de Marco (`CLAUDE.md` §0.2). Pendiente: C3 `Validacion_LCD`;
-   C4 el grafo; `N-175` bajo trafico por dias de la semana, en roadmap. El Degradado automatico se queda.
-3. **Version siguiente de la app:** el rotulo del enlace en la cabecera pisa los iconos (roadmap, `N-176`).
-   Marco (06/10, `evidencia/061020261035` y `061020261110`): «la (b) no entra a los 5 min». El banco de `d810f81` no
-   da defecto de firmware: activo la (b) con el Maestro en MENU, donde no hay acuse (SPEC_2 §7.ter), y OTRO es el
-   ultimo APTO oido, no la opcion. App corregida (`394678a`, `b4894d8`, `6fc5ffa`); falta APK y repetir la prueba.
-4. **Fase F** (partir `17_...`, `ARQUITECTURA.map`). Las ramas `revision/*` del 04/10 se leyeron el 06/10 contra
-   `aec07e7`: casi todo cerrado o falso; lo vigente son huecos ya declarados en la spec.
+1. **Logs de Marco con `Paquete_Semaforos_2026-10-06_16c97e6_SIN_BANCO`** (`entregas/`, zip `ba1e0875...`; solo APK
+   nueva: «Que falta» del Degradado automatico; firmware igual a `d810f81`). Esperado: la (b) probada con el POSTE 1
+   en AUTO/INTELIGENTE, los dos «Listo: SI», radio cortada 5,5 min, y un `IOTVIAL_*` de CADA poste. Leerlos enteros
+   y contando (`CLAUDE.md` §7). Lo del 06/10 (`evidencia/0610*`) ya esta leido: ningun defecto de firmware; la (b)
+   se activo en MENU o sin el POSTE 1 ciclando, y la app no decia que hacer (arreglado, `16c97e6`).
+2. **A campo (El Sisga) va el firmware que salga de este banco** (responsable, 06/10), solo tras el banco de Marco
+   (`CLAUDE.md` §0.2). Pendiente: C3 `Validacion_LCD`; C4 el grafo; `N-175`. El Degradado automatico se queda.
+3. **Pendientes de escribir** (no se pudieron leer `OPTIMIZACIONES.md` ni `roadmap.md` el 06/10: el clasificador
+   lo bloqueo): fila de version siguiente con las cuatro mejoras del registro de la app que aprobo el responsable
+   (cinta con mas tope o registro aparte de $STATUS de cambio; copia persistente fuera de CACHE para adb; el
+   registro de enlace dentro del mismo .txt; en nativo, a fichero desde el principio). Y `N-176` (cabecera).
+4. **Sin explicar:** a las 10:43:30 del 06/10 los contadores de radio del Maestro bajan de 1789 a 91 sin reinicio
+   que conste (`evidencia/061020261110`, Enlace csv). **Fase F** (partir `17_...`, `ARQUITECTURA.map`).
 
 ## Frentes abiertos (tres como maximo)
 
-- **Banco de Marco** con el paquete del 06/10 (`d810f81`).
+- **Banco de Marco** con el paquete `16c97e6`: la (b) bien probada.
 - **Campo** El Sisga: firmware por decidir; `N-172` sin medir en tarjeta.
 - **Orden del repo** (fase F).
 
