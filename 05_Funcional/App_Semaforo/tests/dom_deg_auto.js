@@ -35,7 +35,8 @@ module.exports = async function pruebaDegAuto(montarAppLimpia, assert) {
   assert(a.tramas.length === 1 && a.tramas[0] === 'CMD:CONSULTA_DEG_AUTO\r\n',
     `DegAuto: al vencer sale UNA CMD:CONSULTA_DEG_AUTO sin PIN: ${a.tramas.join(' | ')}`);
   entra('ACK,CMD:CONSULTA_DEG_AUTO,RESULT:ESTE_OFF_OTRO_ON_APTO_NO');
-  assert(txt('degauto-este') === 'OFF' && /^ON /.test(txt('degauto-otro')) && txt('degauto-apto') === 'NO',
+  assert(txt('degauto-este') === 'OFF' && /^ON /.test(txt('degauto-otro')) &&
+         txt('degauto-apto') === 'NO: este poste en OFF',
     `DegAuto: la consulta pinta este=OFF, otro=ON, apto=NO: ${txt('degauto-este')} / ${txt('degauto-otro')} / ${txt('degauto-apto')}`);
 
   // (2) Activar pide PIN y no escribe nada hasta teclearlo; luego la trama EXACTA.
@@ -72,6 +73,14 @@ module.exports = async function pruebaDegAuto(montarAppLimpia, assert) {
   entra('ACK,CMD:CONSULTA_DEG_AUTO,RESULT:ESTE_ON_OTRO_ON_APTO_SI');
   assert(txt('degauto-este') === 'ON' && /^ON /.test(txt('degauto-otro')) && txt('degauto-apto') === 'SI',
     `DegAuto: la consulta ESTE_ON_OTRO_ON_APTO_SI pinta ON / ON / SI: ${txt('degauto-este')} / ${txt('degauto-otro')} / ${txt('degauto-apto')}`);
+  // SPEC_4, recuadro de la eleccion (06/10, foto de Marco): "Listo" es lo que exige degAuto_loop() -los dos ON y APTO-, no el APTO propio.
+  for (const [res, esperado] of [['ESTE_ON_OTRO_OFF_APTO_SI', 'NO: el otro poste en OFF'],
+                                 ['ESTE_ON_OTRO_ON_APTO_NO', 'NO: este poste no cumple las condiciones']]) {
+    entra('ACK,CMD:CONSULTA_DEG_AUTO,RESULT:' + res);
+    assert(txt('degauto-apto') === esperado,
+      `DegAuto: la consulta ${res} pinta "Listo para entrar solo: ${esperado}": "${txt('degauto-apto')}"`);
+  }
+  entra('ACK,CMD:CONSULTA_DEG_AUTO,RESULT:ESTE_ON_OTRO_ON_APTO_SI');
 
   // (4) Cada rechazo da su texto y NO cambia el estado pintado.
   const rechazos = [

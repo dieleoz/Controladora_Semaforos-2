@@ -222,7 +222,16 @@ const DegAuto = {
   _lineas(e) {
     return ['este poste ' + (e.este ? 'ON' : 'OFF'),
             'el otro poste ' + (e.otro ? 'ON' : 'OFF') + ' (ultimo oido por radio)',
-            'listo para entrar solo ' + (e.apto ? 'SI' : 'NO')];
+            'listo para entrar solo ' + this._listo(e)];
+  },
+
+  // SPEC_4, recuadro de la eleccion (06/10): SI solo con lo que exige degAuto_loop() para
+  // entrar -las dos opciones y el APTO propio-. El APTO solo no basta: con el otro en OFF
+  // pintaba SI y el poste no entraba.
+  _listo(e) {
+    if (!e.este) return 'NO: este poste en OFF';
+    if (!e.otro) return 'NO: el otro poste en OFF';
+    return e.apto ? 'SI' : 'NO: este poste no cumple las condiciones';
   },
 
   render() {
@@ -234,7 +243,7 @@ const DegAuto = {
     else if (this._sinOpcion) l = ['este firmware no la lleva', '-', '-'];
     else if (!e) l = ['consultando...', '-', '-'];
     else l = [e.este ? 'ON' : 'OFF', (e.otro ? 'ON' : 'OFF') + ' (ultimo oido por radio)',
-              e.apto ? 'SI' : 'NO'];
+              this._listo(e)];
     el.este.textContent = l[0];
     el.otro.textContent = l[1];
     el.apto.textContent = l[2];
