@@ -25,14 +25,23 @@ Orden por dano en campo, no por facilidad. Cada fase cierra con sus pruebas en v
 
 1. **Hoja de banco con «Por que» y «Debe ver» (estado de partida) en cada caso.** El 06/10 Marco probo la (b) en el
    modo equivocado y la cinta no sirvio. Solo `.html`; entra en la siguiente hoja.
-2. **Un color, una accion** (rojo ir, ambar mirar, verde, gris sin datos) y **una frase por estado**, sin LED ni
-   jerga; tramas y contadores a una pestana «Datos tecnicos». Su revision UX encontro 18 problemas, contraste
-   3,15:1 y toques de 13 px: aqui no se ha medido. Primero se mide (punto 4), despues se cambia.
-3. **Cabecera en dos lineas; el estado del enlace fuera de ella**, en su franja. Cierra la fila de version
-   siguiente del 06/10 de `roadmap.md` (rotulo recortado).
-4. **Revision UX en simulado**: un agente con Chrome sin cabeza a 360x640 y 1280x800, capturas y lista de problemas
-   con contraste calculado. Es una medida, no un entregable: de ella sale la lista de la fase 2.
-5. **Dialogos propios en vez de `prompt`/`confirm`/`alert`** nativos (alli salian en ingles). Hoy hay 5 en `app.js`.
+2. **Un color, una accion** (rojo ir, ambar mirar, verde, gris sin datos) y **una frase por estado**; tramas,
+   contadores y siglas a una pestana «Datos tecnicos». Medido el 09/10 (punto 4): contraste minimo 6,52:1 (el
+   3,15:1 de alla no se da aqui); jerga a la vista del operario: `SET_MODO_AUTO`, `[J17] MUDO`, `OTRO_PERRO`, MAC,
+   `RF:--`, `RTT`, `RSSI`, «CAMARAS J16», y en el Poste 2 «no viaja en esta trama», «desde D-23».
+3. **Cabecera**: a 360 px el rol y el enlace quedan en dos emoji (`style.css`, `@media (max-width: 400px)`); el
+   rotulo del enlace llega a 246 de 248 px libres. El recorte del 06/10 no se reprodujo en simulado (fuentes con
+   red; sin red, como en la APK, sin medir): se mide en el telefono antes de cambiarla.
+4. **Revision UX en simulado: HECHA el 09/10** (agente, Chrome sin cabeza, 360x640 y 1280x800; informe y capturas en
+   el scratchpad de la sesion, fuera del repo). Lo que le hace EQUIVOCARSE, primero:
+   - a 360x640 la barra inferior flotante tapa 38 de 58 px de los botones AMBAR y ROJO TOTAL en Trafico;
+   - «nuevo cruce» propone nombre y PR aleatorios (`Math.random()` en el `prompt`): aceptar sin leer guarda un
+     cruce inventado como activo.
+   Y lo que le hace DUDAR: 26 de 61 textos de Trafico a 9-10 px; `#btn-select-site` de 21 px de alto y la casilla
+   del testigo de 13x13. Sin medir: tema claro (no existe), carteles de alarma y Degradado, flujo del PIN, sol y
+   guante: los mide quien lo usa de pie.
+5. **Dialogos propios en vez de `prompt`/`confirm`/`alert`** nativos (alli salian en ingles). Medidos: 6, cinco en
+   `app.js` y uno en `js/diario_vista.js`.
 
 ### Fase 2 — Modo administracion y estructura
 
