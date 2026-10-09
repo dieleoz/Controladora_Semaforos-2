@@ -596,3 +596,17 @@ Lo que el equipo DEBE hacer en la proxima version de la app; hoy no lo hace. Det
 cuatro mejoras del registro de la app del 06/10. `D-56`: tiempos, Degradado, depuracion y hora, solo con la clave de
 administracion. `D-57`: clave de soporte para recuperarla, fuera del repo, como huella con sal. `D-58`: modo de
 practica sin poste con varios equipos simulados, marcado SIMULADO, nunca con un equipo conectado y tras clave.
+
+### 9.1 Las preguntas las hace la app, no el navegador (`ROADMAP_APP.md` 5) — construido, sin telefono
+
+Lo que HACE (contra el fuente; lo ejerce `tests/dom_dialogos.js` sobre el `app.js` real): ninguna pregunta sale
+por `prompt`, `confirm` o `alert` del navegador: el nativo sale en el idioma del sistema (en ingles en la APK de
+Pasos Peatonales), bloquea el hilo (colgo una corrida E2E, `N75-4`) y en jsdom no se contesta.
+Las seis que hay (vaciar la bitacora del enlace, la cinta de tramas y el diario de ordenes; crear un cruce, nombre y
+ubicacion; renombrarlo) salen por un dialogo propio en espanol (`js/dialogo.js`, `#dialogo-modal`):
+- el titulo dice QUE se borra o que se pide, y el boton nombra la accion («Vaciar», «Guardar»), no «Aceptar» ni
+  «OK»; Cancelar a la izquierda y la accion a la derecha, como en el aviso de via;
+- Cancelar, la ✕ o tocar fuera no borran ni guardan nada; un nombre vacio no crea ni renombra;
+- crear un cruce son dos preguntas seguidas, con los campos VACIOS (el `prompt` proponia nombre y PR al azar con
+  `Math.random()`: un valor inventado que se guarda con un toque); sin nombre no se guarda; cancelar la segunda lo
+  guarda sin ubicacion, como el `prompt`.

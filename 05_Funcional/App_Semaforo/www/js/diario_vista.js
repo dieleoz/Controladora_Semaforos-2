@@ -242,16 +242,16 @@ const DiarioVista = {
 
     if (btnDiarioLimpiar) {
       btnDiarioLimpiar.addEventListener('click', () => {
-        if (typeof window.confirm === 'function' &&
-            !window.confirm('Se vacia el diario de ordenes de esta sesion. Si no lo ha ' +
-                            'exportado, se pierde.')) return;
-        DiarioOrdenes.limpiar();
-        if (diarioTextoEl) {
-          diarioTextoEl.value = '';
-          diarioTextoEl.hidden = true;
-        }
-        renderDiario();
-        addEvent('cyan', 'Diario de ordenes vaciado a peticion del usuario.');
+        Dialogo.confirmar('¿Vaciar el diario de órdenes?', 'Se vacía el de esta sesión. Si no lo ha ' +
+                          'exportado, se pierde.', 'Vaciar el diario', () => {
+          DiarioOrdenes.limpiar();
+          if (diarioTextoEl) {
+            diarioTextoEl.value = '';
+            diarioTextoEl.hidden = true;
+          }
+          renderDiario();
+          addEvent('cyan', 'Diario de ordenes vaciado a peticion del usuario.');
+        });
       });
     }
 

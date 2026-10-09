@@ -40,8 +40,10 @@ Orden por dano en campo, no por facilidad. Cada fase cierra con sus pruebas en v
    Y lo que le hace DUDAR: 26 de 61 textos de Trafico a 9-10 px; `#btn-select-site` de 21 px de alto y la casilla
    del testigo de 13x13. Sin medir: tema claro (no existe), carteles de alarma y Degradado, flujo del PIN, sol y
    guante: los mide quien lo usa de pie.
-5. **Dialogos propios en vez de `prompt`/`confirm`/`alert`** nativos (alli salian en ingles). Medidos: 6, cinco en
-   `app.js` y uno en `js/diario_vista.js`.
+5. **Dialogos propios: HECHO el 09/10** (`www/js/dialogo.js`, `SPEC_4` §9.1). Los 6 nativos pasan a 0; el boton dice
+   el verbo («Vaciar la cinta»), no «OK»; «nuevo cruce» sale vacio y sin nombre no guarda. `tests/dom_dialogos.js`:
+   19 de 22 en rojo antes, 22/22 despues. La barra que tapaba AMBAR y ROJO TOTAL no se reprodujo sin equipo
+   conectado (botones en 407-548, barra en 569): se mide con equipo, en el telefono.
 
 ### Fase 2 — Modo administracion y estructura
 

@@ -188,17 +188,18 @@ assert(siteModal.classList.contains('active'), 'Al pulsar el selector de sitio s
 
 // A. Crear un cruce nuevo
 //
-// La app de 2 roles pide el nombre por prompt() en vez de por un formulario modal.
-// jsdom no implementa prompt(), asi que se sustituye: lo que se mide no es el dialogo
-// sino que el cruce quede guardado, se active y aparezca en la lista.
-let promptCola = [];
-window.prompt = () => (promptCola.length ? promptCola.shift() : null);
+// La app pide nombre y ubicacion por su dialogo propio (js/dialogo.js, SPEC_4 9.1), que se mide en
+// tests/dom_dialogos.js. Aqui se contesta en orden -true acepta sin escribir; sin respuesta, Cancelar- y lo que
+// se mide es que el cruce quede guardado, se active y aparezca en la lista.
+const contestar = (cola) => { const m = document.getElementById('dialogo-modal'); while (m.classList.contains('active')) {
+  const v = cola.length ? cola.shift() : null; if (v === null) { document.getElementById('btn-dialogo-cancelar').click(); break; }
+  if (v !== true) document.getElementById('dialogo-entrada').value = v; document.getElementById('btn-dialogo-aceptar').click(); } };
 
 const btnOpenAddSite = document.getElementById('btn-open-add-site');
 assert(!!btnOpenAddSite, 'Boton de crear cruce presente en el modal de cruces');
 
-promptCola = ['Obra Variante Km 45', 'PR 45+200 Calzada Derecha'];
 btnOpenAddSite.click();
+contestar(['Obra Variante Km 45', 'PR 45+200 Calzada Derecha']);
 
 const currentSiteEl = document.getElementById('current-site-name');
 assert(currentSiteEl.textContent.includes('Obra Variante Km 45'),
@@ -215,10 +216,9 @@ assert(listaEl.textContent.includes('Obra Variante Km 45'),
 assert(!!document.querySelector('.btn-edit-site') && !!document.querySelector('.btn-delete-site'),
   'Las tarjetas de cruce exponen renombrar y eliminar');
 
-promptCola = ['Obra Variante Km 45 [EDITADO]'];
 document.querySelectorAll('.site-card').forEach(c => {
   if (c.textContent.includes('Obra Variante Km 45')) c.querySelector('.btn-edit-site').click();
-});
+}); contestar(['Obra Variante Km 45 [EDITADO]']);
 btnSelectSite.click();
 assert(listaEl.textContent.includes('[EDITADO]'),
   'El renombrado se ve en la lista sin recargar');
@@ -226,8 +226,8 @@ assert(listaEl.textContent.includes('[EDITADO]'),
 // D. Estres de escala: 20 cruces en el DOM
 for (let i = 1; i <= 20; i++) {
   const pad = String(i).padStart(2, '0');
-  promptCola = [`Cruce Corredor Km ${pad}`, `PR ${pad}+000 Doble Calzada`];
   btnOpenAddSite.click();
+  contestar([`Cruce Corredor Km ${pad}`, `PR ${pad}+000 Doble Calzada`]);
 }
 
 btnSelectSite.click();
@@ -273,8 +273,8 @@ const nuevos4 = [
 ];
 
 nuevos4.forEach(n => {
-  promptCola = [n.name, n.loc];
   btnOpenAddSite.click();
+  contestar([n.name, n.loc]);
 });
 
 btnSelectSite.click();
@@ -289,16 +289,16 @@ assert(editButtons.length === countAfterDelete + 4, `Todos los cruces poseen bot
 // N-75: el nombre de prueba baja de 41 a 30 caracteres. Lo que esta comprobacion mide
 // es que el renombrado se vea al momento, no que quepan 41: SiteManager recorta a 32
 // para que un nombre largo no parta la cabecera en dos lineas.
-promptCola = ['Cruce Cundinamarca [RENOVADO]'];
 editButtons[0].click();
+contestar(['Cruce Cundinamarca [RENOVADO]']);
 
 btnSelectSite.click();
 const updatedFirstCardTitle = document.querySelector('.site-card .site-card-title').textContent;
 assert(updatedFirstCardTitle.includes('[RENOVADO]'), `La tarjeta del DOM cambió su nombre inmediatamente: ${updatedFirstCardTitle}`);
 
 // Y el tope se aplica de verdad: un nombre que desbordaria la cabecera se recorta.
-promptCola = ['Tramo Obra Kilometro 45 Variante Via al Llano Sector Norte'];
 editButtons[0].click();
+contestar(['Tramo Obra Kilometro 45 Variante Via al Llano Sector Norte']);
 btnSelectSite.click();
 const recortado = document.querySelector('.site-card .site-card-title').textContent;
 assert(recortado.length <= 32,
@@ -1006,8 +1006,7 @@ assert(!!depuLista && !!depuContadores && !!depuTexto,
   'La pantalla de depuración existe y está separada de la de operación');
 
 // Vaciar la cinta para medir sobre una cuenta conocida -y de paso ejercer el boton-.
-window.confirm = () => true;
-document.getElementById('btn-depu-limpiar').click();
+document.getElementById('btn-depu-limpiar').click(); contestar([true]);
 assert(window.RegistroCrudo.todas().length === 0,
   'El botón de vaciar deja la cinta a cero');
 assert(depuLista.textContent.includes('Todavia no ha entrado ninguna trama'),
@@ -1198,9 +1197,8 @@ assert(!!diarioLista && !!diarioTexto && !!diarioResumen,
 // Los dos registros a cero, con los botones de la app -que de paso quedan ejercidos-.
 // Vaciar el diario borra tambien el ultimo $STATUS visto, que es lo que hace falta para
 // que el bloque del efecto empiece sin un "antes" heredado de la seccion anterior.
-window.confirm = () => true;
-document.getElementById('btn-depu-limpiar').click();
-document.getElementById('btn-diario-limpiar').click();
+document.getElementById('btn-depu-limpiar').click(); contestar([true]);
+document.getElementById('btn-diario-limpiar').click(); contestar([true]);
 assert(window.DiarioOrdenes.todas().length === 0 && window.RegistroCrudo.todas().length === 0,
   'El boton de vaciar el diario lo deja a cero, igual que el de la cinta');
 
@@ -1349,7 +1347,7 @@ assert(D.casa('CAMBIAR_TURNO', 'MANUAL:CAMBIAR_TURNO') === 'POR_ALIAS' &&
 // DESCONOCIDO. Con UNA sola orden esperando se atribuye Y SE DICE que fue por descarte;
 // con dos o mas no se atribuye a ninguna. Un diario que reparte respuestas a ojo es peor
 // que uno con huecos, porque el hueco se ve.
-document.getElementById('btn-diario-limpiar').click();
+document.getElementById('btn-diario-limpiar').click(); contestar([true]);
 darAmbar();
 const soloUna = D.todas().filter(x => x.clase === 'ORDEN').pop();
 const errAuth = 'ERR,CMD:AUTH_FAILED,DESC:PIN_INVALIDO';
@@ -1359,7 +1357,7 @@ assert(!!soloUna && !!soloUna.respuesta && soloUna.respuesta.atribucion === 'POR
 assert(!!soloUna && D.textoRespuesta(soloUna, Date.now()).includes('ATRIBUIDA POR DESCARTE'),
   'y el diario DICE que fue por descarte y que puede no ser de esa orden');
 
-document.getElementById('btn-diario-limpiar').click();
+document.getElementById('btn-diario-limpiar').click(); contestar([true]);
 darAmbar();
 darAmbar();
 const dosPendientes = D.todas().filter(x => x.clase === 'ORDEN');
@@ -1385,7 +1383,7 @@ assert(D.todas().filter(x => x.clase === 'RESPUESTA_SUELTA').length === 2 &&
 // dicho de cuatro maneras. Y todas publican cuantos segundos y cuantas tramas se
 // miraron, porque la ventana esta atada a DESPEJE_SEG_MAX del C++ y si ese techo sube,
 // el que lea el registro tiene que poder ver que la ventana no daba para la maniobra.
-document.getElementById('btn-diario-limpiar').click();
+document.getElementById('btn-diario-limpiar').click(); contestar([true]);
 conectarComo('MAESTRO', 'SERIE:SEM-M-01,MODO:MANUAL,ESTADO:R1_R2,T:31,RF:97,RTT:70,BAT:12.9,HORA:15:01:00');
 darAmbar();
 const oEfecto = D.todas().filter(x => x.clase === 'ORDEN').pop();
@@ -1411,7 +1409,7 @@ assert(D.textoEfecto(oEfecto, t0 + D.VENTANA_EFECTO_MS + 1).indexOf('CAMBIO: EST
 // Y la mitad que mas duele: sin $STATUS con el que comparar, ni siquiera con la ventana
 // cerrada se puede escribir "no cambio nada". Vaciar el diario borra el ultimo $STATUS
 // visto, asi que esta orden sale sin "antes".
-document.getElementById('btn-diario-limpiar').click();
+document.getElementById('btn-diario-limpiar').click(); contestar([true]);
 darAmbar();
 const oSinAntes = D.todas().filter(x => x.clase === 'ORDEN').pop();
 const frSinDatos = D.textoEfecto(oSinAntes, oSinAntes.ms + D.VENTANA_EFECTO_MS + 1);
@@ -2206,7 +2204,7 @@ assert(/ESCRITA SIN ENLACE/.test(diarioMudo),
 sinE.w.Date.now = relojReal;
 
 // APP-1 y cinta sin enlace: tests/dom_usabilidad.js; exportar en la APK: tests/dom_exportar.js.
-require('./tests/dom_usabilidad.js')(montarAppLimpia, assert).then(() => require('./tests/dom_exportar.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_version.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_acuse_con_argumentos.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_deg_auto.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_aviso_degradado.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_aviso_corte.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_aviso_radio_deg.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_deg_fin.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_textos_spec4.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_rojo_amar.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_deg_eleccion.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_cabecera_fase.js')(montarAppLimpia, assert))
+require('./tests/dom_usabilidad.js')(montarAppLimpia, assert).then(() => require('./tests/dom_exportar.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_version.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_acuse_con_argumentos.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_deg_auto.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_aviso_degradado.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_aviso_corte.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_aviso_radio_deg.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_deg_fin.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_textos_spec4.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_rojo_amar.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_deg_eleccion.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_cabecera_fase.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_dialogos.js')(montarAppLimpia, assert))
   .catch(e => assert(false, 'pruebaExportarApk lanzo: ' + e)).then(() => {
     console.log('='.repeat(80));
     console.log(` RESULTADO JSDOM: ${testsPassed} PASS | ${testsFailed} FALLAS`);

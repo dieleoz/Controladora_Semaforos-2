@@ -971,16 +971,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (btnRegistroLimpiar) {
     btnRegistroLimpiar.addEventListener('click', () => {
-      // Se pide confirmacion porque esto BORRA LA PRUEBA de una caida que a lo mejor
-      // todavia no ha visto nadie.
-      if (typeof window.confirm === 'function' &&
-          !window.confirm('Se borra la bitacora del enlace guardada en este telefono. ' +
-                          'Si no la has exportado, se pierde.')) return;
-      RegistroEnlace.limpiar();
-      state.rfTramo = null;
-      state.rfUltimaMuestraMs = null;
-      renderRegistroEnlace();
-      addEvent('cyan', 'Bitacora del enlace borrada a peticion del usuario.');
+      // Se pregunta porque esto BORRA LA PRUEBA de una caida que a lo mejor no ha visto nadie (js/dialogo.js).
+      Dialogo.confirmar('¿Vaciar la bitácora del enlace?', 'Se borra la guardada en este teléfono. ' +
+                        'Si no la ha exportado, se pierde.', 'Vaciar la bitácora', () => {
+        RegistroEnlace.limpiar();
+        state.rfTramo = null;
+        state.rfUltimaMuestraMs = null;
+        renderRegistroEnlace();
+        addEvent('cyan', 'Bitacora del enlace borrada a peticion del usuario.');
+      });
     });
   }
 
@@ -1343,16 +1342,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (btnDepuLimpiar) {
     btnDepuLimpiar.addEventListener('click', () => {
-      if (typeof window.confirm === 'function' &&
-          !window.confirm('Se vacia la cinta de tramas de esta sesion. Si no la ha ' +
-                          'exportado, se pierde.')) return;
-      RegistroCrudo.limpiar();
-      if (depuTextoEl) {
-        depuTextoEl.value = '';
-        depuTextoEl.hidden = true;
-      }
-      renderDepuracion();
-      addEvent('cyan', 'Cinta de tramas en crudo vaciada a peticion del usuario.');
+      Dialogo.confirmar('¿Vaciar la cinta de tramas?', 'Se vacía la de esta sesión. Si no la ha ' +
+                        'exportado, se pierde.', 'Vaciar la cinta', () => {
+        RegistroCrudo.limpiar();
+        if (depuTextoEl) {
+          depuTextoEl.value = '';
+          depuTextoEl.hidden = true;
+        }
+        renderDepuracion();
+        addEvent('cyan', 'Cinta de tramas en crudo vaciada a peticion del usuario.');
+      });
     });
   }
 
@@ -4420,17 +4419,16 @@ document.addEventListener('DOMContentLoaded', () => {
       // puede ademas seleccionar el cruce que se esta borrando.
       item.querySelector('.btn-edit-site').addEventListener('click', (ev) => {
         ev.stopPropagation();
-        const nombre = prompt('Nuevo nombre del cruce:', site.nombre);
-        if (!nombre || !nombre.trim()) return;
-        SiteManager.actualizarCruce(site.id, nombre.trim(), site.ubicacion, site.p1, site.p2);
-        // Si el cruce editado es el que esta activo, la cabecera cambia con el:
-        // un rotulo que se queda con el nombre viejo es un cruce mal identificado.
-        if (currentSiteNameEl && state.site && site.nombre.includes(state.site)) {
-          state.site = nombre.replace('📍', '').trim();
-          currentSiteNameEl.textContent = '📍 ' + state.site;
-        }
-        renderSiteList(siteSearchInput ? siteSearchInput.value : '');
-        addEvent('cyan', 'Cruce renombrado a ' + nombre.trim());
+        Dialogo.pedirTexto({ titulo: 'Renombrar el cruce', texto: 'Nombre nuevo:', valor: site.nombre }, (nombre) => {
+          SiteManager.actualizarCruce(site.id, nombre, site.ubicacion, site.p1, site.p2);
+          // Si el cruce editado es el activo, la cabecera cambia con el: un rotulo viejo es un cruce mal identificado.
+          if (currentSiteNameEl && state.site && site.nombre.includes(state.site)) {
+            state.site = nombre.replace('📍', '').trim();
+            currentSiteNameEl.textContent = '📍 ' + state.site;
+          }
+          renderSiteList(siteSearchInput ? siteSearchInput.value : '');
+          addEvent('cyan', 'Cruce renombrado a ' + nombre);
+        });
       });
 
       item.querySelector('.btn-delete-site').addEventListener('click', (ev) => {
@@ -4460,18 +4458,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (btnOpenAddSite) {
     btnOpenAddSite.addEventListener('click', () => {
-      const nombre = prompt('Ingrese el nombre del nuevo cruce:', 'Tramo Km ' + Math.floor(Math.random() * 80 + 10));
-      if (nombre && nombre.trim()) {
-        const ubicacion = prompt('Ingrese la ubicación o PR:', 'PR ' + Math.floor(Math.random() * 50) + '+000');
-        const nuevo = SiteManager.agregarCruce(nombre.trim(), ubicacion ? ubicacion.trim() : '');
-        // Se activa en el acto. Crear un cruce y quedarse en el anterior obliga a un
-        // segundo paso que nadie recuerda, y el rotulo de la cabecera es lo unico que
-        // le dice al tecnico sobre que cruce esta mandando ordenes.
-        state.site = nuevo.nombre.replace('📍', '').trim();
-        if (currentSiteNameEl) currentSiteNameEl.textContent = '📍 ' + state.site;
-        renderSiteList();
-        showToast(`✓ Cruce "${nuevo.nombre}" guardado.`);
-      }
+      // Campos VACIOS (SPEC_4 9.1). Se activa en el acto: el rotulo de la cabecera es lo unico que le dice al
+      // tecnico sobre que cruce manda ordenes, y quedarse en el anterior pide un paso que nadie recuerda.
+      Dialogo.pedirTexto({ titulo: 'Nuevo cruce', texto: 'Nombre del cruce:' }, (nombre) => {
+        const guardar = (ubicacion) => {
+          const nuevo = SiteManager.agregarCruce(nombre, ubicacion);
+          state.site = nuevo.nombre.replace('📍', '').trim();
+          if (currentSiteNameEl) currentSiteNameEl.textContent = '📍 ' + state.site;
+          renderSiteList();
+          showToast(`✓ Cruce "${nuevo.nombre}" guardado.`);
+        };
+        Dialogo.pedirTexto({ titulo: 'Nuevo cruce', texto: 'Ubicación o PR (opcional):', opcional: true },
+                           guardar, () => guardar(''));
+      });
     });
   }
 

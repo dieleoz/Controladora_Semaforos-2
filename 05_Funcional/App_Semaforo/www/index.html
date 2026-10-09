@@ -1121,6 +1121,22 @@
     </div>
   </div>
 
+  <!-- Las preguntas de la app (SPEC_4 9.1): logica y motivo en js/dialogo.js. Cancelar a la izquierda. -->
+  <div class="modal-overlay" id="dialogo-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h4 id="dialogo-titulo"></h4>
+        <button class="modal-close" id="dialogo-cerrar">✕</button>
+      </div>
+      <p class="modal-desc" id="dialogo-texto"></p>
+      <input type="text" class="form-input" id="dialogo-entrada" maxlength="60" autocomplete="off" hidden>
+      <div class="degradado-acciones">
+        <button class="btn-secondary-bt btn-via-alto" id="btn-dialogo-cancelar">Cancelar</button>
+        <button class="btn-degradado btn-via-alto" id="btn-dialogo-aceptar"></button>
+      </div>
+    </div>
+  </div>
+
   <!-- Aviso de PALETEROS (29/09): logica y motivo en js/aviso_degradado.js. -->
   <div class="modal-overlay" id="aviso-deg-modal">
     <div class="modal-card">
@@ -1146,6 +1162,7 @@
 
   <!-- Modular Scripts -->
   <script src="js/config.js"></script>
+  <script src="js/dialogo.js"></script>
   <script src="js/nmea_parser.js"></script>
   <script src="js/site_manager.js"></script>
   <script src="js/courier_rtc.js"></script>
