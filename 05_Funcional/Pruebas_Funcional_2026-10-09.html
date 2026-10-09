@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pruebas en banco</title>
+<style>
+:root{
+  --papel:#f6f5f2; --tarjeta:#ffffff; --tinta:#17191c; --tinta-2:#55555a;
+  --linea:#dedcd5; --acento:#c4520c; --ok:#1d7a48; --alto:#b52b26;
+  --info-bg:#e3ecf3; --campo:#fffdf8;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0; padding:12px 12px 40px; background:var(--papel); color:var(--tinta);
+  font-family:"Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+  font-size:17px; line-height:1.45;
+}
+h1{font-size:22px; margin:4px 0 12px;}
+h2{font-size:19px; margin:0 0 8px;}
+section.prueba{
+  background:var(--tarjeta); border:1px solid var(--linea); border-radius:10px;
+  padding:14px; margin-bottom:14px;
+}
+header.datos{
+  background:var(--tarjeta); border:1px solid var(--linea); border-radius:10px;
+  padding:14px; margin-bottom:16px;
+}
+label.campo{display:block; margin-bottom:10px; font-weight:600; font-size:15px;}
+input[type=text], input[type=date], textarea{
+  width:100%; font-size:16px; padding:8px; margin-top:4px;
+  border:1px solid var(--linea); border-radius:6px; background:var(--campo); color:var(--tinta);
+  font-family:inherit;
+}
+textarea{min-height:60px; resize:vertical;}
+ol{padding-left:22px; margin:8px 0;}
+li{margin-bottom:6px;}
+.espera{
+  background:var(--info-bg); border-left:4px solid var(--acento);
+  padding:8px 10px; margin:10px 0; border-radius:6px; font-size:16px;
+}
+.nota{
+  background:#fdf3e3; border-left:4px solid var(--acento);
+  padding:8px 10px; margin:10px 0; border-radius:6px; font-size:15px;
+}
+.resultado{margin:10px 0;}
+.resultado label{
+  display:block; padding:8px 6px; border:1px solid var(--linea); border-radius:6px;
+  margin-bottom:6px; font-size:16px;
+}
+.resultado input{margin-right:8px; transform:scale(1.3);}
+.porque,.debever{
+  border-left:4px solid var(--linea); background:#f1f0ec; padding:8px 10px; margin:10px 0;
+  border-radius:6px; font-size:15px;
+}
+.debever{border-left-color:var(--ok); background:#e8f3ec;}
+.porque b.t,.debever b.t{display:block; margin-bottom:4px;}
+.debever ul{margin:4px 0 0; padding-left:20px;}
+.print-only{display:none;}
+.recordatorio{
+  background:#fdf3e3; border:1px solid var(--acento); border-radius:10px;
+  padding:14px; margin-bottom:16px; font-size:16px;
+}
+.alto{
+  background:#fbe9e8; border:2px solid var(--alto); border-radius:10px;
+  padding:14px; margin-bottom:16px; font-size:16px;
+}
+.horas label.campo{font-weight:400;}
+footer{position:sticky; bottom:0; background:var(--papel); padding-top:10px;}
+button#btnPdf{
+  width:100%; font-size:18px; padding:14px; border:none; border-radius:8px;
+  background:var(--acento); color:#fff; font-weight:600;
+}
+.nota-impresion{font-size:14px; color:var(--tinta-2); text-align:center; margin:8px 0;}
+#estado{font-size:13px; color:var(--tinta-2); text-align:center;}
+@media print{
+  button#btnPdf, .nota-impresion, #estado{display:none;}
+  .resultado, textarea, .horas{display:none;}
+  .print-only{display:block; border:1px solid var(--linea); border-radius:6px; padding:8px; margin-top:8px; font-size:15px; background:#fafafa;}
+  section.prueba{break-inside:avoid; page-break-inside:avoid; border:1px solid #999;}
+}
+</style>
+</head>
+<body>
+<header class="datos">
+  <h1>Pruebas en banco</h1>
+  <label class="campo">Fecha
+    <input type="date" id="fecha">
+  </label>
+  <label class="campo">Nombre de quien prueba
+    <input type="text" id="nombre">
+  </label>
+  <label class="campo">Nombre del paquete (.zip)
+    <input type="text" id="paquete">
+  </label>
+  <label class="campo">Serie del Poste 1 (Maestro)
+    <input type="text" id="serieM">
+  </label>
+  <label class="campo">Serie del Poste 2 (Esclavo)
+    <input type="text" id="serieE">
+  </label>
+</header>
+
+<main>
+
+<div class="alto">
+  <strong>Si ve los dos postes en VERDE a la vez, avise de inmediato</strong> y anote la hora.
+</div>
+
+<div class="recordatorio">
+  Anote la hora del celular de cada cosa que vea. Haga las pruebas <strong>en orden</strong>: cada una parte de cómo dejó la anterior. Lea siempre el recuadro verde &laquo;Debe ver antes de empezar&raquo;; si lo que ve es otra cosa, <strong>no empiece</strong>: arréglelo o avise.
+</div>
+
+<section class="prueba" id="p1">
+  <h2>1. Dejar los dos postes listos y con la versión anotada</h2>
+  <div class="porque"><b class="t">Por qué</b>Queremos saber con qué versión salen los resultados de las demás pruebas. El firmware de los postes es el mismo del paquete anterior, así que <strong>no hace falta volver a cargarlo</strong>; lo que cambia es la aplicación del celular, que ahora explica qué falta para que los postes entren solos.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Los dos postes y los dos puentes encendidos, y las dos antenas puestas.</li>
+    <li>Radio entre los postes funcionando (la pantalla no dice &laquo;Sin radio&raquo;).</li>
+    <li>Hora puesta en cada poste desde la app (la ayuda de la pestaña Técnico se lo dice).</li>
+    <li>La aplicación del celular es la de este paquete (la APK del .zip), no la anterior.</li>
+  </ul></div>
+  <ol>
+    <li>Instale la APK de <strong>Paquete_Semaforos_2026-10-09_XXXXXXX_SIN_BANCO.zip</strong> en el celular.</li>
+    <li>Si los postes ya tienen el firmware del paquete anterior, <strong>no los recargue</strong>. Si por cualquier motivo los recarga, cargue el de este paquete en controlador y puente.</li>
+    <li>En cada poste: pestaña Técnico &rarr; <strong>"Consultar version del firmware"</strong>.</li>
+  </ol>
+  <div class="espera">Se espera: <strong>el mismo código de versión en los cuatro</strong> (controlador y puente de cada poste). Si recargó este paquete, el código es <strong>XXXXXXX</strong>. Si no recargó, es el del paquete anterior: anótelo. Si los cuatro no coinciden, no siga y avise.</div>
+  <div class="horas">
+    <label class="campo">Poste 1 - Controlador: código <input type="text" id="h1a" class="hora"></label>
+    <label class="campo">Poste 1 - Puente: código <input type="text" id="h1b" class="hora"></label>
+    <label class="campo">Poste 2 - Controlador: código <input type="text" id="h1c" class="hora"></label>
+    <label class="campo">Poste 2 - Puente: código <input type="text" id="h1d" class="hora"></label>
+    <label class="campo">¿Recargó el firmware? (sí/no) <input type="text" id="h1e" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r1" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r1" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r1" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v1" placeholder="Lo que vio distinto"></textarea>
+  <div class="print-only" id="pr1"></div>
+</section>
+
+<section class="prueba" id="p2">
+  <h2>2. Dejar activada la opción (b) en los dos postes</h2>
+  <div class="porque"><b class="t">Por qué</b>La opción (b) hace que, si se cae la radio, los dos postes se pongan solos en Degradado (rojo y luego a alternar por reloj). Solo funciona si <strong>el Poste 1 está dando ciclos con radio</strong> y si la opción está puesta en <strong>los dos</strong> postes. El 06/10 se activó con el Poste 1 en el menú, sin dar ciclos: la tarjeta decía NO, no entraron solos y la prueba no sirvió. Esta prueba comprueba que la tarjeta diga SÍ en los dos antes de cortar nada.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li><strong>Poste 1</strong> en <strong>AUTOMÁTICO</strong> (o Modo Inteligente), dando ciclos: las luces alternan entre los dos postes. No en el menú, no en Manual, no en Ámbar.</li>
+    <li><strong>Poste 2</strong> siguiendo al Poste 1 (alterna con él).</li>
+    <li>Radio buena: la pantalla no dice &laquo;Sin radio&raquo; y no hay &laquo;FALLO COM&raquo;.</li>
+    <li>Ambos postes con la opción de fábrica: la línea de la pantalla principal dice <strong>"Si se cae la radio: AMBAR, ir con testigo"</strong> y la tarjeta &laquo;Este poste&raquo; dice OFF.</li>
+  </ul></div>
+  <ol>
+    <li>Pestaña Técnico, tarjeta &laquo;Si se cae la radio entre los postes&raquo;. Conectado al <strong>Poste 1</strong>: pulse <strong>"(b) Entran solos en Degradado a los 5 min sin radio"</strong> y ponga el PIN. Espere 10 s.</li>
+    <li>Conéctese al <strong>Poste 2</strong>, pulse el mismo (b) y espere 10 s.</li>
+    <li>En cada poste, consulte la tarjeta. Lea el renglón &laquo;Que falta&raquo;. Si dice algo distinto de &laquo;nada&raquo;, haga lo que dice, consulte otra vez y anote qué dijo.</li>
+  </ol>
+  <div class="espera">Se espera, en <strong>los dos</strong> postes: Este poste <strong>ON</strong>, Otro poste <strong>ON</strong>, Listo para entrar solo <strong>SI</strong>, y &laquo;Que falta: nada: si la radio cae 5 min, entran solos&raquo;. La línea principal dice <strong>"Si se cae la radio: DEGRADADO SOLO a los 5 min"</strong>. Si algún poste dice NO, <strong>no siga a la prueba 3</strong>: anote lo que dice y avise.</div>
+  <div class="horas">
+    <label class="campo">Hora de la consulta <input type="text" id="h2a" class="hora"></label>
+    <label class="campo">Poste 1: Este / Otro / Listo <input type="text" id="h2b" class="hora"></label>
+    <label class="campo">Poste 1: texto de &laquo;Que falta&raquo; <input type="text" id="h2c" class="hora"></label>
+    <label class="campo">Poste 2: Este / Otro / Listo <input type="text" id="h2d" class="hora"></label>
+    <label class="campo">Poste 2: texto de &laquo;Que falta&raquo; <input type="text" id="h2e" class="hora"></label>
+    <label class="campo">Poste 1: ¿cicla con radio? (sí/no) <input type="text" id="h2f" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r2" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r2" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r2" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v2" placeholder="Lo que vio distinto (si algún poste dijo NO, copie el texto)"></textarea>
+  <div class="print-only" id="pr2"></div>
+</section>
+
+<section class="prueba" id="p3">
+  <h2>3. Cortar la radio y esperar a que entren solos</h2>
+  <div class="porque"><b class="t">Por qué</b>Es la prueba que no se pudo hacer el 06/10. Se quiere ver que, sin radio y sin nadie tocando, los dos postes quedan primero en ámbar, a los 5 minutos pasan a rojo fijo, esperan en rojo y después arrancan a alternar por reloj sin dar verde en los dos a la vez. <strong>Es normal que queden en rojo mucho rato</strong> (entre 7 y 12 minutos después de entrar): el rojo es la espera hasta la hora fija de arranque. No es una avería salvo que pase de 20 minutos desde que quitó la antena.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Prueba 2 en OK: los dos postes con <strong>SI</strong>.</li>
+    <li><strong>Poste 1</strong> sigue en <strong>AUTOMÁTICO</strong> (o Inteligente) dando ciclos con radio. <strong>No toque ningún modo</strong> hasta terminar: con el Poste 1 en el menú, en Manual o en Ámbar no entran solos.</li>
+    <li>El celular conectado al Poste 1 y con la pantalla principal abierta (ahí sale la cuenta).</li>
+    <li>Tiempo libre de <strong>20 minutos</strong> como mínimo y las dos antenas a mano.</li>
+  </ul></div>
+  <ol>
+    <li>Anote la hora y <strong>quite la antena de un poste</strong> (el que quiera; con eso se corta la radio de los dos). No pulse nada más.</li>
+    <li>Mire la pantalla principal y los postes. Unos 30 s después los postes pasan a ámbar intermitente: es normal.</li>
+    <li>Siga mirando. Anote la hora en que <strong>los dos</strong> quedan en rojo fijo (a los 5 min).</li>
+    <li>Espere en rojo. Anote la hora del <strong>primer verde</strong> y compruebe que alternan, uno y luego el otro.</li>
+    <li>Deje alternar al menos <strong>un ciclo completo de los dos</strong> mirando las luces, no la pantalla.</li>
+  </ol>
+  <div class="espera">Se espera: la pantalla principal dice <strong>"Sin radio. Entran SOLOS en Degradado en aprox. m:ss"</strong> y la cuenta baja desde unos 5:00. A los 5 min, <strong>los dos en rojo fijo</strong> y la app dice <strong>"En Degradado por reloj, sin radio"</strong>. Rojo fijo de 7 a 12 min (normal). Después el primer verde, en un poste y luego en el otro, con <strong>rojo y amarillo juntos 2 s</strong> antes de cada verde. Nunca verde en los dos a la vez. El primer verde llega entre 12 y 17 minutos después de quitar la antena.</div>
+  <div class="horas">
+    <label class="campo">Hora en que quitó la antena <input type="text" id="h3a" class="hora"></label>
+    <label class="campo">Cuenta que mostró la app al principio (m:ss) <input type="text" id="h3b" class="hora"></label>
+    <label class="campo">Hora en que los dos quedaron en rojo <input type="text" id="h3c" class="hora"></label>
+    <label class="campo">Texto de la app en ese momento <input type="text" id="h3d" class="hora"></label>
+    <label class="campo">Hora del primer verde <input type="text" id="h3e" class="hora"></label>
+    <label class="campo">Poste que dio ese primer verde <input type="text" id="h3f" class="hora"></label>
+    <label class="campo">¿Rojo y amarillo juntos antes de cada verde? (sí/no) <input type="text" id="h3g" class="hora"></label>
+    <label class="campo">¿Algún verde contra verde? (sí/no) <input type="text" id="h3h" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r3" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r3" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r3" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v3" placeholder="Lo que vio distinto. Si pasaron 20 min sin verde, anote la hora y qué luz tiene cada poste"></textarea>
+  <div class="print-only" id="pr3"></div>
+</section>
+
+<section class="prueba" id="p4">
+  <h2>4. Volver la radio y dejar los postes como estaban</h2>
+  <div class="porque"><b class="t">Por qué</b>Al volver la radio los postes <strong>siguen en Degradado a propósito</strong>: nadie los saca solos. Hay que sacarlos a mano y dejar la opción de fábrica (a), que es la que va en carretera. También se quiere ver que la app avisa que volvió la radio y dice qué hacer.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Prueba 3 hecha: los dos postes alternando por reloj, sin radio.</li>
+    <li>Antena todavía quitada en un poste.</li>
+    <li>El celular conectado al <strong>Poste 1</strong>.</li>
+  </ul></div>
+  <ol>
+    <li>Ponga la antena. Anote la hora. Espere a que la app diga que la radio volvió.</li>
+    <li>En el <strong>Poste 1</strong>, pulse <strong>VOLVER AL MENÚ</strong>. El Poste 2 lo sigue solo por radio.</li>
+    <li>Pulse <strong>AUTOMÁTICO</strong> en el Poste 1 y espere a que los dos den ciclos con radio.</li>
+    <li>En cada poste, pestaña Técnico: <strong>"(a) Ambar intermitente y voy con el testigo"</strong>. Consulte la tarjeta.</li>
+  </ol>
+  <div class="espera">Se espera: aviso <strong>"LA RADIO VOLVIO entre los dos postes. Siguen en Degradado."</strong> con la acción &laquo;VOLVER AL MENU en el POSTE 1&raquo;. Después del menú y de AUTOMÁTICO, los dos dan ciclos. Al elegir (a), en los dos la tarjeta dice Este poste OFF y la línea principal "Si se cae la radio: AMBAR, ir con testigo". Si la app dice que el otro poste no acusó, no es un fallo: ponga el Poste 1 en AUTOMÁTICO con radio y repita.</div>
+  <div class="horas">
+    <label class="campo">Hora en que puso la antena <input type="text" id="h4a" class="hora"></label>
+    <label class="campo">Aviso que mostró la app <input type="text" id="h4b" class="hora"></label>
+    <label class="campo">¿Los dos salieron del Degradado? (sí/no) <input type="text" id="h4c" class="hora"></label>
+    <label class="campo">Poste 1: línea principal al final <input type="text" id="h4d" class="hora"></label>
+    <label class="campo">Poste 2: línea principal al final <input type="text" id="h4e" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r4" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r4" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r4" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v4" placeholder="Lo que vio distinto"></textarea>
+  <div class="print-only" id="pr4"></div>
+</section>
+
+<div class="alto" style="background:#e3ecf3;border-color:var(--acento)"><strong>Si le queda tiempo</strong> (después de las pruebas 1 a 4). Estas seis se hicieron para la versión anterior y no han vuelto a medirse. Hágalas con los postes ya <strong>de vuelta en AUTOMÁTICO con radio</strong>, como los dejó la prueba 4.</div>
+
+<section class="prueba" id="p5">
+  <h2>5. Rojo y amarillo 2 s antes de cada verde</h2>
+  <div class="porque"><b class="t">Por qué</b>Antes de cada verde el semáforo debe poner rojo y amarillo juntos 2 segundos, para avisar al que espera. Si pasa de rojo a verde directo, o si pone solo amarillo antes del verde, el conductor no sabe si va a abrir. Esos 2 s se <strong>suman</strong> al ciclo: no se descuentan del verde.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Poste 1 en <strong>AUTOMÁTICO</strong> con radio, dando ciclos. Los dos postes alternan.</li>
+    <li>Para el modo Inteligente y DAR PASO, el Poste 1 se cambia a ese modo antes de mirar (DAR PASO es el botón del modo Manual).</li>
+    <li>Cronómetro o reloj a mano.</li>
+  </ul></div>
+  <ol>
+    <li>Mire abrir el verde en <strong>Automático</strong>, en <strong>Inteligente</strong> y con <strong>DAR PASO</strong>, en los dos postes.</li>
+    <li>El Degradado ya se miró en la prueba 3; si quiere repetirlo con testigo, hágalo aparte y anótelo.</li>
+  </ol>
+  <div class="espera">Se espera: antes de cada verde, <strong>rojo y amarillo juntos 2 s</strong>. Nunca amarillo solo antes del verde.</div>
+  <div class="horas">
+    <label class="campo">Rojo y amarillo medido (s) <input type="text" id="h5a" class="hora"></label>
+    <label class="campo">Poste 1: ¿en los tres modos? (sí/no) <input type="text" id="h5b" class="hora"></label>
+    <label class="campo">Poste 2: ¿en los tres modos? (sí/no) <input type="text" id="h5c" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r5" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r5" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r5" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v5" placeholder="Verde sin rojo y amarillo: poste, modo y hora"></textarea>
+  <div class="print-only" id="pr5"></div>
+</section>
+
+<section class="prueba" id="p6">
+  <h2>6. El verde dura lo configurado</h2>
+  <div class="porque"><b class="t">Por qué</b>Los 2 s de rojo y amarillo se agregaron al ciclo. Se quiere comprobar que no le quitaron tiempo al verde: el ciclo total crece, el verde queda igual a lo que está en Tiempos.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Poste 1 en <strong>AUTOMÁTICO</strong> con radio, dando ciclos.</li>
+    <li>Pestaña Tiempos visible (requiere el perfil Técnico/Administrador). Anote el verde que dice <strong>antes</strong> de cronometrar y no lo cambie.</li>
+  </ul></div>
+  <ol>
+    <li>Anote el verde de la pestaña Tiempos.</li>
+    <li>Cronometre un verde completo de cada poste (desde que enciende el verde hasta que apaga).</li>
+  </ol>
+  <div class="espera">Se espera: el verde dura <strong>lo configurado</strong>, sin los 2 s del rojo y amarillo.</div>
+  <div class="horas">
+    <label class="campo">Verde configurado (s) <input type="text" id="h6a" class="hora"></label>
+    <label class="campo">Verde medido Poste 1 (s) <input type="text" id="h6b" class="hora"></label>
+    <label class="campo">Verde medido Poste 2 (s) <input type="text" id="h6c" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r6" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r6" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r6" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v6" placeholder="Lo que vio distinto"></textarea>
+  <div class="print-only" id="pr6"></div>
+</section>
+
+<section class="prueba" id="p7">
+  <h2>7. La pluma sube con el verde</h2>
+  <div class="porque"><b class="t">Por qué</b>La pluma no debe subir mientras hay rojo y amarillo: la subida se pediría con el otro sentido todavía despejando. La pluma de El Sisga es lenta (cerca de un minuto en subir): es normal y no es lo que se prueba.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Poste con talanquera conectada y pluma abajo.</li>
+    <li>Poste 1 en <strong>AUTOMÁTICO</strong> con radio, dando ciclos.</li>
+  </ul></div>
+  <ol>
+    <li>Mire cuándo empieza a subir la pluma de cada poste con talanquera, respecto a las luces.</li>
+  </ol>
+  <div class="espera">Se espera: en rojo y amarillo la pluma <strong>sigue abajo</strong>; empieza a subir con el <strong>verde</strong>.</div>
+  <div class="horas">
+    <label class="campo">Poste 1: ¿subió en rojo y amarillo? (sí/no) <input type="text" id="h7a" class="hora"></label>
+    <label class="campo">Poste 2: ¿subió en rojo y amarillo? (sí/no) <input type="text" id="h7b" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r7" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r7" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r7" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v7" placeholder="Lo que vio distinto"></textarea>
+  <div class="print-only" id="pr7"></div>
+</section>
+
+<section class="prueba" id="p8">
+  <h2>8. ROJO TOTAL durante el rojo y amarillo</h2>
+  <div class="porque"><b class="t">Por qué</b>Si alguien pulsa ROJO TOTAL justo cuando se está avisando que abre el verde, el semáforo debe quedarse en rojo sin dar amarillo ni verde: nunca se abrió el paso, así que no hay nada que cerrar con amarillo.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Poste 1 en <strong>AUTOMÁTICO</strong> con radio, dando ciclos (no en Degradado).</li>
+    <li>Celular conectado al Poste 1, con el botón ROJO TOTAL a la vista, y un compañero que avise cuando empiece el rojo y amarillo (dura solo 2 s).</li>
+  </ul></div>
+  <ol>
+    <li>Pulse <strong>ROJO TOTAL</strong> en el Poste 1 mientras está en rojo y amarillo. Repita hasta pillarlo.</li>
+    <li>Para volver, <strong>VOLVER AL MENÚ</strong> y luego AUTOMÁTICO.</li>
+  </ol>
+  <div class="espera">Se espera: pasa a <strong>rojo fijo</strong>, sin amarillo ni verde. El otro poste, en rojo.</div>
+  <div class="horas">
+    <label class="campo">Hora de la pulsación <input type="text" id="h8a" class="hora"></label>
+    <label class="campo">¿Pilló el rojo y amarillo? (sí/no) <input type="text" id="h8b" class="hora"></label>
+    <label class="campo">¿Hubo verde o amarillo después? (sí/no) <input type="text" id="h8c" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r8" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r8" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r8" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v8" placeholder="Lo que vio distinto"></textarea>
+  <div class="print-only" id="pr8"></div>
+</section>
+
+<section class="prueba" id="p9">
+  <h2>9. La app muestra el rojo y amarillo</h2>
+  <div class="porque"><b class="t">Por qué</b>Antes la app no conocía este estado y escribía "ESTADO NO RECONOCIDO", que el técnico leía como avería.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Poste 1 en <strong>AUTOMÁTICO</strong> con radio, dando ciclos.</li>
+    <li>Pantalla principal abierta, conectado a un poste.</li>
+  </ul></div>
+  <ol>
+    <li>Mire la pantalla principal durante el rojo y amarillo, en cada poste (conéctese a uno y luego al otro).</li>
+  </ol>
+  <div class="espera">Se espera: el texto <strong>"ROJO Y AMARILLO"</strong> y <strong>"Rojo y amarillo: va a abrir el verde"</strong>. Nunca "ESTADO NO RECONOCIDO".</div>
+  <div class="horas">
+    <label class="campo">Poste 1: ¿lo vio así? (sí/no) <input type="text" id="h9a" class="hora"></label>
+    <label class="campo">Poste 2: ¿lo vio así? (sí/no) <input type="text" id="h9b" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r9" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r9" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r9" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v9" placeholder="Lo que vio distinto (o una captura)"></textarea>
+  <div class="print-only" id="pr9"></div>
+</section>
+
+<section class="prueba" id="p10">
+  <h2>10. Sin radio, opción (a): ámbar y testigo</h2>
+  <div class="porque"><b class="t">Por qué</b>La (a) es la de fábrica y la de carretera: si se cae la radio, los postes quedan en ámbar intermitente y <strong>no arrancan solos</strong>; alguien tiene que ir con el testigo. Se quiere ver que no arrancan solos y que la app lo dice, y que sin radio no deja cambiar la opción.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Prueba 4 hecha: los dos postes con (a) y dando ciclos con radio, Poste 1 en AUTOMÁTICO.</li>
+    <li>La línea principal dice <strong>"Si se cae la radio: AMBAR, ir con testigo"</strong> en los dos.</li>
+    <li>Las dos antenas puestas.</li>
+  </ul></div>
+  <ol>
+    <li>Quite la antena de un poste. Anote la hora. Intente cambiar la opción en la tarjeta.</li>
+    <li>Espere <strong>6 minutos</strong> mirando los postes. Ponga la antena.</li>
+  </ol>
+  <div class="espera">Se espera: ámbar intermitente en los dos, aviso <strong>"Sin radio. Los postes quedan en AMBAR intermitente y NO arrancan solos"</strong> y <strong>"Sin radio no se puede cambiar"</strong>. A los 6 min siguen en ámbar. Al volver la radio retoman el ciclo.</div>
+  <div class="horas">
+    <label class="campo">Línea de la pantalla principal <input type="text" id="h10a" class="hora"></label>
+    <label class="campo">Hora en que quitó la antena <input type="text" id="h10b" class="hora"></label>
+    <label class="campo">Aviso de la app <input type="text" id="h10c" class="hora"></label>
+    <label class="campo">¿Arrancaron solos? (sí/no) <input type="text" id="h10d" class="hora"></label>
+    <label class="campo">¿Retomaron el ciclo al poner la antena? (sí/no) <input type="text" id="h10e" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r10" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r10" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r10" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v10" placeholder="Lo que vio distinto"></textarea>
+  <div class="print-only" id="pr10"></div>
+</section>
+<section class="prueba" id="pF">
+  <h2>Algo más</h2>
+  <textarea id="vF" placeholder="Otra cosa que quiera anotar"></textarea>
+  <div class="print-only" id="prF"></div>
+</section>
+
+<div class="recordatorio">
+  <strong>Al terminar, en cada poste (conéctese a uno, exporte, y luego al otro):</strong> pestaña <strong>Tramas</strong> &rarr; <strong>"Diario de órdenes"</strong> &rarr; <strong>"Exportar todo como archivo"</strong>. Deben quedar <strong>dos archivos</strong>, uno de cada poste, que empiezan por IOTVIAL_. Envíelos con este PDF. Si exporta antes de la prueba 4, repita al terminar.
+</div>
+
+</main>
+
+<footer>
+  <button id="btnPdf">Guardar en PDF</button>
+  <p class="nota-impresion">Elija "Guardar como PDF" y envíelo por WhatsApp.</p>
+  <p id="estado"></p>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+  var estado = document.getElementById('estado');
+  var camposTexto = document.querySelectorAll('input[type=text], input[type=date], textarea');
+  var camposRadio = document.querySelectorAll('input[type=radio]');
+
+  function clave(id) { return 'pf09_' + id; }
+
+  try {
+    camposTexto.forEach(function (el) {
+      var v = localStorage.getItem(clave(el.id));
+      if (v !== null) el.value = v;
+    });
+    camposRadio.forEach(function (el) {
+      var v = localStorage.getItem(clave(el.name + '_' + el.value));
+      if (v === '1') el.checked = true;
+    });
+  } catch (e) { /* sin almacenamiento: la hoja se sigue rellenando y se imprime igual */ }
+
+  function guardarTexto(el) {
+    try {
+      localStorage.setItem(clave(el.id), el.value);
+      if (estado) estado.textContent = 'guardado ' + new Date().toLocaleTimeString();
+    } catch (e) {
+      if (estado) estado.textContent = 'este teléfono no guarda: imprima antes de cerrar';
+    }
+  }
+
+  function guardarRadio(grupo) {
+    try {
+      Array.prototype.forEach.call(grupo, function (el) {
+        localStorage.setItem(clave(el.name + '_' + el.value), el.checked ? '1' : '0');
+      });
+      if (estado) estado.textContent = 'guardado ' + new Date().toLocaleTimeString();
+    } catch (e) {
+      if (estado) estado.textContent = 'este teléfono no guarda: imprima antes de cerrar';
+    }
+  }
+
+  camposTexto.forEach(function (el) {
+    el.addEventListener('input', function () { guardarTexto(el); refrescarImpresion(); });
+  });
+  camposRadio.forEach(function (el) {
+    el.addEventListener('change', function () {
+      guardarRadio(document.getElementsByName(el.name));
+      refrescarImpresion();
+    });
+  });
+
+  // Para cada prueba, arma en el recuadro de impresión el resultado elegido y lo
+  // escrito, en texto llano. Así, al imprimir, se ve la respuesta aunque el
+  // teléfono no dibuje los controles marcados. Las horas anotadas van también.
+  var ids = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
+  function refrescarImpresion() {
+    ids.forEach(function (n) {
+      var pr = document.getElementById('pr' + n);
+      if (!pr) return;
+      var marcado = document.querySelector('input[name=r' + n + ']:checked');
+      var resultado = marcado ? marcado.getAttribute('data-txt') : 'sin responder';
+      var texto = document.getElementById('v' + n);
+      var vio = (texto && texto.value.trim()) ? texto.value : '(sin escribir)';
+      var horas = '';
+      document.querySelectorAll('#p' + n + ' input.hora').forEach(function (h) {
+        var rot = h.parentNode.firstChild.textContent.trim();
+        horas += rot + ': ' + (h.value.trim() || '(vacío)') + '. ';
+      });
+      pr.textContent = horas + 'Resultado: ' + resultado + '. Qué vio: ' + vio;
+    });
+    var libre = document.getElementById('vF');
+    var prF = document.getElementById('prF');
+    if (prF) {
+      prF.textContent = (libre && libre.value.trim()) ? libre.value : '(sin escribir)';
+    }
+  }
+
+  window.addEventListener('beforeprint', refrescarImpresion);
+  document.getElementById('btnPdf').addEventListener('click', function () {
+    refrescarImpresion();
+    window.print();
+  });
+
+  refrescarImpresion();
+})();
+</script>
+</body>
+</html>
