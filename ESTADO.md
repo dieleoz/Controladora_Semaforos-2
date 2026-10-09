@@ -5,8 +5,8 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 
 ## Por donde se retoma, en este orden
 
-1. **Logs de Marco con `Paquete_Semaforos_2026-10-06_16c97e6_SIN_BANCO`** (`entregas/`, zip `ba1e0875...`; solo APK
-   nueva: «Que falta» del Degradado automatico; firmware igual a `d810f81`). Esperado: la (b) probada con el POSTE 1
+1. **Logs de Marco con `Paquete_Semaforos_2026-10-09_c695ee4_SIN_BANCO`** (`entregas/`, zip `af7ead9f...`; la APK
+   de `16c97e6`, misma sha256, mas la guia del PC; firmware igual a `d810f81`). Esperado: la (b) probada con el POSTE 1
    en AUTO/INTELIGENTE, los dos «Listo: SI», radio cortada 5,5 min, y un `IOTVIAL_*` de CADA poste. Leerlos enteros
    y contando (`CLAUDE.md` §7). Lo del 06/10 (`evidencia/0610*`) ya esta leido: ningun defecto de firmware; la (b)
    se activo en MENU o sin el POSTE 1 ciclando, y la app no decia que hacer (arreglado, `16c97e6`). 15:25: «ya
@@ -23,7 +23,7 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 
 ## Frentes abiertos (tres como maximo)
 
-- **Banco de Marco** con el paquete `16c97e6`: la (b) bien probada.
+- **Banco de Marco** con el paquete `c695ee4` (APK de `16c97e6`): la (b) bien probada.
 - **Campo** El Sisga: firmware por decidir; `N-172` sin medir en tarjeta.
 - **Orden del repo** (fase F). Fases 0-4 hechas con el arquitecto de plataforma; la 5 (`lib/`), tras banco.
 
@@ -35,7 +35,7 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 | Maestro `179DB0` (El Sisga) | `7ff7d12` `SIN_BANCO`, probado despues `b354fe9`. Ninguno lleva el veto de camara a la pluma (`363e375`, `D-33`): `Camaras_Sisga_4x.html` se corrige en la MISMA visita en que se cargue un firmware posterior | cinta y diario en `evidencia/` |
 | Esclavo del Sisga | sin medir | su cinta no se ha traido |
 | Maestro `4D2007` y Esclavo `38EB53` (Marco, banco) | `6bd1e4f` en controlador y puente, medido: `$ACK,CMD:VERSION` el 01/10 | `evidencia/011020260934/` |
-| paquete para Marco | `Paquete_Semaforos_2026-10-06_16c97e6_SIN_BANCO` (zip sha256 `ba1e0875...`): solo cambia la APK («Que falta» del Degradado automatico); fuente del firmware igual a `d810f81`, no hay que recargar. Los anteriores, a `entregas/RETIRADOS/` | `entregas/` |
+| paquete para Marco | `Paquete_Semaforos_2026-10-09_c695ee4_SIN_BANCO` (zip sha256 `af7ead9f...`): APK identica a la de `16c97e6` («Que falta» del Degradado automatico) y ahora con `Guia_Conectar_PC_Bluetooth.html`, que abre `App_Web/index.html` (Web Serial sin probar con un equipo); fuente del firmware igual a `d810f81`, no hay que recargar. Los anteriores, a `entregas/RETIRADOS/` | `entregas/` |
 
 ## Verificacion en escritorio
 
