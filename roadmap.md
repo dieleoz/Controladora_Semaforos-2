@@ -109,22 +109,8 @@ de los dos postes a la vez. Lo que Marco ya probo con `22fd0d8` no se le vuelve 
 («(sin ...») en cuanto deja de pisar los iconos: dos intentos de CSS fallidos, congelado en `42e7746`, donde el
 texto se lee pero se monta sobre los iconos. Arreglo propuesto: el rotulo en su propia linea, no recortado.
 
-**Version siguiente, app (08/10, resuelto en Pasos Peatonales `e968cc7`; aqui sin construir, entra antes en `SPEC_4`):**
-- Registro en el EQUIPO, no en la cinta de la app: anillo en RAM y FIFO en flash con CRC; la app pide `LOG,DESDE:<N>`
-  y recuerda el ultimo N. Cabria en el ESP32 del puente, no en el STM32 (flash en el acta). Compite con las cuatro
-  mejoras del registro aprobadas el 06/10 (`ESTADO.md`, punto 3): elegir es del responsable.
-- Alarmas: el poste repite cada `REPITE` s mientras dure; al conectar, la app pide `ALARMAS` y el poste lista las
-  activas con `FIN,<n>`; el cierre repite la CAUSA de la apertura; toda frase sale de una tabla (`SPEC_6` parte C).
-- Contador de radio que baja sin reinicio (06/10, 10:43:30, 1789 a 91): `$STATUS` con REIN, ULT_REIN, UP_ANT y
-  HEAP_MIN, y la app alarma si un contador baja sin que cambie REIN.
-- Todo `$ACK` lleva `RES`/`APLICA` o es un `$ERR`; la orden que no cambia nada, `$ERR,...,MOTIVO:SIN_CAMBIO` y la app
-  dice «ya estaba asi» (`SPEC_4` §7, el cambio bajo `if (modo != modoAnterior)`).
-- Cabecera: el estado del enlace sale de ella a su propia franja (confirma el arreglo del punto anterior). Un color,
-  una accion: rojo ir, ambar mirar, verde, gris sin datos. Lo no construido no tiene boton (`SPEC_8` §6).
-- `www/` se regenera desde una sola fuente en cada compilacion, sin copias a mano (`metodo.md` §14); app en modulos.
-- Hoja de banco: cada caso abre con «Por que» y «Debe ver» (estado de partida): el 06/10 se probo en el modo equivocado.
-- Puente ESP32 (SPP): un `write` SPP bloquea hasta 1 s; si no hay sitio se descarta y se cuenta (`transporte_escribir`,
-  que ningun arnes compila, `SPEC_4` §7).
+**Version siguiente, app (09/10):** lo aprendido de Pasos Peatonales, ordenado por fases y con lo que DECIDE el
+responsable, en [`05_Funcional/App_Semaforo/ROADMAP_APP.md`](05_Funcional/App_Semaforo/ROADMAP_APP.md).
 
 **Degradado automatico (`A-15`), sin cambio de firmware.** El 05/10 Marco lo intento sin radio y el firmware
 rechazo las 7 ordenes (`SIN_ENLACE_CON_EL_OTRO_POSTE`, `evidencia/051020261239/`): hizo lo que dice la spec, pero la
