@@ -109,6 +109,23 @@ de los dos postes a la vez. Lo que Marco ya probo con `22fd0d8` no se le vuelve 
 («(sin ...») en cuanto deja de pisar los iconos: dos intentos de CSS fallidos, congelado en `42e7746`, donde el
 texto se lee pero se monta sobre los iconos. Arreglo propuesto: el rotulo en su propia linea, no recortado.
 
+**Version siguiente, app (08/10, resuelto en Pasos Peatonales `e968cc7`; aqui sin construir, entra antes en `SPEC_4`):**
+- Registro en el EQUIPO, no en la cinta de la app: anillo en RAM y FIFO en flash con CRC; la app pide `LOG,DESDE:<N>`
+  y recuerda el ultimo N. Cabria en el ESP32 del puente, no en el STM32 (flash en el acta). Compite con las cuatro
+  mejoras del registro aprobadas el 06/10 (`ESTADO.md`, punto 3): elegir es del responsable.
+- Alarmas: el poste repite cada `REPITE` s mientras dure; al conectar, la app pide `ALARMAS` y el poste lista las
+  activas con `FIN,<n>`; el cierre repite la CAUSA de la apertura; toda frase sale de una tabla (`SPEC_6` parte C).
+- Contador de radio que baja sin reinicio (06/10, 10:43:30, 1789 a 91): `$STATUS` con REIN, ULT_REIN, UP_ANT y
+  HEAP_MIN, y la app alarma si un contador baja sin que cambie REIN.
+- Todo `$ACK` lleva `RES`/`APLICA` o es un `$ERR`; la orden que no cambia nada, `$ERR,...,MOTIVO:SIN_CAMBIO` y la app
+  dice «ya estaba asi» (`SPEC_4` §7, el cambio bajo `if (modo != modoAnterior)`).
+- Cabecera: el estado del enlace sale de ella a su propia franja (confirma el arreglo del punto anterior). Un color,
+  una accion: rojo ir, ambar mirar, verde, gris sin datos. Lo no construido no tiene boton (`SPEC_8` §6).
+- `www/` se regenera desde una sola fuente en cada compilacion, sin copias a mano (`metodo.md` §14); app en modulos.
+- Hoja de banco: cada caso abre con «Por que» y «Debe ver» (estado de partida): el 06/10 se probo en el modo equivocado.
+- Puente ESP32 (SPP): un `write` SPP bloquea hasta 1 s; si no hay sitio se descarta y se cuenta (`transporte_escribir`,
+  que ningun arnes compila, `SPEC_4` §7).
+
 **Degradado automatico (`A-15`), sin cambio de firmware.** El 05/10 Marco lo intento sin radio y el firmware
 rechazo las 7 ordenes (`SIN_ENLACE_CON_EL_OTRO_POSTE`, `evidencia/051020261239/`): hizo lo que dice la spec, pero la
 app no lo explica. Decidido por el responsable: es una ELECCION DE MONTAJE («si se cae la radio: ambar y voy con el
@@ -205,30 +222,6 @@ caso se podra cambiar de luz verde a luz roja [...] sin que antes aparezca el am
 responsable (`D-45`, secuencia); I2 candidata propia con runbook: toca luces, coordinacion, pluma y despeje.
 
 **E. Despues de banco pasado:** fase 5, lo duplicado Maestro/Esclavo a `lib/`.
-
-### `N-167` El paquete validado de `a0d605b`: el runbook entero — ✅ HECHO el 29-30/09, sale `a505fa2` `SIN_BANCO`
-
-El 29/09 salio `a0d605b` `SIN_BANCO` sin pruebas propias ni compuerta, por decision del responsable, para que el
-funcional lo pruebe en banco. Este es el camino para que salga validado. **Un rojo en cualquier paso para el paquete**
-(salvo `D-22`, que pide tarjeta). Aun validado, el binario del paso 4 lleva `_SIN_BANCO` hasta que se mida en
-una tarjeta (`CLAUDE.md` §13). Arquitecto 29/09: NO APTO sobre `a0d605b`, hallazgos en el paso 4.
-
-| paso | que | quien | sale cuando |
-|---|---|---|---|
-| 0 | Leer ENTEROS los exportes de Marco de cada caso de la guia, contando tramas por poste y hora (`CLAUDE.md` §7) | orquestador | acta `evidencia/2026-09-30_campo_deg_auto/` |
-| 1 | SPEC al dia con lo construido: los desvios del agente (`#define protocolo_enviarPaquete`, un intento por corte, `ACCION` de `$ALARM`, sin acuse con el Maestro en MENU) se deciden y se escriben; lo que diga el log de Marco manda | orquestador + responsable | `SPEC_2` §7.ter y `SPEC_4` sin frases falsas |
-| 2 | Pruebas PRIMERO, vistas en rojo (contra `a0d605b` el rojo sale de inyectar defecto en el `.cpp` real y de los hallazgos abiertos); censo de las pruebas que CELEBRAN el vencimiento (`CLAUDE.md` §9): arnes de dos puntas del automatico (fichero nuevo del arnes de Degradado) con los escenarios de §7.ter (h) y la asercion "nunca verde contra ambar ni verde contra verde" con inyeccion de defecto; pruebas jsdom de la tarjeta y del aviso de paleteros; `app_01` lee `js/deg_auto.js`; dobles del simulador del puente | subagente | linea roja copiada de cada una |
-| 3 | Arquitecto (`orquestador:arquitecto-iot`) sobre SPEC y pruebas | subagente | APTO |
-| 4 | Codigo: quitar el vencimiento de 31 dias (decidido 29/09); la rendicion del Esclavo se persiste y bloquea la reentrada automatica tras reinicio (hallazgo 2); salir a mano deja `intentoHecho` (hallazgo 3); literal `SIGUE_AMBAR` exacto (5); y lo que caiga en el paso 2. **Hallazgo 1** (una punta se rinde a ambar por hora no fiable y la otra sigue en verde): decide el responsable | subagente en worktree | pruebas en verde |
-| 4b | Arquitecto sobre el codigo FINAL, con md5 del binario | subagente | APTO |
-| 5 | Compuerta completa dos veces con el arbol quieto; flash por objeto en `firmware.map`; cifras al acta | orquestador | dos pasadas iguales, solo `D-22` en rojo |
-| 6 | QA (`orquestador:qa-istqb`) sobre el binario y la APK que se entregan | subagente | APTO |
-| 7 | Guia de campo `.html` al dia; los manuales NO (`CLAUDE.md` §15) | subagente | revisada contra lo entregado |
-| 8 | Paquete con la skill `entregar`, sha256, `ESTADO.md` y commit + push | orquestador | `.zip` en `entregas/` |
-
-Fases de organizacion del repo: 0 paquetes a `entregas/` · 1 inventarios · 2 `CLAUDE.md` a 200 y `HISTORIA.md` ·
-3 `orquestador@diego`, pre-commit y skills a `.claude/particularidades/` · 4 poda B y trinquete en el pre-commit ·
-5 `lib/`, despues de banco. De 0 a 4, hechas.
 
 > ## 🔒 DECIDIDO Y CERRADO EL 11/09 — NO SE REABRE DESDE UN DOCUMENTO
 >
