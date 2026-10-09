@@ -38,11 +38,11 @@ Orden por dano en campo, no por facilidad. Cada fase cierra con sus pruebas en v
 
 6. **Lo que configura, solo con clave.** Hoy el rol se cambia con PIN (`btn-toggle-role`, pestanas `.admin-tab`
    ocultas). Alli: clase `.solo-admin` ocultada por CSS sin `admin` en `body`; sin clave, el tecnico ve franja,
-   luces de los dos postes, probar, enviar acta y radios en palabras. DECIDE: que funciones son de administracion
-   aqui (tiempos, Degradado, depuracion, hora). Prueba alli: `test_v46_dom.js` (10/13 en rojo antes).
+   luces de los dos postes, probar, enviar acta y radios en palabras. Con clave aqui (`D-56`): tiempos, Degradado,
+   depuracion y hora. Prueba alli: `test_v46_dom.js` (10/13 en rojo antes).
 7. **Clave cambiable y recuperacion**: 4-8 cifras, en `localStorage`, dura hasta cerrar la app; clave de soporte
    guardada como huella con sal, fuera de manuales. Es barrera de uso, no seguridad del equipo: la del equipo
-   sigue siendo el PIN del firmware (`SPEC_4` §4). DECIDE: si se quiere clave de soporte.
+   sigue siendo el PIN del firmware (`SPEC_4` §4). Con clave de soporte (`D-57`); su valor no va al repo.
 8. **`app.js` (338 KB) partido en modulos y `www/` regenerado en cada compilacion.** Se hace por tandas al tocar
    cada zona, no de golpe: los instrumentos leen el fuente por RUTA (`CLAUDE.md` §5) y cada movimiento lleva su
    ruta en el mismo commit.
@@ -54,7 +54,7 @@ Orden por dano en campo, no por facilidad. Cada fase cierra con sus pruebas en v
    toda frase sale de una tabla. Cierra las tres `DEGRADADO` de limite que salen una sola vez (`SPEC_6` parte C).
 10. **Registro en el equipo, no en la cinta de la app**: anillo en RAM y FIFO en flash con CRC; la app pide
     `LOG,DESDE:<N>` y recuerda el ultimo N. Cabria en el ESP32 del puente, no en el STM32 (flash en la ultima acta,
-    `CLAUDE.md` §10). DECIDE: esto o las cuatro mejoras del registro de la app aprobadas el 06/10 (`ESTADO.md`).
+    `CLAUDE.md` §10). Se hacen las dos cosas (`D-55`): esto y las cuatro mejoras de la app del 06/10 (`ESTADO.md`).
 11. **Reinicios fechados**: `$STATUS` con REIN, ULT_REIN, UP_ANT y HEAP_MIN; la app alarma si un contador baja sin que
     cambie REIN. Habria explicado la caida de 1789 a 91 del 06/10 a las 10:43:30.
 12. **Todo `$ACK` lleva `RES`/`APLICA` o es `$ERR`**; la orden que no cambia nada da `MOTIVO:SIN_CAMBIO` y la app
@@ -62,14 +62,20 @@ Orden por dano en campo, no por facilidad. Cada fase cierra con sus pruebas en v
 13. **SPP que no bloquea en el puente**: un `write` SPP espera hasta 1 s; si no hay sitio se descarta y se cuenta.
     Antes, un arnes que compile `transporte_app.cpp` y lo vea fallar con la cola llena (`SPEC_4` §7: hoy nadie).
 
+### Fase 4 — Modo de practica sin poste, con varios equipos (`D-58`)
+
+14. **Practicar sin poste**, como en Pasos Peatonales: un boton que abre una flota de equipos simulados (varios
+    semaforos, cada uno con un fallo distinto) para ensenar y probar la app sin placa. Las tramas salen del firmware
+    compilado, no escritas a mano. Condiciones, por lo que esta app ya pago con el «SIMULADOR DE PRUEBAS - DEMO EN
+    VIVO» que pintaba fases inventadas sobre la telemetria (`app.js`, comentario de la pestana de depuracion):
+    - nunca con un equipo real conectado, y una franja SIMULADO fija en todas las pantallas;
+    - el registro, el .txt y el PDF salen marcados SIMULADO, y la hoja de banco no los acepta como evidencia;
+    - en la APK de campo, detras de la clave de administracion (`D-56`), no a un toque del tecnico;
+    - una prueba que falla si un campo nuevo del `$STATUS` no esta en el simulador (alli se desfasaba a mano).
+    No es el simulador de PC del repo, que sigue CONGELADO (`CLAUDE.md` §4): este es producto, en `www/js/`.
+
 ## Lo que NO se trae, y por que
 
-- **Simulador dentro de la app con flota de cruces.** Alli sale activo en la APK de campo (sin filtrar en
-  `generar_www.js`) y cada campo nuevo del firmware obliga a tocarlo a mano. Esta app ya quito un «SIMULADOR DE
-  PRUEBAS - DEMO EN VIVO» que pintaba fases inventadas sobre los mismos semaforos que la telemetria (`app.js`,
-  comentario de la pestana de depuracion), y el simulador de este repo esta CONGELADO (`CLAUDE.md` §4). Si se quiere
-  probar la UI sin placa, el camino es el de sus pruebas: tramas capturadas del firmware compilado e inyectadas en
-  jsdom/Chrome sin cabeza, que es lo que ya hacen `tests/dom_*.js`. DECIDE si se quiere ademas un modo de practica.
 - **Claude Design como paso obligatorio.** Alli el brief no quedo en el repo y la app se comparo contra el lienzo a
   mano. Sirve para la fase 1 si se guarda el brief y el lienzo en el repo; no sustituye a la revision del punto 4.
 - **Reenvio automatico de una orden tras pedir la clave** (alli dio `CLAVE, PRUEBA, HORA`; arreglado en `ca3ab68`).

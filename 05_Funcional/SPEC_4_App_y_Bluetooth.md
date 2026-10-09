@@ -588,3 +588,11 @@ el MISMO hecho: el ESP32 entero (9 `.cpp`) no se ejecuta en el PC en ningun siti
 dice del puente —`D-15`, los limites de linea, los siete motivos de `LEER_RTC`— descansa en packs que leen texto.
 ⚠️ **Y una refutacion que conviene dejar escrita: `Maestro/src/bluetooth.cpp` SI lo compila alguien** —la fila 20,
 junto con el del Esclavo—; lo que no compila nadie es el despachador del **ESP32**, que es otro fichero.
+
+## 9. VERSION SIGUIENTE — decidido el 09/10, NO construido
+
+Lo que el equipo DEBE hacer en la proxima version de la app; hoy no lo hace. Detalle y orden en
+[`App_Semaforo/ROADMAP_APP.md`](App_Semaforo/ROADMAP_APP.md). `D-55`: registro en el equipo (ESP32 del puente) y las
+cuatro mejoras del registro de la app del 06/10. `D-56`: tiempos, Degradado, depuracion y hora, solo con la clave de
+administracion. `D-57`: clave de soporte para recuperarla, fuera del repo, como huella con sal. `D-58`: modo de
+practica sin poste con varios equipos simulados, marcado SIMULADO, nunca con un equipo conectado y tras clave.
