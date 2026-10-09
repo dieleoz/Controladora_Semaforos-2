@@ -47,13 +47,14 @@ Orden por dano en campo, no por facilidad. Cada fase cierra con sus pruebas en v
 
 ### Fase 2 — Modo administracion y estructura
 
-6. **Lo que configura, solo con clave.** Hoy el rol se cambia con PIN (`btn-toggle-role`, pestanas `.admin-tab`
-   ocultas). Alli: clase `.solo-admin` ocultada por CSS sin `admin` en `body`; sin clave, el tecnico ve franja,
-   luces de los dos postes, probar, enviar acta y radios en palabras. Con clave aqui (`D-56`): tiempos, Degradado,
-   depuracion y hora. Prueba alli: `test_v46_dom.js` (10/13 en rojo antes).
-7. **Clave cambiable y recuperacion**: 4-8 cifras, en `localStorage`, dura hasta cerrar la app; clave de soporte
-   guardada como huella con sal, fuera de manuales. Es barrera de uso, no seguridad del equipo: la del equipo
-   sigue siendo el PIN del firmware (`SPEC_4` §4). Con clave de soporte (`D-57`); su valor no va al repo.
+6. **Clave de administracion: HECHA el 09/10** (`www/js/clave_admin.js`, `SPEC_4` §9.2, `D-56` dos claves). Solo
+   muestra u oculta tiempos, Degradado, diagnostico y depuracion; el PIN del equipo sigue autorizando cada orden y
+   ya no sube el rol. FORZAR ROJO sin clave; «Prueba de focos» pasa a Trafico con PIN. Tiempos y hora, sin PIN,
+   abren el teclado y hay que volver a pulsar. `tests/dom_claves.js`: 18 en rojo antes; arnes jsdom 608/0.
+   Pendiente: los rotulos siguen siendo «Operario»/«Tecnico».
+7. **Clave cambiable y de soporte: HECHA el 09/10** (`D-57`): 4-8 cifras, huella FNV-1a con sal en `localStorage`,
+   1234 de fabrica; «He olvidado la clave» pide la de soporte, guardada solo como huella. Con 4 cifras no es secreta
+   para quien lea el codigo: es barrera de uso, no seguridad del equipo.
 8. **`app.js` (338 KB) partido en modulos y `www/` regenerado en cada compilacion.** Se hace por tandas al tocar
    cada zona, no de golpe: los instrumentos leen el fuente por RUTA (`CLAUDE.md` §5) y cada movimiento lleva su
    ruta en el mismo commit.

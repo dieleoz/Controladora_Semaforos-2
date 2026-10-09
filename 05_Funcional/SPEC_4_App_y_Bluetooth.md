@@ -610,3 +610,23 @@ ubicacion; renombrarlo) salen por un dialogo propio en espanol (`js/dialogo.js`,
 - crear un cruce son dos preguntas seguidas, con los campos VACIOS (el `prompt` proponia nombre y PR al azar con
   `Math.random()`: un valor inventado que se guarda con un toque); sin nombre no se guarda; cancelar la segunda lo
   guarda sin ubicacion, como el `prompt`.
+
+### 9.2 Dos claves: la de administracion ensena, el PIN del equipo autoriza (`D-56`, `D-57`) — construido, sin telefono
+
+Lo que HACE (contra el fuente, `js/clave_admin.js` y `setRole()`; lo ejerce `tests/dom_claves.js`). Dos estados
+que no se mezclan: **rol visible** (clave de administracion de la app) y **autorizacion de ordenes** (PIN del
+equipo, §4; `state.pinVerificado`, `CMD:PIN:`). Ninguno arma al otro.
+- **Sin clave de administracion** el tecnico ve Trafico (estado, luces de los dos postes, ROJO TOTAL, AMBAR
+  EMERGENCIA, la botonera), Eventos, exportar y **«Prueba de focos»**, que pasa a Trafico y sigue pidiendo el PIN.
+- **Con la clave** se ven ademas Tiempos, Diagnostico (Degradado: testigo, eleccion del automatico, salida `D-52`;
+  hora y Courier; mandos directos) y Depuracion, y la tarjeta que pide la eleccion del automatico al conectar.
+  Quien hace Degradado lleva las dos claves (SPEC_6 A.1).
+- **El PIN no cambia:** cada orden que lo pide abre el teclado del PIN, tambien con la clave puesta. Tiempos y las
+  dos de hora no salen sin el: el emisor las frena (al diario como no salidas) y abre el teclado; tecleado, se
+  vuelve a pulsar. FORZAR_ROJO y AMBAR_EMERGENCIA salen sin ninguna clave.
+- **La clave**: 4 a 8 cifras; de fabrica `1234`; se guarda en `localStorage` como huella FNV-1a de 32 bits con sal,
+  no en claro. El rol dura hasta cerrar la app: no se guarda y no lo baja la caducidad del PIN (§4); lo baja el
+  boton de arriba. Con la clave puesta se cambia: la actual y despues la nueva.
+- **Olvido** (`D-57`): «He olvidado la clave» pide la clave de soporte; si su huella coincide, pide una nueva. El
+  valor de soporte no esta en el repo ni en los manuales: solo su huella. Con 4 cifras la huella no es secreta para
+  quien lea el codigo: es barrera de uso, no seguridad del equipo, que sigue siendo el PIN.

@@ -81,7 +81,7 @@
     <!-- Carteles fijos que abre un $EVENT repetido (radio en Degradado): js/carteles_equipo.js. -->
     <div id="carteles-equipo" hidden></div>
     <!-- La eleccion del Degradado automatico, dicha en el momento: js/deg_auto_eleccion.js. -->
-    <div class="card card-camara-pluma" id="degauto-pide" hidden>
+    <div class="card card-camara-pluma solo-admin" id="degauto-pide" hidden>
       <strong class="camara-pluma-titulo">Si se cae la radio entre los postes, ¿qué hacen?</strong>
       <p class="camara-pluma-medida" id="degauto-pide-motivo"></p>
       <button type="button" class="btn-secondary-bt" id="btn-degauto-pide-off">(a) Ámbar y voy con el testigo</button>
@@ -462,6 +462,14 @@
         </div>
       </div>
 
+      <!-- Prueba de focos: sin clave de administracion, con el PIN del equipo (SPEC_4 9.2, D-56). -->
+      <div class="card">
+        <h3>💡 Prueba de focos</h3>
+        <p class="card-sub">2s rojo · 2s ámbar · 2s verde.</p>
+        <button class="btn-secondary-bt" id="btn-start-test-leds" style="width: 100%;">
+          ⚡ Iniciar prueba (6s)
+        </button>
+      </div>
     </section>
 
     <!-- ===================================================================
@@ -765,14 +773,7 @@
         </button>
       </div>
 
-      <!-- Test de Focos / Banco -->
-      <div class="card">
-        <h3>💡 Prueba de focos</h3>
-        <p class="card-sub">2s rojo · 2s ámbar · 2s verde.</p>
-        <button class="btn-secondary-bt" id="btn-start-test-leds" style="width: 100%;">
-          ⚡ Iniciar prueba (6s)
-        </button>
-      </div>
+
 
       <!-- D-37 (29/09): aqui estaba «Entrar en Modo Degradado»: en banco dio verde en un poste con el otro en
            ambar. Queda el testigo, que espera en rojo a una hora comun (la orden sigue en el firmware). -->
@@ -1137,6 +1138,25 @@
     </div>
   </div>
 
+  <!-- La clave de administracion (SPEC_4 9.2, D-56/D-57): solo ensena pestanas; logica en js/clave_admin.js. -->
+  <div class="modal-overlay" id="clave-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h4 id="clave-titulo">Clave de administración</h4>
+        <button class="modal-close" id="clave-cerrar">✕</button>
+      </div>
+      <p class="modal-desc" id="clave-texto"></p>
+      <input type="password" class="form-input" id="clave-entrada" inputmode="numeric" maxlength="8" autocomplete="off">
+      <p class="modal-desc" id="clave-msg"></p>
+      <div class="degradado-acciones">
+        <button class="btn-secondary-bt btn-via-alto" id="btn-clave-cancelar">Cancelar</button>
+        <button class="btn-degradado btn-via-alto" id="btn-clave-entrar">Entrar</button>
+      </div>
+      <button type="button" class="btn-top" id="btn-clave-cambiar">Cambiar la clave</button>
+      <button type="button" class="btn-top" id="btn-clave-olvido">He olvidado la clave</button>
+    </div>
+  </div>
+
   <!-- Aviso de PALETEROS (29/09): logica y motivo en js/aviso_degradado.js. -->
   <div class="modal-overlay" id="aviso-deg-modal">
     <div class="modal-card">
@@ -1163,6 +1183,7 @@
   <!-- Modular Scripts -->
   <script src="js/config.js"></script>
   <script src="js/dialogo.js"></script>
+  <script src="js/clave_admin.js"></script>
   <script src="js/nmea_parser.js"></script>
   <script src="js/site_manager.js"></script>
   <script src="js/courier_rtc.js"></script>

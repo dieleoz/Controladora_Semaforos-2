@@ -65,11 +65,11 @@ const DegAutoEleccion = {
     if (el.irTestigo) el.irTestigo.addEventListener('click', () => this.irATestigo());
   },
 
-  // La tarjeta del testigo esta en la pestana Diagnostico, que solo ve el Tecnico.
+  // La tarjeta del testigo esta en Diagnostico, que solo se ve con la clave de administracion (D-56).
   irATestigo() {
     const nav = document.querySelector('.nav-item[data-tab="tab-diag"]');
     if (!nav || nav.style.display === 'none') {
-      this.ctx.showToast('Entre como Tecnico (boton de arriba) y abra Diagnostico: Degradado con testigo');
+      this.ctx.showToast('Ponga la clave de administracion (boton de arriba) y abra Diagnostico: Degradado con testigo');
       return;
     }
     nav.click();

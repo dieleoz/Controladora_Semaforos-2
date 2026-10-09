@@ -414,6 +414,9 @@ document.addEventListener('DOMContentLoaded', () => {
       // cable: por el cable no paso ni un byte, asi que ahi no se anota.
       DiarioOrdenes.anotarOrden(orden, null, Date.now(), { salio: false, motivo: motivo });
       renderDiario();
+      // D-56: con la clave de administracion se ven Tiempos y la hora sin PIN; el teclado se abre aqui, sin orden en
+      // cola (la orden no salio y no se repite sola): tecleado el PIN, se vuelve a pulsar.
+      if (!porVia) { pedirPin(null); showToast('Teclee el PIN del equipo y vuelva a pulsar'); }
       return false;
     }
     const pin = state.correctPin;
@@ -2030,17 +2033,19 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // =========================================================================
-  // 3. ROLE MANAGEMENT (OPERARIO VS TÉCNICO)
+  // 3. ROL VISIBLE: LO DA LA CLAVE DE ADMINISTRACION, NO EL PIN (SPEC_4 9.2, D-56; js/clave_admin.js)
   // =========================================================================
+  // Solo ensena u oculta. Las ordenes las autoriza el PIN del equipo (state.pinVerificado), que este rol no arma.
   function setRole(newRole) {
     state.role = newRole;
+    document.body.classList.toggle('admin', newRole === 'TECNICO');
     if (newRole === 'TECNICO') {
       if (btnToggleRole) btnToggleRole.classList.add('admin');
       if (roleIconEl) roleIconEl.textContent = '🛡️';
       if (roleLabelEl) roleLabelEl.textContent = 'Técnico';
       adminTabs.forEach(t => t.style.display = 'flex');
-      showToast('🛡️ Modo Técnico Desbloqueado');
-      addEvent('cyan', 'Sesión: Perfil Técnico / Administrador activado.');
+      showToast('🛡️ Clave de administración: Tiempos, Diagnóstico y Depuración a la vista');
+      addEvent('cyan', 'Sesion: clave de administracion puesta. Las ordenes siguen pidiendo el PIN del equipo.');
     } else {
       if (btnToggleRole) btnToggleRole.classList.remove('admin');
       if (roleIconEl) roleIconEl.textContent = '👷';
@@ -2061,7 +2066,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnToggleRole) {
     btnToggleRole.addEventListener('click', () => {
       if (state.role === 'OPERARIO') {
-        openPinModal();
+        ClaveAdmin.pedir(() => setRole('TECNICO'));
       } else {
         setRole('OPERARIO');
       }
@@ -2119,10 +2124,6 @@ document.addEventListener('DOMContentLoaded', () => {
     state.ultimaOrdenMs = null;
     updatePinDisplay();
     if (pinModal) closeModal(pinModal);
-    // El PIN es lo unico que sube a Tecnico, asi que al caducar se baja. Dejar las
-    // pestanas de ajustes abiertas con la autorizacion apagada seria ensenar un menu
-    // en el que ninguna orden va a salir.
-    if (state.role === 'TECNICO') setRole('OPERARIO');
     showToast('Autorizacion caducada: hay que teclear el PIN otra vez');
     addEvent('cyan', 'Autorizacion caducada (' + motivo + '). La siguiente orden que ' +
                      'lo necesite volvera a pedir el PIN.');
@@ -5594,13 +5595,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (state.pin === state.correctPin) {
       // Se recoge ANTES de cerrar porque cerrar el teclado ya cancela la cola (ver
       // closeModal): esta accion no se cancela, se acaba de autorizar.
-      // Dos usos distintos: autorizar un comando pendiente NO asciende a TECNICO.
-      // El operario que da paso desde el suelo no queda con el menu de ajustes abierto.
       const accion = state.accionPendiente;
       closeModal(pinModal);
       state.pinVerificado = true;
-      if (accion) { accion(); return; }
-      setRole('TECNICO');
+      if (accion) accion();   // el PIN autoriza la orden; NO sube el rol (D-56: eso es la clave de administracion)
     } else {
       showToast('❌ PIN Incorrecto. Reintente.');
       state.pin = '';

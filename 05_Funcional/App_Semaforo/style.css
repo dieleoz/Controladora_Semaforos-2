@@ -2195,3 +2195,7 @@ body { padding-bottom: var(--hueco-barra, calc(90px + env(safe-area-inset-bottom
 .semaforo-label span { display: inline-block; white-space: nowrap; }
 .semaforo-label .semaforo-rol { font-weight: 600; opacity: 0.8; }
 .rssi-text { font-family: var(--font-sans); }
+
+/* SPEC_4 9.2 (D-56): lo que solo ve quien puso la clave de administracion; setRole() pone .admin en body. */
+body:not(.admin) .solo-admin { display: none !important; }
+#clave-modal .btn-top { margin-top: 8px; }

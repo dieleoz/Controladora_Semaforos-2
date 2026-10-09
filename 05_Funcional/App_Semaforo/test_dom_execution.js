@@ -797,7 +797,7 @@ limpia.d.getElementById('num-tiempo-verde').value = '5';
 limpia.d.getElementById('num-tiempo-rojo').value = '5';
 limpia.d.getElementById('num-tiempo-despeje').value = '30';
 limpia.tramas.length = 0;
-limpia.d.getElementById('btn-aplicar-tiempos').click();
+limpia.d.getElementById('btn-aplicar-tiempos').click(); limpia.d.getElementById('modal-pin-close').click();  // D-56: el emisor abre el PIN
 assert(limpia.tramas.length === 0,
   `SET_TIEMPOS no tiene guarda propia: sin PIN lo para el emisor, y esto lo comprueba: ${limpia.tramas.join(' | ')}`);
 
@@ -827,18 +827,18 @@ assert(pinModal2.classList.contains('active'),
 // (2) CERRAR EL TECLADO CANCELA LA ORDEN QUE ESPERABA DETRAS.
 // pedirPin() dejo SET_MODO:AMBAR en cola. El operario se arrepiente y cierra con la X.
 limpia.d.getElementById('modal-pin-close').click();
-// Mas tarde alguien teclea el PIN por OTRO motivo: subir a Tecnico desde la cabecera.
-limpia.d.getElementById('btn-toggle-role').click();
+// Mas tarde alguien teclea el PIN por OTRO motivo. Hasta D-56 era subir de rol desde la cabecera; desde D-56 eso
+// pide la clave de administracion (tests/dom_claves.js), y la otra puerta legitima es otra orden: la prueba de focos.
+limpia.d.getElementById('btn-start-test-leds').click();
 assert(pinModal2.classList.contains('active'),
-  'El interruptor de rol abre el teclado: es la otra puerta legitima, y sin ella esto no mide nada');
-limpia.tramas.length = 0;
+  'La prueba de focos abre el teclado: es la otra puerta legitima, y sin ella esto no mide nada');
 ['1', '2', '3', '4'].forEach(dg => limpia.d.querySelector(`.pin-btn[data-key="${dg}"]`).click());
-assert(limpia.tramas.length === 0,
+assert(!limpia.tramas.some(t => /SET_MODO:AMBAR/.test(t)),
   `La orden cancelada NO se dispara con la siguiente clave, que se tecleo para otra cosa: ${limpia.tramas.join(' | ')}`);
 // El control positivo, sin el cual lo de arriba lo aprobaria tambien una app que no
 // hiciera nada nunca: esta autorizacion SI hace lo suyo (CLAUDE.md 8.sexies).
-assert(limpia.d.getElementById('role-label').textContent === 'Técnico',
-  `y la clave hace LO QUE SE TECLEO: sube a Tecnico (rol: ${limpia.d.getElementById('role-label').textContent})`);
+assert(limpia.tramas.some(t => /TEST_LEDS/.test(t)),
+  `y la clave hace LO QUE SE TECLEO: sale la prueba de focos (${limpia.tramas.join(' | ')})`);
 // Y los cuatro digitos buenos no se quedan en memoria detras del modal cerrado: son
 // los que un OK suelto reutilizaria el dia que la autorizacion caduque.
 assert(!pinD1.classList.contains('filled'),
@@ -2204,7 +2204,7 @@ assert(/ESCRITA SIN ENLACE/.test(diarioMudo),
 sinE.w.Date.now = relojReal;
 
 // APP-1 y cinta sin enlace: tests/dom_usabilidad.js; exportar en la APK: tests/dom_exportar.js.
-require('./tests/dom_usabilidad.js')(montarAppLimpia, assert).then(() => require('./tests/dom_exportar.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_version.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_acuse_con_argumentos.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_deg_auto.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_aviso_degradado.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_aviso_corte.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_aviso_radio_deg.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_deg_fin.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_textos_spec4.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_rojo_amar.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_deg_eleccion.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_cabecera_fase.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_dialogos.js')(montarAppLimpia, assert))
+require('./tests/dom_usabilidad.js')(montarAppLimpia, assert).then(() => require('./tests/dom_exportar.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_version.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_acuse_con_argumentos.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_deg_auto.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_aviso_degradado.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_aviso_corte.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_aviso_radio_deg.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_deg_fin.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_textos_spec4.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_rojo_amar.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_deg_eleccion.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_cabecera_fase.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_dialogos.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_claves.js')(montarAppLimpia, assert))
   .catch(e => assert(false, 'pruebaExportarApk lanzo: ' + e)).then(() => {
     console.log('='.repeat(80));
     console.log(` RESULTADO JSDOM: ${testsPassed} PASS | ${testsFailed} FALLAS`);

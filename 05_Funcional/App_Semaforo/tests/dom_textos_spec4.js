@@ -13,6 +13,10 @@ module.exports = async function pruebaTextosSpec4(montarAppLimpia, assert) {
     a.ultimo = () => { const e = a.d.querySelector('#event-feed .event-item');
                        return e ? e.textContent.replace(/\s+/g, ' ').trim() : ''; };
     a.pin = () => ['1', '2', '3', '4'].forEach(k => a.d.querySelector(`.pin-btn[data-key="${k}"]`).click());
+    // D-56: la clave de administracion ensena Diagnostico; el PIN se teclea cuando la orden lo pide (a.pulsa).
+    a.admin = () => { a.d.getElementById('btn-toggle-role').click(); a.d.getElementById('clave-entrada').value = '1234';
+                      a.d.getElementById('btn-clave-entrar').click(); };
+    a.pulsa = (id) => { a.d.getElementById(id).click(); if (a.d.getElementById('pin-modal').classList.contains('active')) a.pin(); };
     a.status(nodo, serie || (nodo === 'MAESTRO' ? 'SEM-M-01' : 'SEM-E-01'), modo);
     return a;
   };
@@ -22,13 +26,12 @@ module.exports = async function pruebaTextosSpec4(montarAppLimpia, assert) {
   const M = 'MAESTRO', E = 'ESCLAVO';
 
   // 1. SPEC_4 §3.ter paso 2 y SPEC_6 A.1.bis: el SET_RTC previo "no bloquea": el testigo sale igual.
-  const preparar = (a) => { a.d.getElementById('btn-toggle-role').click();
-    if (a.d.getElementById('pin-modal').classList.contains('active')) a.pin();
+  const preparar = (a) => { a.admin();
     a.d.getElementById('chk-testigo-verificado').checked = true; a.tramas.length = 0; };
   const degT = (a) => a.tramas.filter(x => /DEG_T/.test(x));
   {
     const a = montar(M, 'MENU'); preparar(a);
-    a.d.getElementById('btn-testigo-maestro').click();
+    a.pulsa('btn-testigo-maestro');
     a.entra('ERR,NODE:PUENTE,CMD:SET_RTC,DESC:SIN_RELOJ_NO_RESPONDE');
     assert(degT(a).length === 1, `1: SET_RTC rechazado por el puente y el testigo SALE igual (SPEC_4 §3.ter 2): ${JSON.stringify(degT(a))}`);
     assert(/SIN_RELOJ|reloj/i.test(a.ultimo()) || a.d.getElementById('event-feed').textContent.includes('SET_RTC'),
@@ -38,7 +41,7 @@ module.exports = async function pruebaTextosSpec4(montarAppLimpia, assert) {
     const a = montar(M, 'MENU'); preparar(a);
     const largos = []; const st = a.w.setTimeout;
     a.w.setTimeout = (f, ms, ...r) => { if (ms >= 5000) { largos.push(f); return 0; } return st.call(a.w, f, ms, ...r); };
-    a.d.getElementById('btn-testigo-maestro').click();
+    a.pulsa('btn-testigo-maestro');
     largos.forEach(f => f());
     assert(degT(a).length === 1, `1: sin contestar el puente en 10 s el testigo SALE igual (SPEC_6 A.1.bis): ${JSON.stringify(degT(a))}`);
   }
@@ -117,9 +120,9 @@ module.exports = async function pruebaTextosSpec4(montarAppLimpia, assert) {
     const a = montar(M, 'MENU');   // en DEGRADADO el testigo pediria el aviso de paleteros
     const bt = (re) => Array.from(a.d.querySelectorAll('button')).find(b => re.test(b.textContent));
     assert(!!bt(/^Programar salida del Degradado$/), '10: el boton se llama «Programar salida del Degradado»');
-    a.d.getElementById('btn-toggle-role').click(); if (a.d.getElementById('pin-modal').classList.contains('active')) a.pin();
+    a.admin();
     a.d.getElementById('chk-testigo-verificado').checked = true;
-    a.d.getElementById('btn-testigo-maestro').click();
+    a.pulsa('btn-testigo-maestro');
     a.entra('ACK,NODE:PUENTE,CMD:SET_RTC,RESULT:OK,FECHA:2026-10-04,HORA:14:31:00');
     a.entra('ACK,CMD:SET_MODO:DEG_T,RESULT:OK');
     a.status(E, 'SEM-E-01', 'SUBORDINADO');
@@ -143,7 +146,7 @@ module.exports = async function pruebaTextosSpec4(montarAppLimpia, assert) {
     const DF = a.w.DegFin;
     DF.guardar({ estado: 'ACEPTADO', salida: '15:00:00', salidaMs: Date.now() + 600000, serie: 'SEM-M-01' });
     a.status(E, 'SEM-E-01', 'DEGRADADO');
-    a.d.getElementById('btn-toggle-role').click(); if (a.d.getElementById('pin-modal').classList.contains('active')) a.pin();
+    a.admin();
     DF._cancelar();
     if (a.d.getElementById('pin-modal').classList.contains('active')) a.pin();
     const chkAviso = a.d.getElementById('chk-aviso-deg');
