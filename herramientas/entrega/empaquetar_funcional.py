@@ -2,7 +2,7 @@
 #
 # Arma el .zip que va al funcional (receta: .claude/particularidades/entregar.md):
 # 01_Firmware/ (fuente PlatformIO de las cuatro puntas, con FW_HASH.txt = HEAD), la APK,
-# App_Web/ (www/) y la hoja de pruebas .html con el codigo de version puesto. Sin LEEME.
+# App_Web/ (www/), la hoja de pruebas .html con el codigo de version puesto y la guia de conexion del PC. Sin LEEME.
 # Todo sale de `git show HEAD:`; del disco solo la APK, verificada por CRC contra www/.
 # Aborta si el firmware cambio desde el commit del acta de la compuerta.
 #
@@ -65,6 +65,10 @@ sha_apk = hashlib.sha256(open(apk_dst, "rb").read()).hexdigest()
 fw = [r for r in git("ls-files", "01_Firmware/Maestro", "01_Firmware/Esclavo", "01_Firmware/Repetidor",
                       "01_Firmware/ESP32_Expansion").decode().split("\n") if r and not r.endswith("README.md")]
 html = head(HTML).decode("utf-8")
+# La guia del PC manda abrir una ruta del zip: si no existe en el zip, la guia miente.
+GUIA = "05_Funcional/Guia_Conectar_PC_Bluetooth.html"
+if "App_Web/index.html" not in head(GUIA).decode("utf-8"):
+    sys.exit("ABORTA: la guia del PC no apunta a App_Web/index.html")
 n_x = html.count("XXXXXXX")
 html = re.sub(r"Paquete_Semaforos_\d{4}-\d\d-\d\d_XXXXXXX", "Paquete_Semaforos_%s_XXXXXXX" % FECHA, html)
 html = html.replace("XXXXXXX", h)
@@ -83,6 +87,7 @@ with zipfile.ZipFile(zpath, "w", zipfile.ZIP_DEFLATED) as z:
         z.writestr("App_Web/" + r[len("05_Funcional/App_Semaforo/www/"):], head(r))
     z.write(apk_dst, apk)
     z.writestr(HTML.split("/")[-1], html.encode("utf-8"))
+    z.writestr(GUIA.split("/")[-1], head(GUIA))
 
 with zipfile.ZipFile(zpath) as z:
     names = z.namelist()
@@ -93,6 +98,8 @@ with zipfile.ZipFile(zpath) as z:
     for r in fw:
         if z.read(r) != head(r):
             sys.exit("ABORTA: difiere de HEAD " + r)
+    if "App_Web/index.html" not in names or GUIA.split("/")[-1] not in names:
+        sys.exit("ABORTA: falta la guia del PC o App_Web/index.html en el zip")
     if hashlib.sha256(z.read(apk)).hexdigest() != sha_apk:
         sys.exit("ABORTA: APK del zip no coincide")
 print("OK", zpath)
