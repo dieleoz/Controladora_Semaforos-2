@@ -22,7 +22,8 @@ dentro, SPEC 2 §7. **No se entra "por si acaso"**: con el Maestro vivo su latid
 
 ~~`SET_MODO:DEGRADADO`, **con PIN, a cada poste**; el Esclavo tambien la acepta (`D-18`)~~ → **salio de las dos puntas
 con `D-46` (`f9cad1f`, 02/10; sin banco)**: hoy contesta `$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO`
-(`..._EN_ESCLAVO` en el Poste 2). **La entrada es el testigo (A.1.bis), con PIN, a cada poste.** La tabla de abajo y
+(`..._EN_ESCLAVO` en el Poste 2). **La entrada es el testigo (A.1.bis), con PIN, a cada poste** (y, construida
+`D-56`, con la clave de administracion de la app para ver la pestana). La tabla de abajo y
 A.2 son las respuestas de la orden retirada: solo valen ante un equipo con firmware anterior (`ESTADO.md`). La app
 antepone el PIN ella sola.
 **No hay mando, no hay pulsadores y no hay pantalla**, asi que **sin telefono no hay forma de pedirlo**
