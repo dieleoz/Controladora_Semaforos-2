@@ -76,9 +76,11 @@ Orden por dano en campo, no por facilidad. Cada fase cierra con sus pruebas en v
 ### Fase 4 — Modo de practica sin poste, con varios equipos (`D-58`)
 
 14. **Practicar sin poste**, como en Pasos Peatonales: un boton que abre una flota de equipos simulados (varios
-    semaforos, cada uno con un fallo distinto) para ensenar y probar la app sin placa. Las tramas salen del firmware
-    compilado, no escritas a mano. Condiciones, por lo que esta app ya pago con el «SIMULADOR DE PRUEBAS - DEMO EN
-    VIVO» que pintaba fases inventadas sobre la telemetria (`app.js`, comentario de la pestana de depuracion):
+    semaforos, cada uno con un fallo distinto) para ensenar y probar la app sin placa. Las tramas se copian
+    de cintas reales de `evidencia/`, no escritas a mano (sacarlas del firmware compilado pediria un arnes nuevo,
+    y el simulador esta CONGELADO); las cintas son anteriores a `D-53`: se renuevan con la primera cinta posterior.
+    Condiciones, por lo que esta app ya pago con el «SIMULADOR DE PRUEBAS - DEMO EN VIVO» que pintaba fases
+    inventadas sobre la telemetria (`app.js`, comentario de la pestana de depuracion):
     - nunca con un equipo real conectado, y una franja SIMULADO fija en todas las pantallas;
     - el registro, el .txt y el PDF salen marcados SIMULADO, y la hoja de banco no los acepta como evidencia;
     - en la APK de campo, detras de la clave de administracion (`D-56`), no a un toque del tecnico;
