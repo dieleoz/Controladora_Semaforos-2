@@ -29,7 +29,8 @@ static bool puertaAbierta() {
 bool degAuto_aptoPropio() {
   if (!puertaAbierta()) return false;
   const uint32_t ahora = reloj_segundosDelDia();
-  return degradado_comprobarTestigo(ahora, inicioAuto(ahora), DEG_AUTO_DESPEJE_S) == DEG_T_ACEPTADO;
+  return degradado_comprobarTestigo(ahora, inicioAuto(ahora), degradado_verdeAutomatico(), DEG_AUTO_DESPEJE_S) ==
+         DEG_T_ACEPTADO;
 }
 
 // --- El $ACK diferido de SET_DEG_AUTO ------------------------------------------
@@ -134,6 +135,7 @@ static const char* nombreRechazo(RechazoTestigo r) {
     case DEG_RECHAZO_T_AMBAR_VIGENTE:   return "AMBAR";
     case DEG_RECHAZO_T_EN_VERDE:        return "EN_VERDE";
     case DEG_RECHAZO_T_NO_GUARDADO:     return "GUARDADO";
+    case DEG_RECHAZO_T_VERDE_RANGO:     return "VERDE";   // D-59: no ocurre con el verde fijo del automatico
     default:                            return "OK";
   }
 }
@@ -141,7 +143,7 @@ static const char* nombreRechazo(RechazoTestigo r) {
 static void entrar() {
   const uint32_t ahora = reloj_segundosDelDia();
   const uint32_t inicio = inicioAuto(ahora);
-  const RechazoTestigo r = degradado_entrarTestigo(ahora, inicio, DEG_AUTO_DESPEJE_S);
+  const RechazoTestigo r = degradado_entrarTestigo(ahora, inicio, degradado_verdeAutomatico(), DEG_AUTO_DESPEJE_S);
   if (r == DEG_T_ACEPTADO) {
     char det[sizeof("AUTO_ENTRADA_INICIO_HH:MM:SS")];
     snprintf(det, sizeof(det), "AUTO_ENTRADA_INICIO_%02lu:%02lu:%02lu",

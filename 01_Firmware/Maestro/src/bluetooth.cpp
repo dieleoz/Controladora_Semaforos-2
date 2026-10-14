@@ -769,21 +769,21 @@ static void procesarComando(const char* cmd) {
   } else if (strncmp(accion, "SET_MODO:DEG_T:", 15) == 0) {
     // D-35 (SPEC_2 7.bis): EL DEGRADADO CON TESTIGO. D-46: es la unica orden de entrada; SET_MODO:DEGRADADO salio y
     // cae en COMANDO_NO_SOPORTADO. Formato ahora,inicio,verde,despeje = HH:MM:SS,HH:MM:SS,v,d: aqui solo se traduce
-    // texto (molde SET_TIEMPOS, con el %c que delata lo que sobra; verde distinto de 180 es formato). Los rangos y la
+    // texto (molde SET_TIEMPOS, con el %c que delata lo que sobra). Los rangos (D-59: verde 180..900, x60) y la
     // hora los decide modo_degradado_entrarTestigo() y la respuesta sale de lo que ESA llamada devolvio, un $ERR por
     // motivo.
     int ah = -1, am = -1, as = -1, ih = -1, im = -1, is = -1, v = 0, d = 0;
     char sobra = 0;
     const int n = sscanf(accion + 15, "%d:%d:%d,%d:%d:%d,%d,%d%c",
                          &ah, &am, &as, &ih, &im, &is, &v, &d, &sobra);
-    if (n != 8 || !horaDelDiaValida(ah, am, as) || !horaDelDiaValida(ih, im, is) || v != 180) {
+    if (n != 8 || !horaDelDiaValida(ah, am, as) || !horaDelDiaValida(ih, im, is)) {
       enviarTramaConCrc("$ERR,CMD:SET_MODO:DEG_T,DESC:FORMATO_INVALIDO");
     } else if (modo_degradado_salidaS() != 0) {   // D-52: ni renueva ni entra en silencio sobre una salida fijada
       enviarTramaConCrc("$ERR,CMD:SET_MODO:DEG_T,DESC:Cancele antes la salida programada");
     } else {
       const MotivoTestigo m = modo_degradado_entrarTestigo(
           (uint32_t)ah * 3600UL + (uint32_t)am * 60UL + (uint32_t)as,
-          (uint32_t)ih * 3600UL + (uint32_t)im * 60UL + (uint32_t)is, d);
+          (uint32_t)ih * 3600UL + (uint32_t)im * 60UL + (uint32_t)is, v, d);
       if (m == MDT_OK) {
         enviarTramaConCrc("$ACK,CMD:SET_MODO:DEG_T,RESULT:OK");
         bluetooth_reportarEvento("APP_BLUETOOTH", "SET_MODO_DEG_T");

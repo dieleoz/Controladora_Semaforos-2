@@ -295,15 +295,16 @@ dos puntas abren su verde DIRECTO (HACE hoy). **HUECO `D-53`:** abren por rojo+a
 > de §8 —sync
 > confirmada, desfase medido, ciclo acusado por radio— no se pueden cumplir porque no hay radio que las produzca.
 
-**El comando, en las DOS puntas:** `SET_MODO:DEG_T:ahora,inicio,verde,despeje`
-(`HH:MM:SS,HH:MM:SS,v,d`), con PIN. `ahora` es la hora del teléfono EN EL INSTANTE DE ENVIAR — no depende de que
-haya habido un `SET_RTC` antes (abajo se explica por qué). `inicio` es la hora de arranque —hora del teléfono más
-el traslado, 20 min por defecto—; `verde` viaja fijo en **180**; `despeje` es el que configuró el operario, con
-suelo **30** y tope **255** (el byte entero, no los 10–90 de `DESPEJE_SEG_MIN/MAX` del ciclo automático: esta orden
-usa SU PROPIO rango, `TESTIGO_DESPEJE_MIN/MAX`, porque un modo sin cámara ni radio que lo vigile pide más margen).
-Longitud con PIN: `CMD:PIN:1234:SET_MODO:DEG_T:HH:MM:SS,HH:MM:SS,VVV,DDD` son **53 B** contra los 63 útiles de
-`TRAMA_MAX_UTIL` (`ESP32_Expansion/include/contrato.h`, gemelo de `btBufIn[64]` en los dos `bluetooth.cpp`) — cabe
-con margen.
+**El comando, en las DOS puntas:** `SET_MODO:DEG_T:ahora,inicio,verde,despeje` (`HH:MM:SS,HH:MM:SS,v,d`), con PIN.
+`ahora` es la hora del teléfono EN EL INSTANTE DE ENVIAR — no depende de que haya habido un `SET_RTC` antes (abajo se
+explica por qué). `inicio` es la hora de arranque —hora del teléfono más el traslado, 20 min por defecto—; `verde` lo
+elige el operario en minutos enteros de **3 a 15** (`VERDE_MIN_MIN/MAX`, `D-59`) y viaja en segundos, múltiplo de 60
+entre **180** y **900**; se guarda en el testigo de flash y el Poste 2 recibe el mismo que el Poste 1; `despeje` es el
+que configuró el operario, con suelo **30** y tope **255** (el byte entero, no los 10–90 de `DESPEJE_SEG_MIN/MAX` del
+ciclo automático: esta orden usa SU PROPIO rango, `TESTIGO_DESPEJE_MIN/MAX`, porque un modo sin cámara ni radio que lo
+vigile pide más margen). Longitud con PIN: `CMD:PIN:1234:SET_MODO:DEG_T:HH:MM:SS,HH:MM:SS,VVV,DDD` son **53 B** contra
+los 63 útiles de `TRAMA_MAX_UTIL` (`ESP32_Expansion/include/contrato.h`, gemelo de `btBufIn[64]` en los dos
+`bluetooth.cpp`) — cabe con margen.
 
 **Por qué `ahora` basta y no hace falta tocar el ESP32.** En vez de confiar en CUÁNDO llegó la última siembra,
 el STM32 compara directamente `ahora` —la hora que el teléfono acaba de leer, dentro de esta misma orden— contra su
@@ -385,7 +386,12 @@ escribe una vez por testigo, con el poste en ROJO, y lleva su propia suma. `resp
 - **La antigüedad del testigo (el aviso de 28 días) se cuenta con la fecha del DS3231** que trae `CMD:HORA_ESP32`, no
   con `reloj_contadorSegundos()`: sin `Y2` ese contador no sirve (desde `N-172` el firmware no lo reescribe nunca). Se
   permite tocar `reloj.cpp` sólo para guardar el día que trae la siembra.
-- **`verde` distinto de 180:** rechazo de formato. **Medianoche:** `inicio` vencido si
+- **`verde` fuera de 180..900 o no múltiplo de 60:** rechazo, `$ERR` con su motivo (`D-59`). La renovación exige el
+  mismo verde y el mismo despeje que el ciclo en curso; con otro ciclo es una entrada nueva. **Riesgo aceptado
+  (responsable, 14/10):** si se cambia el ciclo con el Degradado en marcha y el Poste 2 rechaza por `INICIO_VENCIDO`,
+  los dos postes llevan ciclos distintos y puede haber verde en los dos sentidos (medido en el arnés a dos puntas). No
+  lo veta el firmware: lo cubre la operación, con paletero, y la app lo avisa antes de enviar y al rechazo. Un
+  testigo guardado con un formato de flash anterior se lee como ausente. **Medianoche:** `inicio` vencido si
   `(inicio − reloj) mod 86400 > 12 h`. **A los 28 días sólo avisa** (`TESTIGO_AVISO_S`); no hay ámbar por antigüedad
   (§7.ter (d)).
 - **El cerrojo de 48 h del Esclavo** (`syncVencidaLatch`) no actúa en modo testigo.
@@ -417,7 +423,7 @@ congelado (§4), y la verificación de esta puerta es de banco, no de pack.
 | `DEG_AUTO_ESPERA_MS` | 300000 (N = 5 min) | `A-15`, el responsable |
 | `DEG_AUTO_MARCA_S` | 300 | la marca de inicio, múltiplo de 5 min del día de pared (`A-15`) |
 | `DEG_AUTO_ROJO_MIN_S` | 420 | rojo fijo mínimo antes de `inicio`, (b) |
-| verde / despeje | 180 / 30 | los del testigo: `DEG_VERDE_SEG`/`TESTIGO_VERDE_SEG` y `TESTIGO_DESPEJE_MIN` |
+| verde / despeje | 180 / 30 | fijos en el automatico (`DEG_VERDE_SEG`/`TESTIGO_VERDE_SEG`, `TESTIGO_DESPEJE_MIN`); el testigo manual elige el verde (`D-59`) |
 | `CMD_PRESENTE` | `0x17` | primer código libre de la cabecera de protocolo (la última es `CMD_ACK_AVISO_AMBAR` `0x16`) |
 | `DEG_AUTO_APTO` / `DEG_AUTO_ECO` | `0x02` / `0x04` del param | `0x01` es `PONG_VERDE_SOLTADO` (`D-34`) |
 | `FLAG_DEG_AUTO` / `FLAG_OTRO_APTO` | bit4 / bit5 de `REG_FLAGS` | libres; bit3 es `FLAG_TESTIGO` |

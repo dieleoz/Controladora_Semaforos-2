@@ -31,7 +31,8 @@ static bool puertaAbierta() {
 bool degAuto_aptoPropio() {
   if (!puertaAbierta()) return false;
   const uint32_t ahora = reloj_segundosDelDia();
-  return modo_degradado_evaluarEntradaTestigo(ahora, inicioAuto(ahora), DEG_AUTO_DESPEJE_S) == MDT_OK;
+  return modo_degradado_evaluarEntradaTestigo(ahora, inicioAuto(ahora), modo_degradado_verdeAutomatico(),
+                                              DEG_AUTO_DESPEJE_S) == MDT_OK;
 }
 
 // --- El $ACK diferido de SET_DEG_AUTO (molde REINICIAR_RELOJ) ---------------
@@ -133,6 +134,7 @@ static const char* nombreMotivo(MotivoTestigo m) {
     case MDT_AMBAR_VIGENTE:   return "AMBAR";
     case MDT_EN_VERDE:        return "EN_VERDE";
     case MDT_NO_GUARDADO:     return "GUARDADO";
+    case MDT_VERDE_RANGO:     return "VERDE";   // D-59: no ocurre con el verde fijo del automatico
     default:                  return "OK";
   }
 }
@@ -140,7 +142,8 @@ static const char* nombreMotivo(MotivoTestigo m) {
 static void entrar() {
   const uint32_t ahora = reloj_segundosDelDia();
   const uint32_t inicio = inicioAuto(ahora);
-  const MotivoTestigo m = modo_degradado_entrarTestigo(ahora, inicio, DEG_AUTO_DESPEJE_S);
+  const MotivoTestigo m =
+      modo_degradado_entrarTestigo(ahora, inicio, modo_degradado_verdeAutomatico(), DEG_AUTO_DESPEJE_S);
   if (m == MDT_OK) {
     char det[sizeof("AUTO_ENTRADA_INICIO_HH:MM:SS")];
     snprintf(det, sizeof(det), "AUTO_ENTRADA_INICIO_%02lu:%02lu:%02lu",

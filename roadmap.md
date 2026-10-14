@@ -85,7 +85,24 @@ python 01_Firmware/Simulaciones/banco/correr.py   # solo los packs. Sirve para i
 
 ### Lo siguiente, en orden (el estado de cada punto, en `ESTADO.md`)
 
-**PRIMERO (05/10, el funcional espera en banco): `N-176` ROJO+AMARILLO antes del verde (`D-53`).** Coste medido
+**PRIMERO (14/10, pedido de Marco en campo): `N-177` verde del Degradado con testigo elegido en la app (`D-59`).**
+Marco dejo el paso en Degradado (la radio no le sirvio) y le piden mas de 3 min; hoy el 180 es constante en los dos
+postes (`DEG_VERDE_SEG`, `TESTIGO_VERDE_SEG`) y el despachador rechaza otro valor. La trama, la app y el registro de
+flash ya llevan el campo `verde`. Riesgo que manda (§11.7): dos postes con verdes distintos dan verdes cruzados; se
+cubre como el despeje (el Poste 2 recibe el guardado del Poste 1) y la renovacion exige el mismo verde. El automatico
+(`A-15`) sigue en 180. Firmware nuevo en los DOS postes y APK nueva (lleva tambien `38a42ca` y `a16356d`).
+
+| # | paso | estado |
+|---|---|---|
+| V1 | `D-59`, SPEC_2 §7.bis | hecho (14/10), con SPEC_4 §3 y el riesgo aceptado del cambio en caliente (paletero) |
+| V2 | Firmware: despachador 180..900 s, testigo de flash version 3, reanudacion y renovacion; casos en arneses existentes | hecho: Degradado a dos puntas 155/155, bloque K visto en rojo |
+| V3 | App: campo «Verde (min)» 3..15, Poste 2 con el guardado, aviso de firmware viejo | hecho: jsdom 651/651; dialogo de paletero en caliente |
+| V4 | Revision por el diff, compuerta completa en el arbol principal | hecho: acta `2026-10-14` (solo `D-22`) |
+| V5 | APK y paquete `_SIN_BANCO`; el `.html` de Marco pide SOLO el verde nuevo en los dos postes | pendiente |
+
+A carretera solo tras banco (`CLAUDE.md` §0.2): el paquete lo dice en su primera linea.
+
+**Antes (05/10, el funcional espera en banco): `N-176` ROJO+AMARILLO antes del verde (`D-53`).** Coste medido
 sobre `a5db18e`: ~28 ficheros (firmware ~10, app 4, arneses 4, packs/modelos 5, SPEC 5). Riesgos que se revisan
 ANTES de construir (§11.7): (a) +2 s rompen el presupuesto de radio (`PEOR_CASO_CICLO_MS + TIMEOUT_ACK_MS` 27,3 s
 contra `SFTY6_SILENCIO_MS` 28 s, `D-48`): sube el silencio y se recalcula `D-50`; (b) el Esclavo no acusa

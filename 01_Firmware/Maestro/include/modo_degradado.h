@@ -181,8 +181,8 @@ bool modo_degradado_salidaRespaldada();
 // sync de radio, desfase ni ciclo acusado: la base comun es que el reloj de ESTA punta
 // coincide con el del telefono en el instante de la orden (`ahora`, tolerancia
 // TOLERANCIA_TESTIGO_S). Aceptada, ROJO fijo hasta `inicio` por la misma DEG_ENTRADA_ROJO,
-// y despues la fase de siempre (ciclo_degradado_fase) con verde 180 y el despeje pedido.
-// No vence (responsable, 29/09): avisa a los 28 dias del ultimo testigo (fecha del DS3231).
+// y despues la fase de siempre (ciclo_degradado_fase) con el verde y el despeje pedidos (D-59: verde 180..900,
+// multiplo de 60). No vence (responsable, 29/09): avisa a los 28 dias del ultimo testigo (fecha del DS3231).
 enum MotivoTestigo {
   MDT_OK,               // entro: rojo fijo hasta inicio
   MDT_RENOVADO,         // ya alternaba con este mismo ciclo: renueva la cuenta y sigue
@@ -192,15 +192,19 @@ enum MotivoTestigo {
   MDT_INICIO_VENCIDO,   // (inicio - reloj) mod 86400 > 12 h: ya paso
   MDT_AMBAR_VIGENTE,    // el Maestro esta en MODO_AMBAR (su ambar de emergencia)
   MDT_EN_VERDE,         // renovar pide escribir la flash, y solo se escribe en rojo
-  MDT_NO_GUARDADO       // la flash no quedo escrita: sale por todo-rojo
+  MDT_NO_GUARDADO,      // la flash no quedo escrita: sale por todo-rojo
+  MDT_VERDE_RANGO       // D-59: verde fuera de 180..900 o no multiplo de 60
 };
 
-// Solo mira. ahora e inicio en segundos del dia (HH:MM:SS de la orden).
-MotivoTestigo modo_degradado_evaluarEntradaTestigo(uint32_t ahora, uint32_t inicio, int despeje);
+// Solo mira. ahora e inicio en segundos del dia (HH:MM:SS de la orden); verde y despeje en s.
+MotivoTestigo modo_degradado_evaluarEntradaTestigo(uint32_t ahora, uint32_t inicio, int verde, int despeje);
 
 // Vuelve a evaluar y, si procede, entra o renueva, escribe la flash y pone MODO_DEGRADADO.
 // El despachador contesta segun lo que ESTO devuelve (CLAUDE.md 2).
-MotivoTestigo modo_degradado_entrarTestigo(uint32_t ahora, uint32_t inicio, int despeje);
+MotivoTestigo modo_degradado_entrarTestigo(uint32_t ahora, uint32_t inicio, int verde, int despeje);
+
+// El verde del Degradado AUTOMATICO (A-15): DEG_VERDE_SEG, fijo. Lo pide deg_auto.cpp.
+uint16_t modo_degradado_verdeAutomatico();
 
 // Texto del $ERR, uno por motivo (SPEC_6 A.2.bis).
 const char* modo_degradado_textoTestigo(MotivoTestigo m);

@@ -67,26 +67,19 @@
 // vez de borradas (CLAUDE.md 7.4), porque una causa que desaparece en silencio vuelve a
 // proponerse-:
 //
-//   "no cabe en el byte"            FALSA. CMD_CONFIG topa en 255 s (ver mas abajo) y
-//                                   180 no se acerca al borde.
-//   "lo exige el margen de deriva"  FALSA. Ese margen lo pone el DESPEJE, no el verde:
-//                                   costura_12_margen_deriva mide que el aguante del
-//                                   cruce en el sentido malo es EXACTAMENTE el despeje
-//                                   ampliado, y no se mueve ni un segundo al cambiar el
-//                                   verde.
+//   "no cabe en el byte"            FALSA. CMD_CONFIG topa en 255 s (ver mas abajo) y 180 no se acerca al borde.
+//   "lo exige el margen de deriva"  FALSA. Ese margen lo pone el DESPEJE, no el verde: costura_12_margen_deriva mide
+//                                   que el aguante del cruce en el sentido malo es EXACTAMENTE el despeje ampliado,
+//                                   y no se mueve ni un segundo al cambiar el verde.
 //
-// La razon que SI sostenia el 30 s era FLUIDEZ -"se pierde fluidez, que es exactamente
-// lo que se acepta en un modo degradado"-, y es la que el responsable decidio en contra
-// el 13/09: el verde de Degradado pasa a ser el MISMO minimo vial que ya rige para todo
-// lo demas (D-5, VERDE_MIN_MIN = 3 min = 180 s). El ciclo pasa de 2*(30+30) = 120 s a
-// 2*(180+30) = 420 s, y la espera maxima de quien llega justo despues de su verde pasa
-// de 30+30+30 = 90 s a 30+180+30 = 240 s. El despeje no se toca, y el margen de deriva
-// no cambia -precisamente porque no depende del verde-.
+// La razon que SI sostenia el 30 s era FLUIDEZ, y el responsable decidio en contra el 13/09: el verde pasa a ser el
+// MISMO minimo vial de todo lo demas (D-5, VERDE_MIN_MIN = 3 min = 180 s). El ciclo pasa de 2*(30+30) = 120 s a
+// 2*(180+30) = 420 s, y la espera maxima tras el propio verde de 30+30+30 = 90 s a 30+180+30 = 240 s. El despeje no
+// se toca, y el margen de deriva no cambia -precisamente porque no depende del verde-.
 //
-// TOPE DEL BYTE. CMD_CONFIG lleva un solo byte por valor, asi que el ciclo degradado
-// esta topado en 255 s por fase. Ni los 180 s de verde ni los 30 de despeje se acercan
-// al tope, y ademas el ciclo degradado NO hereda el verde configurado en Modo
-// Automatico -que se mide en minutos y si desbordaria-: es fijo y propio de este modo.
+// TOPE DEL BYTE. CMD_CONFIG lleva un byte por valor: el ciclo por radio topa en 255 s por fase y
+// 180/30 no se acercan. No hereda el verde del Automatico: es fijo y propio de este modo. El verde
+// del TESTIGO (D-59, hasta 900 s) nunca viaja por radio: va en la orden y en la flash del testigo.
 // ---------------------------------------------------------------------------
 static const uint16_t DEG_VERDE_SEG = 180;
 static const uint16_t DEG_DESPEJE_SEG = 30;   // YA AMPLIADO. Ver arriba.
@@ -140,13 +133,14 @@ static const unsigned long ROJO_TRANSICION_MS = (unsigned long)DEG_DESPEJE_SEG *
 // por encima del sesgo de una transmision, aqui Bluetooth telefono-poste); constante propia porque la otra es del
 // desfase de RADIO. EL DESPEJE TIENE SU PROPIO RANGO, 30..255, no los 10..90 del Automatico: un modo sin camara ni
 // radio que lo vigile pide mas margen; el suelo de 30 es el de D-18, asi que SALTO_SIN_ROJO_MAX_S queda del lado
-// seguro con cualquier despeje admitido. El verde viaja fijo en 180 (DEG_VERDE_SEG): lo rechaza el despachador por
-// formato. LA EDAD SE CUENTA CON LA FECHA DEL DS3231 (reloj_segundosDesde2000()), no con el contador del RTC: sin Y2
-// ese contador no cuenta, y HAL_RTC_GetTime puede reescribirlo.
+// seguro con cualquier despeje admitido. D-59: el verde lo elige el operario, 180..900 y multiplo de 60 (VERDE_MIN_MIN/
+// MAX de limites_ciclo.h, en segundos); el automatico (A-15) usa DEG_VERDE_SEG. LA EDAD SE CUENTA CON LA FECHA DEL
+// DS3231 (reloj_segundosDesde2000()), no con el contador del RTC: sin Y2 no cuenta, y HAL_RTC_GetTime lo reescribe.
 // ---------------------------------------------------------------------------
 static const int32_t  TOLERANCIA_TESTIGO_S   = 3;
 static const int      TESTIGO_DESPEJE_MIN    = 30;
 static const int      TESTIGO_DESPEJE_MAX    = 255;
+static const uint16_t TESTIGO_VERDE_MIN_S = VERDE_MIN_MIN * 60U, TESTIGO_VERDE_MAX_S = VERDE_MIN_MAX * 60U;   // D-59
 static const uint32_t TESTIGO_INICIO_MAX_S   = 43200UL;           // 12 h: mas es "ya paso"
 // 29/09 (responsable, H9): el testigo YA NO VENCE -se retiro TESTIGO_VIGENCIA_S, los 31 dias
 // a ambar-. Queda el aviso: a los 28 dias y despues una vez al dia, sin tocar luz ni modo.
@@ -154,6 +148,7 @@ static const uint32_t TESTIGO_AVISO_S        = 28UL * 86400UL;    // 28 dias: so
 
 static bool testigo = false;            // el Degradado en curso es de testigo
 static uint8_t testigoDespeje = DEG_DESPEJE_SEG;
+static uint16_t testigoVerde = DEG_VERDE_SEG;   // D-59: el del testigo; tras un corte, el de la flash
 static uint32_t testigoMarcaS = 0;      // s desde 2000 del ultimo testigo aceptado
 static uint32_t testigoInicioS = 0;     // s desde 2000 de inicio
 static bool entradaTestigoHecha = false;  // setup() no debe rehacer lo que hizo entrarTestigo
@@ -161,6 +156,7 @@ static bool reanudarComoTestigo = false;  // la reanudacion pendiente es de test
 static TestigoFlash testigoLeido;         // lo que leyo la reanudacion de la flash
 
 static uint8_t despejeEnUso() { return testigo ? testigoDespeje : (uint8_t)DEG_DESPEJE_SEG; }
+static uint16_t verdeEnUso() { return testigo ? testigoVerde : DEG_VERDE_SEG; }
 
 // El todo-rojo de entrada y salida es el despeje EN USO: con testigo, el pedido.
 static unsigned long rojoTransicionMs() {
@@ -590,7 +586,7 @@ bool modo_degradado_reanudarTrasCorte() {
 
 // Fase del instante actual (D-35: con el despeje EN USO). Solo aqui se leen los segundos del dia.
 static FaseDegradado faseAhora() {
-  return ciclo_degradado_fase(reloj_segundosDelDia(), DEG_VERDE_SEG, despejeEnUso());
+  return ciclo_degradado_fase(reloj_segundosDelDia(), verdeEnUso(), despejeEnUso());
 }
 
 // D-53 (C2): ABRIR desde rojo solo si el verde se va a encender (SPEC_2 8 (e.ter)). Tras un salto de
@@ -598,9 +594,9 @@ static FaseDegradado faseAhora() {
 static bool verdeConTiempo() {
   const uint32_t s = reloj_segundosDelDia();
   const uint16_t d = despejeEnUso();
-  const FaseDegradado f = ciclo_degradado_fase(s, DEG_VERDE_SEG, d);
+  const FaseDegradado f = ciclo_degradado_fase(s, verdeEnUso(), d);
   return f == FD_ROJO_AMARILLO_MAESTRO ||
-         (f == FD_VERDE_MAESTRO && ciclo_degradado_restante(s, DEG_VERDE_SEG, d) > ROJO_AMARILLO_SEG);
+         (f == FD_VERDE_MAESTRO && ciclo_degradado_restante(s, verdeEnUso(), d) > ROJO_AMARILLO_SEG);
 }
 
 static void irAAmbar(const char* l1, const char* l2) {
@@ -675,7 +671,7 @@ void modo_degradado_setup() {
   soltarSalida();   // D-52: la entrada no hereda nada; solo el registro de un testigo reanudado
   rojoPorOrden = false;
   if (comoTestigo) {
-    testigoDespeje = testigoLeido.despejeSeg;
+    testigoDespeje = testigoLeido.despejeSeg; testigoVerde = testigoLeido.verdeSeg;   // D-59: nunca 180 por su cuenta
     testigoMarcaS = testigoLeido.marcaS;
     testigoInicioS = testigoLeido.inicioS;
     salidaS = testigoLeido.salidaS;
@@ -774,11 +770,12 @@ bool modo_degradado_esperaRevocada() { return esperaRevocada; }
 // D-35 - LA PUERTA DEL TESTIGO. Paralela a modo_degradado_evaluarEntrada(), que no se toca.
 // El orden de los motivos es el de SPEC_2 7.bis para el Maestro.
 // ---------------------------------------------------------------------------
-MotivoTestigo modo_degradado_evaluarEntradaTestigo(uint32_t ahora, uint32_t inicio, int despeje) {
+MotivoTestigo modo_degradado_evaluarEntradaTestigo(uint32_t ahora, uint32_t inicio, int verde, int despeje) {
   if (!reloj_horaFiable() || reloj_segundosDesde2000() == 0) return MDT_FALTA_HORA;
   const uint32_t reloj = reloj_segundosDelDia();
   const int32_t d = difCircular(ahora, reloj);   // por el camino corto: 23:59:59 vs 00:00:01 = 2 s
   if (d > TOLERANCIA_TESTIGO_S || d < -TOLERANCIA_TESTIGO_S) return MDT_AHORA_DESFASADO;
+  if (verde < TESTIGO_VERDE_MIN_S || verde > TESTIGO_VERDE_MAX_S || verde % 60 != 0) return MDT_VERDE_RANGO;
   if (despeje < TESTIGO_DESPEJE_MIN || despeje > TESTIGO_DESPEJE_MAX) return MDT_DESPEJE_RANGO;
   if ((inicio + 86400UL - reloj) % 86400UL > TESTIGO_INICIO_MAX_S) return MDT_INICIO_VENCIDO;
   // R-4 en esta punta: el ambar de emergencia es MODO_AMBAR; el de arranque (D-40) no lo es.
@@ -787,11 +784,11 @@ MotivoTestigo modo_degradado_evaluarEntradaTestigo(uint32_t ahora, uint32_t inic
 }
 
 // Escribe la flash y lo publica con lo que tardo el borrado (medida para el banco).
-static bool guardarTestigoFlash(uint32_t marcaS, uint32_t inicioS, uint8_t despeje, uint32_t salida) {
+static bool guardarTestigoFlash(uint32_t marcaS, uint32_t inicioS, uint16_t verde, uint8_t despeje, uint32_t salida) {
   TestigoFlash t;
   t.marcaS = marcaS;
   t.inicioS = inicioS;
-  t.verdeSeg = (uint8_t)DEG_VERDE_SEG;
+  t.verdeSeg = verde;
   t.despejeSeg = despeje;
   t.salidaS = salida;
   uint32_t us = 0;
@@ -802,8 +799,8 @@ static bool guardarTestigoFlash(uint32_t marcaS, uint32_t inicioS, uint8_t despe
   return ok;
 }
 
-MotivoTestigo modo_degradado_entrarTestigo(uint32_t ahora, uint32_t inicio, int despeje) {
-  const MotivoTestigo m = modo_degradado_evaluarEntradaTestigo(ahora, inicio, despeje);
+MotivoTestigo modo_degradado_entrarTestigo(uint32_t ahora, uint32_t inicio, int verde, int despeje) {
+  const MotivoTestigo m = modo_degradado_evaluarEntradaTestigo(ahora, inicio, verde, despeje);
   if (m != MDT_OK) return m;
 
   const uint32_t reloj = reloj_segundosDelDia();
@@ -811,19 +808,18 @@ MotivoTestigo modo_degradado_entrarTestigo(uint32_t ahora, uint32_t inicio, int 
   const uint32_t inicioS = ahoraS + (inicio + 86400UL - reloj) % 86400UL;
   const bool enModo = modoActual_get() == MODO_DEGRADADO;
 
-  // YA ALTERNANDO CON ESTE MISMO CICLO: renueva la cuenta y sigue, sin volver a rojo ni
-  // esperar inicio -la fase es la de pared y no cambia-. Vale tambien sobre un D-18 activo
-  // (su despeje es 30). La flash solo se escribe con esta punta en rojo; en su verde se
-  // rechaza y se repite en rojo. Lo guardado lleva inicio = ahora: ya empezo.
-  if (enModo && estado == DEG_ACTIVO && despejeEnUso() == (uint8_t)despeje) {
+  // YA ALTERNANDO CON ESTE MISMO CICLO (D-59: verde Y despeje; otro ciclo es entrada nueva): renueva la cuenta y
+  // sigue, sin volver a rojo ni esperar inicio -la fase es la de pared-. Vale sobre un D-18 activo (180/30). La flash
+  // solo se escribe con esta punta en rojo; en su verde se rechaza y se repite en rojo. Lo guardado: inicio = ahora.
+  if (enModo && estado == DEG_ACTIVO && verdeEnUso() == (uint16_t)verde && despejeEnUso() == (uint8_t)despeje) {
     if (faseAhora() == FD_VERDE_MAESTRO || faseAhora() == FD_ROJO_AMARILLO_MAESTRO ||
         semaforo_estado() == S_AMARILLO || semaforo_estado() == S_ROJO_AMARILLO)
       return MDT_EN_VERDE;   // D-53: el R+A cuenta como verde propio
     soltarSalida();   // D-52: renovar es entrar de nuevo
     rojoPorOrden = false;
-    if (!guardarTestigoFlash(ahoraS, ahoraS, (uint8_t)despeje, 0)) return MDT_NO_GUARDADO;
+    if (!guardarTestigoFlash(ahoraS, ahoraS, (uint16_t)verde, (uint8_t)despeje, 0)) return MDT_NO_GUARDADO;
     testigo = true;
-    testigoDespeje = (uint8_t)despeje;
+    testigoDespeje = (uint8_t)despeje; testigoVerde = (uint16_t)verde;
     testigoMarcaS = ahoraS;
     testigoInicioS = ahoraS;
     respaldo_guardarTestigo();
@@ -835,7 +831,7 @@ MotivoTestigo modo_degradado_entrarTestigo(uint32_t ahora, uint32_t inicio, int 
   semaforo_forzarRojo();
   soltarSalida();   // D-52: entrada nueva, sin salida ni rojo por orden heredados
   rojoPorOrden = false;
-  if (!guardarTestigoFlash(ahoraS, inicioS, (uint8_t)despeje, 0)) {
+  if (!guardarTestigoFlash(ahoraS, inicioS, (uint16_t)verde, (uint8_t)despeje, 0)) {
     // Sin registro no hay reanudacion posible: no se entra. Si ya estaba en Degradado sale
     // por su todo-rojo; si no, al menu, que es rojo fijo.
     if (enModo) modo_degradado_pedirSalida();
@@ -843,7 +839,7 @@ MotivoTestigo modo_degradado_entrarTestigo(uint32_t ahora, uint32_t inicio, int 
     return MDT_NO_GUARDADO;
   }
   testigo = true;
-  testigoDespeje = (uint8_t)despeje;
+  testigoDespeje = (uint8_t)despeje; testigoVerde = (uint16_t)verde;
   testigoMarcaS = ahoraS;
   testigoInicioS = inicioS;
   respaldo_guardarTestigo();
@@ -869,12 +865,16 @@ const char* modo_degradado_textoTestigo(MotivoTestigo m) {
     case MDT_AMBAR_VIGENTE:   return "Ambar de emergencia puesto";
     case MDT_EN_VERDE:        return "En verde: repita en rojo";
     case MDT_NO_GUARDADO:     return "No se pudo guardar el testigo";
+    case MDT_VERDE_RANGO:     return "Verde fuera de rango (3-15 min)";   // D-59; 31 B, el tope del $ERR
     default:                  return "";
   }
 }
+uint16_t modo_degradado_verdeAutomatico() { return DEG_VERDE_SEG; }   // A-15: el automatico sigue en 180
 
 // D-52 (SPEC_2 7.quater (c)): donde se puede ordenar una salida. MDF_PROGRAMADA = si, gobierna.
-static bool guardarSalida(uint32_t s) { return guardarTestigoFlash(testigoMarcaS, testigoInicioS, testigoDespeje, s); }
+static bool guardarSalida(uint32_t s) {
+  return guardarTestigoFlash(testigoMarcaS, testigoInicioS, testigoVerde, testigoDespeje, s);
+}
 static MotivoSalida dondeEstoy() {
   if (modoActual_get() != MODO_DEGRADADO || estado == DEG_RECHAZO || estado == DEG_AMBAR) return MDF_NO_EN_DEGRADADO;
   return estado == DEG_SALIDA_ROJO ? MDF_YA_SALIENDO : MDF_PROGRAMADA;

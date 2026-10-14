@@ -247,4 +247,121 @@ module.exports = async function pruebaTextosSpec4(montarAppLimpia, assert) {
     const reg = DF.leer();
     assert(!!reg && reg.esclavo === true, `14: un CANCELADA de otra punta que la pedida no borra g.esclavo: ${JSON.stringify(reg)}`);
   }
+
+  // 15. D-59: el verde del testigo lo elige el operario en minutos enteros 3..15 (por defecto 3); viaja en SEGUNDOS
+  // (min*60). El POSTE 2 recibe el verde GUARDADO del POSTE 1, nunca el del campo: dos verdes distintos se cruzan.
+  {
+    const args = (a) => { const x = degT(a).pop() || ''; const m = x.match(/DEG_T:([^*]*)/); return m ? m[1].split(',') : []; };
+    const testigoM = (a, min) => { preparar(a); if (min !== undefined) a.d.getElementById('num-testigo-verde').value = String(min);
+      a.pulsa('btn-testigo-maestro'); a.entra('ACK,NODE:PUENTE,CMD:SET_RTC,RESULT:OK,FECHA:2026-10-04,HORA:14:31:00'); };
+    const campo = montar(M, 'MENU').d.getElementById('num-testigo-verde');
+    assert(!!campo && campo.value === '3' && campo.min === '3' && campo.max === '15',
+      `15: D-59 campo «Verde (min)» 3..15, por defecto 3: ${campo && [campo.value, campo.min, campo.max]}`);
+    for (const [min, seg] of [[4, '240'], [6, '360'], [3, '180'], [15, '900']]) {
+      const a = montar(M, 'MENU'); testigoM(a, min);
+      assert(args(a)[2] === seg, `15: D-59 verde ${min} min viaja como ${seg} s: ${JSON.stringify(degT(a))}`);
+    }
+    for (const min of [2, 16, 4.5, '']) {
+      const a = montar(M, 'MENU'); testigoM(a, min);
+      assert(degT(a).length === 0 && a.tramas.every(x => !/SET_RTC/.test(x)),
+        `15: D-59 verde "${min}" min fuera de 3..15 no se envia (ni el SET_RTC): ${JSON.stringify(a.tramas)}`);
+    }
+    {
+      const a = montar(M, 'MENU'); testigoM(a, 6); a.entra('ACK,CMD:SET_MODO:DEG_T,RESULT:OK');
+      a.status(E, 'SEM-E-01', 'SUBORDINADO');
+      a.d.getElementById('num-testigo-verde').value = '4';      // el campo cambia DESPUES del acuse del Maestro
+      a.d.getElementById('chk-testigo-verificado').checked = true; a.tramas.length = 0;
+      a.pulsa('btn-testigo-esclavo'); a.entra('ACK,NODE:PUENTE,CMD:SET_RTC,RESULT:OK,FECHA:2026-10-04,HORA:14:31:00');
+      assert(args(a)[2] === '360', `15: D-59 el POSTE 2 recibe el verde GUARDADO (360), no el del campo (4 min): ${JSON.stringify(degT(a))}`);
+      assert(/verde 6 min/.test(a.d.getElementById('testigo-estado').textContent),
+        `15: D-59 el estado muestra el verde elegido en min: "${a.d.getElementById('testigo-estado').textContent}"`);
+    }
+    {
+      const a = montar(M, 'MENU'); a.w.Testigo.guardar({ estado: 'ACEPTADO', inicio: '23:59:59', inicioMs: Date.now() + 600000,
+        verde: 100, despeje: 30, serie: 'SEM-M-01' });
+      a.status(E, 'SEM-E-01', 'SUBORDINADO'); preparar(a); a.pulsa('btn-testigo-esclavo');
+      assert(degT(a).length === 0, `15: D-59 un verde guardado fuera de 180..900 no se lleva al POSTE 2: ${JSON.stringify(a.tramas)}`);
+    }
+    const FW = /necesita el firmware nuevo para un verde distinto de 3 min/;
+    {
+      const a = montar(M, 'MENU'); testigoM(a, 6); a.entra('ERR,NODE:MAESTRO,CMD:SET_MODO:DEG_T,DESC:FORMATO_INVALIDO');
+      const t = a.d.getElementById('event-feed').textContent;
+      assert(FW.test(t) && /los dos postes/.test(t) && /3 min/.test(t),
+        `15: D-59 FORMATO_INVALIDO con verde 6 min dice que falta el firmware nuevo y que hacer: "${a.ultimo()}"`);
+    }
+    {
+      // 14/10: el firmware nuevo rechaza con el texto exacto; eso no es firmware viejo.
+      const a = montar(M, 'MENU'); testigoM(a, 6); a.entra('ERR,NODE:MAESTRO,CMD:SET_MODO:DEG_T,DESC:Verde fuera de rango (3-15 min)');
+      const t = a.d.getElementById('event-feed').textContent;
+      assert(!FW.test(t) && /Verde fuera de rango/.test(t) && !/sin traducir/.test(t),
+        `15: «Verde fuera de rango (3-15 min)» tiene su texto y no culpa al firmware viejo: "${a.ultimo()}"`);
+    }
+    {
+      // 14/10 (1): con el POSTE 1 YA en Degradado, cambiar verde o despeje pide el dialogo propio antes de nada.
+      const abierto = (a) => a.d.getElementById('dialogo-modal').classList.contains('active');
+      const a = montar(M, 'DEGRADADO'); preparar(a); a.d.getElementById('num-testigo-verde').value = '6';
+      a.d.getElementById('btn-testigo-maestro').click();
+      const tx = abierto(a) ? a.d.getElementById('dialogo-modal').textContent.replace(/\s+/g, ' ') : '';
+      assert(/Cambio de tiempos con el Degradado en marcha/.test(tx) && /verde en los dos sentidos/.test(tx) &&
+             /paletero en los dos extremos ANTES de seguir/.test(tx) && /antes de las \d\d:\d\d:\d\d/.test(tx) && a.tramas.length === 0,
+        `15: en DEGRADADO el cambio de tiempos abre el dialogo propio y no envia nada: "${tx}" ${JSON.stringify(a.tramas)}`);
+      a.d.getElementById('btn-dialogo-cancelar').click();
+      assert(!abierto(a) && a.tramas.length === 0, `15: Cancelar no envia nada: ${JSON.stringify(a.tramas)}`);
+      a.d.getElementById('btn-testigo-maestro').click();
+      if (abierto(a)) a.d.getElementById('btn-dialogo-aceptar').click();
+      if (a.d.getElementById('pin-modal').classList.contains('active')) a.pin();
+      a.entra('ACK,NODE:PUENTE,CMD:SET_RTC,RESULT:OK,FECHA:2026-10-04,HORA:14:31:00');
+      const chk = a.d.getElementById('chk-aviso-deg');
+      if (a.d.getElementById('aviso-deg-modal').classList.contains('active')) {
+        chk.checked = true; chk.dispatchEvent(new a.w.Event('change')); a.d.getElementById('btn-aviso-deg-confirmar').click();
+      }
+      assert(degT(a).length === 1 && args(a)[2] === '360',
+        `15: aceptado el dialogo (y el de paleteros), el testigo sale con 360: ${JSON.stringify(a.tramas)}`);
+      a.entra('ACK,CMD:SET_MODO:DEG_T,RESULT:OK');
+      assert(a.w.Testigo.leer().enCaliente === true, `15: el testigo puesto con el Degradado en marcha queda marcado: ${JSON.stringify(a.w.Testigo.leer())}`);
+      const b = montar(M, 'DEGRADADO');
+      b.w.Testigo.guardar({ estado: 'ACEPTADO', inicio: '23:59:59', inicioMs: Date.now() + 600000, verde: 360, despeje: 30, serie: 'SEM-M-01' });
+      preparar(b); b.d.getElementById('num-testigo-verde').value = '6'; b.d.getElementById('num-testigo-despeje').value = '30';
+      b.d.getElementById('btn-testigo-maestro').click();
+      assert(!abierto(b), '15: mismos verde y despeje que el testigo guardado: sin dialogo de cambio de tiempos');
+    }
+    {
+      // 14/10 (2): el POSTE 2 rechaza por inicio vencido y el POSTE 1 ya va con otro ciclo.
+      const a = montar(E, 'DEGRADADO');
+      a.w.Testigo.guardar({ estado: 'ACEPTADO', inicio: '15:00:00', inicioMs: Date.now() + 600000, verde: 360, despeje: 30,
+                            serie: 'SEM-M-01', enCaliente: true });
+      a.entra('ERR,NODE:ESCLAVO,CMD:SET_MODO:DEG_T,DESC:Inicio ya vencido: repita el testigo en el Maestro');
+      const t = a.d.getElementById('event-feed').textContent;
+      assert(/Verde cruzado posible: el POSTE 1 va con 6 min y este con el ciclo anterior\. Que falta: mantenga el paletero; repita el testigo en el POSTE 1 y traigalo aqui antes del inicio\./.test(t),
+        `15: INICIO vencido en el POSTE 2 con el POSTE 1 en otro ciclo avisa de verde cruzado: "${a.ultimo()}"`);
+    }
+    {
+      // Reenvio con el testigo del POSTE 1 ENVIADO (sin acuse): sale lo YA enviado, no lo que diga el campo.
+      const a = montar(M, 'MENU'); testigoM(a, 6); const primera = args(a);
+      a.d.getElementById('num-testigo-verde').value = '4'; a.tramas.length = 0;
+      a.pulsa('btn-testigo-maestro'); a.entra('ACK,NODE:PUENTE,CMD:SET_RTC,RESULT:OK,FECHA:2026-10-04,HORA:14:31:00');
+      const segunda = args(a);
+      assert(segunda[2] === '360' && segunda[1] === primera[1] && segunda[3] === primera[3],
+        `15: D-59 reenvio sin acuse reusa lo enviado (360, mismo inicio): ${primera} -> ${segunda}`);
+      assert(/se reenvia lo ya enviado/i.test(a.d.getElementById('event-feed').textContent),
+        `15: D-59 el reenvio con el campo cambiado dice que se reenvia lo ya enviado: "${a.ultimo()}"`);
+      a.entra('ACK,CMD:SET_MODO:DEG_T,RESULT:OK');
+      const g = a.w.Testigo.leer();
+      assert(g && g.estado === 'ACEPTADO' && g.verde === 360, `15: D-59 tras el ACK el guardado es 360: ${JSON.stringify(g)}`);
+    }
+    {
+      const a = montar(M, 'MENU'); testigoM(a, 6); a.entra('ACK,CMD:SET_MODO:DEG_T,RESULT:OK');
+      a.status(E, 'SEM-E-01', 'SUBORDINADO'); a.d.getElementById('chk-testigo-verificado').checked = true;
+      a.pulsa('btn-testigo-esclavo'); a.entra('ACK,NODE:PUENTE,CMD:SET_RTC,RESULT:OK,FECHA:2026-10-04,HORA:14:31:00');
+      a.entra('ERR,NODE:ESCLAVO,CMD:SET_MODO:DEG_T,DESC:FORMATO_INVALIDO');
+      const t = a.d.getElementById('event-feed').textContent;
+      assert(FW.test(t) && /POSTE 1 ya va con el testigo de 6 min/.test(t) && /Verde 3 min/.test(t),
+        `15: D-59 desde el POSTE 2 el aviso de firmware viejo dice que el POSTE 1 ya va con 6 min y que hacer: "${a.ultimo()}"`);
+    }
+    {
+      const a = montar(M, 'MENU'); testigoM(a, 3); a.entra('ERR,NODE:MAESTRO,CMD:SET_MODO:DEG_T,DESC:FORMATO_INVALIDO');
+      assert(!FW.test(a.d.getElementById('event-feed').textContent),
+        `15: D-59 FORMATO_INVALIDO con verde 3 min no culpa al firmware del verde: "${a.ultimo()}"`);
+    }
+  }
 };

@@ -30,7 +30,7 @@ static const uint32_t TESTIGO_FLASH_DIR = 0x0800FC00UL;   // ultima pagina de 1 
 struct TestigoFlash {
   uint32_t marcaS;    // instante en que se acepto el ultimo testigo, s desde 2000
   uint32_t inicioS;   // instante de inicio, s desde 2000
-  uint8_t verdeSeg;
+  uint16_t verdeSeg;  // D-59: 180..900 s (3..15 min); no cabe en un byte
   uint8_t despejeSeg;
   uint32_t salidaS;   // D-52: salida programada, s desde 2000; 0 = ninguna
 };

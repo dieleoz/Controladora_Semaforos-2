@@ -19,24 +19,16 @@
 // frontera para que las dos puntas se dieran verde a la vez.
 // ---------------------------------------------------------------------------
 
-// El limite duro. Pasadas 48 h sin que el Maestro nos ponga en hora, el modo se
-// rinde SOLO y cae a ambar intermitente.
+// El limite duro. Pasadas 48 h sin que el Maestro nos ponga en hora, el modo se rinde SOLO y cae a ambar
+// intermitente. No es un aviso, es un tope: el diseno automatico que esto sustituye tenia la regla y al pasar a
+// activacion manual se perdio, dejando solo "la pantalla pide resincronizar". El estado seguro no puede depender de
+// que alguien se acuerde. Las 48 h: dos cristales de 32.768 kHz sin calibrar y a la intemperie
+// derivan hasta ~8,6 s/dia en el peor caso.
 //
-// No es un aviso, es un tope, y la diferencia importa: el diseno automatico que
-// esto sustituye tenia la regla y al pasar a activacion manual se perdio, dejando
-// solo "la pantalla pide resincronizar". El estado seguro no puede depender de
-// que alguien se acuerde.
-//
-// De donde salen las 48 h: dos cristales de 32.768 kHz sin calibrar y a la
-// intemperie derivan hasta ~8,6 s/dia en el peor caso.
-//
-// EL FACTOR DE SEGURIDAD 2 QUE AQUI SE AFIRMABA ES FALSO, y la correccion es la misma
-// que en el Maestro porque la cuenta era la misma. Medido el 01/09 sobre el C++ REAL de
-// las dos puntas ejecutandose a la vez, cada una con su reloj: el cruce aguanta 29 s de
-// desfase, el equipo puede acumular 20,2 s en 48 h, MARGEN 8,8 s, factor 1,44.
-//
-// Alargar el plazo obliga a alargar el todo-rojo (una semana pide ~90 s): lo que toca es
-// arreglar el radio. La desigualdad la recalcula un instrumento desde el C++.
+// EL FACTOR DE SEGURIDAD 2 QUE AQUI SE AFIRMABA ES FALSO (la cuenta es la del Maestro). Medido el 01/09 sobre el C++
+// REAL de las dos puntas a la vez, cada una con su reloj: el cruce aguanta 29 s de desfase, el equipo puede acumular
+// 20,2 s en 48 h, MARGEN 8,8 s, factor 1,44. Alargar el plazo obliga a alargar el todo-rojo (una semana pide ~90 s):
+// lo que toca es arreglar el radio. La desigualdad la recalcula un instrumento desde el C++.
 static const unsigned long LIMITE_SIN_SYNC_MS = 48UL * 3600UL * 1000UL;
 
 // El mismo limite en horas (la unidad del respaldo a traves de un reinicio), derivado del de
@@ -57,13 +49,15 @@ static const unsigned long PERIODO_FASE_MS = 200UL;
 
 // ---------------------------------------------------------------------------
 // D-35 - EL DEGRADADO CON TESTIGO (SPEC_2 7.bis). Gemelo del Maestro, con el porque alli: misma tolerancia, despeje
-// 30..255, vigencia con la fecha del DS3231. Con testigo la fase usa el ciclo DEL TESTIGO (verde 180, su despeje), no
-// el de config_ciclo, que lo manda por radio un Maestro que en este modo no se oye.
+// 30..255, vigencia con la fecha del DS3231. Con testigo la fase usa el ciclo DEL TESTIGO (su verde y su despeje), no
+// el de config_ciclo, que lo manda por radio un Maestro que en este modo no se oye. D-59: verde 180..900, x60; ESTA
+// PUNTA NO TIENE limites_ciclo.h: los bordes son VERDE_MIN_MIN/MAX del Maestro en s (el arnes a dos puntas los ejerce).
 // ---------------------------------------------------------------------------
 static const int32_t  TOLERANCIA_TESTIGO_S   = 3;
 static const int      TESTIGO_DESPEJE_MIN    = 30;
 static const int      TESTIGO_DESPEJE_MAX    = 255;
 static const uint8_t  TESTIGO_VERDE_SEG      = 180;
+static const int      TESTIGO_VERDE_MIN_S = 180, TESTIGO_VERDE_MAX_S = 900;   // D-59: 3..15 min
 static const uint32_t TESTIGO_INICIO_MAX_S   = 43200UL;           // 12 h: mas es "ya paso"
 static const uint32_t TESTIGO_AVISO_S        = 28UL * 86400UL;    // 28 dias: solo aviso
 
@@ -71,10 +65,11 @@ static const uint32_t TESTIGO_AVISO_S        = 28UL * 86400UL;    // 28 dias: so
 // la salida tambien cuenta su todo-rojo con el despeje del testigo.
 static bool testigo = false;
 static uint8_t testigoDespeje = 0;
+static uint16_t testigoVerde = TESTIGO_VERDE_SEG;   // D-59: el del testigo; tras un corte, el de la flash
 static uint32_t testigoMarcaS = 0;
 static uint32_t testigoInicioS = 0;
 
-static uint8_t cicloVerde()   { return testigo ? TESTIGO_VERDE_SEG : config_verdeSegundos(); }
+static uint16_t cicloVerde()  { return testigo ? testigoVerde : config_verdeSegundos(); }
 static uint8_t cicloDespeje() { return testigo ? testigoDespeje : config_despejeSegundos(); }
 
 static int32_t difCircular(uint32_t a, uint32_t b) {
@@ -443,9 +438,9 @@ void degradado_salir() {
 // repeticion, DEG_ENTRANDO, ancla de hora) sin tocarla: aquella es la puerta de D-18 y la
 // leen por su forma varios packs. Lo que cambia es el permiso en la pila y el ciclo.
 // ---------------------------------------------------------------------------
-static void entrarTestigoPorRojo(uint32_t marcaS, uint32_t inicioS, uint8_t despeje) {
+static void entrarTestigoPorRojo(uint32_t marcaS, uint32_t inicioS, uint16_t verde, uint8_t despeje) {
   testigo = true;
-  testigoDespeje = despeje;
+  testigoDespeje = despeje; testigoVerde = verde;
   testigoMarcaS = marcaS;
   testigoInicioS = inicioS;
   soltarSalida();   // D-52: entrada nueva; reanudarTestigo() restaura la del registro despues
@@ -476,18 +471,18 @@ static bool reanudarTestigo() {
     respaldo_guardarDegradado(false);
     return false;
   }
-  entrarTestigoPorRojo(t.marcaS, t.inicioS, t.despejeSeg);
+  entrarTestigoPorRojo(t.marcaS, t.inicioS, t.verdeSeg, t.despejeSeg);   // D-59: el verde guardado, nunca 180
   salidaS = t.salidaS;
   salidaRespaldada = salidaS != 0;
   return true;
 }
 
 // Escribe la flash con la luz en rojo y lo publica con lo que tardo el borrado.
-static bool guardarTestigoFlash(uint32_t marcaS, uint32_t inicioS, uint8_t despeje, uint32_t salida) {
+static bool guardarTestigoFlash(uint32_t marcaS, uint32_t inicioS, uint16_t verde, uint8_t despeje, uint32_t salida) {
   TestigoFlash t;
   t.marcaS = marcaS;
   t.inicioS = inicioS;
-  t.verdeSeg = TESTIGO_VERDE_SEG;
+  t.verdeSeg = verde;
   t.despejeSeg = despeje;
   t.salidaS = salida;
   uint32_t us = 0;
@@ -499,7 +494,7 @@ static bool guardarTestigoFlash(uint32_t marcaS, uint32_t inicioS, uint8_t despe
 }
 
 // El orden de los motivos es el de SPEC_2 7.bis para el Esclavo.
-RechazoTestigo degradado_comprobarTestigo(uint32_t ahora, uint32_t inicio, int despeje) {
+RechazoTestigo degradado_comprobarTestigo(uint32_t ahora, uint32_t inicio, int verde, int despeje) {
   if (!reloj_horaFiable() || reloj_segundosDesde2000() == 0) return DEG_RECHAZO_T_SIN_HORA;
   const uint32_t reloj = reloj_segundosDelDia();
   const int32_t d = difCircular(ahora, reloj);
@@ -507,29 +502,29 @@ RechazoTestigo degradado_comprobarTestigo(uint32_t ahora, uint32_t inicio, int d
   // LA QUE MUERDE: el operario llega del Maestro y el traslado ya se agoto. No se reintenta
   // con el mismo inicio; se repite el testigo entero en el Maestro (D-35).
   if ((inicio + 86400UL - reloj) % 86400UL > TESTIGO_INICIO_MAX_S) return DEG_RECHAZO_T_INICIO_VENCIDO;
+  if (verde < TESTIGO_VERDE_MIN_S || verde > TESTIGO_VERDE_MAX_S || verde % 60 != 0) return DEG_RECHAZO_T_VERDE_RANGO;
   if (despeje < TESTIGO_DESPEJE_MIN || despeje > TESTIGO_DESPEJE_MAX) return DEG_RECHAZO_T_DESPEJE_RANGO;
   if (bluetooth_ambarEmergencia()) return DEG_RECHAZO_T_AMBAR_VIGENTE;   // R-4, el mismo veto
   return DEG_T_ACEPTADO;
 }
 
-RechazoTestigo degradado_entrarTestigo(uint32_t ahora, uint32_t inicio, int despeje) {
-  const RechazoTestigo r = degradado_comprobarTestigo(ahora, inicio, despeje);
+RechazoTestigo degradado_entrarTestigo(uint32_t ahora, uint32_t inicio, int verde, int despeje) {
+  const RechazoTestigo r = degradado_comprobarTestigo(ahora, inicio, verde, despeje);
   if (r != DEG_T_ACEPTADO) return r;
 
   const uint32_t reloj = reloj_segundosDelDia();
   const uint32_t ahoraS = reloj_segundosDesde2000();
   const uint32_t inicioS = ahoraS + (inicio + 86400UL - reloj) % 86400UL;
 
-  // Ya alternando con este mismo ciclo (testigo, o D-18 con verde 180 y ese despeje):
-  // renueva y sigue, sin volver a rojo. La flash solo se escribe con esta punta en rojo.
-  if (estado == DEG_ACTIVO && cicloVerde() == TESTIGO_VERDE_SEG &&
-      cicloDespeje() == (uint8_t)despeje) {
+  // Ya alternando con este mismo ciclo, verde Y despeje (D-59; testigo, o D-18 con su ciclo): renueva y sigue, sin
+  // volver a rojo; otro ciclo es entrada nueva. La flash solo se escribe con esta punta en rojo.
+  if (estado == DEG_ACTIVO && cicloVerde() == (uint16_t)verde && cicloDespeje() == (uint8_t)despeje) {
     if (verdeAplicado || semaforo_estado() == S_AMARILLO ||
         semaforo_estado() == S_ROJO_AMARILLO) return DEG_RECHAZO_T_EN_VERDE;   // D-53
     soltarSalida();   // D-52: renovar es entrar de nuevo
-    if (!guardarTestigoFlash(ahoraS, ahoraS, (uint8_t)despeje, 0)) return DEG_RECHAZO_T_NO_GUARDADO;
+    if (!guardarTestigoFlash(ahoraS, ahoraS, (uint16_t)verde, (uint8_t)despeje, 0)) return DEG_RECHAZO_T_NO_GUARDADO;
     testigo = true;
-    testigoDespeje = (uint8_t)despeje;
+    testigoDespeje = (uint8_t)despeje; testigoVerde = (uint16_t)verde;
     testigoMarcaS = ahoraS;
     testigoInicioS = ahoraS;
     respaldo_guardarTestigo();
@@ -540,12 +535,12 @@ RechazoTestigo degradado_entrarTestigo(uint32_t ahora, uint32_t inicio, int desp
   semaforo_forzarRojo();
   verdeAplicado = false;
   soltarSalida();   // D-52
-  if (!guardarTestigoFlash(ahoraS, inicioS, (uint8_t)despeje, 0)) {
+  if (!guardarTestigoFlash(ahoraS, inicioS, (uint16_t)verde, (uint8_t)despeje, 0)) {
     // Sin registro no se entra; si ya gobernaba, sale por su todo-rojo.
     if (estado == DEG_ENTRANDO || estado == DEG_ACTIVO) iniciarSalida(false);
     return DEG_RECHAZO_T_NO_GUARDADO;
   }
-  entrarTestigoPorRojo(ahoraS, inicioS, (uint8_t)despeje);
+  entrarTestigoPorRojo(ahoraS, inicioS, (uint16_t)verde, (uint8_t)despeje);
   return DEG_T_ACEPTADO;
 }
 
@@ -558,12 +553,16 @@ const char* degradado_textoRechazoTestigo(RechazoTestigo r) {
     case DEG_RECHAZO_T_AMBAR_VIGENTE:   return "Ambar de emergencia puesto";
     case DEG_RECHAZO_T_EN_VERDE:        return "En verde: repita en rojo";
     case DEG_RECHAZO_T_NO_GUARDADO:     return "No se pudo guardar el testigo";
+    case DEG_RECHAZO_T_VERDE_RANGO:     return "Verde fuera de rango (3-15 min)";   // D-59: el texto del Maestro
     default:                            return "";
   }
 }
+uint16_t degradado_verdeAutomatico() { return TESTIGO_VERDE_SEG; }   // A-15: el automatico sigue en 180
 
 // D-52 (SPEC_2 7.quater (c)): donde se puede ordenar una salida. MDF_PROGRAMADA = si, gobierna.
-static bool guardarSalida(uint32_t s) { return guardarTestigoFlash(testigoMarcaS, testigoInicioS, testigoDespeje, s); }
+static bool guardarSalida(uint32_t s) {
+  return guardarTestigoFlash(testigoMarcaS, testigoInicioS, testigoVerde, testigoDespeje, s);
+}
 static MotivoSalida dondeEstoy() {
   if (estado == DEG_INACTIVO || estado == DEG_RENDIDO) return MDF_NO_EN_DEGRADADO;
   return estado == DEG_SALIENDO ? MDF_YA_SALIENDO : MDF_PROGRAMADA;

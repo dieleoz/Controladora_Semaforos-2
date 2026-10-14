@@ -147,7 +147,7 @@ FaseDegradado   degradado_fase();
 // Segunda puerta, PARALELA a degradado_comprobar()/degradado_entrar(), que no se tocan.
 // Misma orden que en el Maestro y su propia tabla de rechazo, en el orden de la spec.
 // Aceptada, ROJO fijo hasta inicio por la misma DEG_ENTRANDO; despues la fase de siempre
-// con verde 180 y el despeje pedido. No vence (29/09): avisa a los 28 dias del ultimo testigo
+// con el verde (D-59: 180..900, x60) y el despeje pedidos. No vence (29/09): avisa a los 28 dias del ultimo testigo
 // (fecha del DS3231). El cerrojo de 48 h (syncVencidaLatch) no actua en este modo.
 enum RechazoTestigo {
   DEG_T_ACEPTADO,                 // entro: rojo fijo hasta inicio
@@ -158,13 +158,15 @@ enum RechazoTestigo {
   DEG_RECHAZO_T_DESPEJE_RANGO,    // fuera de 30..255
   DEG_RECHAZO_T_AMBAR_VIGENTE,    // R-4: ambar de emergencia puesto
   DEG_RECHAZO_T_EN_VERDE,         // renovar escribe la flash, y solo se escribe en rojo
-  DEG_RECHAZO_T_NO_GUARDADO       // la flash no quedo escrita: sale por todo-rojo
+  DEG_RECHAZO_T_NO_GUARDADO,      // la flash no quedo escrita: sale por todo-rojo
+  DEG_RECHAZO_T_VERDE_RANGO       // D-59: verde fuera de 180..900 o no multiplo de 60
 };
 
-// Solo mira. ahora e inicio en segundos del dia.
-RechazoTestigo degradado_comprobarTestigo(uint32_t ahora, uint32_t inicio, int despeje);
+// Solo mira. ahora e inicio en segundos del dia; verde y despeje en segundos.
+RechazoTestigo degradado_comprobarTestigo(uint32_t ahora, uint32_t inicio, int verde, int despeje);
 // Vuelve a mirar y, si procede, entra o renueva y escribe la flash.
-RechazoTestigo degradado_entrarTestigo(uint32_t ahora, uint32_t inicio, int despeje);
+RechazoTestigo degradado_entrarTestigo(uint32_t ahora, uint32_t inicio, int verde, int despeje);
+uint16_t degradado_verdeAutomatico();   // A-15: el verde fijo del automatico (TESTIGO_VERDE_SEG)
 const char* degradado_textoRechazoTestigo(RechazoTestigo r);
 
 // D-52 (SPEC_2 7.quater): la salida programada. Mismo enum, orden y textos que el Maestro; los cuatro primeros son

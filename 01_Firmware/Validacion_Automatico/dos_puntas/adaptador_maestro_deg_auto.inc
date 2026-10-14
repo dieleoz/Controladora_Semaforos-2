@@ -27,6 +27,7 @@ static long g_daInicioS = -1;   // el inicio que publico AUTO_ENTRADA_INICIO_HH:
 static char g_daUltRechazo[64] = "";   // la causa del ultimo AUTO_NO_, literal
 static char g_daUltAccion[32] = "";    // la ACCION del ultimo AUTO_NO_, literal (la app la traduce)
 static bool g_daFlashFalla = false;    // la pagina del testigo no se deja escribir (testigo1.inc)
+static long arnesTestigo_mando(const char* que, long arg);   // D-59, bloque K: en testigo1.inc
 
 static void arnesDegAuto_notar(const char* origen, const char* detalle) {
   if (strcmp(origen, "DEGRADADO") != 0 || detalle == nullptr) return;
@@ -162,7 +163,8 @@ static long arnesDegAuto_mando(const char* que, long arg) {
   if (!strcmp(que, "da_en_fallo"))    return semaforo_estado() == S_FALLO ? 1 : 0;
   if (!strcmp(que, "da_flash_falla")) { g_daFlashFalla = (arg != 0); return 1; }
   if (!strcmp(que, "da_testigo"))
-    return modo_degradado_entrarTestigo(reloj_segundosDelDia(), (uint32_t)arg, DEG_AUTO_DESPEJE_S) == MDT_OK;
+    return modo_degradado_entrarTestigo(reloj_segundosDelDia(), (uint32_t)arg, modo_degradado_verdeAutomatico(),
+                                        DEG_AUTO_DESPEJE_S) == MDT_OK;
   if (!strncmp(que, "da_accion_es:", 13)) return strcmp(g_daUltAccion, que + 13) == 0 ? 1 : 0;
 #ifdef ARNES_SALIDA_D52   // D-52 (SPEC_2 7.quater, firmas): lo pone compilar_degradado.ps1 si los .h ya las declaran
   if (!strcmp(que, "da_salida_programar")) return (long)modo_degradado_programarSalida(reloj_segundosDelDia(), (uint32_t)arg);
@@ -171,5 +173,5 @@ static long arnesDegAuto_mando(const char* que, long arg) {
   if (!strcmp(que, "da_salida_respaldada")) return modo_degradado_salidaRespaldada() ? 1 : 0;
   if (!strcmp(que, "da_texto_vencido_ok")) return !strcmp(modo_degradado_textoSalida(MDF_SALIDA_VENCIDA), "Salida ya vencida");   // SPEC_2 7.quater (c)
 #endif
-  return PUNTA_DESCONOCIDO;
+  return arnesTestigo_mando(que, arg);
 }

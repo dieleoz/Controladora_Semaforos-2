@@ -184,12 +184,15 @@ la unica entrada al Degradado: `SET_MODO:DEGRADADO` salio del firmware.
 
 **En el Maestro (primera punta que se toca):**
 1. El operario escribe el **traslado** —minutos hasta el Esclavo, por defecto **20**— y el **despeje** —30 a 255 s,
-   el mismo limite que el firmware exige (§3.1)—. `verde` no se pide: viaja fijo en **180**.
+   el mismo limite que el firmware exige (§3.1)— y el **verde** —«Verde (min)», enteros de 3 a 15, por defecto 3;
+   viaja en segundos, minutos x 60 (`D-59`)—. Con el Poste 1 ya en Degradado y otro verde o despeje, antes del PIN
+   un dialogo pide paletero en los dos extremos (riesgo aceptado, SPEC 2 §7.bis); un reenvio sin acuse repite lo ya
+   enviado, no los campos. Un `FORMATO_INVALIDO` con verde distinto de 180 se lee como firmware anterior a `D-59`.
 2. La app manda `SET_RTC:<fecha del telefono>,<hora del telefono>` a ESTA punta, igual que siempre —**no bloquea
    el paso siguiente**: el resultado (`RESULT:OK` o `HORA_PUESTA_SIN_PROPAGAR`) se registra en el Diario, pero
    el testigo ya no depende de el (SPEC 2 §7.bis: la garantia la da `ahora`, no el `SET_RTC` previo).
 3. La app LEE la hora del telefono OTRA VEZ, justo antes de enviar —es el `ahora` de la orden—, calcula
-   `inicio = ahora + traslado` y manda `SET_MODO:DEG_T:ahora,inicio,180,<despeje>`.
+   `inicio = ahora + traslado` y manda `SET_MODO:DEG_T:ahora,inicio,<verde>,<despeje>`.
 4. **Lo que la app GUARDA, para el paso 2 del Esclavo** (localmente, no en el equipo): `inicio`, `verde`,
    `despeje`, la `SERIE:` del Maestro (del `$STATUS`, `NODE:` distingue de cual poste vino) y el instante en
    que se emitio. Sin este dato el operario tendria que teclear los mismos numeros dos veces, y un numero mal

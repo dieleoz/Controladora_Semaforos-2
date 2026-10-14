@@ -801,7 +801,12 @@
           <div class="form-group">
             <label for="num-testigo-despeje">Despeje todo-rojo (seg)</label>
             <input type="number" id="num-testigo-despeje" class="form-input" min="30" max="255" value="30">
-            <small class="hint">30 a 255 seg · el verde va fijo en 180 s</small>
+            <small class="hint">30 a 255 seg</small>
+          </div>
+          <div class="form-group">
+            <label for="num-testigo-verde">Verde (min)</label>
+            <input type="number" id="num-testigo-verde" class="form-input" min="3" max="15" step="1" value="3">
+            <small class="hint">3 a 15 min, por defecto 3 · el POSTE 2 recibe el mismo verde guardado · más de 3 min necesita el firmware nuevo en los dos postes</small>
           </div>
           <button class="btn-degradado" id="btn-testigo-maestro">Degradado con testigo · POSTE 1</button>
         </div>
