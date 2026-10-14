@@ -98,7 +98,9 @@ cubre como el despeje (el Poste 2 recibe el guardado del Poste 1) y la renovacio
 | V2 | Firmware: despachador 180..900 s, testigo de flash version 3, reanudacion y renovacion; casos en arneses existentes | hecho: Degradado a dos puntas 155/155, bloque K visto en rojo |
 | V3 | App: campo «Verde (min)» 3..15, Poste 2 con el guardado, aviso de firmware viejo | hecho: jsdom 651/651; dialogo de paletero en caliente |
 | V4 | Revision por el diff, compuerta completa en el arbol principal | hecho: acta `2026-10-14` (solo `D-22`) |
-| V5 | APK y paquete `_SIN_BANCO`; el `.html` de Marco pide SOLO el verde nuevo en los dos postes | pendiente |
+| V5 | APK y paquete `_SIN_BANCO`; el `.html` de Marco pide SOLO el verde nuevo en los dos postes | APK compilada de `96c3d32` (lleva tambien `D-55` registro, `71241ec`); paquete en preparacion (agente) |
+| V6 | Arquitecto (opus) y QA, una vez, sobre `96c3d32` | en curso; nada sale sin su visto bueno |
+| V7 | Semaforo de prueba para ejercer la app desde el PC (pedido del responsable, 14/10) | midiendo que existe (`servidor_puente_simulador.py`, `D-58`); simulador congelado (§4): primero lo existente |
 
 A carretera solo tras banco (`CLAUDE.md` §0.2): el paquete lo dice en su primera linea.
 
