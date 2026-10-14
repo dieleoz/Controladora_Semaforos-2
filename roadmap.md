@@ -92,15 +92,18 @@ flash ya llevan el campo `verde`. Riesgo que manda (§11.7): dos postes con verd
 cubre como el despeje (el Poste 2 recibe el guardado del Poste 1) y la renovacion exige el mismo verde. El automatico
 (`A-15`) sigue en 180. Firmware nuevo en los DOS postes y APK nueva (lleva tambien `38a42ca` y `a16356d`).
 
-| # | paso | estado |
-|---|---|---|
-| V1 | `D-59`, SPEC_2 §7.bis | hecho (14/10), con SPEC_4 §3 y el riesgo aceptado del cambio en caliente (paletero) |
-| V2 | Firmware: despachador 180..900 s, testigo de flash version 3, reanudacion y renovacion; casos en arneses existentes | hecho: Degradado a dos puntas 155/155, bloque K visto en rojo |
-| V3 | App: campo «Verde (min)» 3..15, Poste 2 con el guardado, aviso de firmware viejo | hecho: jsdom 651/651; dialogo de paletero en caliente |
-| V4 | Revision por el diff, compuerta completa en el arbol principal | hecho: acta `2026-10-14` (solo `D-22`) |
-| V5 | APK y paquete `_SIN_BANCO`; el `.html` de Marco pide SOLO el verde nuevo en los dos postes | APK compilada de `96c3d32` (lleva tambien `D-55` registro, `71241ec`); paquete en preparacion (agente) |
-| V6 | Arquitecto (opus) y QA, una vez, sobre `96c3d32` | en curso; nada sale sin su visto bueno |
-| V7 | Semaforo de prueba para ejercer la app desde el PC (pedido del responsable, 14/10) | midiendo que existe (`servidor_puente_simulador.py`, `D-58`); simulador congelado (§4): primero lo existente |
+| # | paso | sale | estado |
+|---|---|---|---|
+| V1 | SPEC: `D-59`, SPEC_2 §7.bis y SPEC_4 §3, riesgo aceptado del cambio en caliente | SPEC al dia | hecho (`96c3d32`) |
+| V2 | Pruebas vistas en rojo: bloque K del Degradado a dos puntas; app (verde, reenvio, paletero) | arneses | hecho (`96c3d32`) |
+| V3 | Firmware Maestro y Esclavo, y app, disjuntos en worktree; integracion por el diff | candidata | hecho (`96c3d32`) |
+| V4 | Compuerta completa en el arbol principal hasta dos pasadas iguales; cifras a README/ESTADO | acta | hecho: acta `2026-10-14`, banco 1379/1380 (solo `D-22`); puente 150/150 tras `f4c95e7` |
+| V5 | Arquitecto (opus) sobre la candidata | veredicto | en curso |
+| V6 | QA sobre el binario y la APK que se entregan | veredicto | en curso |
+| V7 | Cerrar condiciones (SPEC -> prueba en rojo -> codigo) y compuerta otra vez si cambia codigo | candidata | segun V5/V6 |
+| V8 | Hoja de Marco solo con lo nuevo (verde 4-6 min en los dos postes, cambio en caliente con paletero, `.txt` de `D-55`) | `.html` | en preparacion (agente) |
+| V9 | Paquete validado `SIN_BANCO` a `entregas/` (firmware de los dos postes, APK de `96c3d32` con `D-55`/`D-56`), `.docx` de SPEC_2 y SPEC_4, ESTADO y README | `.zip` | tras V5-V7 |
+| V10 | Banco de Marco con placas reales y la hoja; sus cintas se leen enteras y contando; si pasa, se quita `SIN_BANCO` | cintas | Marco, despues el orquestador |
 
 A carretera solo tras banco (`CLAUDE.md` §0.2): el paquete lo dice en su primera linea.
 
