@@ -99,8 +99,8 @@ cubre como el despeje (el Poste 2 recibe el guardado del Poste 1) y la renovacio
 | V3 | Firmware Maestro y Esclavo, y app, disjuntos en worktree; integracion por el diff | candidata | hecho (`96c3d32`) |
 | V4 | Compuerta completa en el arbol principal hasta dos pasadas iguales; cifras a README/ESTADO | acta | hecho: acta `2026-10-14`, banco 1379/1380 (solo `D-22`); puente 150/150 tras `f4c95e7` |
 | V5 | Arquitecto (opus) sobre la candidata | veredicto | APTO sin condiciones sobre `96c3d32` (14/10) |
-| V6 | QA sobre el binario y la APK que se entregan | veredicto | en curso |
-| V7 | Cerrar condiciones (SPEC -> prueba en rojo -> codigo) y compuerta otra vez si cambia codigo | candidata | segun V5/V6 |
+| V6 | QA sobre el binario y la APK que se entregan | veredicto | APTO CON CONDICIONES (14/10): todos los telefonos con la APK `ba1d595c`; corte de luz con verde 15 min en tarjeta; caso 12 de la app vacuo (D2) |
+| V7 | Cerrar condiciones (SPEC -> prueba en rojo -> codigo) y compuerta otra vez si cambia codigo | candidata | en curso: caso 12 en rojo; las dos condiciones a la hoja de Marco; compuerta sobre arbol limpio |
 | V8 | Hoja de Marco solo con lo nuevo (verde 4-6 min en los dos postes, cambio en caliente con paletero, `.txt` de `D-55`) | `.html` | en preparacion (agente) |
 | V9 | Paquete validado `SIN_BANCO` a `entregas/` (firmware de los dos postes, APK de `96c3d32` con `D-55`/`D-56`), `.docx` de SPEC_2 y SPEC_4, ESTADO y README | `.zip` | tras V5-V7 |
 | V10 | Banco de Marco con placas reales y la hoja; sus cintas se leen enteras y contando; si pasa, se quita `SIN_BANCO` | cintas | Marco, despues el orquestador |
