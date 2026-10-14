@@ -84,8 +84,8 @@ const Exportar = {
   // COMO SALE EL FICHERO, en orden, y devuelve por donde salio para que el toast no
   // afirme lo que la pagina no sabe.
   //   'NATIVO'       dentro de la APK, con @capacitor/filesystem y @capacitor/share: se
-  //                  escribe en la cache de la app y se abre la hoja de compartir de
-  //                  Android con el fichero como ADJUNTO (compartirNativo, abajo).
+  //                  escribe en la cache de la app, se copia a EXTERNAL y se abre la hoja de
+  //                  compartir de Android con el fichero como ADJUNTO (compartirNativo, abajo).
   //   'COMPARTIDO'   la hoja de compartir del sistema, con el fichero como ADJUNTO (Web
   //                  Share nivel 2: Chrome de Android fuera de la APK).
   //   'DESCARGA'     <a download> de un Blob: navegador de escritorio o Chrome.
@@ -118,16 +118,55 @@ const Exportar = {
   // Resuelve 'COMPARTIDO' o 'CANCELADO' (el tecnico cerro la hoja: no es un fallo); un
   // fallo de escritura o de la hoja se propaga para que la app lo pinte en rojo.
   // 'COMPARTIDO' dice que Android devolvio la hoja, NO que el mensaje llego.
+  //
+  // SPEC_4 9.3.2: ANTES de la hoja se copia a EXTERNAL (Android/data/<appId>/files/, sin permisos, se lee con
+  // adb pull): la cache la puede vaciar Android y cancelar la hoja no debe llevarse el fichero. Un fallo de la
+  // copia NO para el envio: queda en `ultimaCopia` y conectarBoton lo pinta en rojo.
   compartirNativo(plugins, nombre, texto) {
     return plugins.Filesystem.writeFile({
       path: nombre, data: texto, directory: 'CACHE', encoding: 'utf8'
     }).then(r => {
       if (!r || !r.uri) throw new Error('writeFile no devolvio uri');
-      return plugins.Share.share({ title: nombre, files: [r.uri], dialogTitle: 'Enviar ' + nombre });
+      return Exportar.copiarPersistente(plugins.Filesystem, nombre).then(c => {
+        Exportar.ultimaCopia = c;
+        return plugins.Share.share({ title: nombre, files: [r.uri], dialogTitle: 'Enviar ' + nombre });
+      });
     }).then(() => 'COMPARTIDO', err => {
       if (/cancel/i.test(String(err && err.message || err))) return 'CANCELADO';
       throw err;
     });
+  },
+
+  // Donde queda la copia, en palabras del tecnico y del que la saca por adb. El appId es el de
+  // capacitor.config.json; si cambia alli, este texto miente (lo asevera tests/dom_registro_sesion.js).
+  RUTA_EXTERNA: 'Android/data/com.iotvial.semaforos/files/',
+  ultimaCopia: null,
+
+  // Resuelve SIEMPRE {ok, ruta|motivo}: nunca rechaza, porque la copia no decide si el envio sale.
+  copiarPersistente(fsPlugin, nombre) {
+    if (!fsPlugin || typeof fsPlugin.copy !== 'function') {
+      return Promise.resolve({ ok: false, motivo: 'esta APK no trae Filesystem.copy' });
+    }
+    return Promise.resolve()
+      .then(() => fsPlugin.copy({ from: nombre, directory: 'CACHE', to: nombre, toDirectory: 'EXTERNAL' }))
+      .then(() => ({ ok: true, ruta: Exportar.RUTA_EXTERNA + nombre }),
+            e => ({ ok: false, motivo: String((e && e.message) || e) }));
+  },
+
+  // SPEC_4 9.3.3: lo que va DETRAS del diario y la cinta en el mismo .txt. Lo compone este fichero y no app.js
+  // (que no puede crecer): conectarBoton lo pega al texto que le da la app.
+  textoAnexos() {
+    const sep = '\n\n' + '='.repeat(72) + '\n\n';
+    const ses = typeof RegistroSesion !== 'undefined' ? RegistroSesion.textoEstado() : 'no cargado';
+    return sep + (typeof RegistroCambios !== 'undefined' ? RegistroCambios.aTexto() : '') +
+           sep + (typeof RegistroEnlace !== 'undefined' ? RegistroEnlace.aTexto() : '') +
+           sep + 'IOT-VIAL - FICHERO DE LA SESION\n' + ses + '\n';
+  },
+
+  // Hay algo que sacar aunque el diario y la cinta esten vacios: la bitacora del enlace persiste de otros dias.
+  hayAnexos() {
+    const enl = typeof RegistroEnlace !== 'undefined' && RegistroEnlace.cargar().registros.length > 0;
+    return enl || (typeof RegistroCambios !== 'undefined' && RegistroCambios.todas().length > 0);
   },
 
   // EXPORTAR TODO: UN fichero, como ADJUNTO. Pegado como texto en WhatsApp llegaba
@@ -137,11 +176,12 @@ const Exportar = {
   conectarBoton(boton, app) {
     if (!boton) return;
     boton.addEventListener('click', () => {
-      if (app.vacio()) {
+      if (app.vacio() && !Exportar.hayAnexos()) {
         app.showToast('No hay nada que exportar: ni ordenes ni tramas en esta sesion');
         return;
       }
-      const texto = app.texto();
+      if (typeof RegistroSesion !== 'undefined') RegistroSesion.volcar();
+      const texto = app.texto() + Exportar.textoAnexos();
       const nombre = app.nombre();
       const cap = window.Capacitor;
       let fichero = null;
@@ -165,7 +205,14 @@ const Exportar = {
       if (via === 'SIN_SALIDA') {
         sinSalida('esta APK no trae la pieza nativa de compartir');
       } else if (via === 'NATIVO') {
-        Exportar.compartirNativo(plugins, nombre, texto).then(r => {
+        Exportar.ultimaCopia = null;
+        const copia = () => {
+          const c = Exportar.ultimaCopia;
+          if (!c) return;
+          if (c.ok) app.addEvent('cyan', 'Copia guardada en el telefono: ' + c.ruta + ' (se saca con adb pull).');
+          else app.addEvent('red', 'COPIA en el telefono no se guardo: ' + c.motivo + '. El envio sigue.');
+        };
+        Exportar.compartirNativo(plugins, nombre, texto).finally(copia).then(r => {
           app.showToast(r === 'CANCELADO' ? 'Envio cancelado: ' + nombre + ' no salio'
                                           : nombre + ' pasado a la app elegida; confirme alli el envio');
         }).catch(err => sinSalida(String((err && err.message) || err)));
@@ -208,6 +255,122 @@ const Exportar = {
   }
 };
 
+// =============================================================================
+// EL FICHERO DE LA SESION, EN LA APK (SPEC_4 9.3.4, D-55).
+// =============================================================================
+// La cinta y el diario viven en memoria: si Android mata la app antes de exportar, se pierden. En la APK la
+// primera anotacion abre SESION_<AAAAMMDD-HHMMSS>.txt en EXTERNAL, y lo que pasa por la cinta (las dos
+// direcciones, el PIN ya tapado por RegistroCrudo.anotar) y por la bitacora del enlace se le anade por lotes.
+// Fuera de la APK no escribe nada. Medido solo contra dobles: el telefono falta (SPEC_4 9.3).
+const RegistroSesion = {
+  LOTE_MS: 5000,
+  LOTE_LINEAS: 50,
+  // ~64 h: 1830 tramas/h de ~170 B en la cinta del 06/10 (evidencia/061020261110). Se cuentan caracteres, que en
+  // tramas ASCII son bytes. RESERVA deja sitio a la linea que dice que se paro.
+  TOPE_BYTES: 20 * 1024 * 1024,
+  RESERVA: 200,
+  estado: 'APAGADO',  // APAGADO (fuera de la APK) | ESCRIBIENDO | FALLO | LLENO
+  motivo: null,
+  ruta: null,
+  bytes: 0,
+  lineas: 0,
+  _pend: [],
+  _cola: null,        // la ultima escritura: van de una en una y en orden
+  _fs: null,
+  _reloj: null,
+
+  _plugin() {
+    const cap = typeof window !== 'undefined' ? window.Capacitor : null;
+    if (!cap || typeof cap.isNativePlatform !== 'function' || !cap.isNativePlatform()) return null;
+    const f = cap.Plugins && cap.Plugins.Filesystem;
+    return f && typeof f.writeFile === 'function' && typeof f.appendFile === 'function' ? f : null;
+  },
+
+  // Hora LOCAL del telefono, con fecha: una sesion de noche cruza las 00:00.
+  _fecha(ms, nombre) {
+    const d = new Date(ms);
+    const p = n => String(n).padStart(2, '0');
+    const f = d.getFullYear() + (nombre ? '' : '-') + p(d.getMonth() + 1) + (nombre ? '' : '-') + p(d.getDate());
+    const h = p(d.getHours()) + (nombre ? '' : ':') + p(d.getMinutes()) + (nombre ? '' : ':') + p(d.getSeconds());
+    return f + (nombre ? '-' : ' ') + h;
+  },
+
+  anotar(ms, texto) {
+    const t = typeof ms === 'number' ? ms : Date.now();
+    if (this.estado === 'APAGADO') {
+      const f = this._plugin();
+      if (!f) return;
+      this._abrir(f, t);
+    }
+    if (this.estado !== 'ESCRIBIENDO') return;
+    this._pend.push(this._fecha(t, false) + '  ' + texto);
+    if (this._pend.length >= this.LOTE_LINEAS) this.volcar();
+    else if (!this._reloj) this._reloj = setTimeout(() => this.volcar(), this.LOTE_MS);
+  },
+
+  _abrir(f, ms) {
+    this._fs = f;
+    this.ruta = 'SESION_' + this._fecha(ms, true) + '.txt';
+    this.estado = 'ESCRIBIENDO';
+    const cab = 'IOT-VIAL - FICHERO DE LA SESION\nAbierta: ' + new Date(ms).toISOString() + '\n' +
+                'Una linea por trama ("<--" entra, "-->" sale, PIN tapado) y por anotacion del enlace.\n\n';
+    this.bytes = cab.length;
+    this._cola = Promise.resolve()
+      .then(() => f.writeFile({ path: this.ruta, data: cab, directory: 'EXTERNAL', encoding: 'utf8', recursive: true }))
+      .catch(e => this._fallo(e));
+  },
+
+  _fallo(e) {
+    this.estado = 'FALLO';
+    this.motivo = String((e && e.message) || e);
+    this._pend = [];
+  },
+
+  // Devuelve la promesa de la ultima escritura, para quien quiera esperarla (las pruebas, el exportador).
+  volcar() {
+    if (this._reloj) { clearTimeout(this._reloj); this._reloj = null; }
+    if (this.estado !== 'ESCRIBIENDO' || !this._pend.length) return this._cola || Promise.resolve();
+    const lineas = this._pend;
+    this._pend = [];
+    let trozo = '';
+    let n = 0;
+    for (; n < lineas.length; n++) {
+      if (this.bytes + trozo.length + lineas[n].length + 1 > this.TOPE_BYTES - this.RESERVA) break;
+      trozo += lineas[n] + '\n';
+    }
+    if (n < lineas.length) {
+      this.estado = 'LLENO';
+      this.motivo = 'llego al tope de ' + this.TOPE_BYTES + ' B; desde ' + this._fecha(Date.now(), false) +
+                    ' no se escribe';
+      trozo += 'PARADO: ' + this.motivo + '\n';
+    }
+    this.bytes += trozo.length;
+    this.lineas += n;
+    const f = this._fs;
+    const ruta = this.ruta;
+    this._cola = (this._cola || Promise.resolve())
+      .then(() => (this.estado === 'FALLO' ? null
+                   : f.appendFile({ path: ruta, data: trozo, directory: 'EXTERNAL', encoding: 'utf8' })))
+      .catch(e => this._fallo(e));
+    return this._cola;
+  },
+
+  textoEstado() {
+    const donde = Exportar.RUTA_EXTERNA + (this.ruta || '');
+    if (this.estado === 'APAGADO') return 'No se escribe: fuera de la APK (o sin Filesystem.appendFile) no hay donde.';
+    if (this.estado === 'ESCRIBIENDO') {
+      return 'ESCRIBIENDO en ' + donde + ' (' + this.lineas + ' lineas, ' + Math.round(this.bytes / 1024) + ' KB)';
+    }
+    return this.estado + ': ' + this.motivo + '. Lo escrito antes esta en ' + donde;
+  }
+};
+
+// Al pasar la app a segundo plano se vuelca lo pendiente: es cuando Android puede matarla.
+if (typeof document !== 'undefined' && document.addEventListener) {
+  document.addEventListener('visibilitychange', () => { if (document.hidden) RegistroSesion.volcar(); });
+}
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = Exportar;
+  module.exports.RegistroSesion = RegistroSesion;
 }

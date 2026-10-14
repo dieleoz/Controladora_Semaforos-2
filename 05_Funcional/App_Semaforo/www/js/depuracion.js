@@ -84,11 +84,9 @@ const RegistroCrudo = {
 
   // ---- Constantes. Se releen desde este fuente en el pack de la app. ----
 
-  // Tope duro de la cinta. Con un $STATUS por segundo esto son ~5 minutos de trafico
-  // continuo; los rechazos y las respuestas caben de sobra dentro. No se sube "por si
-  // acaso": cada linea son ~150 B vivos en el telefono y la cinta se mira EN EL POSTE,
-  // con el equipo delante, no al dia siguiente. Para el dia siguiente esta la linea de
-  // tiempo de js/registro_enlace.js, que si persiste.
+  // Tope duro de la cinta: ~10 min de trafico (un $STATUS cada 2 s). No se sube: se mira EN EL
+  // POSTE. Lo que no debe irse con el tope va aparte (SPEC_4 9.2): los cambios de $STATUS, la
+  // linea de tiempo de js/registro_enlace.js y, en la APK, el fichero de la sesion.
   TOPE: 300,
 
   // Tope de una sola linea. El peor caso del firmware es el $ALARM con el tramo del
@@ -252,6 +250,14 @@ const RegistroCrudo = {
       this._cinta.splice(0, sobran);
       this.descartados += sobran;
     }
+    if (typeof RegistroSesion !== 'undefined') {  // SPEC_4 9.2.4: al fichero de la sesion, con el PIN ya tapado
+      RegistroSesion.anotar(reg.ms, (reg.veredicto === this.ENVIADA ? '--> [' : '<-- [') + reg.veredicto + '] ' +
+                            (reg.motivo ? reg.motivo + ' ' : '') + this.escapar(reg.linea));
+    }
+    // SPEC_4 9.2.1: los cambios de $STATUS van aparte y no se van con el tope de la cinta (js/registro_enlace.js).
+    if (typeof RegistroCambios !== 'undefined' && reg.veredicto === this.ACEPTADA && reg.tipo === '$STATUS') {
+      RegistroCambios.verStatus(reg.linea, reg.ms);
+    }
     return reg;
   },
 
@@ -317,13 +323,9 @@ const RegistroCrudo = {
 
   // ---- Exportacion --------------------------------------------------------
   //
-  // TEXTO PLANO Y NO CSV, y es una decision con motivo: una trama en crudo lleva comas
-  // por dentro -son su separador de campos- y meterla en una celda obliga a comillarla
-  // y a doblar las que ya trae. Lo que el tecnico manda del poste tiene que poder
-  // leerse tal cual en cualquier sitio, incluido el cuerpo de un mensaje. La linea de
-  // tiempo, que si es tabular, sigue saliendo en CSV por su propio boton.
-  //
-  // Y no hace falta internet para nada de esto: se compone aqui y se guarda o se copia.
+  // TEXTO PLANO Y NO CSV: una trama en crudo lleva comas por dentro y en una celda habria que
+  // comillarla. Lo que se manda del poste se lee tal cual, tambien en un mensaje. La linea de
+  // tiempo, que si es tabular, va como filas CSV en su seccion del mismo .txt (SPEC_4 9.2.3).
 
   aTexto(ahora, cabecera) {
     const t = typeof ahora === 'number' ? ahora : Date.now();
@@ -1030,9 +1032,7 @@ const DiarioOrdenes = {
 };
 
 if (typeof module !== 'undefined' && module.exports) {
-  // RegistroCrudo sigue siendo la exportacion por defecto porque tests/test_unitarios.js
-  // lo requiere asi desde antes; el diario se cuelga al lado en vez de cambiar la forma
-  // del modulo, que romperia a quien ya lo usa.
+  // RegistroCrudo por defecto (tests/test_unitarios.js lo requiere asi); el diario, colgado al lado.
   module.exports = RegistroCrudo;
   module.exports.DiarioOrdenes = DiarioOrdenes;
 }

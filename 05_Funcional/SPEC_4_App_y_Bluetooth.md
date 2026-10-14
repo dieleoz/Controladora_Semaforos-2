@@ -630,3 +630,33 @@ equipo, §4; `state.pinVerificado`, `CMD:PIN:`). Ninguno arma al otro.
 - **Olvido** (`D-57`): «He olvidado la clave» pide la clave de soporte; si su huella coincide, pide una nueva. El
   valor de soporte no esta en el repo ni en los manuales: solo su huella. Con 4 cifras la huella no es secreta para
   quien lea el codigo: es barrera de uso, no seguridad del equipo, que sigue siendo el PIN.
+
+### 9.3 El registro de la app no pierde la sesion (`D-55`, app; `ROADMAP_APP.md` 10) — construido, sin telefono
+
+Por que (medido en `evidencia/061020261110/IOTVIAL_4D2007_20261006-110409.txt`): el diario empieza a las 10:03:43
+y la cinta a las 10:54:54; se tiraron 1542 tramas por el tope de 300, y el diario ve al menos 63 cambios de `MODO`
+o `ESTADO` anteriores a la cinta que en la cinta no estan (cota inferior: el diario solo ve los que caen en los 95 s
+de una orden). El `Enlace_*.csv` sale por `<a download>`, que en la APK no hace nada (§7.12).
+
+Lo que DEBE hacer, y HACE desde este cambio (lo ejerce `tests/dom_registro_sesion.js` sobre el codigo real):
+1. **Cambios de `$STATUS` aparte de la cinta.** Cada `$STATUS` aceptado cuyo `MODO`, `ESTADO` o `ESC` difiere del
+   anterior del mismo `NODE` se guarda en `RegistroCambios` (`js/registro_enlace.js`, tope 2000, en memoria; al
+   pasarlo se cuenta lo tirado), con la trama entera y el cambio campo a campo. El primero de cada `NODE` es
+   `INICIO`. La cinta sigue en 300.
+2. **Copia persistente fuera de CACHE.** «Exportar todo» en la APK copia el `.txt` de CACHE a `Directory.External`
+   (`Android/data/com.iotvial.semaforos/files/`, sin permisos, se saca con `adb pull`) antes de abrir la hoja de
+   compartir; cancelar la hoja no borra la copia. Si la copia falla, rojo en la bitacora con el motivo; el envio
+   sigue.
+3. **Un solo `.txt`.** El `IOTVIAL_<serie>_<fecha>.txt` lleva, tras el diario y la cinta, dos secciones mas,
+   separadas por la misma linea de 72 `=`: `IOT-VIAL - CAMBIOS DE ESTADO` y `IOT-VIAL - REGISTRO DEL ENLACE`, esta
+   con las filas del CSV de siempre (`Fecha_ISO,Hora_local,Clase,Enlace_pct,RTT_ms,Detalle`). Exportar no dice
+   «nada que exportar» si solo hay registro del enlace o cambios.
+4. **En nativo, a fichero desde el principio.** Con `Filesystem.writeFile` y `appendFile`, la primera anotacion
+   de la sesion abre `SESION_<AAAAMMDD-HHMMSS>.txt` en `Directory.External`, y cada trama de la cinta (las dos
+   direcciones, el PIN tapado) y cada anotacion del enlace se le anaden por lotes (cada 5 s, 50 lineas o al pasar
+   la app a segundo plano). Un fallo de escritura para el registro y se declara en el `.txt` exportado; a los
+   20 MB para y lo dice (~64 h: 1830 tramas/h de ~170 B, medidas en la misma cinta). Fuera de la APK no escribe.
+
+Queda sin medir (telefono): que `copy`, `writeFile` y `appendFile` sobre `EXTERNAL` funcionen en la APK, la ruta
+real y que `adb pull` la lea; cuanto se pierde al matar la app (hasta un lote, 5 s). Los `SESION_*` no se purgan:
+se borran a mano o por adb. El aviso EN VIVO de un fallo de escritura necesita una linea en `app.js`.

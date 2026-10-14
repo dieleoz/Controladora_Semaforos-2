@@ -67,6 +67,9 @@ Orden por dano en campo, no por facilidad. Cada fase cierra con sus pruebas en v
 10. **Registro en el equipo, no en la cinta de la app**: anillo en RAM y FIFO en flash con CRC; la app pide
     `LOG,DESDE:<N>` y recuerda el ultimo N. Cabria en el ESP32 del puente, no en el STM32 (flash en la ultima acta,
     `CLAUDE.md` §10). Se hacen las dos cosas (`D-55`): esto y las cuatro mejoras de la app del 06/10 (`ESTADO.md`).
+    Las de la app, HECHAS el 09/10 (`SPEC_4` §9.3): cambios de `$STATUS` en registro aparte (2000), un solo .txt
+    con diario, cinta, cambios y enlace, copia fuera de CACHE y fichero de la sesion en la APK. El 06/10 la cinta
+    tiro 1542 tramas. Sin probar en el telefono. La del equipo (ESP32 del puente), sin construir.
 11. **Reinicios fechados**: `$STATUS` con REIN, ULT_REIN, UP_ANT y HEAP_MIN; la app alarma si un contador baja sin que
     cambie REIN. Habria explicado la caida de 1789 a 91 del 06/10 a las 10:43:30.
 12. **Todo `$ACK` lleva `RES`/`APLICA` o es `$ERR`**; la orden que no cambia nada da `MOTIVO:SIN_CAMBIO` y la app

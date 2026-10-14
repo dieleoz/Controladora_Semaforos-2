@@ -190,6 +190,11 @@ const RegistroEnlace = {
       estado.descartados += sobran;
     }
     this._guardar(estado);
+    // SPEC_4 9.3.4: tambien al fichero de la sesion (solo en la APK; RegistroSesion, js/exportar.js).
+    if (typeof RegistroSesion !== 'undefined') {
+      RegistroSesion.anotar(reg.ms, 'ENLACE ' + clase + ' rf=' + this._celda(reg.rf) + ' rtt=' +
+                            this._celda(reg.rtt) + ' ' + reg.texto);
+    }
     return reg;
   },
 
@@ -279,9 +284,109 @@ const RegistroEnlace = {
   // pantalla cambia con el en vez de quedarse describiendo una app que ya no existe.
   horizonteHoras() {
     return (this.TOPE * this.PERIODO_MUESTRA_MS) / 3600000;
+  },
+
+  // SPEC_4 9.3.3: la seccion del .txt de 'Exportar todo'. Las filas son las de aCsv() sin tocar, para que quien
+  // corte la seccion la pegue en una hoja de calculo como el Enlace_*.csv de antes.
+  aTexto() {
+    const e = this.cargar();
+    const l = ['IOT-VIAL - REGISTRO DEL ENLACE',
+               'Persistido en el telefono; tope ' + this.TOPE + ' anotaciones. Celda vacia = no medido, no 0.'];
+    if (!this.disponible) l.push('NO SE ESTA GUARDANDO: ' + this.motivoNoDisponible);
+    l.push('');
+    if (!e.registros.length) l.push('  (vacio: no hay anotaciones del enlace en este telefono)');
+    return l.join('\n') + '\n' + (e.registros.length ? this.aCsv(e.registros, e.descartados) : '');
+  }
+};
+
+// =============================================================================
+// LOS CAMBIOS DE $STATUS, APARTE DE LA CINTA (SPEC_4 9.3.1, D-55).
+// =============================================================================
+// La cinta (js/depuracion.js) se corta a 300 tramas: el 06/10 se tiraron 1542 y con ellas al menos 63 cambios de
+// MODO o ESTADO que solo el diario vio de refilon (evidencia/061020261110). Aqui va una entrada por CAMBIO, no por
+// trama: un $STATUS cada 2 s que no cambia nada no gasta tope. EN MEMORIA, como la cinta: lo que sobrevive al
+// cierre es el fichero de la sesion (RegistroSesion, js/exportar.js) y la copia exportada.
+const RegistroCambios = {
+  TOPE: 2000,
+  // Los mismos que DiarioOrdenes.CAMPOS_EFECTO (lo asevera tests/dom_registro_sesion.js): lo que dice QUE ESTA
+  // HACIENDO el equipo. T, RF, RTT y HORA cambian en cada trama y no son un cambio de estado.
+  CAMPOS: ['MODO', 'ESTADO', 'ESC'],
+  _lista: [],
+  _ultimo: {},
+  descartados: 0,
+
+  limpiar() {
+    this._lista = [];
+    this._ultimo = {};
+    this.descartados = 0;
+  },
+
+  // linea: la trama $STATUS ACEPTADA tal y como llego (la llama RegistroCrudo.anotar). Se compara contra el
+  // ultimo $STATUS del MISMO NODE: al saltar de poste, el otro no es un cambio. Un campo que no viene en una de
+  // las dos (el Esclavo no trae ESC) no se compara: dejar de venir no es cambiar.
+  verStatus(linea, ms) {
+    const d = {};
+    String(linea).split('*')[0].split(',').slice(1).forEach(p => {
+      const i = p.indexOf(':');
+      if (i > 0) d[p.slice(0, i)] = p.slice(i + 1);
+    });
+    const node = d.NODE || '?';
+    const ahora = {};
+    this.CAMPOS.forEach(k => { if (d[k] !== undefined) ahora[k] = d[k]; });
+    const antes = this._ultimo[node];
+    this._ultimo[node] = ahora;
+    let reg = null;
+    if (!antes) {
+      reg = { clase: 'INICIO', cambios: [] };
+    } else {
+      const cambios = this.CAMPOS
+        .filter(k => antes[k] !== undefined && ahora[k] !== undefined && antes[k] !== ahora[k])
+        .map(k => ({ campo: k, de: antes[k], a: ahora[k] }));
+      if (!cambios.length) return null;
+      reg = { clase: 'CAMBIO', cambios: cambios };
+    }
+    reg.ms = typeof ms === 'number' ? ms : Date.now();
+    reg.node = node;
+    reg.valores = ahora;
+    reg.linea = String(linea).replace(/[\r\n]+$/, '');
+    this._lista.push(reg);
+    if (this._lista.length > this.TOPE) {
+      const sobran = this._lista.length - this.TOPE;
+      this._lista.splice(0, sobran);
+      this.descartados += sobran;
+    }
+    return reg;
+  },
+
+  todas() {
+    return this._lista.slice();
+  },
+
+  texto(r) {
+    return r.clase === 'INICIO'
+      ? 'INICIO ' + r.node + ': ' +
+        this.CAMPOS.map(k => k + ' ' + (r.valores[k] === undefined ? '(no viene)' : r.valores[k])).join(', ')
+      : 'CAMBIO ' + r.node + ': ' + r.cambios.map(c => c.campo + ': ' + c.de + ' -> ' + c.a).join('; ');
+  },
+
+  aTexto() {
+    const l = ['IOT-VIAL - CAMBIOS DE ESTADO',
+               'Un $STATUS por cambio de ' + this.CAMPOS.join(', ') + ' (por NODE), desde que se abrio la app.',
+               'En memoria; tope ' + this.TOPE + '. No se corta con la cinta.'];
+    if (this.descartados) {
+      l.push('RECORTADO: se tiraron los ' + this.descartados + ' cambios mas antiguos. Lo de antes no esta aqui.');
+    }
+    l.push('');
+    if (!this._lista.length) l.push('  (vacio: no ha llegado ningun $STATUS en esta sesion de la app)');
+    this._lista.forEach(r => {
+      l.push(new Date(r.ms).toTimeString().split(' ')[0] + '  ' + this.texto(r));
+      l.push('    ' + (typeof RegistroCrudo !== 'undefined' ? RegistroCrudo.escapar(r.linea) : r.linea));
+    });
+    return l.join('\n') + '\n';
   }
 };
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = RegistroEnlace;
+  module.exports.RegistroCambios = RegistroCambios;
 }
