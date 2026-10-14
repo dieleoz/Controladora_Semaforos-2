@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pruebas en banco 14/10</title>
+<style>
+:root{
+  --papel:#f6f5f2; --tarjeta:#ffffff; --tinta:#17191c; --tinta-2:#55555a;
+  --linea:#dedcd5; --acento:#c4520c; --ok:#1d7a48; --alto:#b52b26;
+  --info-bg:#e3ecf3; --campo:#fffdf8;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0; padding:12px 12px 40px; background:var(--papel); color:var(--tinta);
+  font-family:"Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+  font-size:17px; line-height:1.45;
+}
+h1{font-size:22px; margin:4px 0 12px;}
+h2{font-size:19px; margin:0 0 8px;}
+section.prueba{
+  background:var(--tarjeta); border:1px solid var(--linea); border-radius:10px;
+  padding:14px; margin-bottom:14px;
+}
+header.datos{
+  background:var(--tarjeta); border:1px solid var(--linea); border-radius:10px;
+  padding:14px; margin-bottom:16px;
+}
+label.campo{display:block; margin-bottom:10px; font-weight:600; font-size:15px;}
+input[type=text], input[type=date], textarea{
+  width:100%; font-size:16px; padding:8px; margin-top:4px;
+  border:1px solid var(--linea); border-radius:6px; background:var(--campo); color:var(--tinta);
+  font-family:inherit;
+}
+textarea{min-height:60px; resize:vertical;}
+ol{padding-left:22px; margin:8px 0;}
+li{margin-bottom:6px;}
+.espera{
+  background:var(--info-bg); border-left:4px solid var(--acento);
+  padding:8px 10px; margin:10px 0; border-radius:6px; font-size:16px;
+}
+.nota{
+  background:#fdf3e3; border-left:4px solid var(--acento);
+  padding:8px 10px; margin:10px 0; border-radius:6px; font-size:15px;
+}
+.resultado{margin:10px 0;}
+.resultado label{
+  display:block; padding:8px 6px; border:1px solid var(--linea); border-radius:6px;
+  margin-bottom:6px; font-size:16px;
+}
+.resultado input{margin-right:8px; transform:scale(1.3);}
+.porque,.debever{
+  border-left:4px solid var(--linea); background:#f1f0ec; padding:8px 10px; margin:10px 0;
+  border-radius:6px; font-size:15px;
+}
+.debever{border-left-color:var(--ok); background:#e8f3ec;}
+.porque b.t,.debever b.t{display:block; margin-bottom:4px;}
+.debever ul{margin:4px 0 0; padding-left:20px;}
+.print-only{display:none;}
+.recordatorio{
+  background:#fdf3e3; border:1px solid var(--acento); border-radius:10px;
+  padding:14px; margin-bottom:16px; font-size:16px;
+}
+.alto{
+  background:#fbe9e8; border:2px solid var(--alto); border-radius:10px;
+  padding:14px; margin-bottom:16px; font-size:16px;
+}
+.horas label.campo{font-weight:400;}
+footer{position:sticky; bottom:0; background:var(--papel); padding-top:10px;}
+button#btnPdf{
+  width:100%; font-size:18px; padding:14px; border:none; border-radius:8px;
+  background:var(--acento); color:#fff; font-weight:600;
+}
+.nota-impresion{font-size:14px; color:var(--tinta-2); text-align:center; margin:8px 0;}
+#estado{font-size:13px; color:var(--tinta-2); text-align:center;}
+@media print{
+  button#btnPdf, .nota-impresion, #estado{display:none;}
+  .resultado, textarea, .horas{display:none;}
+  .print-only{display:block; border:1px solid var(--linea); border-radius:6px; padding:8px; margin-top:8px; font-size:15px; background:#fafafa;}
+  section.prueba{break-inside:avoid; page-break-inside:avoid; border:1px solid #999;}
+}
+</style>
+<body>
+<div class="alto" id="sinbanco"><strong>SIN BANCO: no va a carretera hasta pasar banco.</strong> Esta versión solo se carga en los postes de banco.</div>
+
+<header class="datos">
+  <h1>Pruebas en banco 14/10</h1>
+  <label class="campo">Fecha
+    <input type="date" id="fecha">
+  </label>
+  <label class="campo">Nombre de quien prueba
+    <input type="text" id="nombre">
+  </label>
+  <label class="campo">Nombre del paquete (.zip)
+    <input type="text" id="paquete">
+  </label>
+  <label class="campo">Serie del Poste 1 (Maestro)
+    <input type="text" id="serieM">
+  </label>
+  <label class="campo">Serie del Poste 2 (Esclavo)
+    <input type="text" id="serieE">
+  </label>
+</header>
+
+<main>
+
+<div class="alto">
+  <strong>Si ve los dos postes en VERDE a la vez, avise de inmediato</strong> y anote la hora.
+</div>
+
+<div class="alto">
+  <strong>TODOS los celulares que vayan a manejar el cruce, con la APK nueva</strong> (la de este paquete; su huella sha256 empieza por <strong>ba1d595c</strong>). Una app vieja puede cambiar el verde con el Degradado en marcha <strong>sin el aviso de paletero</strong>. En cualquier otro celular, <strong>desinstale la app vieja o no la use</strong> con estos postes.
+</div>
+
+<div class="recordatorio">
+  Solo se prueba lo nuevo. Anote la hora del celular de cada cosa que vea. Haga las pruebas <strong>en orden</strong>: cada una parte de cómo dejó la anterior. Lea siempre el recuadro verde &laquo;Debe ver antes de empezar&raquo;; si lo que ve es otra cosa, <strong>no empiece</strong>: arréglelo o avise.
+</div>
+
+<div class="nota">
+  <strong>La APK nueva trae además</strong> las preguntas en ventanas propias en español (ya no las del sistema), la clave de administración (abajo) y el registro que no pierde la sesión (prueba 5).
+</div>
+
+<div class="nota">
+  <strong>Cambio en la app: la clave de administración.</strong> El botón de arriba a la derecha (&laquo;Operario&raquo;) ya <strong>no pide el PIN del poste</strong>: pide la <strong>clave de administración</strong> de la app, que de fábrica es <strong>1234</strong>. Con ella aparecen las pestañas <strong>Tiempos, Técnico y Tramas</strong>. La clave solo enseña esas pestañas: <strong>cada orden sigue pidiendo el PIN del poste</strong>, aunque la clave esté puesta. La clave dura hasta cerrar la app (ya no se quita cuando caduca el PIN). ROJO TOTAL y ÁMBAR EMERGENCIA no piden ninguna. Si cambia la clave, anótela: si se olvida, solo se recupera con la clave de soporte, que tiene Diego.
+</div>
+
+<section class="prueba" id="p1">
+  <h2>1. Cargar el firmware nuevo en los dos postes y la APK</h2>
+  <div class="porque"><b class="t">Por qué</b>Cambió el controlador de los <strong>dos</strong> postes: ahora el verde del Degradado con testigo se elige en la app (antes era fijo en 3 min). Un poste con el firmware anterior rechaza un verde distinto de 3 min. El puente no cambió: <strong>no hace falta recargarlo</strong>.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Los dos postes y los dos puentes encendidos, y las dos antenas puestas.</li>
+    <li>El fuente del controlador de este paquete a mano: <strong>01_Firmware/Maestro</strong> para el Poste 1 y <strong>01_Firmware/Esclavo</strong> para el Poste 2.</li>
+  </ul></div>
+  <ol>
+    <li>Cargue el controlador del <strong>Poste 1</strong> con <strong>01_Firmware/Maestro</strong> y el del <strong>Poste 2</strong> con <strong>01_Firmware/Esclavo</strong> de <strong>Paquete_Semaforos_2026-10-14_XXXXXXX_SIN_BANCO.zip</strong>, como siempre. Si la carga falla, reintente.</li>
+    <li>Instale la APK de este paquete (huella sha256 que empieza por <strong>ba1d595c</strong>) en <strong>todos</strong> los celulares que vayan a manejar el cruce. En los demás, desinstale la app vieja o no la use: puede cambiar el verde con el Degradado en marcha sin el aviso de paletero.</li>
+    <li>Pulse &laquo;Operario&raquo; arriba a la derecha y ponga la clave de administración (1234).</li>
+    <li>En cada poste: pestaña Técnico &rarr; <strong>"Consultar version del firmware"</strong>.</li>
+    <li>Ponga la hora en cada poste desde la app (la ayuda de la pestaña Técnico se lo dice).</li>
+  </ol>
+  <div class="espera">Se espera: al pulsar &laquo;Operario&raquo; la app pide la <strong>clave de administración</strong>, no el PIN, y aparecen Tiempos, Técnico y Tramas. Los dos <strong>controladores</strong> dicen <strong>XXXXXXX</strong>. Los dos <strong>puentes</strong> dicen el código con el que se cargaron la última vez: anótelo. Si un controlador no dice XXXXXXX, no siga y avise.</div>
+  <div class="horas">
+    <label class="campo">Poste 1 - Controlador: código <input type="text" id="h1a" class="hora"></label>
+    <label class="campo">Poste 1 - Puente: código <input type="text" id="h1b" class="hora"></label>
+    <label class="campo">Poste 2 - Controlador: código <input type="text" id="h1c" class="hora"></label>
+    <label class="campo">Poste 2 - Puente: código <input type="text" id="h1d" class="hora"></label>
+    <label class="campo">¿La app pidió la clave de administración y no el PIN? (sí/no) <input type="text" id="h1e" class="hora"></label>
+    <label class="campo">Celulares con la APK nueva (cuántos) y si queda alguno con la vieja <input type="text" id="h1f" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r1" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r1" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r1" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v1" placeholder="Lo que vio distinto"></textarea>
+  <div class="print-only" id="pr1"></div>
+</section>
+
+<section class="prueba" id="p2">
+  <h2>2. Degradado con testigo con verde de 4 min en los dos postes</h2>
+  <div class="porque"><b class="t">Por qué</b>Es el pedido del 13/10: elegir el verde del Degradado con testigo. Se elige en el Poste 1, en minutos enteros de 3 a 15, y el Poste 2 recibe el mismo con &laquo;Aplicar testigo guardado&raquo;. Se quiere ver que cada verde dura lo elegido y que nunca hay verde en los dos postes.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Prueba 1 en OK: los dos controladores con XXXXXXX y la clave de administración puesta.</li>
+    <li>Los dos postes con la opción de fábrica: la línea de la pantalla principal dice <strong>"Si se cae la radio: AMBAR, ir con testigo"</strong>.</li>
+    <li><strong>Poste 1</strong> en <strong>AUTOMÁTICO</strong>, dando ciclos con radio.</li>
+    <li>Cronómetro a mano y <strong>30 minutos</strong> libres.</li>
+  </ul></div>
+  <ol>
+    <li>Quite la antena de un poste. Espere a que los dos queden en <strong>ámbar intermitente</strong> (unos 30 s). Anote la hora.</li>
+    <li>Conectado al <strong>Poste 1</strong>: pestaña Técnico, tarjeta <strong>&laquo;Degradado con testigo&raquo;</strong>. Ponga Traslado <strong>5</strong> min, Despeje <strong>30</strong> s y Verde <strong>4</strong> min. Marque la casilla y pulse <strong>"Degradado con testigo · POSTE 1"</strong>. Ponga el PIN.</li>
+    <li>Anote la hora de inicio que dice la app. El Poste 1 queda en rojo fijo.</li>
+    <li>Antes de esa hora, conéctese al <strong>Poste 2</strong>: pestaña Técnico, <strong>"Aplicar testigo guardado"</strong>. Ponga el PIN.</li>
+    <li>A la hora de inicio empiezan a alternar. Cronometre un verde completo de cada poste (desde que enciende el verde hasta que apaga) y mire al menos un ciclo completo de los dos, mirando las luces, no la pantalla.</li>
+  </ol>
+  <div class="espera">Se espera: en la pestaña Eventos, <strong>"Testigo del POSTE 1 guardado en este telefono: inicio HH:MM:SS, verde 4 min, despeje 30 s"</strong>. Los dos en <strong>rojo fijo</strong> hasta la hora de inicio. Después, cada verde dura <strong>4 min (240 s)</strong> en los dos postes, con rojo y amarillo juntos 2 s antes de cada verde. <strong>Nunca verde en los dos a la vez.</strong></div>
+  <div class="horas">
+    <label class="campo">Hora en que quitó la antena <input type="text" id="h2a" class="hora"></label>
+    <label class="campo">Hora de inicio que dio la app <input type="text" id="h2b" class="hora"></label>
+    <label class="campo">¿Poste 2 aceptó el testigo? (sí/no, o el texto de la app) <input type="text" id="h2c" class="hora"></label>
+    <label class="campo">Hora del primer verde <input type="text" id="h2d" class="hora"></label>
+    <label class="campo">Verde medido Poste 1 (min:s) <input type="text" id="h2e" class="hora"></label>
+    <label class="campo">Verde medido Poste 2 (min:s) <input type="text" id="h2f" class="hora"></label>
+    <label class="campo">¿Algún verde contra verde? (sí/no) <input type="text" id="h2g" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r2" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r2" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r2" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v2" placeholder="Lo que vio distinto. Si un poste rechazó el testigo, copie el texto de la app"></textarea>
+  <div class="print-only" id="pr2"></div>
+</section>
+
+<section class="prueba" id="p3">
+  <h2>3. Cambiar el verde a 6 min con el Degradado en marcha, con paletero</h2>
+  <div class="porque"><b class="t">Por qué</b>Cambiar el verde con el Degradado en marcha está permitido, con un riesgo que Diego aceptó el 14/10: hasta que el Poste 2 recibe el testigo nuevo, los dos postes llevan ciclos distintos, y si el Poste 2 no lo recibe antes de la hora de inicio <strong>puede haber verde en los dos sentidos</strong>. El poste no lo impide: lo cubre el paletero, y la app lo avisa antes de enviar. Se quiere ver ese aviso. En banco no hay tráfico: el paletero es usted, mirando los dos postes.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Prueba 2 hecha: los dos postes alternando con verde de 4 min, sin radio (antena todavía quitada).</li>
+    <li>Usted mirando los dos postes durante toda la prueba.</li>
+    <li>Cronómetro a mano y <strong>35 minutos</strong> libres.</li>
+  </ul></div>
+  <ol>
+    <li>Conectado al <strong>Poste 1</strong>: tarjeta &laquo;Degradado con testigo&raquo;. Deje Traslado 5 min y Despeje 30 s, y ponga Verde <strong>6</strong> min. Marque la casilla y pulse <strong>"Degradado con testigo · POSTE 1"</strong>.</li>
+    <li>Lea el aviso y anote su título. Pulse <strong>"Paletero puesto: enviar"</strong> y ponga el PIN. Si sale un segundo aviso de paleteros con casilla, márquela y confirme.</li>
+    <li>Anote la hora de inicio nueva. Mire qué hace el Poste 1.</li>
+    <li>Antes de esa hora, conéctese al <strong>Poste 2</strong> y pulse <strong>"Aplicar testigo guardado"</strong> (confirme el aviso de paleteros si sale) y ponga el PIN.</li>
+    <li>A la hora de inicio, cronometre un verde completo de cada poste y mire un ciclo completo de los dos.</li>
+  </ol>
+  <div class="espera">Se espera: antes del PIN, el aviso <strong>"Cambio de tiempos con el Degradado en marcha"</strong>, que dice que puede haber verde en los dos sentidos y pide <strong>paletero en los dos extremos</strong> antes de seguir. Al aceptar, el Poste 1 pasa a <strong>rojo fijo</strong> hasta la hora nueva de inicio; el Poste 2 sigue con su ciclo de 4 min hasta que recibe el testigo, y entonces también queda en rojo fijo. Después, cada verde dura <strong>6 min (360 s)</strong> en los dos. <strong>Nunca verde en los dos a la vez.</strong></div>
+  <div class="horas">
+    <label class="campo">Título del aviso que salió <input type="text" id="h3a" class="hora"></label>
+    <label class="campo">¿Salió un segundo aviso de paleteros? (sí/no) <input type="text" id="h3b" class="hora"></label>
+    <label class="campo">Hora de inicio nueva <input type="text" id="h3c" class="hora"></label>
+    <label class="campo">Luz del Poste 1 al enviar (verde/amarillo/rojo) y si pasó por amarillo <input type="text" id="h3d" class="hora"></label>
+    <label class="campo">Verde medido Poste 1 (min:s) <input type="text" id="h3e" class="hora"></label>
+    <label class="campo">Verde medido Poste 2 (min:s) <input type="text" id="h3f" class="hora"></label>
+    <label class="campo">¿Algún verde contra verde? (sí/no) <input type="text" id="h3g" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r3" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r3" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r3" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v3" placeholder="Lo que vio distinto (o una captura del aviso)"></textarea>
+  <div class="print-only" id="pr3"></div>
+</section>
+
+<section class="prueba" id="p4">
+  <h2>4. Corte de luz con testigo de 15 min</h2>
+  <div class="porque"><b class="t">Por qué</b>El verde nuevo del Degradado con testigo se guarda en la memoria del poste de una forma nueva, para que no se pierda si se va la luz. Eso solo se puede comprobar en la placa: hay que cortar la luz y ver que los dos postes vuelven con el verde elegido y no con el de fábrica (3 min).</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Prueba 3 hecha: los dos postes alternando con verde de 6 min, sin radio (antena todavía quitada).</li>
+    <li>Usted mirando los dos postes durante toda la prueba.</li>
+    <li>A mano cómo cortar la alimentación de los <strong>dos</strong> postes a la vez.</li>
+    <li>Cronómetro a mano y <strong>60 minutos</strong> libres.</li>
+  </ul></div>
+  <ol>
+    <li>Conectado al <strong>Poste 1</strong>: tarjeta &laquo;Degradado con testigo&raquo;. Deje Traslado 5 min y Despeje 30 s, y ponga Verde <strong>15</strong> min. Marque la casilla, pulse <strong>"Degradado con testigo · POSTE 1"</strong>, acepte el aviso de paletero y ponga el PIN. Anote la hora de inicio.</li>
+    <li>Antes de esa hora, conéctese al <strong>Poste 2</strong>, pulse <strong>"Aplicar testigo guardado"</strong> (confirme el aviso de paleteros si sale) y ponga el PIN.</li>
+    <li>Espere a que los dos estén <strong>alternando</strong> (ya pasó la hora de inicio y ha visto encender el primer verde).</li>
+    <li>Corte la alimentación de los <strong>dos postes</strong>. Anote la hora. Espere <strong>1 minuto</strong> y vuelva a dar luz a los dos. Anote la hora.</li>
+    <li>Sin tocar la app, mire qué hacen los dos postes. Cronometre un verde completo de <strong>cada</strong> poste (desde que enciende hasta que apaga), mirando las luces, no la pantalla.</li>
+  </ol>
+  <div class="espera">Se espera: al volver la luz, los dos postes <strong>siguen en el Degradado</strong> por sí solos, sin que nadie haga nada. Cada verde dura <strong>15 min (900 s)</strong> en los dos postes. <strong>Nunca verde en los dos a la vez.</strong> Si algún poste vuelve con verde de 3 min, o no vuelve al Degradado: <strong>pare la prueba</strong>, anote la hora y lo que hace cada poste, y exporte el registro de los <strong>dos</strong> postes (pestaña Tramas &rarr; "Diario de órdenes" &rarr; "Exportar todo como archivo") y envíelos con este PDF.</div>
+  <div class="horas">
+    <label class="campo">Hora de inicio que dio la app <input type="text" id="h4a" class="hora"></label>
+    <label class="campo">¿Poste 2 aceptó el testigo? (sí/no, o el texto de la app) <input type="text" id="h4b" class="hora"></label>
+    <label class="campo">Hora en que cortó la luz <input type="text" id="h4c" class="hora"></label>
+    <label class="campo">Hora en que volvió a dar luz <input type="text" id="h4d" class="hora"></label>
+    <label class="campo">¿Los dos volvieron al Degradado solos? (sí/no; si no, qué hace cada uno) <input type="text" id="h4e" class="hora"></label>
+    <label class="campo">Verde medido Poste 1 tras el corte (min:s) <input type="text" id="h4f" class="hora"></label>
+    <label class="campo">Verde medido Poste 2 tras el corte (min:s) <input type="text" id="h4g" class="hora"></label>
+    <label class="campo">¿Algún verde contra verde? (sí/no) <input type="text" id="h4h" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r4" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r4" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r4" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v4" placeholder="Lo que vio distinto. Si un poste volvió con 3 min o no reanudó, qué hacía cada uno"></textarea>
+  <div class="print-only" id="pr4"></div>
+</section>
+
+<div class="recordatorio">
+  <strong>Antes de la prueba 5, deje los postes como estaban:</strong> ponga la antena, espere a que la app diga que la radio volvió, pulse <strong>VOLVER AL MENÚ</strong> en el Poste 1 y después <strong>AUTOMÁTICO</strong>, y espere a que los dos den ciclos con radio. Si el Poste 2 sigue en Degradado, avise y anote la hora.
+</div>
+
+<section class="prueba" id="p5">
+  <h2>5. Exportar el registro: un solo archivo y una copia en el celular</h2>
+  <div class="porque"><b class="t">Por qué</b>El registro del 06/10 perdió casi una hora de la sesión: la cinta se cortaba a 300 tramas y el registro del enlace salía en un archivo aparte que en la APK no se guardaba. Ahora sale <strong>un solo archivo .txt</strong> por poste, con dos apartados nuevos, y la app guarda una copia en el celular <strong>aunque se cancele el envío</strong>.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Pruebas 1 a 4 hechas y los postes de vuelta en AUTOMÁTICO con radio.</li>
+    <li>La clave de administración puesta (pestaña Tramas a la vista).</li>
+  </ul></div>
+  <ol>
+    <li>Conectado al <strong>Poste 1</strong>: pestaña <strong>Tramas</strong> &rarr; <strong>"Diario de órdenes"</strong> &rarr; <strong>"Exportar todo como archivo"</strong>. En la hoja de compartir, pulse <strong>atrás</strong> (cancelar).</li>
+    <li>Mire la pestaña Eventos.</li>
+    <li>Exporte otra vez y ahora sí envíelo (por WhatsApp, junto con este PDF).</li>
+    <li>Haga lo mismo conectado al <strong>Poste 2</strong>.</li>
+    <li>Abra uno de los archivos y busque los apartados <strong>IOT-VIAL - CAMBIOS DE ESTADO</strong> e <strong>IOT-VIAL - REGISTRO DEL ENLACE</strong>.</li>
+    <li>Con el administrador de archivos del celular, entre en <strong>Android/data/com.iotvial.semaforos/files/</strong>. Si el celular no le deja entrar, anote &laquo;no deja entrar&raquo;: no es un fallo.</li>
+  </ol>
+  <div class="espera">Se espera: al cancelar, el aviso <strong>"Envio cancelado: IOTVIAL_... no salio"</strong> y en Eventos <strong>"Copia guardada en el telefono: ..."</strong>. Un solo archivo por poste, que empieza por IOTVIAL_ y termina en .txt; <strong>ningún archivo Enlace_ aparte</strong>. Dentro, los dos apartados de arriba. En la carpeta, los archivos IOTVIAL_ exportados (también el de la vez que canceló) y uno o más SESION_. Si en Eventos sale en rojo <strong>"COPIA en el telefono no se guardo"</strong>, copie el motivo.</div>
+  <div class="horas">
+    <label class="campo">Texto de Eventos tras cancelar <input type="text" id="h5a" class="hora"></label>
+    <label class="campo">Nombre del archivo del Poste 1 <input type="text" id="h5b" class="hora"></label>
+    <label class="campo">Nombre del archivo del Poste 2 <input type="text" id="h5c" class="hora"></label>
+    <label class="campo">¿Tiene los dos apartados? (sí/no) <input type="text" id="h5d" class="hora"></label>
+    <label class="campo">¿Qué hay en Android/data/com.iotvial.semaforos/files/? <input type="text" id="h5e" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r5" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r5" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r5" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v5" placeholder="Lo que vio distinto"></textarea>
+  <div class="print-only" id="pr5"></div>
+</section>
+
+<section class="prueba" id="pF">
+  <h2>Algo más</h2>
+  <textarea id="vF" placeholder="Otra cosa que quiera anotar"></textarea>
+  <div class="print-only" id="prF"></div>
+</section>
+
+<div class="recordatorio">
+  <strong>Al terminar:</strong> envíe este PDF y los <strong>dos archivos IOTVIAL_</strong> de la prueba 5, uno de cada poste.
+</div>
+
+</main>
+
+<footer>
+  <button id="btnPdf">Guardar en PDF</button>
+  <p class="nota-impresion">Elija "Guardar como PDF" y envíelo por WhatsApp.</p>
+  <p id="estado"></p>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+  var estado = document.getElementById('estado');
+  var camposTexto = document.querySelectorAll('input[type=text], input[type=date], textarea');
+  var camposRadio = document.querySelectorAll('input[type=radio]');
+
+  function clave(id) { return 'pf14_' + id; }
+
+  try {
+    camposTexto.forEach(function (el) {
+      var v = localStorage.getItem(clave(el.id));
+      if (v !== null) el.value = v;
+    });
+    camposRadio.forEach(function (el) {
+      var v = localStorage.getItem(clave(el.name + '_' + el.value));
+      if (v === '1') el.checked = true;
+    });
+  } catch (e) { /* sin almacenamiento: la hoja se sigue rellenando y se imprime igual */ }
+
+  function guardarTexto(el) {
+    try {
+      localStorage.setItem(clave(el.id), el.value);
+      if (estado) estado.textContent = 'guardado ' + new Date().toLocaleTimeString();
+    } catch (e) {
+      if (estado) estado.textContent = 'este teléfono no guarda: imprima antes de cerrar';
+    }
+  }
+
+  function guardarRadio(grupo) {
+    try {
+      Array.prototype.forEach.call(grupo, function (el) {
+        localStorage.setItem(clave(el.name + '_' + el.value), el.checked ? '1' : '0');
+      });
+      if (estado) estado.textContent = 'guardado ' + new Date().toLocaleTimeString();
+    } catch (e) {
+      if (estado) estado.textContent = 'este teléfono no guarda: imprima antes de cerrar';
+    }
+  }
+
+  camposTexto.forEach(function (el) {
+    el.addEventListener('input', function () { guardarTexto(el); refrescarImpresion(); });
+  });
+  camposRadio.forEach(function (el) {
+    el.addEventListener('change', function () {
+      guardarRadio(document.getElementsByName(el.name));
+      refrescarImpresion();
+    });
+  });
+
+  // Para cada prueba, arma en el recuadro de impresión el resultado elegido y lo
+  // escrito, en texto llano. Así, al imprimir, se ve la respuesta aunque el
+  // teléfono no dibuje los controles marcados. Las horas anotadas van también.
+  var ids = ['1', '2', '3', '4', '5'];
+  function refrescarImpresion() {
+    ids.forEach(function (n) {
+      var pr = document.getElementById('pr' + n);
+      if (!pr) return;
+      var marcado = document.querySelector('input[name=r' + n + ']:checked');
+      var resultado = marcado ? marcado.getAttribute('data-txt') : 'sin responder';
+      var texto = document.getElementById('v' + n);
+      var vio = (texto && texto.value.trim()) ? texto.value : '(sin escribir)';
+      var horas = '';
+      document.querySelectorAll('#p' + n + ' input.hora').forEach(function (h) {
+        var rot = h.parentNode.firstChild.textContent.trim();
+        horas += rot + ': ' + (h.value.trim() || '(vacío)') + '. ';
+      });
+      pr.textContent = horas + 'Resultado: ' + resultado + '. Qué vio: ' + vio;
+    });
+    var libre = document.getElementById('vF');
+    var prF = document.getElementById('prF');
+    if (prF) {
+      prF.textContent = (libre && libre.value.trim()) ? libre.value : '(sin escribir)';
+    }
+  }
+
+  window.addEventListener('beforeprint', refrescarImpresion);
+  document.getElementById('btnPdf').addEventListener('click', function () {
+    refrescarImpresion();
+    window.print();
+  });
+
+  refrescarImpresion();
+})();
+</script>
+</body>
+</html>

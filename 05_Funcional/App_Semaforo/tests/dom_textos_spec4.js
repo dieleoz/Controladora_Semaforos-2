@@ -276,11 +276,16 @@ module.exports = async function pruebaTextosSpec4(montarAppLimpia, assert) {
       assert(/verde 6 min/.test(a.d.getElementById('testigo-estado').textContent),
         `15: D-59 el estado muestra el verde elegido en min: "${a.d.getElementById('testigo-estado').textContent}"`);
     }
-    {
+    // Verde guardado: se asevera DESPUES del acuse del SET_RTC (como el caso anterior); 360 es el control positivo.
+    for (const [verde, sale] of [[100, false], [360, true]]) {
       const a = montar(M, 'MENU'); a.w.Testigo.guardar({ estado: 'ACEPTADO', inicio: '23:59:59', inicioMs: Date.now() + 600000,
-        verde: 100, despeje: 30, serie: 'SEM-M-01' });
+        verde, despeje: 30, serie: 'SEM-M-01' });
       a.status(E, 'SEM-E-01', 'SUBORDINADO'); preparar(a); a.pulsa('btn-testigo-esclavo');
-      assert(degT(a).length === 0, `15: D-59 un verde guardado fuera de 180..900 no se lleva al POSTE 2: ${JSON.stringify(a.tramas)}`);
+      a.entra('ACK,NODE:PUENTE,CMD:SET_RTC,RESULT:OK,FECHA:2026-10-04,HORA:14:31:00');
+      if (sale) assert(degT(a).length === 1 && args(a)[2] === '360',
+        `15: D-59 control: un verde guardado de 360 SI se lleva al POSTE 2 tras el SET_RTC: ${JSON.stringify(a.tramas)}`);
+      else assert(degT(a).length === 0,
+        `15: D-59 un verde guardado fuera de 180..900 no se lleva al POSTE 2 (tras el SET_RTC): ${JSON.stringify(a.tramas)}`);
     }
     const FW = /necesita el firmware nuevo para un verde distinto de 3 min/;
     {
