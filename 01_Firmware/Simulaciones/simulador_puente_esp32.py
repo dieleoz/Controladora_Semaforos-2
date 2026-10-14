@@ -3111,12 +3111,12 @@ def escenario_d20(t, c, maestro, esclavo, app, util_max):
     #
     # El boton de sincronizar llama a enviarComandoFirmware() directamente, y esa funcion
     # se planta sin PIN verificado -no abre el teclado: lo dice y no manda nada-. Asi que
-    # primero se entra como el tecnico entra: el boton de rol abre el teclado REAL y el
-    # arnes teclea en el. No se toca ninguna bandera interna de la app. Al final se
-    # vuelve a Operario para dejar la app como estaba.
-    app.pulsar_id("btn-toggle-role")
+    # primero se autoriza como lo hace la app desde D-56 (a16356d): el boton de rol ya no
+    # pide el PIN sino la clave de administracion, y una orden sin PIN abre el teclado REAL
+    # sin dejarla en cola ("vuelva a pulsar"). El arnes teclea en el y pulsa otra vez. No
+    # se toca ninguna bandera interna de la app.
+    app.pulsar_id("btn-sync-rtc")
     compuestos = app.pulsar_id("btn-sync-rtc")
-    app.pulsar_id("btn-toggle-role")
     setrtc = [x for x in compuestos if "SET_RTC:" in x]
     t.verificar(
         len(setrtc) == 1 and setrtc[0].endswith("\r\n"),
