@@ -98,7 +98,7 @@ cubre como el despeje (el Poste 2 recibe el guardado del Poste 1) y la renovacio
 | V2 | Pruebas vistas en rojo: bloque K del Degradado a dos puntas; app (verde, reenvio, paletero) | arneses | hecho (`96c3d32`) |
 | V3 | Firmware Maestro y Esclavo, y app, disjuntos en worktree; integracion por el diff | candidata | hecho (`96c3d32`) |
 | V4 | Compuerta completa en el arbol principal hasta dos pasadas iguales; cifras a README/ESTADO | acta | hecho: acta `2026-10-14`, banco 1379/1380 (solo `D-22`); puente 150/150 tras `f4c95e7` |
-| V5 | Arquitecto (opus) sobre la candidata | veredicto | en curso |
+| V5 | Arquitecto (opus) sobre la candidata | veredicto | APTO sin condiciones sobre `96c3d32` (14/10) |
 | V6 | QA sobre el binario y la APK que se entregan | veredicto | en curso |
 | V7 | Cerrar condiciones (SPEC -> prueba en rojo -> codigo) y compuerta otra vez si cambia codigo | candidata | segun V5/V6 |
 | V8 | Hoja de Marco solo con lo nuevo (verde 4-6 min en los dos postes, cambio en caliente con paletero, `.txt` de `D-55`) | `.html` | en preparacion (agente) |
@@ -106,6 +106,11 @@ cubre como el despeje (el Poste 2 recibe el guardado del Poste 1) y la renovacio
 | V10 | Banco de Marco con placas reales y la hoja; sus cintas se leen enteras y contando; si pasa, se quita `SIN_BANCO` | cintas | Marco, despues el orquestador |
 
 A carretera solo tras banco (`CLAUDE.md` §0.2): el paquete lo dice en su primera linea.
+
+**Version siguiente de `N-177` (bajos del arquitecto, no bloquean):** `testigoFlash_leer` no recomprueba 180..900 x60;
+el Esclavo lleva 180/900 en literal, sin atarlos a `VERDE_MIN_MIN/MAX`; `_cambioEnCaliente` de la app compara con el
+testigo guardado, no con el ciclo real del Poste 1 (lo cubre el aviso de paleteros); SPEC_6 A.2.bis sin «Verde fuera de
+rango», `EN_VERDE` ni `NO_GUARDADO`; `ciclo_degradado_restante` con 900 s, coste sin medir.
 
 **Antes (05/10, el funcional espera en banco): `N-176` ROJO+AMARILLO antes del verde (`D-53`).** Coste medido
 sobre `a5db18e`: ~28 ficheros (firmware ~10, app 4, arneses 4, packs/modelos 5, SPEC 5). Riesgos que se revisan
