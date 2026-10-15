@@ -140,3 +140,11 @@ sin su visto bueno.
 - **Paso:** tercera vez volviendo a `DECISIONES.md` como si fuera el producto; la memoria lo tenia escrito dos veces.
 - **Leccion:** lo que debe cumplirse siempre va en un hook: `.claude/hooks/decisiones_recordatorio.py` (PreToolUse).
 - **Destino:** SE QUEDA (sube si se repite en otro proyecto, segun el orquestador).
+
+## L-17 — Volver variable una constante que iguala a dos equipos: se mide su caso malo (14/10)
+- **Paso:** el verde fijo de 180 s garantizaba que los dos postes usaran el mismo. Al hacerlo variable (`D-59`), el
+  agente del firmware midio en el arnes a dos puntas un verde cruzado de 360 s si el Poste 2 llega tarde. Diego no
+  entendio dos preguntas escritas en jerga; con el ejemplo de campo (Marco, 6 a 4 min, llega tarde) decidio en una.
+- **Leccion:** una constante que hoy iguala a dos equipos es una barrera; antes de volverla variable, se mide su caso
+  malo en un arnes que ejecute las dos puntas, y la pregunta al responsable va con un caso de campo y sus pasos.
+- **Destino:** SE QUEDA.
