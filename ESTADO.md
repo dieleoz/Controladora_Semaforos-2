@@ -44,10 +44,10 @@ cabecera con que HEAD y que arbol se midio; las comprueba `documentos_01` en cad
 
 | | |
 |---|---|
-| Flash | Maestro **78.6 %** · Esclavo **65.3 %** · Repetidor **20.6 %** · ESP32 **35.8 %** |
-| Banco por packs | **1477/1482 comprobaciones** en **70 packs**, 1 FALLA: `D-22` pide una tarjeta delante; `D-94`..`D-97` sin construir (`CLAUDE.md` §1) |
-| Arneses de C++ real | 88/88 automatico · 78/78 ciclo · 171/171 dos puntas · 158/158 Degradado a dos puntas |
-| App y puente | **763/763** jsdom · **70/70** funcional · **67/67** unitarios · 91/91 TDD · puente 156/156 |
+| Flash | Maestro **78.8 %** · Esclavo **65.3 %** · Repetidor **20.6 %** · ESP32 **35.8 %** |
+| Banco por packs | **1476/1481 comprobaciones** en **70 packs**, 1 FALLA: `D-22` pide una tarjeta delante; `D-94`..`D-97` sin construir (`CLAUDE.md` §1) |
+| Arneses de C++ real | 88/88 automatico · 78/78 ciclo · 175/175 dos puntas · 158/158 Degradado a dos puntas |
+| App y puente | **766/766** jsdom · **70/70** funcional · **67/67** unitarios · 91/91 TDD · puente 159/159 |
 
 ## BLOQUEANTES: lo que no se cierra con teclado (roadmap §1 y §4)
 
