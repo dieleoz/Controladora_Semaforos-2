@@ -1,8 +1,8 @@
 ACTA DE VERIFICACION - Controladora de Semaforos
 ==============================================================================
 Fecha        : 2026-10-15
-HEAD         : 19976b5   rama: main
-Arbol        : CON CAMBIOS SIN COMMITEAR
+HEAD         : 794ddbe   rama: main
+Arbol        : LIMPIO
 Modo         : completo
 PlatformIO   : PlatformIO Core, version 6.1.19
 GCC de host  : gcc.exe (MinGW-W64 x86_64-ucrt-posix-seh, built by Brecht Sanders, r3) 16.1.0
@@ -21,7 +21,7 @@ RESULTADOS
   PASS      test unitarios de la app          RESUMEN DE PRUEBAS: 67 PASS | 0 FALLAS  (Total: 67)
   PASS      test unitarios TDD de la app      RESUMEN TDD: 90 PASS | 0 FALLAS  (Total: 90)
   PASS      app ejecutada en DOM              RESULTADO JSDOM: 721 PASS | 0 FALLAS
-  FALLA     banco por packs                   RESUMEN: 1453/1458 comprobaciones  |  packs: 69 PASS, 1 FALLA, 0 ABORTADO
+  FALLA     banco por packs                   RESUMEN: 1456/1461 comprobaciones  |  packs: 69 PASS, 1 FALLA, 0 ABORTADO
   PASS      arnes del ciclo                   RESULTADO: 78/78 comprobaciones OK
   PASS      arnes del respaldo                respaldo.cpp y respaldo.h identicos entre puntas | arnes vivo (PING/PONG)
   PASS      arnes del automatico              RESULTADO: 88/88 comprobaciones OK
@@ -32,8 +32,5 @@ RESULTADOS
   RESUMEN: 18 PASS | 1 FALLA | 0 ABORTADO
 
 ABORTADO no es PASS: una comprobacion que no pudo correr no dice nada del
-firmware. Esta acta se verifica volviendo a 19976b5 y re-corriendo
+firmware. Esta acta se verifica volviendo a 794ddbe y re-corriendo
 python 01_Firmware/compuerta.py.
-
-AVISO: el arbol tenia cambios sin commitear al medir. Estas
-cifras NO corresponden exactamente a 19976b5.
