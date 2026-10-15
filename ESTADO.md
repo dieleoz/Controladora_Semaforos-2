@@ -5,12 +5,11 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 
 ## Por donde se retoma, en este orden
 
-1. **Mandar a Marco `Paquete_Semaforos_2026-10-14_96c3d32_SIN_BANCO.zip`** (`entregas/`, sha256 `b4390a0d...`):
-   fuente PlatformIO de los cuatro firmwares, APK `ba1d595c...`, app web y la hoja unica del 14/10 (24 casos: lo
-   nuevo de `D-59`/`D-55` y lo no reportado desde el 04/10). Pedido de Marco del 13/10: verde del Degradado con
-   testigo de 3 a 15 min (`D-59`); firmware nuevo en los DOS postes y la APK en TODOS los telefonos del cruce.
-   Arquitecto APTO, QA APTO CON CONDICIONES (cerradas), acta `2026-10-14` convergida (solo `D-22`). APK probada en el
-   telefono del responsable (`evidencia/2026-10-14_telefono_d55.txt`). Texto para Marco: el de la sesion del 14/10.
+1. **Mandar a Marco `Paquete_Semaforos_2026-10-15_5288c3d_SIN_BANCO.zip`** (`entregas/`, sha256 `f5a80b11...`):
+   fuente PlatformIO de los cuatro firmwares (sello `FW:5288c3d` medido en los `.bin`), APK `8e8ec7d7...`, app web y
+   la hoja unica del 15/10 (33 casos: los 24 de la del 14/10, nunca enviada, y 9 de `N-178`). APK primero en TODOS los
+   telefonos, despues el firmware en los DOS postes y en los DOS puentes (`D-102`). Acta `2026-10-15` convergida
+   sobre `c354724` (solo `D-22` y `D-94`..`D-97`, sin construir). El paquete del 14/10 no salio: `RETIRADOS/`.
 2. **Cuando vuelvan sus cintas** (`N-177` V10): leerlas enteras y contando (`CLAUDE.md` §7), un `IOTVIAL_*` de CADA
    poste; si la hoja pasa, se quita `SIN_BANCO`. Si el responsable tiene el PDF de la hoja del 04/10, los casos 16-24
    que ya se hicieron salen de la hoja.
@@ -36,7 +35,7 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 | Maestro `179DB0` (El Sisga) | `7ff7d12` `SIN_BANCO`, probado despues `b354fe9`. Ninguno lleva el veto de camara a la pluma (`363e375`, `D-33`): `Camaras_Sisga_4x.html` se corrige en la MISMA visita en que se cargue un firmware posterior | cinta y diario en `evidencia/` |
 | Esclavo del Sisga | sin medir | su cinta no se ha traido |
 | Maestro `4D2007` y Esclavo `38EB53` (Marco, banco) | `6bd1e4f` en controlador y puente, medido: `$ACK,CMD:VERSION` el 01/10 | `evidencia/011020260934/` |
-| paquete para Marco | `Paquete_Semaforos_2026-10-14_96c3d32_SIN_BANCO` (zip sha256 `b4390a0d...`): firmware `D-59` (verde del Degradado 3-15 min) para los DOS postes, `.bin` sueltos al lado; APK `ba1d595c...` con `D-55`, `D-56` y `D-59`; hoja unica del 14/10, 24 casos (lo nuevo y lo no reportado desde el 04/10). Arquitecto APTO, QA APTO CON CONDICIONES (cerradas). Los anteriores, a `entregas/RETIRADOS/` | `entregas/` |
+| paquete para Marco | `Paquete_Semaforos_2026-10-15_5288c3d_SIN_BANCO` (zip `f5a80b11...`): `D-59` y `N-178` para los DOS postes y los DOS puentes, `.bin` sueltos al lado con sello `FW:5288c3d`; APK `8e8ec7d7...`; hoja del 15/10, 33 casos. Los anteriores, a `entregas/RETIRADOS/` | `entregas/` |
 
 ## Verificacion en escritorio
 
