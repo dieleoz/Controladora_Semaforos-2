@@ -354,10 +354,10 @@ document.addEventListener('DOMContentLoaded', () => {
   //   SET_MODO:MENU / SET_MODO:ALCANCE   Maestro. Menu sin ciclo / rojo fijo; MENU es la vuelta atras universal.
   // Se aceptan TAMBIEN con PIN: aqui no se abre ninguna puerta, solo se pueden usar sin teclear delante de un cruce
   // parado. Vale para las DOS de emergencia: una caida segura que pide clave no es segura.
-  // LEER_RTC, VERSION y las consultas (CONSULTA_DEG_AUTO, CONSULTA_DEG_FIN) no abren, no paran ni cambian nada: hay
-  // que poder MIRAR antes de decidir si se toca, y VERSION es la primera pregunta cuando algo va raro.
+  // LEER_RTC, VERSION y las consultas (CONSULTA_DEG_AUTO, CONSULTA_DEG_FIN, REINICIOS D-64, LOG D-75) no abren ni paran
+  // ni cambian nada: hay que poder MIRAR antes de decidir si se toca; VERSION es la primera pregunta si algo va raro.
   const SIN_PIN = ['FORZAR_ROJO', 'AMBAR_EMERGENCIA', 'SET_MODO:MENU', 'SET_MODO:ALCANCE',
-                   'LEER_RTC', 'VERSION', 'CONSULTA_DEG_AUTO', 'CONSULTA_DEG_FIN'];
+                   'LEER_RTC', 'VERSION', 'CONSULTA_DEG_AUTO', 'CONSULTA_DEG_FIN', 'REINICIOS', 'LOG,DESDE'];
 
   // DEVUELVE SI LA ORDEN LLEGO A SALIR, y el que llama TIENE QUE MIRARLO.
   //
@@ -422,7 +422,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const pin = state.correctPin;
     let rawCmd = '';
     if (SIN_PIN.includes(comando)) {
-      rawCmd = 'CMD:' + comando + '\r\n';
+      rawCmd = 'CMD:' + orden + '\r\n';   // orden = comando[:args]: solo LOG,DESDE (D-75) lleva args sin PIN
     } else if (args) {
       rawCmd = `CMD:PIN:${pin}:${comando}:${args}\r\n`;
     } else {
@@ -738,7 +738,7 @@ document.addEventListener('DOMContentLoaded', () => {
       state.rfMedidaMs = Date.now();
     }
 
-    if (rfQualityEl) rfQualityEl.textContent = medido ? lectura.pct + '%' : (lectura && lectura.crudo === '!' ? '!' : '--');
+    if (rfQualityEl) { rfQualityEl.textContent = medido ? lectura.pct + '%' : (lectura && lectura.crudo === '!' ? '!' : '--'); rfQualityEl.classList.toggle('cyan', !!medido); }  // D-83
 
     // rf-rtt lleva el numero que vino, y NADA MAS: la unidad la pone el rotulo fijo
     // del HTML. Si no vino, la casilla queda con dos guiones y la unidad se retira -un
@@ -754,7 +754,7 @@ document.addEventListener('DOMContentLoaded', () => {
       rfEstadoEl.className = 'enlace-estado enlace-' + tramo.toLowerCase().replace('_', '');
     }
     if (rssiTextEl) rssiTextEl.textContent = !state.telemetriaViva ? '(sin enlace)'  // cabecera, 06/10: este
-      : DegAutoEleccion.sinRadio(state) ? '(sin radio entre postes)'  // enlace y el sinRadio() del cartel
+      : DegAutoEleccion.sinRadio(state) ? '(sin radio)'  // enlace y el sinRadio() del cartel; <= 16 (D-82)
       : medido ? '(radio ' + lectura.pct + ' %)' : '(enlazado)';
 
     // La barra: sin dato se queda a CERO ANCHO Y CON EL FONDO RAYADO, que es distinto
@@ -1448,14 +1448,14 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   // LA UNICA FUNCION QUE DECIDE SI 'FALLO COM' SE LEE COMO AVERIA O COMO PEDIDO.
-  // Un MODO distinto de AMBAR (DEGRADADO, RENDIDO, DESCONOCIDO, sin dato...) es
-  // exactamente el resto de las causas de S_FALLO -radio caida, Modo Degradado
-  // vencido-, y para esas SI es un fallo de comunicacion: se deja la frase original.
+  // Otro MODO (DEGRADADO, RENDIDO, sin dato...) es radio caida o Degradado vencido: frase
+  // original. Con AMBAR, D-93: la frase por el ORIGEN leido del periodico (SPEC_4 9.11).
   function _fraseDeEstadoLuces(estado) {
     const info = ESTADOS[estado];
     if (!info) return null;
     if (estado === 'FALLO COM' && state.modo === 'AMBAR') {
-      return 'ámbar pedido por el operario: pasar con precaución';
+      return typeof DiagnosticoEnlace !== 'undefined' ? DiagnosticoEnlace.fraseAmbar()
+        : 'ámbar en este poste (origen sin dato): pasar con precaución';
     }
     return info.frase;
   }
@@ -1788,6 +1788,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // mismo que ya rotula el HTML -POSTE 1 = MAESTRO, POSTE 2 = ESCLAVO- y el mismo
     // que usa la cabecera al leer NODE:.
     const esEsclavo = state.node === 'ESCLAVO';
+    // SPEC_4 9.9 (c): la UNICA funcion que escribe #phase-desc; con el equipo callado, "SIN ENLACE" (marcarSinEnlace()).
+    const fase = (t) => { if (phaseDescEl) phaseDescEl.textContent = state.telemetriaViva ? t : 'SIN ENLACE - sin datos del equipo'; };
     const propias = esEsclavo ? [s2Red, s2Amber, s2Green] : [s1Red, s1Amber, s1Green];
     const ajenas = esEsclavo ? [s1Red, s1Amber, s1Green] : [s2Red, s2Amber, s2Green];
     const textoPropio = esEsclavo ? s2Text : s1Text;
@@ -1825,7 +1827,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // emite ESC: -no tiene a quien preguntarle- y esta pantalla es la ventana de
       // DIAGNOSTICO, no la consola de operacion. Se conserva la frase de siempre.
       if (state.node !== 'MAESTRO') {
-        decir('SIN DATOS · no viaja en esta trama');
+        decir('SIN DATOS · se ve desde el POSTE 1');   // D-80
         return rotuloAjeno + ' no informa';
       }
 
@@ -1888,7 +1890,8 @@ document.addEventListener('DOMContentLoaded', () => {
         t.textContent = 'SIN DATOS';
         t.style.color = 'var(--text-muted)';
       });
-      if (phaseDescEl) phaseDescEl.textContent = 'EQUIPO SIN IDENTIFICAR - esperando NODE en $STATUS';
+      if (phaseDescEl) phaseDescEl.textContent = state.connected ? 'EQUIPO SIN IDENTIFICAR - esperando su primer dato'
+        : 'SIN ENLACE - sin datos del equipo';   // D-80: entre la conexion y el primer $STATUS
       return;
     }
 
@@ -1905,11 +1908,8 @@ document.addEventListener('DOMContentLoaded', () => {
         textoPropio.textContent = 'ESTADO NO RECONOCIDO';
         textoPropio.style.color = 'var(--text-muted)';
       }
-      if (phaseDescEl) {
-        phaseDescEl.textContent = (state.estadoLuces
-          ? 'ESTADO no reconocido: "' + state.estadoLuces + '"'
-          : 'SIN ESTADO en la última trama') + ' · ' + frAjeno;
-      }
+      fase((state.estadoLuces ? 'ESTADO no reconocido: "' + state.estadoLuces + '"'
+                              : 'SIN ESTADO en la última trama') + ' · ' + frAjeno);
       return;
     }
 
@@ -1927,12 +1927,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // que se esta viendo y que dice. Es la misma diferencia de arriba, escrita donde
     // el operario la lee. Desde N-149 la segunda mitad ya no es siempre "no informa":
     // la escribe pintarAjeno(), que es quien decidio que se pinto en esa columna.
-    if (phaseDescEl) {
-      // info.frase NO se lee directo: FALLO COM tiene dos causas y solo MODO -de esta
-      // MISMA trama- distingue cual es (_fraseDeEstadoLuces(), 28/09).
-      phaseDescEl.textContent = (esEsclavo ? 'ESCLAVO' : 'MAESTRO') + ': ' +
-                                _fraseDeEstadoLuces(state.estadoLuces) + (frAjeno ? ' · ' + frAjeno : '');
-    }
+    // info.frase NO se lee directo: FALLO COM tiene dos causas y solo MODO -de esta
+    // MISMA trama- distingue cual es (_fraseDeEstadoLuces(), 28/09).
+    fase((esEsclavo ? 'ESCLAVO' : 'MAESTRO') + ': ' + _fraseDeEstadoLuces(state.estadoLuces) + (frAjeno ? ' · ' + frAjeno : ''));
   }
 
   function updateCountdownRing() {
@@ -1968,7 +1965,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // en el caso de FALLO COM con la talanquera ARRIBA, mientras el anillo decia
     // ESPERA-.
     const info = ESTADOS[state.estadoLuces];
-    const clase = info ? info.anillo : 'red';
+    const clase = conocido && info ? info.anillo : 'sindato';   // D-83: '--' es gris, no un color de accion
     ringProgressEl.className = 'ring-fill ' + clase;
     cdNumEl.className = 'ring-num ' + clase;
   }
@@ -2896,27 +2893,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // =========================================================================
   // 4.ante UN $ACK NO SIEMPRE SIGNIFICA "YA ESTA": HAY CUATRO ORDENES CON VARIOS SIES
   // =========================================================================
-  // LA APP PINTABA TODOS LOS ACUSES IGUAL: "orden [X] ACEPTADA (LITERAL)". Y el
-  // firmware se habia tomado el trabajo contrario -inventar un literal distinto para
-  // cada final posible- precisamente porque NO significan lo mismo. Tragarselos en un
-  // texto unico deshace ese trabajo en la ultima pantalla, que es la unica que alguien
-  // lee de pie en la calzada.
-  //
-  // MEDIDO en las dos bluetooth.cpp: son CINCO ordenes con mas de un RESULT posible.
-  //
-  //   CANCELAR_AMBAR    RETIRADO / RETIRADO_QUEDA_MANDO
-  //   AMBAR_EMERGENCIA  OK / YA_EN_AMBAR_LATCH_PUESTO / SALIENDO_TODO_ROJO /
-  //                     SALIDA_YA_EN_CURSO, y sus variantes _SIN_RADIO y, desde D-31,
-  //                     _POSTE1_AVISADO. LA LISTA DE AQUI NO SE MANTIENE A MANO Y NO ES
-  //                     EL CONTRATO: es una foto para leer el parrafo. Quien la recuenta
-  //                     contra el C++ en cada corrida es app_10, en las dos direcciones
-  //   SET_MODO:MENU     OK / SALIENDO_TODO_ROJO
-  //   SET_MODO:AMBAR    OK / REARMADO          <- N-146, 05/09
-  //   SET_RTC           OK / HORA_PUESTA_SIN_PROPAGAR
-  //
-  // Y TODAS TIENEN LA MISMA FORMA DE TRAMPA: uno de los literales dice "aceptada, pero
-  // lo que pediste TODAVIA NO HA PASADO" o "aceptada, pero SIGUE HABIENDO otra cosa".
-  // Pintados como un si a secas, el tecnico se va del poste creyendo que termino.
+  // El firmware inventa un literal distinto para cada final posible porque NO significan lo
+  // mismo; pintarlos todos como "ACEPTADA (LITERAL)" deshace ese trabajo en la calzada. Que
+  // ordenes tienen varios RESULT no se lista aqui: lo recuenta app_10 contra el C++.
   //
   // La tabla lleva los literales ESCRITOS ENTEROS para que el pack app_10 pueda cruzar
   // sus claves contra los literales del C++ en las dos direcciones: una respuesta que
@@ -3099,685 +3078,14 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
-  const ACK_TEXTO = {
-    // N-162: este $ACK dice que el Maestro ACEPTO la orden -su coordinador estaba en
-    // reposo-, no que la otra punta vaya a abrir: si el Esclavo tiene un ambar puesto veta
-    // el verde en silencio. Por eso no se promete el final, y no se cita ninguna cifra de
-    // segundos: el despeje es configurable (coordinador_configurar) y la app no lo sabe.
-    'CAMBIAR_TURNO|OK': {
-      tono: 'green',
-      texto: 'Equipo: CAMBIO DE TURNO ACEPTADO. El Maestro hace el todo-rojo de despeje ' +
-             'configurado y despues da el paso. Mire las DOS cabezas: si una queda en ambar ' +
-             'intermitente, el cambio NO se completo.',
-      toast: 'Cambio de turno aceptado por el equipo'
-    },
-    'CANCELAR_AMBAR|RETIRADO': {
-      tono: 'green',
-      texto: 'Equipo: ambar de emergencia RETIRADO. No queda ningun ambar puesto en ' +
-             'esa punta. Ojo: esta orden no mueve la luz, solo levanta el veto; la luz ' +
-             'vuelve a moverse con la siguiente orden del Maestro.',
-      toast: 'Ambar retirado por el equipo'
-    },
-    // LA QUE IMPORTA. El otro latch -el del mando del gabinete- NO se quita por radio:
-    // los tres vetos de Esclavo/src/main.cpp miran las dos banderas, asi que con la del
-    // mando puesta la luz sigue vetada. Un "ambar retirado" a secas manda al operario a
-    // esperar un cambio de fase que no va a llegar hasta que alguien suba a hacer el
-    // A.A.A, y mientras tanto el cruce sigue en ambar con la talanquera abierta.
-    'CANCELAR_AMBAR|REENVIADO_AL_MAESTRO': {
-      tono: 'red',
-      texto: 'Equipo: en ESTA punta ya no queda ambar puesto desde la app -se quito en ' +
-             'la pulsacion anterior-, asi que lo que se ha hecho ahora es VOLVER A ' +
-             'PEDIRSELO AL MAESTRO, que es quien sostiene el ambar del cruce. NO esta ' +
-             'garantizado que se vaya: si el ambar del Maestro lo pidio otra persona, esa ' +
-             'punta ignora el aviso a proposito. Mire el cruce; si en unos segundos no se ' +
-             'mueve, el ambar viene del Poste 1 y hay que resolverlo alli.',
-      toast: 'Reenviado al Maestro: mire el cruce, no esta garantizado que se vaya'
-    },
-    // D-31 (12/09): este texto gana una frase, porque el literal ha cambiado de
-    // significado sin cambiar de nombre. "OK" sigue queriendo decir "el ambar esta puesto
-    // aqui", pero desde hoy la unidad ESPERA que el otro poste acuse el aviso, y ese
-    // acuse todavia no ha llegado cuando sale este $ACK -el ambar no espera-. Si no
-    // llegara, lo dice despues con un aviso propio. Sin esta frase, quien lee "OK" se va
-    // creyendo que ya esta todo, que es el defecto que D-31 vino a cerrar.
-    'AMBAR_EMERGENCIA|OK': {
-      tono: 'red',
-      texto: 'Equipo: AMBAR DE EMERGENCIA puesto. Intermitente en las dos vias y ' +
-             'talanquera ABIERTA: no es un rojo, los dos sentidos pasan con precaucion. ' +
-             'La unidad acaba de avisar por radio al otro poste y esta esperando que lo ' +
-             'confirme: NO SE VAYA todavia. Si no lo consigue, sale un aviso rojo en esta ' +
-             'misma pantalla diciendolo.',
-      toast: 'Ambar puesto - esperando que el otro poste confirme el aviso'
-    },
-    // Ya estaba en ambar por SFTY-6, por el watchdog o por un B.B.B. Lo que esta orden
-    // cambio NO es la luz: es el latch, que convierte un ambar que la siguiente orden
-    // del Maestro se llevaria en uno vetado. Contestar "puesto" ocultaria que lo unico
-    // nuevo es la proteccion, y con ella el tecnico decide distinto.
-    'AMBAR_EMERGENCIA|YA_EN_AMBAR_LATCH_PUESTO': {
-      tono: 'green',
-      texto: 'Equipo: YA ESTABA en ambar por otro motivo. Lo que anade esta orden es la ' +
-             'PROTECCION: a partir de ahora el ambar no se lo lleva la siguiente orden ' +
-             'del Maestro. Para quitarlo hace falta RETIRAR AMBAR.',
-      toast: 'Ya estaba en ambar - ahora ademas queda protegido'
-    },
-    // N-142 / §3.16-A (11/09). LAS DOS DE ABAJO SON LAS MISMAS DOS DE ARRIBA CON UN DATO
-    // MAS, Y ES EL QUE DECIDE SI EL TECNICO SE PUEDE IR: el Poste 2 acaba de ponerse en
-    // ambar y AVISA al Maestro por radio, pero esta punta ya habia declarado que se quedo
-    // sin radio, asi que ese aviso casi seguro no llega. El Poste 1 no se entera y puede
-    // seguir dando VERDE hacia el mismo carril. No es un rechazo -el ambar SI esta puesto
-    // aqui- y por eso el tono no cambia; lo que cambia es lo que hay que hacer despues.
-    'AMBAR_EMERGENCIA|OK_SIN_RADIO': {
-      tono: 'red',
-      texto: 'Equipo: AMBAR DE EMERGENCIA puesto EN ESTE POSTE, pero la unidad ha ' +
-             'declarado que se quedo SIN RADIO: el otro poste NO se ha enterado y puede ' +
-             'seguir dando verde hacia este carril. Cierre el paso alli o avise al ' +
-             'Poste 1 antes de irse.',
-      toast: 'Ambar puesto AQUI - sin radio: el otro poste no se ha enterado'
-    },
-    'AMBAR_EMERGENCIA|YA_EN_AMBAR_LATCH_PUESTO_SIN_RADIO': {
-      tono: 'red',
-      texto: 'Equipo: YA ESTABA en ambar y esta orden anade la PROTECCION (no se lo ' +
-             'lleva la siguiente orden del Maestro). Pero la unidad ha declarado que se ' +
-             'quedo SIN RADIO: el otro poste NO se ha enterado. Compruebe el Poste 1 ' +
-             'antes de irse.',
-      toast: 'Protegido, pero sin radio: el otro poste no se ha enterado'
-    },
-    // D-31 (12/09). LAS DOS DE ABAJO SON LAS UNICAS RESPUESTAS DE TODA ESTA TABLA QUE
-    // PROMETEN ALGO DEL OTRO POSTE, Y LO PROMETEN PORQUE LA UNIDAD LO MIDIO: el Poste 1
-    // ACUSO por radio un aviso anterior de este mismo ambar, o sea que hubo trama de
-    // vuelta y la radio de salida de este poste funciona.
-    //
-    // LO QUE NO PROMETEN, y por eso el tono no es verde: que el Poste 1 SIGA en ambar. Su
-    // ambar lo puede haber retirado alguien de aquel gabinete y esta punta no se entera.
-    // Lo confirmado es la ENTREGA del aviso, no el estado del otro extremo.
-    //
-    // Salen a partir de la SEGUNDA pulsacion: la primera no puede decirlo todavia -el
-    // acuse tarda un viaje de radio y el ambar no espera-, y si no llegara, lo que sale
-    // es el aviso $ALARM del avisos_equipo.js, no un $ACK distinto.
-    'AMBAR_EMERGENCIA|OK_POSTE1_AVISADO': {
-      tono: 'red',
-      texto: 'Equipo: AMBAR DE EMERGENCIA puesto, y el otro poste YA ESTABA AVISADO: ' +
-             'confirmo por radio un aviso anterior de este mismo ambar, asi que la radio ' +
-             'de salida de esta unidad funciona. No promete que el otro poste siga en ' +
-             'ambar -eso lo puede haber quitado alguien alli-, solo que el aviso llego.',
-      toast: 'Ambar puesto - el otro poste ya estaba avisado'
-    },
-    'AMBAR_EMERGENCIA|YA_EN_AMBAR_POSTE1_AVISADO': {
-      tono: 'red',
-      texto: 'Equipo: YA ESTABA en ambar con la proteccion puesta, y el otro poste YA ' +
-             'ESTABA AVISADO: confirmo por radio el aviso de este mismo ambar. Esta ' +
-             'pulsacion no ha cambiado nada, y eso es lo correcto. Si lo que quiere es ' +
-             'quitarlo, use RETIRAR AMBAR.',
-      toast: 'Ya estaba en ambar y el otro poste ya estaba avisado'
-    },
-    // El ambar NO esta puesto todavia: sale del Degradado por todo-rojo, de duracion el despeje en uso
-    // (SPEC_2 7.quater (c)): sin cifra. Decir OK seria dar por hecho un cambio que aun no ha ocurrido.
-    'AMBAR_EMERGENCIA|SALIENDO_TODO_ROJO': {
-      tono: 'red',
-      texto: 'Equipo: orden ACEPTADA pero el ambar TODAVIA NO ESTA PUESTO. La unidad ' +
-             'esta saliendo del Modo Degradado por TODO ROJO, que dura el despeje en uso. ' +
-             'El ambar entra al terminar esa salida: no se vaya sin verlo.',
-      toast: 'Aceptada - el ambar entra al acabar el todo-rojo'
-    },
-    'AMBAR_EMERGENCIA|SALIDA_YA_EN_CURSO': {
-      tono: 'red',
-      texto: 'Equipo: orden ACEPTADA pero el ambar TODAVIA NO ESTA PUESTO. Ya habia una ' +
-             'salida en curso (rendicion por el limite de 48 h) que termina en ambar; ' +
-             'esta orden no la arranca, lo que anade es que ese ambar quede protegido.',
-      toast: 'Aceptada - ya habia una salida en curso que acaba en ambar'
-    },
-    // N-146 (05/09, cinta de banco): AMBAR seis veces, OK las seis y el cruce quieto. OK = no
-    // estaba en ambar y entra ahora; REARMADO = ya estaba en MODO_AMBAR con la luz en otra cosa
-    // (un ROJO TOTAL mueve la luz y no el modo) y el ambar se vuelve a encender por un todo-rojo.
-    'SET_MODO:AMBAR|OK': {
-      tono: 'red',
-      texto: 'Equipo: MODO AMBAR puesto AHORA. No estaba en ambar y acaba de entrar. ' +
-             'Los DOS postes quedan en ambar intermitente: no es un rojo, los dos ' +
-             'sentidos pasan con precaucion. No se vaya sin ver las dos puntas.',
-      toast: 'Modo ambar: acaba de entrar'
-    },
-    'SET_MODO:AMBAR|REARMADO': {
-      tono: 'red',
-      texto: 'Equipo: YA ESTABA en modo ambar pero con la luz en otra cosa -un ROJO ' +
-             'TOTAL lo deja asi-, y el ambar se ha VUELTO A ENCENDER con esta orden. ' +
-             'La unidad pasa por un todo-rojo y vuelve a ordenar el ambar a las dos ' +
-             'puntas: espere a verlo. Si pulso varias veces, ESTA es la que movio la luz.',
-      toast: 'Ya estaba en modo ambar: el ambar se ha vuelto a encender'
-    },
-    // D-35: OK entra y queda en rojo hasta inicio; RENOVADO ya alternaba con ese ciclo.
-    'SET_MODO:DEG_T|OK': {
-      tono: 'red',
-      texto: 'Equipo: TESTIGO ACEPTADO. Este poste queda en ROJO FIJO hasta la hora de ' +
-             'inicio y despues alterna solo, sin radio. La cuenta atras esta en la tarjeta del testigo.',
-      toast: 'Testigo aceptado: rojo fijo hasta la hora de inicio'
-    },
-    'SET_MODO:DEG_T|RENOVADO': {
-      tono: 'green',
-      texto: 'Equipo: TESTIGO RENOVADO. Este poste ya alternaba con ese mismo ciclo: ' +
-             'la cuenta del testigo vuelve a empezar y SIGUE ALTERNANDO, sin volver a rojo ni esperar el inicio.',
-      toast: 'Testigo renovado: la cuenta empieza de nuevo, sigue alternando'
-    },
-    // D-52 (SPEC_4 3.ter.ter): solo hay $ACK si quedo programada en ESTE poste; del otro no se sabe nada.
-    'SET_MODO:DEG_FIN|PROGRAMADA': {
-      tono: 'green',
-      texto: 'Equipo: SALIDA PROGRAMADA en ESTE poste: a esa hora sale del Degradado por rojo. Cada poste sale ' +
-             'a SU hora: si el otro no tiene la misma, sigue con verde. Programe la misma hora en los dos.',
-      toast: 'Salida programada en este poste'
-    },
-    'SET_MODO:DEG_FIN|REPROGRAMADA': {
-      tono: 'green',
-      texto: 'Equipo: SALIDA REPROGRAMADA en ESTE poste: sustituye a la anterior. Del otro poste no se sabe ' +
-             'nada: programe la misma hora en los dos.',
-      toast: 'Salida reprogramada en este poste'
-    },
-    'SET_MODO:DEG_FIN|PROGRAMADA_SIN_RESPALDO': {
-      tono: 'red',
-      texto: 'Equipo: SALIDA PROGRAMADA en ESTE poste, pero SIN RESPALDO: un corte de luz la pierde y ' +
-             'hay que volver a programarla despues de un corte.',
-      toast: 'Salida programada SIN respaldo: un corte la pierde'
-    },
-    'SET_MODO:DEG_FIN|CANCELADA': {
-      tono: 'cyan',
-      texto: 'Equipo: salida CANCELADA en ESTE poste. Si el otro la tenia, sigue programada: ' +
-             'cancelela alli.',
-      toast: 'Salida cancelada en este poste'
-    },
-    'SET_MODO:MENU|OK': {
-      tono: 'green',
-      texto: 'Equipo: orden VOLVER AL MENU aceptada. Queda en el menu, sin ciclo: en rojo si el otro poste ' +
-             'contesta por radio; sin radio, pasa a ambar intermitente.',
-      toast: 'El equipo vuelve al menu'
-    },
-    // En Degradado no se salta al menu: se pide la salida, que es un todo-rojo de 30 s.
-    'SET_MODO:MENU|OK_REANUDACION_CANCELADA': {
-      tono: 'red',
-      texto: 'Equipo: volvio al menu; el degradado que esperaba la hora NO se reanudara.',
-      toast: 'Volvio al menu: el degradado NO se reanudara'
-    },
-    'SET_MODO:MENU|SALIENDO_TODO_ROJO': {
-      tono: 'red',
-      texto: 'Equipo: orden ACEPTADA pero TODAVIA NO ESTA EN EL MENU. Estaba en Modo ' +
-             'Degradado y la salida pasa por un TODO ROJO de transicion; el menu llega ' +
-             'cuando ese todo-rojo termine.',
-      toast: 'Aceptada - sale del Degradado por todo-rojo antes de llegar al menu'
-    },
-    // SPEC_4 3.1 (D-45): fuera de Degradado, amarillo 3 s y rojo; en Degradado, su salida por todo-rojo.
-    'FORZAR_ROJO|OK': {
-      tono: 'red',
-      texto: 'Equipo: ROJO TOTAL aceptado. Las dos vias pasan por 3 s de amarillo y quedan en ' +
-             'ROJO FIJO. Compruebe las dos puntas antes de dejar pasar a nadie.',
-      toast: 'Rojo total: amarillo 3 s y rojo fijo en las dos vias'
-    },
-    // D-51: en Degradado es rojo FIJO en este poste (no salida), y el otro sigue alternando por su reloj.
-    'FORZAR_ROJO|ROJO_FIJO_EN_ESTE_POSTE': {
-      tono: 'red',
-      texto: 'Equipo: ROJO FIJO en ESTE poste. El OTRO POSTE SIGUE ALTERNANDO por su reloj: vaya a el. ' +
-             'Se sale con la salida programada o con el boton Volver.',
-      toast: 'Rojo fijo en este poste; el otro sigue alternando'
-    },
-    'FORZAR_ROJO|YA_EN_ROJO_FIJO': {
-      tono: 'red',
-      texto: 'Equipo: ya estaba en rojo fijo; nada cambia. El otro poste sigue por su reloj.',
-      toast: 'Ya estaba en rojo fijo'
-    },
-    'FORZAR_ROJO|OK_REANUDACION_CANCELADA': {
-      tono: 'red',
-      texto: 'Equipo: ROJO FIJO en ESTE poste. El degradado que esperaba la hora NO se reanudara. ' +
-             'El OTRO POSTE sigue por su reloj: vaya a el.',
-      toast: 'Rojo fijo en este poste; el degradado NO se reanudara'
-    },
-    'FORZAR_ROJO|SALIDA_YA_EN_CURSO': {
-      tono: 'red',
-      texto: 'Equipo: el equipo YA ESTABA saliendo del Modo Degradado y ya esta en ROJO. ' +
-             'Esta orden no cambia nada: al terminar el todo-rojo queda en el menu, sin ciclo.',
-      toast: 'Ya estaba saliendo del Degradado, en rojo'
-    },
-    // 🔴 D-15 (05/09) - LOS DOS TEXTOS DE ABAJO DECIAN ALGO QUE YA NO PASA, Y ERA LO
-    // PEOR QUE PODIAN DECIR: PROMETIAN LA OTRA PUNTA.
-    //
-    // Decian "hora puesta en el Maestro y propagada al Esclavo" y "entro en el MAESTRO
-    // pero NO se propago al ESCLAVO". Los dos describian el $ACK del STM32, que
-    // propagaba por radio con coordinador_sincronizarHora(). Ese comando ya no lo
-    // atiende el STM32: quien contesta es el puente, que desde D-26 SIEMBRA a su propio
-    // STM32 con la hora releida (ver el parrafo de abajo).
-    //
-    // Dejar el texto viejo habria sido la mentira con formato de exito una capa mas
-    // arriba: el firmware deja de mentir y la app sigue diciendo lo mismo. El tecnico
-    // leia "propagada", se iba, y el otro poste seguia con la hora que tuviera.
-    //
-    // El RESULT del puente significa OTRA COSA, y es lo que ahora se traduce:
-    //   OK                        la hora entro en el DS3231 de ESTE poste Y la linea
-    //                             llego entera al STM32 de ESTE poste.
-    //   HORA_PUESTA_SIN_PROPAGAR  entro en el DS3231 de ESTE poste y la linea NO llego a
-    //                             su STM32. "Propagar" aqui es J17 -el cable de dentro
-    //                             del armario-, NO la otra punta del cruce.
-    //
-    // 🔴 D-26 (11/09) - Y EL TEXTO DE OK VOLVIO A QUEDARSE VIEJO, AHORA POR EL OTRO LADO.
-    // Decia "esto NO toca el otro poste - no hay nada que los sincronice entre si", y desde
-    // D-26 es FALSO para las CONTROLADORAS: el puente ya no reenvia los bytes del telefono,
-    // siembra a su STM32 con la hora RELEIDA del DS3231, y el Maestro sembrado se la pasa
-    // por radio al Esclavo (coordinador_sincronizarHora() dentro de su rama HORA_ESP32).
-    // Lo que sigue siendo cierto es lo de los RELOJES CON PILA: el DS3231 del otro poste
-    // no lo toca nadie, y sin radio es el que manda alli (D-26 (3)). El texto dice las dos
-    // cosas y no promete lo que el acuse no sabe: "la mando entera" no es "la acepto" -si
-    // la controladora la tira, lo dice ella con su propia alarma de la hora-.
-    'SET_RTC|OK': {
-      tono: 'green',
-      texto: 'Equipo: hora puesta y RELEIDA del reloj de ESTE poste, y el modulo se la ha ' +
-             'mandado entera a su controladora (si la controladora no la aceptara, lo ' +
-             'diria con un aviso de la hora). En el MAESTRO, la controladora la pasa por ' +
-             'radio al Esclavo; en el ESCLAVO, su controladora solo la usa sin radio, ' +
-             'porque con radio manda la del Maestro. El reloj con pila del OTRO poste no ' +
-             'se toca: pongale la hora tambien conectandose a el, que es el que manda alli ' +
-             'si se pierde la radio.',
-      toast: 'Hora puesta en ESTE poste - falta el reloj del otro'
-    },
-    // A-9. LA CONSULTA QUE NO CAMBIA NADA, Y POR ESO SE PUEDE HACER CON EL EQUIPO EN
-    // MARCHA. Este texto NO repite los tres relojes ni el desfase: eso lo escribe
-    // anotarLecturaDeReloj() en la linea de al lado, porque es un dato que cambia en
-    // cada consulta y una tabla estatica no puede llevarlo. Lo que dice aqui es lo
-    // unico que la RESPUESTA garantiza: que el modulo hablo y que la hora la acaba de
-    // releer de su chip.
-    // 1.51. EL TEXTO NO REPITE EL SELLO: ese viaja en el campo FW: de la propia trama y
-    // cambia en cada equipo, asi que una tabla estatica no puede llevarlo -es lo mismo que
-    // A-9 con los tres relojes-. Lo que dice aqui es lo unico que la RESPUESTA garantiza.
-    'VERSION|OK': {
-      tono: 'green',
-      texto: 'Equipo: version contestada. La linea "Version cargada" es el commit ' +
-             'del que salio el firmware que este equipo tiene CARGADO. Si termina en ' +
-             '+SUCIO, ese binario se compilo sobre trabajo sin comitear: el commit NO lo ' +
-             'describe entero y no sirve para acreditar una prueba de banco.',
-      toast: 'Version contestada - vea Eventos'
-    },
-    'LEER_RTC|OK': {
-      tono: 'green',
-      texto: 'Puente: consulta de reloj contestada. La hora de abajo es la RELEIDA del ' +
-             'chip en este instante, no una copia guardada. Esta orden no ha cambiado ' +
-             'nada: ni el reloj, ni una luz, ni un modo.',
-      toast: 'Reloj consultado - vea el desfase abajo'
-    },
-    // D-26 (5): lo que no cruza J17 es la averia "revisar el circuito" de la misma placa,
-    // y el texto lo dice con esas palabras. Lo que no cruza ya no es "la orden" -desde
-    // D-26 la orden del telefono se queda en el puente- sino la hora que el puente releyo.
-    'SET_RTC|HORA_PUESTA_SIN_PROPAGAR': {
-      tono: 'red',
-      texto: 'Equipo: la hora entro en el reloj de ESTE poste, pero el modulo NO pudo ' +
-             'mandarsela entera a su controladora por el cable interno (J17): la ' +
-             'controladora sigue con la que tenia. El reloj esta bien; lo que falla es el ' +
-             'camino de dentro del armario: REVISE EL CIRCUITO ESP32-STM32 de este poste ' +
-             '(es la misma placa). El reloj del otro poste es aparte.',
-      toast: 'Hora puesta en el reloj, pero no llego a la controladora: revise J17'
-    }
-  };
-
-  // Los rechazos ya se leen como rechazos lleve el texto que lleve, asi que aqui solo
-  // se traduce lo que el literal en crudo haria entender MAL. NO_HAY_AMBAR_VIGENTE
-  // parece una averia y no lo es: es el equipo diciendo que no habia nada que quitar,
-  // que es un dato util -si el cruce sigue en ambar, viene de otro sitio-.
-  const ERR_TEXTO = {
-    'CANCELAR_AMBAR|NO_HAY_AMBAR_VIGENTE': {
-      texto: 'Equipo: NO habia ningun ambar de emergencia puesto desde la app, asi que ' +
-             'no se retiro nada. Si el cruce sigue en ambar viene de otro telefono o de un fallo de ' +
-             'comunicacion (SFTY-6), y esta orden no quita ' +
-             'ninguno de los dos.',
-      toast: 'No habia ambar de la app que retirar'
-    },
-
-    // =======================================================================
-    // A-9 - LOS SIETE "NO SE" DE LA CONSULTA DE RELOJ
-    // =======================================================================
-    // POR QUE ESTOS SI SE TRADUCEN, cuando la regla de arriba dice que un rechazo se
-    // lee como rechazo lleve el texto que lleve.
-    //
-    // Porque aqui el rechazo NO es el final del asunto: es el dato. El operario ha
-    // preguntado la hora, y la respuesta util no es "no se pudo" sino QUE ES LO QUE
-    // FALLA -y sobre todo si el arreglo lo lleva en el bolsillo (repetir la orden), en
-    // la caja (una pila) o en la furgoneta (un modulo)-. Los siete literales del puente
-    // separan justo eso, y perder esa separacion en la pantalla es tirar el trabajo que
-    // el firmware hizo para no dar un "no se pudo" generico.
-    //
-    // 🔴 Y LOS SIETE DICEN LO MISMO EN LA PRIMERA FRASE: LA HORA NO SE PINTA. Un
-    // DS3231 sin pila entrega una fecha PERFECTAMENTE FORMADA y falsa, asi que la unica
-    // salida honesta de todos ellos es la misma -no hay hora que ensenar-, y lo que
-    // cambia detras es el arreglo. Es N-144: un cero con forma de hora es peor que un
-    // hueco, porque el hueco no engana a nadie.
-    // 1.51. NO ES UNA AVERIA DEL EQUIPO: es un binario que se compilo sin que git pudiera
-    // decir de donde salia -o sin git-. Se dice asi para que nadie mande a revisar cobre.
-    'VERSION|SIN_SELLAR': {
-      texto: 'Equipo: este firmware NO SABE de que commit salio, y lo dice en vez de ' +
-             'inventarlo. Pasa cuando se compilo fuera del repositorio -por ejemplo desde ' +
-             'un .zip descomprimido sin git y sin su FW_HASH.txt-. El equipo funciona igual; lo ' +
-             'que no se puede es atribuir una prueba de banco a un commit. Quien lo compilo ' +
-             'tiene que decir el hash a mano.',
-      toast: 'Firmware sin sellar: no se sabe de que commit salio'
-    },
-    'LEER_RTC|NUNCA_SE_PUSO_PONGA_LA_HORA': {
-      texto: 'Puente: NO HAY HORA que ensenar en este poste, y no es una averia: es que ' +
-             'nadie se la ha puesto todavia desde que el modulo arranco. Se arregla ' +
-             'desde aqui mismo, con el boton de sincronizar de abajo.',
-      toast: 'Este poste no tiene hora puesta todavia'
-    },
-    'LEER_RTC|OSCILADOR_PARADO_CAMBIE_PILA': {
-      texto: 'Puente: NO HAY HORA FIABLE. El reloj tiene marcado que su oscilador se ' +
-             'paro en algun momento, asi que lo que sus registros contengan no vale ' +
-             'aunque tenga pinta de fecha. Es la pila del modulo del reloj: se cambia y ' +
-             'se vuelve a poner la hora. Poner la hora sin cambiarla la pierde otra vez ' +
-             'al primer corte.',
-      toast: 'Reloj parado: cambie la pila del modulo'
-    },
-    'LEER_RTC|SIN_RELOJ_NO_RESPONDE': {
-      texto: 'Puente: NO HAY HORA. El reloj no contesta por su bus, asi que no es que ' +
-             'esté en hora o no: es que no está. Modulo desenchufado, mal cableado, o ' +
-             'SDA y SCL cruzados. Esto se arregla con destornillador, no repitiendo la ' +
-             'orden.',
-      toast: 'El modulo de reloj no responde'
-    },
-    'LEER_RTC|ESCRITURA_A_MEDIAS_REPITA_SET_RTC': {
-      texto: 'Puente: NO HAY HORA FIABLE. Una puesta en hora anterior se corto a mitad ' +
-             'y el modulo se quedo con parte vieja y parte nueva: puede componer una ' +
-             'fecha perfectamente valida y equivocada. La duda no se levanta sola - ' +
-             'vuelva a sincronizar y compruebe que esta vez acusa OK.',
-      toast: 'Puesta de hora a medias: vuelva a sincronizar'
-    },
-    'LEER_RTC|MODO_12H_PONGA_LA_HORA': {
-      texto: 'Puente: NO HAY HORA FIABLE. El reloj esta guardando la hora en formato de ' +
-             '12 horas, y leida asi puede ir hasta DOCE HORAS equivocada con el modulo ' +
-             'perfectamente sano. No se le toca el ajuste por nuestra cuenta -seria ' +
-             'cambiarle la hora a un equipo que esta en la calle-: sincronice desde ' +
-             'abajo y queda corregido de paso.',
-      toast: 'Reloj en formato 12 h: sincronice para corregirlo'
-    },
-    'LEER_RTC|REGISTROS_INCOHERENTES': {
-      texto: 'Puente: NO HAY HORA. Lo que hay dentro del reloj no compone una fecha ' +
-             '(un mes 19, un dia 0). SON DOS AVERIAS POSIBLES Y EL EQUIPO NO PUEDE ' +
-             'DISTINGUIRLAS: una puesta en hora cortada -se arregla sincronizando- o un ' +
-             'modulo/bus que devuelve basura -se arregla cambiando el modulo-. Pruebe lo ' +
-             'primero; si vuelve a salir esto, es lo segundo.',
-      toast: 'El reloj devuelve una fecha imposible'
-    },
-    // Este NO es una averia del reloj: es una contradiccion del propio firmware del
-    // puente -su barrera dice que hay hora y su lectura dice que no-. Se nombra distinto
-    // a proposito, porque manda a un sitio distinto: al que escribio el firmware, no al
-    // que subio al poste.
-    'LEER_RTC|BARRERA_INCOHERENTE': {
-      texto: 'Puente: el modulo se contradice a si mismo -dice tener hora fiable y no ' +
-             'ha podido entregarla-. Esto NO es una averia del reloj ni se arregla en el ' +
-             'poste: es un defecto del firmware del puente. Anote la hora y el poste y ' +
-             'reportelo; no toque el reloj.',
-      toast: 'Contradiccion en el puente: reportelo, no toque el reloj'
-    },
-    'LEER_RTC|MOTIVO_NO_CONTEMPLADO': {
-      texto: 'Puente: no entrego la hora y dio un motivo que ni esta app ni su propio ' +
-             'despachador saben nombrar. Es firmware mas nuevo que esta app, o un caso ' +
-             'que nadie cableo. No de la hora de este poste por buena.',
-      toast: 'Motivo de reloj desconocido: no de la hora por buena'
-    }
-  };
-
-  // =========================================================================
-  // 4.sexies EL MOTIVO DEL RECHAZO SE TRADUCE A LO QUE HAY QUE HACER EN EL POSTE
-  // =========================================================================
-  // REPORTE DE BANCO DEL 04/09: "al pedir la hora de RTC de maestro a esclavo, cuando
-  // se envia me devuelve error". Eso es TODO lo que el tecnico podia saber, y no es
-  // culpa del firmware: el equipo si dice que falla. MEDIDO con grep sobre los tres
-  // despachadores -Maestro/src/bluetooth.cpp, Esclavo/src/bluetooth.cpp y
-  // ESP32_Expansion/src/despachador.cpp-: hay 23 literales de DESC distintos, y seis de
-  // ellos son SOLO del reloj. La app no leia ninguno para nada mas que imprimirlo en
-  // crudo detras de la palabra "Rechazo de Firmware".
-  //
-  // Y esos seis mandan a sitios OPUESTOS con el mismo aspecto en pantalla:
-  // SIN_RELOJ_NO_RESPONDE es un destornillador -el bus no contesta, y una de las causas
-  // es SDA y SCL cruzadas-; NO_QUEDO_PUESTA es una pila. Leidos como "error", los dos
-  // se contestan igual: repitiendo la orden, que en el primer caso no puede funcionar
-  // nunca.
-  //
-  // POR QUE ES UNA TABLA APARTE Y NO MAS FILAS DE ERR_TEXTO, que es la pregunta que hay
-  // que contestar antes de escribir una segunda tabla en este repositorio:
-  //
-  //   - ERR_TEXTO se direcciona por CMD|DESC y traduce lo que depende de la ORDEN.
-  //     NO_HAY_AMBAR_VIGENTE solo significa algo sabiendo que se pidio RETIRAR AMBAR.
-  //     Esa tabla la vigila app_10 contra los $ERR de las dos bluetooth.cpp.
-  //   - ERR_MOTIVO se direcciona por DESC a secas y traduce lo que NO depende de la
-  //     orden: una pila agotada se cambia igual la mandara quien la mandara. Es ademas
-  //     la unica forma de cubrir los seis del PUENTE, que viven en el despachador del
-  //     ESP32 -un fichero que app_10 no censa-.
-  //
-  // La regla para no acabar con la misma frase en las dos: un motivo esta en UNA de las
-  // dos, nunca en las dos. Si al escribir una entrada hay que nombrar la orden para que
-  // se entienda, va en ERR_TEXTO; si no, va aqui.
-  //
-  // Y LO QUE NO SE TRADUCE SE ENSENA EN CRUDO, que es la mitad que impide que esto se
-  // convierta en un filtro. El firmware puede ganar motivos manana sin que esta tabla
-  // se entere: un literal feo en pantalla es incomodo y util; tragarselo es volver al
-  // "error" de hoy, que es de donde venimos.
-  const ERR_MOTIVO = {
-    // --- EL RELOJ. Los seis del puente (ESP32_Expansion/src/despachador.cpp) ---
-    'SIN_RELOJ_NO_RESPONDE': {
-      texto: 'El modulo de reloj NO CONTESTA en el bus. Esto no se arregla repitiendo la ' +
-             'orden: o el modulo no esta puesto, o el cableado no llega, o SDA y SCL van ' +
-             'cruzadas. Revise el conector antes de volver a mandar la hora.',
-      toast: 'El reloj no contesta: revise el cableado SDA/SCL'
-    },
-    'ESCRITURA_FALLIDA': {
-      texto: 'El reloj SI contesta, pero no acepto la escritura: la hora NO quedo puesta. ' +
-             'Repita una vez. Si vuelve a salir lo mismo, el modulo esta fallando y hay ' +
-             'que cambiarlo.',
-      toast: 'El reloj no acepto la escritura: la hora no entro'
-    },
-    'NO_QUEDO_PUESTA': {
-      texto: 'La hora se escribio, el modulo dijo que si, y al releerla NO coincidia. Eso ' +
-             'apunta a la PILA del modulo de reloj: cambiela y repita. La hora que hay ' +
-             'dentro ahora mismo no es la que usted mando.',
-      toast: 'La hora no quedo puesta: cambie la pila del reloj'
-    },
-    'OSCILADOR_PARADO_CAMBIE_PILA': {
-      texto: 'La hora entro en los registros pero el reloj NO ESTA CONTANDO: el oscilador ' +
-             'sigue parado. Cambie la pila del modulo. Mientras no cuente, el equipo no ' +
-             'tiene hora aunque el modulo muestre una.',
-      toast: 'El reloj no cuenta: cambie la pila'
-    },
-    'MOTIVO_NO_CONTEMPLADO': {
-      texto: 'El puente rechazo la orden por un motivo que su propio firmware no sabe ' +
-             'nombrar. Apunte la hora y avise: es un caso nuevo, no una averia conocida, ' +
-             'y no hay nada que tocar en el poste con este dato.',
-      toast: 'Rechazo por un motivo que el firmware no sabe nombrar'
-    },
-    // D-26 (11/09): los dos rechazos nuevos del puente. Ninguno lo provoca un boton de
-    // esta app -la app no manda la linea de hora ni una orden que el puente se quede sin
-    // rama-, y por eso mismo hay que decir que significan si aparecen: el primero es
-    // alguien tecleando a mano la orden reservada al modulo, el segundo un defecto del
-    // firmware del puente. Sin traduccion saldrian como un "error" que manda a mirar el
-    // cable.
-    'LINEA_RESERVADA_AL_PUENTE': {
-      texto: 'El modulo ESP32 de este poste descarto la orden ENTERA porque lleva dentro ' +
-             'el nombre de la linea de hora que solo el propio modulo puede mandar a la ' +
-             'controladora. No salio nada hacia el equipo. Esta app no manda esa orden: si ' +
-             've esto, alguien la escribio a mano. Para poner la hora use el boton ' +
-             'Sincronizar.',
-      toast: 'Orden descartada: la linea de hora es del propio modulo'
-    },
-    'RECLAMADA_SIN_RAMA': {
-      texto: 'El modulo ESP32 de este poste se quedo la orden pero no tiene como ' +
-             'atenderla, asi que no salio nada hacia el equipo. No es una averia del ' +
-             'poste ni del cable: es un defecto del firmware del modulo. Anote la orden y ' +
-             'la hora y reportelo.',
-      toast: 'El modulo se quedo la orden sin atenderla: reportelo'
-    },
-    'LINEA_DEMASIADO_LARGA': {
-      texto: 'La orden llego al puente mas larga de lo que cabe y se descarto ENTERA: no ' +
-             'salio nada hacia el equipo. Si se repite siempre con la misma orden, el ' +
-             'dato que lleva dentro es demasiado largo.',
-      toast: 'El puente descarto la orden: llego demasiado larga'
-    },
-
-    // --- EL RELOJ. Los tres del STM32 ---
-    //
-    // Los dos del Maestro nombran "la consulta del reloj", y N-114 midio que esa
-    // consulta es MODO_HORA, a la que hoy NO SE PUEDE LLEGAR: se arma con dos
-    // botonAceptar() y botonAceptar() devuelve false desde que PB14/PB15 dejaron de ser
-    // pulsadores. Lo que SI pasa es que el firmware emite reportarBitsDelReloj() justo
-    // detras de estos dos rechazos (bluetooth.cpp:608 y :643), y ese $EVENT lo pinta
-    // esta misma app en el REGISTRO DE EVENTOS. Se manda alli, que es donde el dato
-    // esta de verdad, en vez de repetir el nombre de una pantalla tapiada.
-    'SIN_CRISTAL_VEA_CONSULTA_RELOJ': {
-      texto: 'El Maestro no tiene reloj en marcha, asi que no acepta la hora. NO busque ' +
-             'la consulta del reloj en el equipo: se hace desde esta app. El ' +
-             'equipo acaba de publicar los bits del reloj en el REGISTRO DE EVENTOS de ' +
-             'esta app, justo debajo de este aviso: lealos ahi.',
-      toast: 'Sin reloj en marcha: los bits estan en Registro de Eventos'
-    },
-    'SIGUE_PARADO_VEA_CONSULTA_RELOJ': {
-      texto: 'El reloj INTERNO del Maestro sigue parado. Es lo normal en esta placa y NO ' +
-             'es una averia: ese reloj no lleva la hora. La hora la guarda el reloj con pila ' +
-             'del ESP32 (DS3231): compruebela con "Consultar reloj". Los bits quedan en el ' +
-             'REGISTRO DE EVENTOS por si se los piden; no hace falta cambiar nada.',
-      toast: 'Reloj interno parado (normal): la hora la lleva el DS3231'
-    },
-    // 1.49 (a): el tercer caso del reinicio. El oscilador SI arranco -por eso no es el de
-    // arriba- pero el contador no se movio en la ventana en que el equipo lo vigila, asi que
-    // el equipo NO dice "ponga la hora". Este rechazo llega unos segundos DESPUES de pulsar,
-    // no en el acto: el equipo primero publica que esta verificando y contesta cuando lo sabe.
-    // Por eso no se escribe aqui cuantos segundos: los decide el firmware.
-    'ARRANCA_Y_NO_CUENTA_VEA_CONSULTA_RELOJ': {
-      texto: 'Se reinicio el reloj y el oscilador ARRANCA, pero el contador NO AVANZA: el ' +
-             'equipo lo vigilo unos segundos y no conto. NO ponga la hora: no la podria ' +
-             'guardar. La consulta del reloj se hace desde esta app, no en el equipo. El ' +
-             'equipo acaba de publicar los bits del reloj en el REGISTRO DE ' +
-             'EVENTOS de esta app, justo debajo de este aviso: con el oscilador en marcha y el ' +
-             'contador quieto, son los que dicen donde mirar.',
-      toast: 'El reloj arranca pero no cuenta: los bits estan en Registro de Eventos'
-    },
-    'SIN_CRISTAL': {
-      texto: 'Esa unidad no tiene reloj en marcha y por eso no acepta la hora. Ponga la ' +
-             'hora en el MAESTRO: desde alli se propaga. Si el Maestro tampoco la ' +
-             'acepta, el problema es de reloj y no de la app.',
-      toast: 'Esa unidad no tiene reloj en marcha'
-    },
-
-    // --- LOS QUE NO SON DEL RELOJ ---
-    'FORMATO_INVALIDO': {
-      texto: 'El equipo no pudo leer los datos de la orden: llegaron incompletos o mal ' +
-             'formados, y NO se ejecuto nada. Vuelva a rellenar el campo y repita. Si ' +
-             'pasa siempre con la misma orden, avise: el aviso es del equipo, no del enlace.',
-      toast: 'El equipo no pudo leer los datos de la orden'
-    },
-    'RANGO': {
-      texto: 'Un valor de la orden se sale del rango que el equipo acepta y por eso la ' +
-             'rechazo entera. Los limites los ensena el propio formulario: corrija el ' +
-             'valor que este fuera y repita.',
-      toast: 'Un valor va fuera del rango que acepta el equipo'
-    },
-    'EN_TRANSICION_REINTENTE': {
-      texto: 'El cruce esta en mitad de un cambio de fase y no admite otra orden ahora ' +
-             'mismo. NO es un fallo: espere a que termine el cambio y repita. Si insiste ' +
-             'durante la transicion seguira saliendo lo mismo.',
-      toast: 'El cruce esta cambiando de fase: repita al terminar'
-    },
-    'REPITA_EN_UNOS_SEGUNDOS': {
-      texto: 'El equipo esta ocupado con lo anterior y no puede atender esta orden todavia. ' +
-             'Espere unos segundos y repita. No hace falta tocar nada.',
-      toast: 'El equipo esta ocupado: repita en unos segundos'
-    },
-    'SOLO_EN_MODO_INTELIGENTE': {
-      texto: 'Esa orden solo vale con el equipo en Modo Inteligente, y ahora esta en otro ' +
-             'modo. Ponga el equipo en Inteligente primero, o use la orden que corresponda ' +
-             'al modo en que esta.',
-      toast: 'Solo vale en Modo Inteligente'
-    },
-    'PIN_INVALIDO': {
-      texto: 'El equipo RECHAZO la clave: la orden no se ejecuto. El PIN que manda la app ' +
-             'sale del selector del modal de enlace; si al equipo le cambiaron el suyo, ' +
-             'hay que cambiarlo alli.',
-      toast: 'El equipo rechazo la clave'
-    },
-    'COMANDO_NO_SOPORTADO': {
-      texto: 'El equipo NO CONOCE esa orden. Suele significar que la app o el manual son ' +
-             'anteriores al firmware que hay cargado, o al reves. Anote la orden y la ' +
-             'version del equipo antes de seguir probando.',
-      toast: 'El equipo no conoce esa orden'
-    },
-    'COMANDO_NO_SOPORTADO_EN_ESCLAVO': {
-      texto: 'Esa orden no la atiende el ESCLAVO. La mayoria de los mandos viven en el ' +
-             'MAESTRO: enlace con el otro poste y repitala alli.',
-      toast: 'Esa orden no la atiende el Esclavo: use el Maestro'
-    },
-    'NO_EN_SERVICIO_USE_EL_MAESTRO': {
-      texto: 'El ESCLAVO rechaza el test de focos a proposito: la secuencia enciende VERDE ' +
-             'sin mirar nada, y ese verde saldria mientras el Maestro puede estar dando ' +
-             'paso al otro sentido. Hagalo desde el Maestro.',
-      toast: 'El test de focos se hace desde el Maestro'
-    },
-    'RENOMBRADO_USE_AMBAR_EMERGENCIA': {
-      texto: 'En el ESCLAVO la parada de emergencia ya no se llama ROJO TOTAL: alli la ' +
-             'maniobra es AMBAR INTERMITENTE con la talanquera ABIERTA, y el mando que la ' +
-             'pide es AMBAR EMERGENCIA. Use ese, que esta en esta misma pestana de mandos.',
-      toast: 'En el Esclavo use AMBAR EMERGENCIA, no ROJO TOTAL'
-    },
-    'SALIDA_A_ROJO_EN_CURSO_REPITA': {
-      texto: 'La unidad esta saliendo a todo-rojo ahora mismo y no admite la orden hasta ' +
-             'que termine. Espere a que acabe la salida y repita: el ambar entrara ' +
-             'entonces, no antes.',
-      toast: 'Hay una salida a todo-rojo en curso: repita al acabar'
-    },
-    'YA_VUELVE_AL_MENU': {
-      texto: 'El equipo YA estaba volviendo al menu, asi que esta orden no anade nada. No ' +
-             'es un fallo: la vuelta atras ya estaba pedida y sigue su curso.',
-      toast: 'El equipo ya volvia al menu'
-    },
-
-    // EL MOTIVO QUE VA A CAMBIAR, Y POR ESO ES UNA FUNCION Y NO UN OBJETO.
-    //
-    // Decision del responsable del 04/09: en vez de un rechazo seco, el equipo va a
-    // decir CUANTOS SEGUNDOS faltan para poder parar el modo. Ese cambio es de firmware
-    // y lo esta tocando otro; aqui queda el sitio hecho y NADA MAS.
-    //
-    // LO QUE NO SE HACE, Y ES LO IMPORTANTE: no se inventa el nombre del campo que
-    // traera la cifra. Adivinarlo seria escribir una segunda copia de un contrato que
-    // todavia no existe -y este repositorio ya pago tres veces esa clase de copia-, con
-    // el agravante de que un nombre inventado no falla: simplemente no encuentra nada
-    // NUNCA, y la cuenta atras quedaria muerta sin que ninguna prueba lo dijera. Hasta
-    // que el campo exista, _segundosDeEspera() devuelve null a proposito y el texto sale
-    // sin cifra, que es exactamente lo que la app sabe.
-    // 🔴 AQUI NO VA UNA CUENTA ATRAS, Y NO ES QUE FALTE: ES QUE SERIA MENTIRA.
-    //
-    // Se comprobo el 04/09 antes de construirla. Los TRES sitios que emiten este motivo
-    // rechazan por una condicion que EL TIEMPO NO CAMBIA:
-    //
-    //   SET_TIEMPOS ............ el ciclo automatico esta en marcha
-    //   SET_MODO:ALCANCE ....... el equipo esta en Modo Degradado
-    //   SET_MODO:INTELIGENTE ... el equipo esta en Modo Degradado
-    //
-    // En ninguno "esperar" sirve de nada: por muchos segundos que pasen el equipo sigue
-    // en el mismo modo. Un contador diciendo "faltan 47 s" prometeria que aguantando se
-    // arregla, y el tecnico se quedaria mirando el telefono hasta rendirse. El propio
-    // literal del firmware lo dice bien -PARE_EL_MODO-, y la traduccion decia lo
-    // contrario que el literal que traducia.
-    //
-    // Y NO ES EL MISMO CASO QUE EL AVISO DE VIA. Alli se pregunta porque el equipo no
-    // sabe si quedan vehiculos y el operario si; aqui no hay nada que mirar: hay que
-    // sacar el equipo del modo.
-    // N-150: LA SEGUNDA MITAD DE LA FRASE FALTABA, Y ES LA QUE COSTO EL CRUCE PARADO.
-    //
-    // "y volver a entrar" estaba escrito y no dice COMO ni avisa de lo que pasa entre
-    // medias. El operario del 05/09 hizo los dos primeros pasos -saco el equipo al
-    // menu, mando los tiempos- y se quedo delante de un cruce en rojo esperando a que
-    // arrancara solo. El paso que falta es suyo, y una instruccion que nombra tres
-    // pasos y detalla dos deja al que la lee parado justo en el tercero.
-    'EN_MARCHA_PARE_EL_MODO': () => ({
-      texto: 'El equipo esta EN MARCHA y esa orden no se puede aplicar mientras lo este. ' +
-             'ESPERAR NO SIRVE. Son TRES pasos y el tercero tambien es suyo: 1) VOLVER AL ' +
-             'MENU -el cruce queda en ROJO en las dos puntas mientras tanto-; 2) mande los ' +
-             'tiempos; 3) ARRANQUE EL CICLO con AUTOMATICO, porque el equipo NO vuelve a ' +
-             'arrancar solo. Los tiempos no se tocan con el ciclo corriendo porque bajar ' +
-             'uno a mitad de fase acortaria la fase EN CURSO, y una de esas fases es el ' +
-             'todo-rojo que deja salir a los vehiculos del tramo.',
-      toast: 'VOLVER AL MENU, mande los tiempos, y ARRANQUE con AUTOMATICO: son tres pasos'
-    })
-  };
+  // ACK_TEXTO vive en js/textos_ack.js; ERR_TEXTO y ERR_MOTIVO, en js/textos_err.js.
+  // Corte del 14/10 sin cambio de comportamiento (SPEC_4 9.12, D-98): index.html los
+  // carga antes que este fichero y aqui se consultan igual que antes.
 
   // Resuelve una entrada de las dos tablas de rechazo: puede ser el objeto directo o
   // una funcion de los campos de la trama, para los motivos que traen un dato dentro.
   function _traducirRechazo(data) {
-    const entrada = DegAuto.rechazo(data) || Testigo.rechazo(data, state.node) ||
+    const entrada = DegAuto.rechazo(data) || DiagnosticoEnlace.acuseReinicios(data) || Testigo.rechazo(data, state.node) ||
                     TextosSpec4.ERR[(data.CMD || '?') + '|' + (data.DESC || '')] || ERR_TEXTO[(data.CMD || '?') + '|' + (data.DESC || '')] || ERR_MOTIVO[data.DESC || ''];
     if (!entrada) return null;
     return typeof entrada === 'function' ? entrada(data) : entrada;
@@ -3862,12 +3170,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // lo decide esta trama, no lo que el operario supone que tiene delante.
         actualizarEmergencia();
       }
-      // N-62: aqui se leian SITE y PAIR, y NINGUNA punta los emite. No daba error:
-      // dejaba la pantalla igual para siempre, que es la forma silenciosa del fallo.
-      // SITE lo gobierna el gestor de cruces de la propia app (LocalStorage) y PAIR
-      // depende de FW-PAIR, que todavia no esta en el firmware.
+      // N-62: SITE y PAIR no los emite ninguna punta (SITE es del gestor de cruces; PAIR espera a FW-PAIR).
       if (data.SERIE) {
-        state.serie = data.SERIE;
+        state.serie = data.SERIE; RegistroEquipo.peticion(state.serie, enviarComandoFirmware);  // D-75
       }
       // Se guarda lo que VENGA, incluido el vacio. Los dos switch del firmware tienen
       // salida por abajo -semaforo_nombreEstado() devuelve "" si el estado no es
@@ -3877,7 +3182,8 @@ document.addEventListener('DOMContentLoaded', () => {
       // que llega vacio es un dato -dice que el equipo no sabe-, no una trama sin
       // campo. renderLights() lo declara.
       if (data.MODO !== undefined) {
-        state.modo = data.MODO;
+        state.modo = data.MODO;   // D-93: fuera de AMBAR se olvida su origen; un episodio nuevo no lo hereda
+        if (data.MODO !== 'AMBAR' && typeof DiagnosticoEnlace !== 'undefined') DiagnosticoEnlace.olvidarAmbar();
         actualizarEmergencia();   // el texto del rojo total depende del modo (Degradado: solo este poste)
       }
       if (data.ESTADO !== undefined) {
@@ -4095,6 +3401,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // exacto, SET_TIEMPOS/SET_RTC vuelven sin argumentos y MANUAL:CAMBIAR_TURNO
       // vuelve como CAMBIAR_TURNO. Lo que no case NO se atribuye a ojo.
       DiarioOrdenes.verRespuesta('$ACK', data, line, Date.now());
+      RegistroEquipo.verAck(data, addEvent);   // D-75: CMD:LOG del puente (no envia: lo hace el $STATUS)
       const cual = data.CMD || '?';
       const clave = cual + '|' + (data.RESULT || '');
       // D-15: EL ACUSE DEL RELOJ SE ANOTA POR POSTE, Y ES LO QUE CONVIERTE
@@ -4123,7 +3430,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // N-162: este acuse NO toca state.hora. Viene de NODE:PUENTE -el DS3231 del ESP32-
       // y state.hora es la hora del CONTROLADOR, la del $STATUS. Pintar una con la otra
       // tapaba justo lo que hay que ver: un STM32 que no recibio la hora.
-      Testigo.anotarAcuse(data, state.node); const degAuto = DegAuto.acuse(data);  // A-15
+      Testigo.anotarAcuse(data, state.node); const degAuto = DegAuto.acuse(data) || DiagnosticoEnlace.acuseReinicios(data);  // A-15, D-64
       const dicho = ACK_TEXTO[clave] || degAuto || TextosSpec4.ACK[clave] || TextosSpec4.tiempos(clave, state.modo);
       if (dicho) {
         addEvent(dicho.tono, dicho.texto);
@@ -4176,6 +3483,8 @@ document.addEventListener('DOMContentLoaded', () => {
       // camara, igual: la cadencia refresca, solo empieza/se suelta escriben. Y son else,
       // no return: renderDepuracion() y renderDiario() tienen que repintar con esta trama.
       // N-170: el parte de arranque del puente (sin ORIGEN/DETALLE) va antes que nadie.
+      RegistroEquipo.verParte(data);   // D-75: con LOG: arma la peticion del registro del puente
+      if (RegistroEquipo.verRegistro(data, addEvent, enviarComandoFirmware)) { renderDepuracion(); return; }  // pasado
       const vistoCorte = (typeof AvisoCorte !== 'undefined') ? AvisoCorte.ver(data) : null;
       const vistoCam = (!vistoCorte && typeof AvisoCamaraPluma !== 'undefined')
         ? AvisoCamaraPluma.ver(data) : null; let vistoCartel = null;
@@ -4204,12 +3513,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (vistoCam.toast) showToast(vistoCam.toast);
       } else if (esDiagRadio) {
         const visto = DiagnosticoEnlace.ver(data);
-        renderDiagnosticoEnlace();
-        // LO QUE SI GASTA BITACORA SON LAS TRANSICIONES, NO LA CADENCIA. El recuadro
-        // solo existe mientras alguien mira la pantalla; que este poste empezara a comer
-        // ruido a las 03:40 tiene que quedar escrito aunque no hubiera nadie delante, y
-        // por eso estas pocas lineas si van a la lista y al registro que persiste. Son
-        // dos por episodio como mucho -empieza y para-, no dos por minuto.
+        if (visto && visto.pedirReinicios) enviarComandoFirmware('REINICIOS');  // D-64
+        renderDiagnosticoEnlace(); if (visto && visto.ambarCambio) renderLights();  // D-93
+        // LO QUE SI GASTA BITACORA SON LAS TRANSICIONES, NO LA CADENCIA: el ruido de las 03:40
+        // queda escrito aunque nadie mirase. Dos por episodio como mucho -empieza y para-.
         if (visto && visto.avisos.length) {
           visto.avisos.forEach(a => {
             addEvent(a.tono, 'Equipo [radio de este poste]: ' + a.texto);
@@ -4282,7 +3589,7 @@ document.addEventListener('DOMContentLoaded', () => {
           ' El motivo concreto va en la linea de al lado.');
       }
 
-      const negado = _traducirRechazo(data);
+      const negado = RegistroEquipo.rechazo(data) || _traducirRechazo(data);   // D-75: los dos de CMD:LOG
       if (negado) {
         addEvent('red', cabecera + ' -> ' + negado.texto);
         showToast(negado.toast);
@@ -4520,13 +3827,13 @@ document.addEventListener('DOMContentLoaded', () => {
   // sistema para dejar sitio a otra aplicacion, el aviso llega igual y no lo dice. La
   // causa no se inventa.
 
-  // El estado del enlace se apaga SIEMPRE por aqui. Tenerlo en un solo sitio es lo que
-  // impide que "he desconectado" y "me han desconectado" dejen la pantalla en estados
-  // distintos, que es como se cuela un boton que dice enlazado sin estarlo.
+  // El estado del enlace se apaga SIEMPRE por aqui: "he desconectado" y "me han desconectado" no dejan la pantalla
+  // en estados distintos (un boton que dice enlazado sin estarlo). D-86: js/practica.js pregunta y avisa por estas dos.
+  window.appEnlazada = () => state.connected === true; window.appAvisar = (t, m) => { showToast(m); addEvent(t, m); };
   function olvidarEnlace() {
     state.connected = false;
     state.node = null;
-    state.firmware = {};
+    state.firmware = {}; renderLights();   // sin enlace: «SIN ENLACE», no la frase del equipo de antes
     // D-23: los contadores de radio son de UN poste y arrancan con su micro. Si no se
     // olvidan al soltar el enlace, la primera muestra del SIGUIENTE poste se resta contra
     // la ultima del anterior y sale un delta inventado -y casi siempre negativo, que
@@ -4617,7 +3924,7 @@ document.addEventListener('DOMContentLoaded', () => {
     bt.connect(
       mac,
       () => {
-        state.connected = true;
+        state.connected = true; renderLights();   // D-80: «esperando su primer dato» hasta el primer $STATUS
         if (btnDevice) btnDevice.className = 'btn-top btn-device connected';
         actualizarBotonDesconectar();
         showToast(`🔗 Enlazado a: ${name}`);
@@ -5717,8 +5024,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // cruce esta apagado, y eso tampoco consta. Lo que se retira es todo numero que
     // envejece -contador, RF, RTT, bateria, hora-, porque un numero viejo pintado
     // como si fuera de ahora es exactamente el dato inventado que se quiere evitar.
-    if (phaseDescEl) phaseDescEl.textContent = 'SIN ENLACE - sin datos del equipo';
-    if (cdNumEl) cdNumEl.textContent = '--';
+    renderLights();   // la frase del centro la escribe solo renderLights() (SPEC_4 9.9 (c)); las luces, como estaban
+    state.countdown = null; state.countdownImposible = false; updateCountdownRing();   // '--' y gris (D-83)
     // El enlace se retira POR EL MISMO CAMINO que lo pinta, con la lectura vacia.
     // Escribir aqui '--' a mano abriria un segundo escritor de esos widgets, y con dos
     // escritores vuelve a poder aparecer uno que pinte algo que no vino en una trama.

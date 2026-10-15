@@ -736,10 +736,10 @@ def correr(b, fw):
     # nivel lee "senal", y con esa lectura se cambia una antena que no tiene la culpa.
     b.verificar(
         re.search(r"latidos", html, re.I) is not None
-        and re.search(r"no es potencia", html, re.I) is not None
-        and re.search(r"RSSI", html) is not None,
+        and re.search(r"no es la potencia", html, re.I) is not None
+        and re.search(r"potencia de la antena", html) is not None,   # D-80: sin la sigla RSSI
         "el HTML declara al lado del indicador que es % de latidos contestados y NO "
-        "potencia de senal (RSSI)",
+        "potencia de la antena (D-80, sin sigla)",
         "la nota que distingue latidos de potencia no esta en index.html. Sin ella el "
         "tecnico lee la barra como cobertura y cambia la antena de un equipo cuyo "
         "problema puede ser el cable, el conector o un obstaculo")
@@ -759,7 +759,7 @@ def correr(b, fw):
     # generoso -caben los dos elementos y su marcado- y estrecho: la pestana mas
     # cercana esta a mas de 8.000.
     i_barra = html.find('id="rf-barra"')
-    i_nota = min([k for k in (html.lower().find("no es potencia"),) if k >= 0] or [-1])
+    i_nota = min([k for k in (html.lower().find("no es la potencia"),) if k >= 0] or [-1])
     b.verificar(
         i_barra >= 0 and i_nota >= 0 and abs(i_nota - i_barra) < 1500,
         "y esa nota vive JUNTO a la barra (%s caracteres de separacion en el fuente), "
@@ -771,8 +771,8 @@ def correr(b, fw):
         % (abs(i_nota - i_barra) if i_barra >= 0 and i_nota >= 0 else "no se halla"))
 
     b.control_negativo(
-        abs(html.find('id="rf-barra"') - html.lower().rfind("no es potencia")) < 1500
-        if html.lower().count("no es potencia") == 1 else True,
+        abs(html.find('id="rf-barra"') - html.lower().rfind("no es la potencia")) < 1500
+        if html.lower().count("no es la potencia") == 1 else True,
         "el medidor de distancia da un numero real sobre el HTML de hoy: si la nota "
         "se aleja, la cuenta crece y la comprobacion de arriba cae")
 

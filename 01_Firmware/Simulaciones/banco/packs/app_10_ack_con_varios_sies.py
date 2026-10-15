@@ -57,6 +57,9 @@ NOMBRE = "app_10_ack_con_varios_sies"
 DESCRIPCION = "toda orden con mas de un RESULT posible tiene un texto distinto por respuesta en la app"
 
 APP_JS = ("05_Funcional", "App_Semaforo", "app.js")
+# Las dos tablas salieron de app.js el 14/10 (SPEC_4 9.12, D-98); el consumidor sigue en APP_JS.
+TEXTOS_ACK_JS = ("05_Funcional", "App_Semaforo", "js", "textos_ack.js")
+TEXTOS_ERR_JS = ("05_Funcional", "App_Semaforo", "js", "textos_err.js")
 DEG_AUTO_JS = ("05_Funcional", "App_Semaforo", "js", "deg_auto.js")
 BT_MAESTRO = ("Maestro", "src", "bluetooth.cpp")
 BT_ESCLAVO = ("Esclavo", "src", "bluetooth.cpp")
@@ -195,10 +198,10 @@ def correr(b, fw):
     # -------------------------------------------------------------------------
     b.titulo("2. La app tiene un texto propio para cada uno de esos sies")
     # -------------------------------------------------------------------------
-    tabla = _tabla(js, TABLA_ACK)
+    tabla = _tabla(fw.texto_repo(*TEXTOS_ACK_JS), TABLA_ACK)
     if tabla is None:
         raise fw.Abortado(
-            "no se hallo la tabla %s en app.js. Es donde vive la traduccion de cada "
+            "no se hallo la tabla %s en js/textos_ack.js. Es donde vive la traduccion de cada "
             "acuse; sin ella este pack compararia contra un diccionario vacio -y es "
             "como el banco entero se quedo en ABORTADO en N-75, con la app entrando sin "
             "vigilancia detras-" % TABLA_ACK)
@@ -243,10 +246,10 @@ def correr(b, fw):
     b.titulo("4. Y ninguna entrada de la tabla nombra algo que el C++ ya no manda")
     # -------------------------------------------------------------------------
     for nombre, tab, censo, campo in ((TABLA_ACK, tabla, acks, "RESULT"),
-                                      (TABLA_ERR, _tabla(js, TABLA_ERR), errs, "DESC")):
+                                      (TABLA_ERR, _tabla(fw.texto_repo(*TEXTOS_ERR_JS), TABLA_ERR), errs, "DESC")):
         if tab is None:
             raise fw.Abortado(
-                "no se hallo la tabla %s en app.js" % nombre)
+                "no se hallo la tabla %s en js/textos_ack.js / js/textos_err.js" % nombre)
         huecas = []
         for clave in sorted(tab):
             cmd, _, valor = clave.partition("|")

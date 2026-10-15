@@ -33,24 +33,15 @@
 #                          (597 lineas con la pantalla dentro), menu, lcd, botones,
 #                          protocolo, respaldo y Arduino.h/pines.h.
 #
-# POR QUE ESTA FORMA Y NO LA OBVIA. Hoy hay CUATRO copias del STM32 escritas a mano en
-# este repositorio -simulador_sistema_v7_6.py, simulador_app_bluetooth.py,
-# App_Semaforo/servidor_puente_simulador.py y el modelo del banco-, ninguna releida del
-# C++. Una quinta habria demostrado que el quinto Python se comporta, no que el
-# firmware lo haga. Es CLAUDE.md 8 en su forma literal.
+# POR QUE ESTA FORMA: otra copia del STM32 en Python probaria el Python, no el firmware.
 #
-# LO QUE MIDE, Y QUE NO MEDIA NADIE. Las dos puntas tienen instrumento por separado
-# -el arnes de DOM ejercita la app, los packs leen el firmware-, y EN MEDIO no hay
-# nada: el contrato de bytes del doc 18 3 vive justo ahi. Y de las dos direcciones,
-# la de VUELTA -el equipo emite, el puente transporta, la app parsea y pinta- no la
-# ejercia ningun instrumento de punta a punta. Es donde vive $EVENT.
+# LO QUE MIDE: el contrato de bytes de EN MEDIO (doc 18 3), en las dos direcciones;
+# la de VUELTA (equipo -> puente -> app que pinta) es donde vive $EVENT.
 #
 # LAS CONSTANTES SE RELEEN DE LOS TRES LENGUAJES en cada corrida. Si alguna no se
 # puede extraer, esto ABORTA. Sin valor por defecto, nunca.
 #
-# LA CUENTA ES CALCULADA, NUNCA LITERAL. simulador_app_bluetooth.py publica "5/5"
-# escrito a mano, y por eso el detector de N-71 de la compuerta -que exige x == y
-# sobre la cuenta publicada- no puede fallar jamas sobre el.
+# LA CUENTA ES CALCULADA, NUNCA LITERAL (detector de N-71: exige x == y).
 #
 # Y NO SUSTITUYE LA PRUEBA DE BANCO. Es un PC.
 #
@@ -81,12 +72,8 @@ BUILD = os.path.join(ARNESES, "build")
 # =====================================================================================
 # EL CONTADOR
 #
-# No se reutiliza banco/contador.py aunque se le parezca, y el motivo es concreto: la
-# compuerta detecta el fallo de un instrumento suelto por la marca literal "[FALLA]" y
-# por la cuenta x/y de la ultima linea. Los packs imprimen "FALLA " sin corchetes
-# porque quien los agrega es correr.py; aqui no hay agregador, asi que la marca la
-# tiene que poner este fichero o la compuerta se fia solo del codigo de salida, que es
-# exactamente el defecto de N-46.
+# No es banco/contador.py: aqui no hay agregador, y la marca literal "[FALLA]" y la
+# cuenta x/y la pone este fichero o la compuerta se fia del codigo de salida (N-46).
 # =====================================================================================
 
 class Contador:
@@ -1338,10 +1325,8 @@ def escenario_n3(t, c, maestro, esclavo, app, util_max):
 def escenario_n4(t, c, maestro, esclavo, util_max):
     t.titulo("N4 - la asimetria entre puntas: el puente transporta bytes, no normaliza")
 
-    # N-82.bis (cinta del 28/09): el Maestro solo acepta TEST_LEDS FUERA DE SERVICIO -su
-    # fase verde encenderia un verde contra el otro sentido-. Viene de N1 en AUTO: ahi
-    # tiene que rechazarlo nombrando el motivo, y la asimetria de abajo se mide en MENU,
-    # que es donde el Maestro lo acepta y el Esclavo sigue sin aceptarlo nunca.
+    # N-82.bis: el Maestro acepta TEST_LEDS solo fuera de servicio (en AUTO lo rechaza
+    # con motivo); la asimetria se mide en MENU, donde el Esclavo sigue sin aceptarlo.
     maestro.rx("\n")
     maestro.rx(c.prefijo_pin["Maestro"] + "SET_MODO:AUTO\n")
     rech = [s.strip() for s in maestro.rx(c.prefijo_pin["Maestro"] + "TEST_LEDS\n")
@@ -1363,8 +1348,7 @@ def escenario_n4(t, c, maestro, esclavo, util_max):
         % (espera[0][:60] if espera else None),
         "Maestro en MENU sin el rojo del Esclavo confirmado contesto %r: el test podria "
         "encender su verde con el Esclavo todavia en verde" % (espera,))
-    # Unos segundos de bucle: latido, respuesta del Esclavo y ACK_RED de la orden de rojo.
-    # Medido con este arnes: con 200 ms el enlace aun no consta y la luz esta en S_FALLO.
+    # 5 s de bucle para latido y ACK_RED (medido: con 200 ms la luz aun esta en S_FALLO).
     maestro.avanzar(5000)
 
     for accion in ("TEST_LEDS", "FORZAR_ROJO"):
@@ -1397,6 +1381,22 @@ def escenario_n4(t, c, maestro, esclavo, util_max):
         "y el rechazo trae su motivo entero: %r" % err.strip(),
         "el $ERR del Esclavo no explica por que: %r. Un rechazo sin motivo manda al "
         "tecnico a adivinar" % err)
+
+    # D-65 (SPEC_4 9.5): la orden repetida en ALCANCE/INTELIGENTE no corre nada y lo dice
+    # (SIN_CAMBIO, mismo modo); MENU repetido re-arma dentro de su rama y su OK es verdad.
+    def acuse(orden):
+        r = [s.strip() for s in maestro.rx(c.prefijo_pin["Maestro"] + orden + "\n")
+             if s.startswith(("$ACK", "$ERR"))]
+        return (r[0].split("*")[0] if r else None), maestro.dato("MODO", r"MODO (\d+)")
+    for modo, segunda in (("ALCANCE", "SIN_CAMBIO"), ("INTELIGENTE", "SIN_CAMBIO"),
+                          ("MENU", "OK")):
+        (a1, m1), (a2, m2) = acuse("SET_MODO:" + modo), acuse("SET_MODO:" + modo)
+        base = "$ACK,CMD:SET_MODO:%s,RESULT:" % modo
+        t.verificar(
+            a1 == base + "OK" and a2 == base + segunda and m1 == m2,
+            "SET_MODO:%s dos veces -> %r / %r, modo %s y %s" % (modo, a1, a2, m1, m2),
+            "SET_MODO:%s repetido contesto %r / %r (modo %s -> %s); D-65 pide OK y "
+            "despues %s sin mover el modo" % (modo, a1, a2, m1, m2, segunda))
 
     t.control_negativo(
         c.acciones["Esclavo"] != c.acciones["Maestro"],

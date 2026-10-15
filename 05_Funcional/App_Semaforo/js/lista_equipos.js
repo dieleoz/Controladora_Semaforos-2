@@ -106,7 +106,7 @@ const ListaEquipos = (() => {
         titulo.textContent = eq.nombre;
       }
       const detalle = document.createElement('small');
-      detalle.textContent = 'MAC: ' + eq.mac;
+      detalle.textContent = 'Dirección ' + eq.mac;   // D-80
       info.appendChild(titulo);
       info.appendChild(detalle);
       if (suf.virgen) {
@@ -116,7 +116,7 @@ const ListaEquipos = (() => {
         const aviso = document.createElement('small');
         aviso.className = 'bt-dev-aviso';
         aviso.textContent = 'sin matricula: las DOS puntas se llaman asi. Hasta que el ' +
-                            'equipo hable solo las separa el MAC.';
+                            'equipo hable solo las separa la dirección.';
         info.appendChild(aviso);
       }
 

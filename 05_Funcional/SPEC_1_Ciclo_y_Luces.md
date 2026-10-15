@@ -249,7 +249,7 @@ servicio**. La espera de (2) acaba en el bucle: si reanuda o alguien elige modo,
 indicador y sigue en Menú, pasa al ámbar de arranque. **Se sale con una orden del operario**, como de cualquier
 ámbar. El motivo de arranque **es una marca**: `modo_ambar_esDeArranque()` la lee la puerta del testigo para **no
 aplicarle el veto R-4** (SPEC 2 §7.bis), que es para el ámbar que pidió una persona; cualquier otro camino al ámbar
-fija su motivo y la marca desaparece. El `$STATUS` dice `MODO:AMBAR` en los dos casos: el motivo no se publica.
+fija su motivo y la marca desaparece. El `$STATUS` dice `MODO:AMBAR` siempre; el origen va en `AMBAR:` (SPEC 4 §9.11).
 
 **Poste 2: NO cambia, y es decisión de diseño** (contra la letra de `D-40`, que nombra a los dos). Reiniciado solo,
 arranca en rojo (`semaforo_forzarRojo()` en su `setup()`) y lo recupera el Poste 1 por radio; sin radio, cae a

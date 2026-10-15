@@ -28,6 +28,9 @@ module.exports = async function pruebaTextosSpec4(montarAppLimpia, assert) {
   // 1. SPEC_4 §3.ter paso 2 y SPEC_6 A.1.bis: el SET_RTC previo "no bloquea": el testigo sale igual.
   const preparar = (a) => { a.admin();
     a.d.getElementById('chk-testigo-verificado').checked = true; a.tramas.length = 0; };
+  // Inicio a 10 min del reloj real: un '23:59:59' fijo queda a mas de 12 h antes del mediodia y vence (Testigo.vencido).
+  const enDiez = () => { const d = new Date(Date.now() + 600000), z = (x) => String(x).padStart(2, '0');
+    return { inicio: z(d.getHours()) + ':' + z(d.getMinutes()) + ':' + z(d.getSeconds()), inicioMs: d.getTime() }; };
   const degT = (a) => a.tramas.filter(x => /DEG_T/.test(x));
   {
     const a = montar(M, 'MENU'); preparar(a);
@@ -65,13 +68,14 @@ module.exports = async function pruebaTextosSpec4(montarAppLimpia, assert) {
     assert(!/\b90\b/.test(r.t + ' ' + r.toast), `3: AMBAR_EMERGENCIA|SALIENDO_TODO_ROJO sin cifra de 90 s: "${r.t.slice(0, 170)}" / "${r.toast}"`);
   }
 
-  // 4. SPEC_6 PARTE C: "que hace el tecnico" para las tres causas del limite.
-  for (const [causa, esperado] of [['LIMITE_48H', /radio/i], ['SYNC_SIN_FECHA', /radio/i], ['RELOJ_NO_CUENTA', /reloj/i]]) {
-    const a = montar(M, 'DEGRADADO');
-    a.entra(`ALARM,NODE:MAESTRO,EVENTO:DEGRADADO,CAUSA:${causa},ACCION:CAMBIO_A_AMBAR,HORA:14:36:00`);
+  // 4. SPEC_6 PARTE C: "que hace el tecnico" para las tres causas del limite; D-68: LIMITE_48H tambien del Esclavo.
+  for (const [causa, esperado, nodo] of [['LIMITE_48H', /radio/i, 'MAESTRO'], ['SYNC_SIN_FECHA', /radio/i, 'MAESTRO'],
+    ['RELOJ_NO_CUENTA', /reloj/i, 'MAESTRO'], ['LIMITE_48H', /radio/i, 'ESCLAVO']]) {
+    const a = montar(nodo === 'ESCLAVO' ? E : M, 'DEGRADADO');
+    a.entra(`ALARM,NODE:${nodo},EVENTO:DEGRADADO,CAUSA:${causa},ACCION:CAMBIO_A_AMBAR,HORA:14:36:00`);
     const t = a.ultimo();
-    assert(a.w.AvisosEquipo.traducirAlarma({ EVENTO: 'DEGRADADO', CAUSA: causa, NODE: 'MAESTRO' }) !== null && esperado.test(t) && t.length > 160,
-      `4: DEGRADADO|${causa} sale con texto de que hacer (SPEC_6 PARTE C): "${t.slice(0, 200)}"`);
+    assert(a.w.AvisosEquipo.traducirAlarma({ EVENTO: 'DEGRADADO', CAUSA: causa, NODE: nodo }) !== null && esperado.test(t) && t.length > 160,
+      `4: ${nodo} DEGRADADO|${causa} sale con texto de que hacer (SPEC_6 PARTE C): "${t.slice(0, 200)}"`);
   }
 
   // 5. SPEC_7 §6 y H-2: el badge no afirma una causa; "48 h" no es recalculable (CLAUDE.md §14).
@@ -84,6 +88,7 @@ module.exports = async function pruebaTextosSpec4(montarAppLimpia, assert) {
   const lista = [
     [M, 'MENU', 'ACK,CMD:SET_MODO:AUTO,RESULT:OK'], [M, 'MENU', 'ACK,CMD:SET_MODO:MANUAL,RESULT:OK'],
     [M, 'MENU', 'ACK,CMD:SET_MODO:ALCANCE,RESULT:OK'], [M, 'MENU', 'ACK,CMD:SET_MODO:INTELIGENTE,RESULT:OK'],
+    [M, 'ALCANCE', 'ACK,CMD:SET_MODO:ALCANCE,RESULT:SIN_CAMBIO'], [M, 'INTELIGENTE', 'ACK,CMD:SET_MODO:INTELIGENTE,RESULT:SIN_CAMBIO'],
     [M, 'MENU', 'ACK,CMD:TEST_LEDS,RESULT:STARTING_6S'], [M, 'MENU', 'ACK,CMD:REINICIAR_RELOJ,RESULT:CRISTAL_OK_PONGA_LA_HORA'],
     [M, 'INTELIGENTE', 'ACK,CMD:DEMANDA,RESULT:REGISTRADA'],
     [M, 'AUTO', 'ERR,CMD:CAMBIAR_TURNO,DESC:MODO_SIN_CICLO_SALGA_PRIMERO'],
@@ -98,7 +103,7 @@ module.exports = async function pruebaTextosSpec4(montarAppLimpia, assert) {
          /pong/i.test(dice(M, 'MENU', 'ACK,CMD:REINICIAR_RELOJ,RESULT:CRISTAL_OK_PONGA_LA_HORA').t),
     '6: REINICIAR_RELOJ|CRISTAL_OK_PONGA_LA_HORA dice que ponga la hora');
   assert(!/entro|ya esta en|puesto/i.test(dice(M, 'MENU', 'ACK,CMD:SET_MODO:ALCANCE,RESULT:OK').t),
-    '6: ALCANCE|OK no afirma que el modo entro (SPEC_4 §7: contesta OK sin condicion)');
+    '6: ALCANCE|OK no afirma que el modo entro (SPEC_4 §9.5 / D-65)');
 
   // 7. SPEC_4 §3.bis (no hay pantalla) y §3.1 (SET_TIEMPOS solo rechaza en AUTOMATICO: el OK no promete rojo).
   assert(!/pantalla/i.test(dice(M, 'MENU', 'ACK,CMD:SET_MODO:MENU,RESULT:OK').t), '7: SET_MODO:MENU|OK no manda a una pantalla que no existe');
@@ -239,6 +244,11 @@ module.exports = async function pruebaTextosSpec4(montarAppLimpia, assert) {
     for (const c of ['ALCANCE', 'INTELIGENTE']) {
       const t = dice(M, 'MENU', `ACK,CMD:SET_MODO:${c},RESULT:OK`).t;
       assert(!/OK siempre/i.test(t), `14: ${c}|OK no dice que el equipo contesta OK siempre (en Degradado contesta $ERR): "${t}"`);
+      // SPEC_4 §9.5 / D-66: el modo ya puesto contesta SIN_CAMBIO: lo dice, en ambar, con el camino por MENU.
+      const b = montar(M, c); b.entra(`ACK,CMD:SET_MODO:${c},RESULT:SIN_CAMBIO`);
+      const e = b.d.querySelector('#event-feed .event-item');
+      assert(/ya estaba/i.test(b.ultimo()) && /MENU/.test(b.ultimo()) && !!e && /--amber-/.test(e.style.borderLeft),
+        `14: ${c}|SIN_CAMBIO dice "ya estaba", nombra MENU y va en ambar: "${b.ultimo()}" / ${e && e.style.borderLeft}`);
     }
     const a = montar(M, 'DEGRADADO'); const DF = a.w.DegFin;
     DF.guardar({ estado: 'ACEPTADO', salida: '15:00:00', salidaMs: Date.now() + 600000, serie: 'SEM-M-01', esclavo: true });
@@ -278,7 +288,7 @@ module.exports = async function pruebaTextosSpec4(montarAppLimpia, assert) {
     }
     // Verde guardado: se asevera DESPUES del acuse del SET_RTC (como el caso anterior); 360 es el control positivo.
     for (const [verde, sale] of [[100, false], [360, true]]) {
-      const a = montar(M, 'MENU'); a.w.Testigo.guardar({ estado: 'ACEPTADO', inicio: '23:59:59', inicioMs: Date.now() + 600000,
+      const a = montar(M, 'MENU'); a.w.Testigo.guardar({ estado: 'ACEPTADO', ...enDiez(),
         verde, despeje: 30, serie: 'SEM-M-01' });
       a.status(E, 'SEM-E-01', 'SUBORDINADO'); preparar(a); a.pulsa('btn-testigo-esclavo');
       a.entra('ACK,NODE:PUENTE,CMD:SET_RTC,RESULT:OK,FECHA:2026-10-04,HORA:14:31:00');
@@ -302,33 +312,32 @@ module.exports = async function pruebaTextosSpec4(montarAppLimpia, assert) {
         `15: «Verde fuera de rango (3-15 min)» tiene su texto y no culpa al firmware viejo: "${a.ultimo()}"`);
     }
     {
-      // 14/10 (1): con el POSTE 1 YA en Degradado, cambiar verde o despeje pide el dialogo propio antes de nada.
-      const abierto = (a) => a.d.getElementById('dialogo-modal').classList.contains('active');
+      // 14/10 (1), INVERTIDO por D-81 (SPEC_4 9.9 (e)): UN solo aviso, el de paleteros, con el cuerpo de los dos.
+      const abierto = (a) => a.d.getElementById('aviso-deg-modal').classList.contains('active');
+      const dlg = (a) => a.d.getElementById('dialogo-modal').classList.contains('active');
       const a = montar(M, 'DEGRADADO'); preparar(a); a.d.getElementById('num-testigo-verde').value = '6';
       a.d.getElementById('btn-testigo-maestro').click();
-      const tx = abierto(a) ? a.d.getElementById('dialogo-modal').textContent.replace(/\s+/g, ' ') : '';
-      assert(/Cambio de tiempos con el Degradado en marcha/.test(tx) && /verde en los dos sentidos/.test(tx) &&
-             /paletero en los dos extremos ANTES de seguir/.test(tx) && /antes de las \d\d:\d\d:\d\d/.test(tx) && a.tramas.length === 0,
-        `15: en DEGRADADO el cambio de tiempos abre el dialogo propio y no envia nada: "${tx}" ${JSON.stringify(a.tramas)}`);
-      a.d.getElementById('btn-dialogo-cancelar').click();
+      const tx = abierto(a) ? a.d.getElementById('aviso-deg-modal').textContent.replace(/\s+/g, ' ') : '';
+      assert(!dlg(a) && /Cambio de tiempos con el Degradado en marcha/.test(tx) && /verde en los dos sentidos/.test(tx) &&
+             /PALETEROS en los dos extremos ANTES de seguir/.test(tx) && /antes de las \d\d:\d\d:\d\d/.test(tx) && a.tramas.length === 0,
+        `15: en DEGRADADO el cambio de tiempos abre el aviso de paleteros (no el dialogo) y no envia nada: "${tx}" ${JSON.stringify(a.tramas)}`);
+      a.d.getElementById('btn-aviso-deg-cancelar').click();
       assert(!abierto(a) && a.tramas.length === 0, `15: Cancelar no envia nada: ${JSON.stringify(a.tramas)}`);
       a.d.getElementById('btn-testigo-maestro').click();
-      if (abierto(a)) a.d.getElementById('btn-dialogo-aceptar').click();
+      const chk = a.d.getElementById('chk-aviso-deg');
+      chk.checked = true; chk.dispatchEvent(new a.w.Event('change')); a.d.getElementById('btn-aviso-deg-confirmar').click();
       if (a.d.getElementById('pin-modal').classList.contains('active')) a.pin();
       a.entra('ACK,NODE:PUENTE,CMD:SET_RTC,RESULT:OK,FECHA:2026-10-04,HORA:14:31:00');
-      const chk = a.d.getElementById('chk-aviso-deg');
-      if (a.d.getElementById('aviso-deg-modal').classList.contains('active')) {
-        chk.checked = true; chk.dispatchEvent(new a.w.Event('change')); a.d.getElementById('btn-aviso-deg-confirmar').click();
-      }
-      assert(degT(a).length === 1 && args(a)[2] === '360',
-        `15: aceptado el dialogo (y el de paleteros), el testigo sale con 360: ${JSON.stringify(a.tramas)}`);
+      assert(degT(a).length === 1 && args(a)[2] === '360' && !abierto(a) && !dlg(a),
+        `15: casilla + confirmar -> PIN -> SET_RTC -> el testigo sale con 360 y el aviso NO vuelve: ${JSON.stringify(a.tramas)}`);
       a.entra('ACK,CMD:SET_MODO:DEG_T,RESULT:OK');
-      assert(a.w.Testigo.leer().enCaliente === true, `15: el testigo puesto con el Degradado en marcha queda marcado: ${JSON.stringify(a.w.Testigo.leer())}`);
+      assert((a.w.Testigo.leer() || {}).enCaliente === true, `15: el testigo puesto con el Degradado en marcha queda marcado: ${JSON.stringify(a.w.Testigo.leer())}`);
       const b = montar(M, 'DEGRADADO');
-      b.w.Testigo.guardar({ estado: 'ACEPTADO', inicio: '23:59:59', inicioMs: Date.now() + 600000, verde: 360, despeje: 30, serie: 'SEM-M-01' });
+      b.w.Testigo.guardar({ estado: 'ACEPTADO', ...enDiez(), verde: 360, despeje: 30, serie: 'SEM-M-01' });
       preparar(b); b.d.getElementById('num-testigo-verde').value = '6'; b.d.getElementById('num-testigo-despeje').value = '30';
       b.d.getElementById('btn-testigo-maestro').click();
-      assert(!abierto(b), '15: mismos verde y despeje que el testigo guardado: sin dialogo de cambio de tiempos');
+      assert(!abierto(b) && !dlg(b) && b.d.getElementById('pin-modal').classList.contains('active'),
+        '15: mismos verde y despeje que el testigo guardado: sin aviso al pulsar, se abre el PIN');
     }
     {
       // 14/10 (2): el POSTE 2 rechaza por inicio vencido y el POSTE 1 ya va con otro ciclo.
@@ -367,6 +376,29 @@ module.exports = async function pruebaTextosSpec4(montarAppLimpia, assert) {
       const a = montar(M, 'MENU'); testigoM(a, 3); a.entra('ERR,NODE:MAESTRO,CMD:SET_MODO:DEG_T,DESC:FORMATO_INVALIDO');
       assert(!FW.test(a.d.getElementById('event-feed').textContent),
         `15: D-59 FORMATO_INVALIDO con verde 3 min no culpa al firmware del verde: "${a.ultimo()}"`);
+    }
+    // D-78 (SPEC_4 3.ter paso 1): enCaliente + RESULT:OK avisa en rojo (evento y toast); RENOVADO o sin enCaliente, no.
+    const CALIENTE = /cambio de ciclo en marcha|sigue con el anterior/;
+    for (const [res, cal, debe] of [['OK', true, true], ['RENOVADO', true, false], ['OK', false, false]]) {
+      const a = montar(M, 'MENU');
+      a.w.Testigo.guardar({ estado: 'ENVIADO', ...enDiez(), verde: 360,
+        despeje: 30, serie: 'SEM-M-01', emitidoMs: Date.now(), enCaliente: cal });
+      a.entra(`ACK,CMD:SET_MODO:DEG_T,RESULT:${res}`); await new Promise(r => setTimeout(r, 5));
+      const ev = CALIENTE.test(a.d.getElementById('event-feed').textContent);
+      const t = a.d.getElementById('toast-msg'); const to = CALIENTE.test(t ? t.textContent : '');
+      assert(ev === debe && to === debe, `15: D-78 acuse ${res} con enCaliente=${cal}: aviso ${debe ? 'SI' : 'NO'} ` +
+        `(evento ${ev}, toast ${to}): "${a.ultimo()}"`);
+    }
+    {
+      // D-78: el dialogo previo sale tambien si el testigo guardado es de otra SERIE, con los mismos tiempos.
+      const a = montar(M, 'DEGRADADO');
+      a.w.Testigo.guardar({ estado: 'ACEPTADO', ...enDiez(), verde: 360,
+        despeje: 30, serie: 'SEM-M-02', emitidoMs: Date.now() });
+      const otra = a.w.Testigo._cambioEnCaliente(M, { verde: 360, despeje: 30 });
+      const g = a.w.Testigo.leer(); g.serie = 'SEM-M-01'; a.w.Testigo.guardar(g);
+      const misma = a.w.Testigo._cambioEnCaliente(M, { verde: 360, despeje: 30 });
+      assert(otra === true && misma === false,
+        `15: D-78 dialogo previo con guardado de otra SERIE (${otra}) y no con la misma y los mismos tiempos (${misma})`);
     }
   }
 };

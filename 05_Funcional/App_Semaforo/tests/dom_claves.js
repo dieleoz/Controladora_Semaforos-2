@@ -125,4 +125,57 @@ module.exports = async function pruebaClaves(montarAppLimpia, assert) {
       assert(PESTANAS.every(id => a.visible(id)), 'Claves: y con la nueva se entra');
     }
   }
+
+  // 5. Practica sin poste (SPEC_4 9.10, D-86..D-89): solo con la clave, nunca con enlace abierto, y por el MISMO cable
+  // que un equipo: nada llega al puerto real y todo lo que entra lo emitio un firmware (cintas de evidencia/).
+  {
+    const eventos = (a) => Array.from(a.d.querySelectorAll('#event-feed .event-item'))
+                                .map(n => n.textContent.replace(/\s+/g, ' ')).join(' || ');
+    const oculta = (a) => !!a.el('franja-simulado') && a.el('franja-simulado').hidden;
+    const P = (a) => a.w.Practica || { entrar() {}, salir() {}, _tick() {}, FLOTA: [] };  // ausente: rojo
+    const a = montar();
+    const real = a.w.bluetoothSerial;
+    const boton = a.el('btn-practica');
+    P(a).entrar();
+    assert(!!boton && !!boton.closest('#tab-diag') && a.w.bluetoothSerial === real && oculta(a),
+      'Practica: «Practicar sin poste» esta en Diagnostico y sin la clave de administracion no entra');
+    a.el('btn-toggle-role').click(); a.clave('1234');
+    P(a).entrar();
+    const prim = a.d.querySelector('#event-feed .event-item');
+    assert(!!a.w.Practica && a.w.bluetoothSerial === real && oculta(a) && !!prim &&
+           /practica/i.test(prim.textContent) && /red/.test(prim.outerHTML),
+      `Practica: con un enlace abierto se rechaza, con una linea roja en Eventos: ${eventos(a).slice(0, 160)}`);
+    a.el('btn-bt-disconnect').click();
+    P(a).entrar();
+    const filas = Array.from(a.d.querySelectorAll('#bt-modal .bt-device-item'));
+    const rotulos = P(a).FLOTA.map(c => c.rotulo);
+    assert(!oculta(a) && !!a.el('franja-simulado') && a.d.body.classList.contains('simulado') && a.activo('bt-modal') &&
+           filas.length >= 4 && rotulos.length >= 4 && filas.every(f => rotulos.includes(f.getAttribute('data-name'))),
+      `Practica: desconectado y con clave, franja SIMULADO y la flota en el modal de equipos (${filas.length} filas)`);
+    const fila1 = filas.find(f => !!P(a).FLOTA[0] && f.getAttribute('data-mac') === P(a).FLOTA[0].direccion);  // la lista ordena
+    if (fila1) fila1.click();
+    P(a)._tick();
+    assert(!!fila1 && /^MAESTRO/.test(a.txt('node-name')) && a.tramas.length === 0,
+      `Practica: la fila del Maestro habla como un Maestro y el puerto real no recibe nada: "${a.txt('node-name')}" ${a.tramas.join(' | ')}`);
+    await new Promise(r => setTimeout(r, 5400));   // TIMEOUT_ENLACE_MS de app.js: la VERSION se pide sola tras 5 s
+    const ack = '$ACK,CMD:VERSION,RESULT:OK,NODE:MAESTRO,FW:d810f81*24';
+    assert(!!P(a).FLOTA[0] && P(a).FLOTA[0].respuestas.includes(ack) && /d810f81/.test(eventos(a)) && a.tramas.length === 0,
+      `Practica: la VERSION que la app pide al enlazar recibe el $ACK literal de la cinta (FW d810f81)`);
+    a.pulsa('btn-franja-salir');
+    assert(a.w.bluetoothSerial === real && oculta(a) && !a.d.body.classList.contains('simulado'),
+      'Practica: Salir devuelve el puerto real y quita la franja y la clase');
+    // Campo nuevo: cada CAMPO: del $STATUS que compone el firmware esta en las cintas de su NODE.
+    const fs = require('fs');
+    const path = require('path');
+    ['MAESTRO', 'ESCLAVO'].forEach(nodo => {
+      const cpp = path.join(__dirname, '..', '..', '..', '01_Firmware', nodo === 'MAESTRO' ? 'Maestro' : 'Esclavo',
+                            'src', 'bluetooth.cpp');
+      const lit = (fs.readFileSync(cpp, 'utf8').match(new RegExp('"\\$STATUS,NODE:' + nodo + ',[^"]*"')) || [''])[0];
+      const campos = lit.replace(/"/g, '').split(',').slice(1).map(c => c.split(':')[0]);
+      const st = P(a).FLOTA.filter(c => c.nodo === nodo).flatMap(c => c.tramas).filter(t => /^\$STATUS,/.test(t));
+      const faltan = campos.filter(c => !st.some(t => t.includes(',' + c + ':')));
+      assert(campos.length >= 10 && st.length > 0 && faltan.length === 0,
+        `Practica: los ${campos.length} campos del $STATUS del ${nodo} estan en sus cintas; faltan: ${faltan.join(',') || '-'}`);
+    });
+  }
 };

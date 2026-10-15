@@ -4,6 +4,18 @@
 // cuentan en el mismo RESULTADO JSDOM que lee la compuerta. Cada bloque dice de donde
 // sale el valor que asevera; lo que es solo aspecto (colores, alturas en pixeles) no se
 // mide aqui: jsdom no pinta. Eso se mide con herramientas_medir_*.js en un Chrome real.
+// D-80 (SPEC_4 9.9 (a)): la jerga, UNA expresion, copiada en la spec. La usan tambien
+// test_unitarios_app.js y test_dom_execution.js (toasts de D-101) por require.
+const JERGA = new RegExp(String.raw`\bRSSI\b|\bRTT\b|\bMAC\b|\bNODE\b|\$STATUS|\$EVENT|\$ACK|\$ERR|\bCMD:|\bD-\d{1,3}\b|\bJ1[4-7]\b|OTRO_PERRO|_MUDO|` +
+  String.raw`SET_MODO|SET_DEG_AUTO|SET_RTC|no viaja en esta trama|ESP32|STM32|\b(RF|BAT|RTT|T):--`);
+// Zona del operario: body sin .admin-only, sin Eventos, sin script ni style. Devuelve el trozo que casa.
+const jergaEnOperario = (d) => {
+  const c = d.body.cloneNode(true);
+  c.querySelectorAll('.admin-only, #tab-eventos, script, style').forEach(n => n.remove());
+  const txt = c.textContent.replace(/\s+/g, ' ');
+  const m = JERGA.exec(txt);
+  return m ? txt.slice(Math.max(0, m.index - 50), m.index + 30) : null;
+};
 module.exports = function pruebaUsabilidad(montarAppLimpia, assert) {
   const eventos = (a) => Array.from(a.d.querySelectorAll('.event-item'))
                               .map(n => n.textContent.replace(/\s+/g, ' ')).join(' || ');
@@ -68,6 +80,8 @@ module.exports = function pruebaUsabilidad(montarAppLimpia, assert) {
   assert(!!plegado && !plegado.open && /Otros dispositivos \(3\)/.test(plegado.textContent) &&
          dentro.length === 3 && dentro[2].getAttribute('data-mac') === '22:22',
     'A: el resto va PLEGADO bajo "Otros dispositivos (3)", con la MAC anonima al final');
+  assert(/Dirección 55:55/.test(caja.textContent) && !JERGA.test(caja.textContent),   // D-80, SPEC_4 9.9 (a) 7
+    `A: la hoja de conexion dice «Dirección», sin jerga: "${(JERGA.exec(caja.textContent) || [''])[0]}"`);
   const solo = new Map([['66:66', { nombre: 'JDY-31', mac: '66:66', emparejado: true }]]);
   const caja2 = a.d.createElement('div');
   LE.repintarEquipos(caja2, solo, null);
@@ -119,6 +133,14 @@ module.exports = function pruebaUsabilidad(montarAppLimpia, assert) {
     const bat2 = mudo.d.getElementById('bat-voltage');
     assert(bat2.textContent.trim() === '-- V' && !bat2.classList.contains('green'),
       `C: con el enlace caido vuelve a "-- V" sin verde (${bat2.textContent} / ${bat2.className})`);
+    // D-83 (SPEC_4 9.9 (b)): gris es "sin dato"; un valor con "--" no lleva clase ni color de accion.
+    const COLOR = /\b(red|amber|green|cyan)\b|-(red|amber|green|cyan)-/;
+    ['rf-quality', 'cam-estado', 'cd-num', 'ring-progress', 'bat-voltage'].forEach(id => {
+      const el = mudo.d.getElementById(id);
+      const cl = el.getAttribute('class') || '', co = el.style.color || '';
+      assert((id === 'ring-progress' || /--/.test(el.textContent)) && !COLOR.test(cl) && !COLOR.test(co),
+          `C (D-83): #${id} con el enlace caido ("${el.textContent.trim()}") va sin color: class "${cl}", color "${co}"`);
+    });
     assert(hoja.classList.contains('active') && hoja.scrollTop === 0,
       `E: al abrir la hoja de conexion vuelve arriba (scrollTop ${hoja.scrollTop})`);
     const aviso = e.d.getElementById('bt-aviso-permiso');
@@ -160,5 +182,39 @@ module.exports = function pruebaUsabilidad(montarAppLimpia, assert) {
     reloj = t0 + 12001;
     assert(T.alPulsarAtras(e.d, app) === 'aviso' && cuenta('exit') === 1,
       'H: un atras a 2001 ms del aviso tampoco sale: el plazo es de 2 s');
+
+    // --- J. D-80 (SPEC_4 9.9 (a)): la jerga solo en la zona tecnica, en seis fotos -----
+    const xor = (s) => { let c = 0; for (const ch of s) c ^= ch.charCodeAt(0);
+                         return c.toString(16).toUpperCase().padStart(2, '0'); };
+    const j = montarAppLimpia();
+    if (j.w.DegAuto && j.w.DegAuto._timerConsulta) j.w.clearTimeout(j.w.DegAuto._timerConsulta);
+    const entra = (carga) => j.w._btSubscribeCb(`$${carga}*${xor(carga)}\n`);
+    const foto = (n) => { const m = jergaEnOperario(j.d); assert(!m, `J (D-80) foto ${n}: jerga en la zona del operario: "${m}"`); };
+    j.d.getElementById('btn-bt-disconnect').click();
+    j.d.getElementById('btnDevice').click();
+    j.d.querySelector('.bt-device-item').click();
+    assert(/esperando su primer dato/.test(j.d.getElementById('phase-desc').textContent),
+      `J (1): tras conectar y antes del primer dato: "${j.d.getElementById('phase-desc').textContent}"`);
+    foto('1 (conectado, sin dato)');
+    entra('STATUS,NODE:MAESTRO,SERIE:SEM-M-01,MODO:AUTO,ESTADO:ROJO,T:9,RF:97,RTT:70,BAT:12.9,HORA:14:31:00,ESC:VERDE,PLUMA:ABAJO');
+    foto('2 (Maestro AUTO)');
+    entra('STATUS,NODE:MAESTRO,SERIE:SEM-M-01,MODO:AUTO,ESTADO:FALLO COM,T:9,RF:0,RTT:--,BAT:12.9,HORA:14:31:05,ESC:?,PLUMA:ARRIBA');
+    foto('3 (FALLO COM, RF:0, ESC:?)');
+    entra('STATUS,NODE:ESCLAVO,SERIE:SEM-E-01,MODO:SUBORDINADO,ESTADO:ROJO,T:--,RF:--,RTT:--,BAT:--,HORA:14:31:10');
+    entra('EVENT,NODE:ESCLAVO,ORIGEN:ENLACE_RF,DETALLE:RX:100 OK:50 RUIDO:2,HORA:14:31:30');
+    foto('4 (Esclavo, ventana del Poste 2)');
+    entra('STATUS,NODE:MAESTRO,SERIE:SEM-M-01,MODO:AUTO,ESTADO:ROJO,T:9,RF:97,RTT:70,BAT:12.9,HORA:14:31:40,ESC:VERDE,PLUMA:ABAJO');
+    entra('ALARM,NODE:MAESTRO,EVENTO:HORA_ESP32,CAUSA:J17_MUDO,HORA:14:31:41');
+    assert(j.d.getElementById('toast-msg').classList.contains('show'), 'J (5): el $ALARM saca el toast');
+    foto('5 (alarma J17_MUDO y su toast)');
+    entra('ACK,NODE:PUENTE,CMD:SET_RTC,RESULT:HORA_PUESTA_SIN_PROPAGAR');   // 9.9 (a) 5: el «revise J17» de los acuses
+    const tAck = j.d.getElementById('toast-msg').textContent;
+    assert(/controladora/.test(tAck) && !JERGA.test(tAck) && /avise al tecnico/.test(tAck), `J (5): toast del acuse sin jerga: "${tAck}"`);
+    entra('STATUS,NODE:MAESTRO,SERIE:SEM-M-01,MODO:DEGRADADO,ESTADO:ROJO,T:9,RF:0,RTT:0,BAT:12.9,HORA:14:31:50');
+    j.d.querySelector('[data-cmd="SET_MODO:MANUAL"]').click();
+    ['1', '2', '3', '4'].forEach(k => j.d.querySelector(`.pin-btn[data-key="${k}"]`).click());
+    assert(j.d.getElementById('aviso-deg-modal').classList.contains('active'), 'J (6): en DEGRADADO el aviso de paleteros abierto');
+    foto('6 (aviso de paleteros)');
   });
 };
+module.exports.JERGA = JERGA;

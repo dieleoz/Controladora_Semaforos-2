@@ -5,7 +5,7 @@
 //     SET_MODO:DEG_FIN:ahora,salida     (HH:MM:SS,HH:MM:SS; con PIN) · SET_MODO:DEG_FIN:CANCELAR
 //     CONSULTA_DEG_FIN                  (sin PIN)
 // LO QUE ESTE MODULO NO HACE, Y ES A PROPOSITO:
-//   - No pinta ningun modo ni da la salida por hecha: la dicen el $ACK (texto en ACK_TEXTO de app.js), el $ERR
+//   - No pinta ningun modo ni da la salida por hecha: la dicen el $ACK (ACK_TEXTO, js/textos_ack.js), el $ERR
 //     (MOTIVOS, aqui) y la consulta. Ningun texto promete nada del OTRO poste: sin radio nadie lo sabe.
 //   - No escribe al cable: todo sale por DegAuto.enviarFin()/consultarFin() -> enviarComandoFirmware(), con su bool.
 // Lo reparte DegAuto (acuse, rechazo, alarma, evento, alStatus, iniciar): app.js ya lo llama.

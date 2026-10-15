@@ -68,3 +68,20 @@ size_t trama_componer(char* destino, size_t capacidad, const char* payload) {
   }
   return (size_t)n;
 }
+
+// Mudada el 14/10 desde transporte_app.cpp (era su campo() estatico) para que el registro
+// (D-73) lea MODO: y ESTADO: con la misma funcion que el rotulo lee SERIE: y NODE:.
+// Copia el valor hasta la coma o el '*'; false si no esta o no cabe: sin valor por defecto.
+bool trama_campo(const char* trama, const char* clave, char* dst, size_t cap) {
+  const char* p = strstr(trama, clave);
+  if (p == NULL) return false;
+  p += strlen(clave);
+  size_t i = 0;
+  while (p[i] && p[i] != ',' && p[i] != '*' && i < cap - 1) {
+    dst[i] = p[i];
+    i++;
+  }
+  if (i == 0) return false;
+  dst[i] = '\0';
+  return true;
+}

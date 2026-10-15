@@ -119,6 +119,7 @@ configuracion** (`SPEC_6` HUECO 3), y si no se hizo el sintoma no dira «radio m
 | **`SPEC_6` Campo, Radio y Alarmas** | el Degradado paso a paso, la configuracion de las radios, y **que hace el tecnico con cada alarma** |
 | **`SPEC_7` Modo Sin Reloj** | por que ese modo **no se construye**, y que si falta (que la app diga POR QUE) |
 | **`SPEC_8` Camaras y Barrera** | **que HACEN** las camaras y la pluma: el veto, el retardo de bajada, cuando el equipo pide que se revise una camara, y **que NO protege** |
+| **El `.zip` al funcional** (no es SPEC: `.claude/particularidades/entregar.md` §1 y §4) | que lleva y de donde sale: **un paquete, un commit** (`D-84`): firmware, `www/`, hoja y `FW_HASH.txt` de `git show <commit>:`, la APK comprobada contra ese `www/` (`D-85`); el hash del nombre y del PDF es el del arbol que va dentro |
 
 > 🔴 **`SPEC_5` y `SPEC_8` son las dos mitades de un mismo aparato y se leen juntas** — se partieron
 > el 14/09 porque un solo documento servia a dos lectores (`roadmap.md` 1.45). El corte: **`SPEC_5` es
@@ -176,3 +177,13 @@ configuracion** (`SPEC_6` HUECO 3), y si no se hizo el sintoma no dira «radio m
    muerta desde la instalacion no la avisa nadie** (`SPEC_8` §4).
 9. ⚠️ **Y lo que no se puede afirmar de nada de esto: NO HA VISTO UNA TARJETA.** Ninguna camara se ha conectado nunca a este
    equipo, y que firmware corre en cada poste **lo dice `ESTADO.md`, no este fichero** (`CLAUDE.md` §0.2).
+10. **NO TIENE MODO DE BAJO TRAFICO INTERMITENTE, Y EN UN PASO ALTERNADO NO LO TENDRA (`D-90`, 14/10).** El diseno
+   SFTY-20 (Maestro ambar intermitente, Esclavo rojo intermitente, programado por dias y franja) copia 4.4.3, que
+   reparte el paso por jerarquia de VIA en una interseccion donde el que para VE a quien tiene prioridad. Aqui las dos
+   puntas son el mismo carril y el semaforo existe porque no se ven (§1): el rojo intermitente es un PARE que el
+   conductor levanta por su cuenta, el ambar no detiene a nadie, y los dos entran de frente —la exposicion que
+   `SPEC_6` D.2 llama ventana— con la pluma arriba en los dos extremos (`SPEC_8` §5). Es el ambar de averia de §1
+   convertido en horario: retira la unica barrera del producto. Lo que ejecuta hoy ese horario es NADA: el andamio
+   de `reloj.*` (`reloj_esHorarioNocturno()`, `D-46`) sigue sin llamador, lo vigila `costura_10_funciones_muertas` y
+   cita esta decision. Lo que SI conserva la alternancia —un ciclo corto por franja— esta abierto en `A-16`, sin
+   decidir: es una decision vial del responsable.

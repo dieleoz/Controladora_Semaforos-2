@@ -112,6 +112,30 @@ el Esclavo lleva 180/900 en literal, sin atarlos a `VERDE_MIN_MIN/MAX`; `_cambio
 testigo guardado, no con el ciclo real del Poste 1 (lo cubre el aviso de paleteros); SPEC_6 A.2.bis sin «Verde fuera de
 rango», `EN_VERDE` ni `NO_GUARDADO`; `ciclo_degradado_restante` con 900 s, coste sin medir.
 
+**DESPUES (14/10, orden del responsable): `N-178` cadena de mejoras sin parar.** Subagentes en cadena, uno detras de
+otro en el arbol principal (nunca dos a la vez). Lo que el responsable no definio lo decide Fable y queda en la SPEC y
+en una fila de `DECISIONES.md` («decidido por Fable por delegacion, 14/10»). Sin preguntar al responsable, sin commit ni
+push (lo decide el responsable). Cada paso: SPEC -> prueba vista en rojo -> codigo -> compuerta; dos intentos fallidos,
+se revierte el paso y sigue el siguiente. Simulador congelado (§4): pruebas en arneses existentes. No toca la candidata
+`96c3d32` de Marco: sale una candidata nueva.
+
+| # | paso | fuente | estado |
+|---|---|---|---|
+| M1 | Reinicios fechados en `$STATUS` (REIN, ULT_REIN, UP_ANT, HEAP_MIN) y alarma en la app si un contador baja sin reinicio | `ROADMAP_APP.md` 11 | hecho (D-60..D-64) |
+| M2 | Todo `$ACK` con `RES`/`APLICA` o `$ERR`; `MOTIVO:SIN_CAMBIO` | `ROADMAP_APP.md` 12 | hecho (D-65, D-66) |
+| M3 | Alarmas que se ven aunque nadie estuviera conectado | `ROADMAP_APP.md` 9 | hecho (D-67, D-68; D-69 no) |
+| M4 | SPP del puente que no bloquea | `ROADMAP_APP.md` 13 | hecho (D-70, D-71) |
+| M5 | Registro en el equipo (ESP32 del puente, `LOG,DESDE:<N>`) | `ROADMAP_APP.md` 10, `D-55` | hecho (D-72..D-75, D-100) |
+| M6 | Bajos del arquitecto de `N-177` | arriba | hecho (D-76..D-79) |
+| M7 | App: un color y una frase por estado, cabecera a 360 px, un solo aviso al cambiar el verde, prueba contra jerga | `ROADMAP_APP.md` 2-3 | hecho en ronda 2 (D-80..D-83, D-101) |
+| M8 | `empaquetar_funcional.py` con commit de la candidata | sesion 14/10 | hecho (D-84, D-85) |
+| M9 | Modo practica sin poste | `D-58`, `ROADMAP_APP.md` 14 | hecho (D-86..D-89) |
+| M10 | Bajo trafico por dias y franja | `N-175`, SFTY-20 | no se construye (D-90) |
+| M11 | Pantalla informativa durante el ambar | SFTY-22 | hecho (D-91..D-93) |
+| M12 | Interruptores de SPEC_8 §6: solo SPEC, sin placa no hay codigo | SPEC_8 §6 | solo SPEC (D-94..D-97), rojo honesto |
+| M13 | `app.js` en modulos y fase F | `ROADMAP_APP.md` 8 | tanda 1 y fase F hechas |
+| MF | Compuerta completa convergida, arquitecto y QA una vez sobre la candidata | runbook | acta 2026-10-15 convergida; condiciones cerradas salvo orden «APK primero» en la hoja del proximo paquete (D-102) |
+
 **Antes (05/10, el funcional espera en banco): `N-176` ROJO+AMARILLO antes del verde (`D-53`).** Coste medido
 sobre `a5db18e`: ~28 ficheros (firmware ~10, app 4, arneses 4, packs/modelos 5, SPEC 5). Riesgos que se revisan
 ANTES de construir (§11.7): (a) +2 s rompen el presupuesto de radio (`PEOR_CASO_CICLO_MS + TIMEOUT_ACK_MS` 27,3 s
@@ -156,7 +180,8 @@ Todo cambio de firmware respeta las E/S y pines que fijan las guias de campo `.h
 **`N-175` Modo de bajo trafico (SFTY-20, diseno en `OPTIMIZACIONES.md`), optimizacion, version siguiente.**
 Responsable, 06/10: lo programa el usuario cuando quiera, por DIAS DE LA SEMANA y franja horaria (p.ej. este mes
 martes a jueves; fines de semana no, hay mas trafico). Luces del diseno: Maestro ambar intermitente, Esclavo rojo
-intermitente (norma 4.4.3). Abierto: si en un paso alterno de un carril eso basta para que no entren los dos.
+intermitente (norma 4.4.3). Cerrado el 14/10 por Fable (`D-90`, SPEC_0 §5.10): en un paso alterno de un carril NO
+basta, los dos entran; no se construye. Lo que conserva la alternancia (ciclo corto por franja) queda en `A-16`.
 
 **A. `N-173` Runbook de la candidata** (se salto para mandar a Marco; ahora entero, para dejar `main` ok). La
 candidata crecio con I (`cda33df`) y G (`f9cad1f`): un solo runbook sobre todo.

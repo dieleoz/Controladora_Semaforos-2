@@ -80,11 +80,13 @@ static bool rojoLasDos() {
 
 // El corte de las dos, como cortarLasDos() + corteConSiembra(), y ADEMAS la pagina del testigo: la flash no se
 // borra con un corte, el doble de la DLL si (adaptador_*_testigo1.inc), y se repone campo a campo antes de arrancar.
-static void cortarK() {
+// K5 (D-76) repone el verde con verdeFlash: un registro con otros limites o corrupto que la suma no cazo.
+static void cortarK(long verdeFlash = -1) {
   const long H = horaDs3231(0);
   long domM[PUNTA_DOMINIO_PALABRAS], domE[PUNTA_DOMINIO_PALABRAS], flM[6], flE[6];
   for (int i = 0; i < PUNTA_DOMINIO_PALABRAS; i++) { domM[i] = MAESTRO.domLeer(i); domE[i] = ESCLAVO.domLeer(i); }
   for (int i = 0; i < 6; i++) { flM[i] = MAESTRO.orden("dt_flash", i); flE[i] = ESCLAVO.orden("dt_flash", i); }
+  if (verdeFlash >= 0) flM[3] = flE[3] = verdeFlash;
   MAESTRO.descargar(); MAESTRO.cargar();
   ESCLAVO.descargar(); ESCLAVO.cargar();
   for (int i = 0; i < PUNTA_DOMINIO_PALABRAS; i++) { MAESTRO.domEscribir(i, domM[i]); ESCLAVO.domEscribir(i, domE[i]); }
@@ -178,5 +180,19 @@ static void bloqueK() {
                   g_verdeSimultaneo == 0,
               "K4 (D-59): corte de las dos alternando con 360: reanudan (" + std::to_string(eM) + " / " +
                   std::to_string(eE) + ") con el verde guardado: " + cifrasK(o) + "; " + tr);
+  }
+  // K5 (D-76, SPEC_2 7.bis): la flash trae un verde fuera de 180..900 o no multiplo de 60 (960, 190). Reanudar
+  // repite la guarda de la entrada: el registro es AUSENTE, ninguna de las dos reanuda y no hay ni un verde.
+  for (long vf : {960L, 190L}) {
+    montarK();
+    long rM = -1, rE = -1;
+    testigoK(360, iniK(), rM, rE);
+    avanzar(1200000UL);
+    cortarK(vf);
+    const ObsK o = correrK(msDosCiclos(360) + 300000UL);
+    const long eM = MAESTRO.orden("da_en_degradado"), eE = ESCLAVO.orden("da_en_degradado");
+    comprobar(rM == 0 && rE == 0 && eM == 0 && eE == 0 && o.n[0] == 0 && o.n[1] == 0 && g_verdeSimultaneo == 0,
+              "K5 (D-76): corte con verde " + std::to_string(vf) + " s en la flash: ninguna reanuda (" +
+                  std::to_string(eM) + " / " + std::to_string(eE) + ") y ningun verde: " + cifrasK(o));
   }
 }

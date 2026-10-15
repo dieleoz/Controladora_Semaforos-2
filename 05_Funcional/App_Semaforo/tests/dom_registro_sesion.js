@@ -146,4 +146,75 @@ module.exports = async function pruebaRegistroSesion(montar, assert) {
   await RS2.volcar();
   assert(RS2.estado === 'LLENO' && RS2.bytes <= RS2.TOPE_BYTES && /LLENO/.test(d.w.Exportar.textoAnexos()),
     `Registro 9.3.4: al tope de bytes para y lo dice (${RS2.estado}, ${RS2.bytes} de ${RS2.TOPE_BYTES} B)`);
+
+  // ---- 9.8 El registro del puente (D-75): lo pide solo si el parte trae LOG:, recuerda por SERIE ----
+  // Bordes de fuera: los literales de SPEC_4 9.8 (CMD:LOG,DESDE:<N>, el $ACK con sus diez campos, EVT:LOG con
+  // D: codificado , -> ; y : -> =) y la clave iotvial_log_equipo_v1:<SERIE> de D-75.
+  const trama = (p) => `$${p}*${xor(p)}\n`;
+  const pide = (n) => JSON.stringify(['CMD:LOG,DESDE:' + n + '\r\n']);
+  const parte = (log) => trama('EVENT,NODE:PUENTE,EVT:ARRANQUE,CAUSA:SOFTWARE,ARRANQUES:3,PERRO:ARMADO,WDT_MS:2000' +
+    (log === undefined ? '' : ',LOG:' + log));
+  const ack = (de, ha, ult, pr = 1) => trama(`ACK,NODE:PUENTE,CMD:LOG,RESULT:OK,DESDE:${de},HASTA:${ha},ULT:${ult},` +
+    `PRIMERO:${pr},CONG:3,CRC:0,LARGO:0,ANILLO:0,FLASH:0,MALOS:0`);
+  const reg = (n, d) => trama(`EVENT,NODE:PUENTE,EVT:LOG,N:${n},UP:${10 + n},FECHA:2026-10-14,HORA:10:00:0${n},C:E,` +
+    'D:' + d);
+  const logs = (t) => t.filter(x => /CMD:LOG/.test(x));
+  const e = montar();
+  e.w._btSubscribeCb(parte()); e.tramas.length = 0;
+  e.w._btSubscribeCb(status('MAESTRO', 'AUTO', 'V1_R2'));
+  assert(!!e.w.RegistroEquipo && logs(e.tramas).length === 0,
+    `Registro 9.8: existe RegistroEquipo y un parte sin LOG: (puente viejo) no pide nada (${logs(e.tramas)})`);
+  const f = montar();
+  f.w._btSubscribeCb(parte(7)); f.tramas.length = 0;
+  f.w._btSubscribeCb(status('MAESTRO', 'AUTO', 'V1_R2'));
+  assert(JSON.stringify(logs(f.tramas)) === pide(1),
+    `Registro 9.8: parte con LOG:7 y $STATUS con SERIE escriben CMD:LOG,DESDE:1 (${JSON.stringify(f.tramas)})`);
+  const antes = f.d.querySelectorAll('.event-item').length;
+  f.w._btSubscribeCb(ack(1, 7, 7));
+  for (let n = 1; n <= 7; n++) {
+    f.w._btSubscribeCb(reg(n, n === 4 ? 'ALARM;NODE=MAESTRO;TIPO=LIMITE;DETALLE=X' : 'ACK;CMD=SET_MODO;RESULT=OK'));
+  }
+  const ev = Array.from(f.d.querySelectorAll('.event-item')).map(x => x.textContent.replace(/\s+/g, ' '));
+  const deLog = ev.filter(t => /Equipo \[LOG\] N:\d/.test(t));
+  assert(deLog.length === 7 && deLog.some(t => /ALARM,NODE:MAESTRO,TIPO:LIMITE/.test(t)) &&
+         ev.length - antes <= 8 && !ev.some(t => /MAESTRO/.test(t) && !/\[LOG\]/.test(t)) &&
+         !f.w.AvisoCorte._cartel,
+    `Registro 9.8: siete lineas [LOG] decodificadas y ningun aviso de alarma ni de corte (${deLog.length}, ` +
+    `${ev.length - antes} nuevas)`);
+  const clave = 'iotvial_log_equipo_v1:SEM-M-01';
+  assert(f.w.localStorage.getItem(clave) === '7',
+    `Registro 9.8: recuerda 7 para SEM-M-01 (${f.w.localStorage.getItem(clave)})`);
+  f.w._btSubscribeCb(parte(9)); f.tramas.length = 0;
+  f.w._btSubscribeCb(status('MAESTRO', 'AUTO', 'V1_R2'));
+  assert(JSON.stringify(logs(f.tramas)) === pide(8),
+    `Registro 9.8: con 7 recordado y LOG:9 pide DESDE:8 (${JSON.stringify(logs(f.tramas))})`);
+  f.tramas.length = 0;
+  f.w._btSubscribeCb(ack(8, 0, 3));
+  f.w._btSubscribeCb(status('MAESTRO', 'AUTO', 'V1_R2'));   // el $ACK no envia (app_05): sale con el $STATUS
+  f.w._btSubscribeCb(status('MAESTRO', 'AUTO', 'V1_R2'));   // y una sola vez
+  assert(f.w.localStorage.getItem(clave) === '0' &&
+         JSON.stringify(logs(f.tramas)) === pide(1),
+    `Registro 9.8: ULT:3 con 7 recordado vuelve a 0 y pide DESDE:1 (${f.w.localStorage.getItem(clave)}, ` +
+    `${JSON.stringify(logs(f.tramas))})`);
+  const llR = await exportar(f, {});
+  const tx = (llR.write[0] || {}).data || '';
+  const iC = tx.indexOf('IOT-VIAL - CAMBIOS DE ESTADO');
+  const iR = tx.indexOf('IOT-VIAL - REGISTRO DEL EQUIPO');
+  assert(iC >= 0 && iR > iC && /CONG:3/.test(tx.slice(iR)) && /ALARM,NODE:MAESTRO/.test(tx.slice(iR)),
+    `Registro 9.8: el .txt trae REGISTRO DEL EQUIPO detras de CAMBIOS DE ESTADO, con CONG:3 (${iC}, ${iR})`);
+  // (7) D-100: lo recordado es el ultimo N RECIBIDO; PRIMERO > recordado + 1 deja recordado = PRIMERO - 1.
+  const g = montar();
+  g.w._btSubscribeCb(parte(40)); g.w._btSubscribeCb(status('MAESTRO', 'AUTO', 'V1_R2'));
+  const evG = [];                                   // Eventos guarda 30: se mira tras cada trama
+  const verG = (t) => { g.w._btSubscribeCb(t);
+    evG.push(Array.from(g.d.querySelectorAll('.event-item')).map(x => x.textContent)); };
+  const cuenta = (l, rx) => l.filter(t => rx.test(t)).length;
+  verG(ack(5, 40, 40, 5));
+  for (let n = 5; n <= 40; n++) verG(reg(n, 'ACK;CMD=SET_MODO;RESULT=OK'));
+  g.w._btSubscribeCb(parte(40)); g.tramas.length = 0;
+  g.w._btSubscribeCb(status('MAESTRO', 'AUTO', 'V1_R2'));
+  assert(g.w.localStorage.getItem(clave) === '40' && cuenta(evG[0], /ya no tiene/) === 1 &&
+         evG.every(l => cuenta(l, /ya no tiene/) <= 1 && cuenta(l, /hueco/) === 0) && logs(g.tramas).length === 0,
+    `Registro 9.8 (7) D-100: PRIMERO:5 y 36 entradas dejan 40 recordado, un aviso, y LOG:40 no pide ` +
+    `(${g.w.localStorage.getItem(clave)}, ${JSON.stringify(logs(g.tramas))})`);
 };

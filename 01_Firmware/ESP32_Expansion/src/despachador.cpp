@@ -4,6 +4,7 @@
 #include "reloj_ds3231.h"
 #include "puente.h"
 #include "siembra.h"
+#include "registro.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -29,6 +30,14 @@
 // otra cosa con el texto dentro, y entonces el puente se estaria quedando lineas que no
 // son suyas.
 static const char CMD_LEER_RTC[] = "CMD:LEER_RTC";
+// D-74: la consulta del registro del puente, sin PIN. Prefijo con strncmp y NUNCA una ayudante
+// con strstr: el simulador lee esas ayudantes como criterios "contiene" y las modela como siembra.
+// Va en ayudante y no suelta en el predicado porque esp32_12 trata cada constante del predicado
+// como una consulta de RELOJ (strcmp entero y siete motivos del enum) y veta strncmp suelto ahi.
+static const char CMD_LOG_PREFIJO[] = "CMD:LOG,DESDE:";
+static bool esConsultaLog(const char* linea) {
+  return strncmp(linea, CMD_LOG_PREFIJO, sizeof(CMD_LOG_PREFIJO) - 1) == 0;
+}
 
 // D-20 (11/09): SET_RTC SE BUSCA DENTRO DE LA LINEA, NO SE COMPARA ENTERA.
 //
@@ -70,6 +79,7 @@ static bool suplantaLaSiembra(const char* linea) {
 bool despachador_esParaElPuente(const char* linea) {
   if (linea == NULL) return false;
   if (strcmp(linea, CMD_LEER_RTC) == 0) return true;
+  if (esConsultaLog(linea)) return true;
   if (suplantaLaSiembra(linea)) return true;
   if (accionSetRtc(linea) != NULL) return true;
   return false;
@@ -205,6 +215,12 @@ void despachador_atender(const char* linea) {
         puente_emitirPropio("$ERR,NODE:PUENTE,CMD:LEER_RTC,DESC:MOTIVO_NO_CONTEMPLADO");
       }
     }
+    return;
+  }
+
+  // D-74: contesta registro.cpp, cada $ERR en su if; nada de esta rama cruza a J17.
+  if (esConsultaLog(linea)) {
+    registro_atender(linea);
     return;
   }
 

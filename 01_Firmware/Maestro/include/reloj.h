@@ -483,20 +483,9 @@ bool reloj_horaFiable();
 
 // --- Franja nocturna configurable -----------------------------------------
 //
-// ATENCION: HOY SE GUARDA SOLO EN RAM. No sobrevive a un corte de energia.
-//
-// Tras un apagon la HORA si sobrevive gracias a la pila, pero la franja revierte
-// EN SILENCIO a 22-05. Y como la hora es valida, reloj_enHora() devuelve true y
-// nada impide que el modo nocturno arranque con el horario equivocado de esa obra:
-// la guarda de hora fiable NO cubre este caso.
-//
-// Por eso, mientras no exista la persistencia real (BKP->DR1..DR10; la libreria
-// STM32duino RTC 1.9.0 no expone esos registros), la regla es:
-//   franja NO confirmada tras el arranque  =>  modo nocturno INHIBIDO.
-//
-// Este comentario describia antes una persistencia que el codigo nunca tuvo. En un
-// proyecto cuya trazabilidad se levanta buscando en los fuentes, esa mentira es
-// peor que la carencia. Ver pendiente N-15.
+// Andamio SFTY-20 sin llamador. D-90: el intermitente nocturno no se construye; lo
+// conserva D-46 hasta que A-16 decida reusarlo o retirarlo. La franja vive solo en RAM
+// (revierte a 22-05 tras un corte): quien la reuse lee OPTIMIZACIONES.md SFTY-20.
 void reloj_ajustarFranjaNocturna(uint8_t horaInicio, uint8_t horaFin);
 uint8_t reloj_inicioNoche();
 uint8_t reloj_finNoche();

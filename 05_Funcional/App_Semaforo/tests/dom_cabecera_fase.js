@@ -12,14 +12,24 @@ module.exports = async function pruebaCabeceraFase(montarAppLimpia, assert) {
   const entra = (carga) => w._btSubscribeCb(`$${carga}*${xor(carga)}\n`);
   const st = (nodo, modo, est, rf, extra = '') => entra(`STATUS,NODE:${nodo},SERIE:SEM-M-01,MODO:${modo},` +
     `ESTADO:${est},T:9,RF:${rf},RTT:70,BAT:12.9,HORA:14:31:00${extra}`);
-  const t = (id) => d.getElementById(id).textContent;
+  const t0 = (id) => d.getElementById(id).textContent;
+  // D-82 (SPEC_4 9.9 (d)): #rssi-text nunca pasa de 16 caracteres, en cada lectura.
+  const t = (id) => { const v = t0(id); if (id === 'rssi-text') assert(v.length <= 16, `D-82: #rssi-text <= 16: "${v}"`); return v; };
 
   // (1) La cabecera sigue al enlace: la misma lectura RF de pintarEnlace() y el mismo sinRadio()
   // del cartel (js/deg_auto_eleccion.js). Valores pedidos en el encargo del 06/10.
   st('MAESTRO', 'AUTO', 'ROJO', '97', ',ESC:ROJO,PLUMA:ABAJO');
   assert(t('rssi-text') === '(radio 97 %)', `Cabecera: Maestro con RF:97, "${t('rssi-text')}"`);
   st('MAESTRO', 'AUTO', 'FALLO COM', '0', ',ESC:ROJO,PLUMA:ARRIBA');
-  assert(t('rssi-text') === '(sin radio entre postes)', `Cabecera: FALLO COM y RF:0, "${t('rssi-text')}"`);
+  assert(t('rssi-text') === '(sin radio)', `Cabecera: FALLO COM y RF:0, "${t('rssi-text')}"`);
+  // SPEC_4 9.9 (c): una frase por ESTADO, por punta; la tabla es el oraculo.
+  const TABLA = { 'ROJO': 'ROJO, este poste no da paso', 'ROJO+AMAR': 'Rojo y amarillo: va a abrir el verde',
+    'VERDE': 'VERDE, este poste da paso', 'AMARILLO': 'AMARILLO, este poste está cerrando su paso',
+    'FALLO COM': 'ámbar y pluma arriba: pasar con precaución' };
+  for (const [nodo, modo] of [['MAESTRO', 'AUTO'], ['ESCLAVO', 'SUBORDINADO']]) for (const est of Object.keys(TABLA)) {
+    st(nodo, modo, est, nodo === 'MAESTRO' ? '97' : '--', nodo === 'MAESTRO' ? ',ESC:ROJO,PLUMA:ABAJO' : '');
+    assert(t0('phase-desc').startsWith(nodo + ': ' + TABLA[est]), `(c) ${nodo} ${est}: "${t0('phase-desc')}"`);
+  }
   // Control: el ambar PEDIDO (MODO:AMBAR) con radio medida no es "sin radio".
   st('MAESTRO', 'AMBAR', 'FALLO COM', '97', ',ESC:AMBAR,PLUMA:ARRIBA');
   assert(t('rssi-text') === '(radio 97 %)', `Cabecera: ambar pedido con RF:97, "${t('rssi-text')}"`);
@@ -37,9 +47,12 @@ module.exports = async function pruebaCabeceraFase(montarAppLimpia, assert) {
   assert(f.length <= 60 && /precauci/.test(f), `Fase: FALLO COM en <= 60 caracteres y con precaucion: "${f}"`);
   assert(/precauci/.test(t('pluma-estado')) && /ROJO/.test(t('s2-text')),
     `Fase: la pluma y la columna del otro poste siguen diciendolo: "${t('pluma-estado')}" / "${t('s2-text')}"`);
+  // D-93 (N-178 M11): sin periodico la app no sabe quien pidio el ambar y no lo afirma. Esta
+  // asercion exigia "operario" con MODO:AMBAR a secas: celebraba el defecto (CLAUDE.md 9), se invierte.
   st('MAESTRO', 'AMBAR', 'FALLO COM', '97', ',ESC:AMBAR,PLUMA:ARRIBA');
   const fp = t('phase-desc');
-  assert(fp.length <= 60 && /operario/.test(fp) && /precauci/.test(fp), `Fase: ambar pedido corto: "${fp}"`);
+  assert(fp.replace(/^MAESTRO: /, '').length <= 60 && /sin dato/.test(fp) && !/operario/.test(fp) && /precauci/.test(fp),
+    `Fase: ambar sin origen leido, corto y sin afirmar quien lo pidio: "${fp}"`);
 
   // (2) jsdom no calcula posiciones: se comprueba la estructura que lo garantiza. La linea va
   // FUERA de la tarjeta del cruce, encima de ella y debajo del cartel sin radio, asi queda en
@@ -50,4 +63,36 @@ module.exports = async function pruebaCabeceraFase(montarAppLimpia, assert) {
   const antes = (x, y) => !!(x.compareDocumentPosition(y) & 4);   // DOCUMENT_POSITION_FOLLOWING
   assert(!tarjeta.contains(linea) && antes(linea, tarjeta) && antes(cartel, linea),
     'Linea "Si se cae la radio": fuera de la tarjeta del cruce, entre el cartel sin radio y la tarjeta');
+
+  // (4) D-91..D-93 (SPEC_4 9.11): el origen del ambar del Poste 1 viaja como AMBAR:<o> al final
+  // del periodico ENLACE_RF del Maestro; la app lo dice solo cuando lo ha leido. App nueva, para
+  // que la cuenta de la bitacora no choque con el tope de 30 lineas de state.events.
+  const b = montarAppLimpia(), bd = b.d, bw = b.w;
+  if (bw.DegAuto && bw.DegAuto._timerConsulta) bw.clearTimeout(bw.DegAuto._timerConsulta);
+  const bEntra = (carga) => bw._btSubscribeCb(`$${carga}*${xor(carga)}
+`);
+  const bAmbar = () => bEntra('STATUS,NODE:MAESTRO,SERIE:SEM-M-01,MODO:AMBAR,ESTADO:FALLO COM,T:9,RF:97,' +
+    'RTT:70,BAT:12.9,HORA:14:31:00,ESC:AMBAR,PLUMA:ARRIBA');
+  const per = (rx, o) => bEntra(`EVENT,NODE:MAESTRO,ORIGEN:ENLACE_RF,DETALLE:RX:${rx} OK:5 RUIDO:0 REIN:1` +
+    ` AMBAR:${o},HORA:14:31:30`);
+  const fase = () => bd.getElementById('phase-desc').textContent;   // la frase de D-93 mide <= 60 sin el nodo
+  const largo = (f) => f.replace(/^MAESTRO: /, '').length;
+  const lineas = () => bd.querySelectorAll('#event-feed .event-item').length;
+  bAmbar();
+  const f0 = fase();
+  assert(/sin dato/.test(f0) && !/operario/.test(f0), `Origen (i): MODO:AMBAR sin periodico, "${f0}"`);
+  const casos = [['APP', /operario/], ['POSTE2', /POSTE 2/], ['ARRANQUE', /reiniciado/]];
+  casos.forEach(([o, re], i) => {
+    per(10 * (i + 1), o);
+    const f = fase();
+    assert(re.test(f) && largo(f) <= 60 && /precauci/.test(f), `Origen AMBAR:${o}: "${f}"`);
+  });
+  assert(largo(f0) <= 60 && /precauci/.test(f0), `Origen sin dato <= 60 y con precaucion: "${f0}"`);
+  const l0 = lineas();
+  per(40, 'APP'); per(50, 'APP');
+  assert(lineas() === l0 + 1, `Origen (v): dos periodicos con el mismo AMBAR:APP, ${lineas() - l0} lineas (1)`);
+  bEntra('STATUS,NODE:MAESTRO,SERIE:SEM-M-01,MODO:AUTO,ESTADO:ROJO,T:9,RF:97,RTT:70,BAT:12.9,HORA:14:32:00,' +
+    'ESC:VERDE,PLUMA:ABAJO');
+  bAmbar();
+  assert(/sin dato/.test(fase()), `Origen (vi): un ambar nuevo no hereda el origen del anterior, "${fase()}"`);
 };

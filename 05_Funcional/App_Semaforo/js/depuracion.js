@@ -962,7 +962,6 @@ const DiarioOrdenes = {
   },
 
   // ---- Exportacion --------------------------------------------------------
-  //
   // ESTO ES LO QUE LLEGA POR WHATSAPP y lo lee alguien que no programa. Texto plano,
   // corto, tres lineas por orden y ni una abreviatura que haya que preguntar. La cinta
   // en crudo se exporta aparte: quien quiera los bytes ya sabe donde estan.
@@ -970,6 +969,7 @@ const DiarioOrdenes = {
     const t = typeof ahora === 'number' ? ahora : Date.now();
     const c = this.contadores(t);
     const l = [];
+    if (typeof Exportar !== 'undefined' && Exportar.marcaPractica()) l.push(Practica.MARCA);   // D-89
     l.push('IOT-VIAL - DIARIO DE ORDENES');
     if (cabecera) Object.keys(cabecera).forEach(k => l.push(k + ': ' + cabecera[k]));
     l.push('Exportado: ' + new Date(t).toISOString());

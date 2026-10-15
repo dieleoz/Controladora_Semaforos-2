@@ -14,8 +14,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 </head>
 <body>
+  <div id="franja-simulado" hidden>SIMULADO - practica sin poste: ningun equipo real <button id="btn-franja-salir">Salir</button></div>
 
-  <!-- Top Status Bar -->
   <header class="status-bar">
     <div class="status-left">
       <!-- Arranca APAGADO: el verde lo enciende marcarConEnlace() al llegar el primer
@@ -47,7 +47,6 @@
     </div>
   </header>
 
-  <!-- Main App Content -->
   <main class="app-container">
 
     <!-- ===================================================================
@@ -102,7 +101,6 @@
       <!-- Si cae la radio (CONSULTA_DEG_AUTO). Encima de la tarjeta (06/10): al pie lo tapaba la barra. -->
       <div class="pluma-estado" id="degauto-linea" hidden><span id="degauto-linea-txt"></span>
         <strong id="degauto-linea-difieren" style="color: var(--red-lamp);" hidden> · Los postes no coinciden</strong></div>
-      <!-- Dual Traffic Light Visual Widget -->
       <div class="card card-traffic">
         <div class="traffic-header">
           <span class="card-tag">ESTADO DEL CRUCE</span>
@@ -135,15 +133,14 @@
             </button>
           </div>
 
-          <!-- Countdown Center Ring -->
           <div class="countdown-center">
             <div class="ring-container">
               <svg class="ring-svg" width="96" height="96" viewBox="0 0 96 96">
                 <circle class="ring-bg" cx="48" cy="48" r="40"/>
-                <circle class="ring-fill green ring-anim" id="ring-progress" cx="48" cy="48" r="40"/>
+                <circle class="ring-fill sindato ring-anim" id="ring-progress" cx="48" cy="48" r="40"/>
               </svg>
               <div class="ring-text">
-                <div class="ring-num green" id="cd-num">--</div>
+                <div class="ring-num sindato" id="cd-num">--</div>
                 <div class="ring-unit">seg</div>
               </div>
             </div>
@@ -214,19 +211,18 @@
              CLAUDE.md 14: el rotulo sobrevivio al sujeto y mandaba a no buscar un dato
              que ya existe. Se corrige distinguiendo las dos cosas en vez de borrar la
              frase: lo que NO hay sigue sin haberlo, y hay que seguir diciendolo. -->
+        <!-- D-80: en palabras del operario; los campos de trama siguen en el comentario de arriba. -->
         <ul class="diag-lista">
           <li><strong>Sí publica:</strong> su estado de luces, su hora y su serie.</li>
-          <li><strong>Sí publica, desde D-23:</strong> los contadores de su propia radio
-              — bytes recibidos, tramas buenas y tramas descartadas — en un
-              <code>$EVENT</code> cada 30 s. Van abajo, en su propio recuadro.</li>
+          <li><strong>Sí publica también</strong> los contadores de su propia radio
+              — bytes recibidos, tramas buenas y tramas descartadas — cada 30 s.
+              Van abajo, en su propio recuadro.</li>
           <li><strong>NO publica:</strong> batería, <em>porcentaje</em> de calidad de
-              radio ni latencia — el firmware del Esclavo manda <code>BAT:--</code>,
-              <code>RF:--</code> y <code>RTT:--</code> fijos en su <code>$STATUS</code>.
-              No están medidos, así que no se pintan. El porcentaje de enlace lo mide el
-              Maestro sobre el cruce, y es otra magnitud: no se compara con lo de
-              abajo.</li>
-          <li><strong>Tampoco publica</strong> cuánto falta para el cambio
-              (<code>T:--</code>): la cuenta atrás la lleva el Maestro.</li>
+              radio ni tiempo de respuesta: este poste no los mide, así que no se pintan.
+              El porcentaje de enlace lo mide el POSTE 1 sobre el cruce, y es otra
+              magnitud: no se compara con lo de abajo.</li>
+          <li><strong>Tampoco publica</strong> cuánto falta para el cambio: la cuenta
+              atrás la lleva el POSTE 1.</li>
         </ul>
 
         <!-- D-23, LA MITAD DE LA APP. Lo rellena renderDiagnosticoEnlace() con lo que
@@ -238,11 +234,11 @@
              los $ALARM. El porque entero esta en js/diagnostico_enlace.js.
              NO LLEVA SEMAFORO DE COLOR NI VEREDICTO, y es deliberado: el umbral que
              diria "esto va mal" no lo ha decidido nadie (ver ese fichero). -->
-        <div class="diag-log-cab">Radio de este poste · contadores de línea (D-23)</div>
+        <div class="diag-log-cab">Radio de este poste · contadores de línea</div>
         <div class="diag-rf" id="diag-rf">
           <p class="diag-rf-vacio" id="diag-rf-vacio">
             Todavía no ha llegado ninguna medida. Este poste la publica cada 30 s:
-            si en un minuto sigue vacío, no está entrando su <code>$EVENT</code>.
+            si en un minuto sigue vacío, no está llegando su medida.
           </p>
           <div class="diag-rf-datos" id="diag-rf-datos" style="display:none;">
             <div class="diag-rf-fila">
@@ -264,12 +260,10 @@
           </div>
         </div>
 
-        <div class="diag-log-cab">Últimos movimientos de este enlace</div>
-        <!-- Lo rellena renderDiagnostico() con state.events, que es la MISMA lista que
-             pinta la pestana de Eventos: no hay una segunda copia del registro que
-             alguien tenga que sincronizar. Aqui salen los ultimos, para no obligar a
-             cambiar de pestana con el poste delante. -->
-        <div class="diag-log" id="diag-log"></div>
+        <!-- Lo rellena renderDiagnostico() con state.events, la MISMA lista de Eventos: no hay
+             segunda copia. Es Eventos acercado, literal: zona tecnica (D-101, SPEC_4 9.9 (a) 4). -->
+        <div class="diag-log-cab admin-only solo-admin">Últimos movimientos de este enlace</div>
+        <div class="diag-log admin-only solo-admin" id="diag-log"></div>
       </div>
 
 
@@ -401,14 +395,13 @@
            aqui: bajo a la pestana de Tramas el 04/09, con el barrido de textos.
            Quien quiera el detalle tecnico baja; quien esta regulando trafico, no.
            =============================================================== -->
-      <!-- Quick Metrics Bar -->
       <div class="grid-metrics">
         <div class="card metric-card">
           <div class="metric-head">
             <span class="metric-icon">📡</span>
             <span class="metric-label">ENLACE RADIO</span>
           </div>
-          <div class="metric-value cyan" id="rf-quality">--</div>
+          <div class="metric-value" id="rf-quality">--</div>
           <!-- El rotulo del tramo. Cuatro textos distintos, y "NO SE SABE" no es el
                peor de los tres: es la ausencia del dato. El color acompana, no
                informa solo: a pleno sol el color es lo primero que se pierde. -->
@@ -416,7 +409,7 @@
           <div class="progress-bar-wrap">
             <div class="progress-bar enlace-barra enlace-sindato" id="rf-barra" style="width: 0%;"></div>
           </div>
-          <div class="metric-sub"><span class="metric-etiqueta">RTT</span> <span id="rf-rtt">--</span> <span class="metric-etiqueta" id="rf-rtt-unidad">ms</span></div>
+          <div class="metric-sub"><span class="metric-etiqueta">respuesta</span> <span id="rf-rtt">--</span> <span class="metric-etiqueta" id="rf-rtt-unidad">ms</span></div>
           <div class="metric-sello" id="rf-sello">ninguna medida en esta sesion</div>
           <!-- ESTA NOTA SE QUEDA JUNTO A LA BARRA, Y ESE SITIO ES TODA SU RAZON DE SER.
                El 04/09 el barrido de textos la mudo a la pestana de Tramas por larga
@@ -424,7 +417,7 @@
                y el banco lo caso. Con motivo: lo que protege no es la frase, es su
                SITIO. Quien lee la barra como cobertura y va a cambiar la antena no
                abre otra pestana a comprobarlo. Vuelve, en una linea. -->
-          <p class="metric-nota">% de <strong>latidos</strong> contestados. <strong>No es potencia (RSSI).</strong></p>
+          <p class="metric-nota">% de <strong>latidos</strong> contestados entre postes. <strong>No es la potencia de la antena.</strong></p>
         </div>
 
         <div class="card metric-card">
@@ -455,9 +448,9 @@
         <div class="card metric-card">
           <div class="metric-head">
             <span class="metric-icon">👁</span>
-            <span class="metric-label">CÁMARAS J16</span>
+            <span class="metric-label">CÁMARAS</span>
           </div>
-          <div class="metric-value cyan" id="cam-estado">--</div>
+          <div class="metric-value" id="cam-estado">--</div>
           <div class="metric-sub" id="cam-detalle">Sin datos del equipo</div>
         </div>
       </div>
@@ -616,6 +609,7 @@
     <section class="tab-content admin-only" id="tab-diag">
       <!-- N-75: mandos que el firmware atiende y la interfaz de 2 roles habia dejado
            sin boton. Viven en Modo Tecnico porque no son maniobra de campo. -->
+      <div class="card"><button class="ctrl-btn" id="btn-practica"><strong>Practicar sin poste</strong><small>Equipos de cintas de campo, con la franja SIMULADO</small></button></div>
       <div class="card">
         <div class="card-header-flex">
           <h3>Mandos directos al equipo</h3>
@@ -772,7 +766,6 @@
           ⏱️ Sincronizar (<span id="rtc-sync-digits">--:--:--</span>)
         </button>
       </div>
-
 
 
       <!-- D-37 (29/09): aqui estaba «Entrar en Modo Degradado»: en banco dio verde en un poste con el otro en
@@ -1182,10 +1175,8 @@
     </div>
   </div>
 
-  <!-- Toast Notification -->
   <div class="toast" id="toast-msg">✓ Notificación del Sistema</div>
 
-  <!-- Modular Scripts -->
   <script src="js/config.js"></script>
   <script src="js/dialogo.js"></script>
   <script src="js/clave_admin.js"></script>
@@ -1193,6 +1184,7 @@
   <script src="js/site_manager.js"></script>
   <script src="js/courier_rtc.js"></script>
   <script src="js/registro_enlace.js"></script>
+  <script src="js/registro_equipo.js"></script>
   <script src="js/diagnostico_enlace.js"></script>
   <script src="js/depuracion.js"></script>
   <script src="js/avisos_equipo.js"></script>
@@ -1210,7 +1202,14 @@
   <script src="js/deg_auto_eleccion.js"></script>
   <script src="js/aviso_degradado.js"></script>
   <script src="js/textos_spec4.js"></script>
+  <script src="js/textos_ack.js"></script>
+  <script src="js/textos_err.js"></script>
   <script src="js/serial_pc.js"></script>
+  <script src="js/practica_cinta_1.js"></script>
+  <script src="js/practica_cinta_2.js"></script>
+  <script src="js/practica_cinta_3.js"></script>
+  <script src="js/practica_cinta_4.js"></script>
+  <script src="js/practica.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

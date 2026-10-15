@@ -51,8 +51,8 @@ const AvisoDegradado = {
     return !radio;
   },
 
-  // El vale se casa por NOMBRE de orden: SET_MODO:DEG_FIN lleva un `ahora` que cambia en cada envio.
-  nombre(orden) { return String(orden).replace(/^(SET_MODO:DEG_FIN):(?!CANCELAR$).*/, '$1'); },
+  // El vale se casa por NOMBRE de orden: DEG_FIN y DEG_T (D-81) llevan un `ahora` que cambia en cada envio.
+  nombre(orden) { return String(orden).replace(/^(SET_MODO:(?:DEG_FIN|DEG_T)):(?!CANCELAR$).*/, '$1'); },
 
   permite(orden, state, addEvent) {
     if (!state || !this.aplica(orden, state.node)) return true;
@@ -65,14 +65,30 @@ const AvisoDegradado = {
     }
     const el = this._elementos();
     if (!el) return false;
-    this._pendiente = { orden, boton: this._boton, addEvent, reintento: this._reintento };
+    this._abrir(el, { orden, boton: this._boton, addEvent, reintento: this._reintento },
+      auto ? 'Cuidado: sin radio y con degradado automatico' : el.tituloDeg, auto ? this.TEXTO_AUTO : el.cuerpoDeg);
+    return false;
+  },
+
+  // D-81 (SPEC_4 9.9 (e)): un cambio que ya trae su riesgo (testigo en caliente) pregunta UNA vez, en ESTE modal.
+  // Confirmar deja el vale de `orden` y llama a alConfirmar(); permite() lo consume sin abrir un segundo aviso.
+  preguntar(orden, titulo, cuerpo, addEvent, alConfirmar) {
+    const el = this._elementos();
+    if (!el) return false;
+    this._abrir(el, { orden, boton: this._boton, addEvent, reintento: alConfirmar }, titulo, cuerpo);
+    return true;
+  },
+
+  // D-80: la maniobra con el rotulo del boton pulsado (su <strong>), o la orden si no hay boton.
+  _abrir(el, p, titulo, cuerpo) {
+    this._pendiente = p;
     el.chk.checked = false;
     el.ok.disabled = true;
-    if (el.titulo) el.titulo.textContent = auto ? 'Cuidado: sin radio y con degradado automatico' : el.tituloDeg;
-    if (el.cuerpo) el.cuerpo.textContent = auto ? this.TEXTO_AUTO : el.cuerpoDeg;
-    if (el.orden) el.orden.textContent = 'Orden: ' + orden + '.';
+    if (el.titulo) el.titulo.textContent = titulo;
+    if (el.cuerpo) el.cuerpo.textContent = cuerpo;
+    const r = p.boton && (p.boton.querySelector('strong') || p.boton);
+    if (el.orden) el.orden.textContent = 'Maniobra: ' + ((r && r.textContent.trim()) || p.orden) + '.';
     el.modal.classList.add('active');
-    return false;
   },
 
   _elementos() {

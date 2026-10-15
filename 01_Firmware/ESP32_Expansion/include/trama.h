@@ -59,4 +59,8 @@ bool trama_valida(const char* linea);
 // compone $ACK ni $STATUS en nombre del equipo.
 size_t trama_componer(char* destino, size_t capacidad, const char* payload);
 
+// Valor del campo "CLAVE:" de una trama hasta la coma o el '*' (lo usan el rotulo y el
+// registro). false si el campo no esta o no cabe en cap.
+bool trama_campo(const char* trama, const char* clave, char* dst, size_t cap);
+
 #endif // TRAMA_H

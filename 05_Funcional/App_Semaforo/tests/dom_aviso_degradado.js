@@ -28,8 +28,9 @@ module.exports = async function pruebaAvisoDegradado(montarAppLimpia, assert) {
   ['1', '2', '3', '4'].forEach(k => d.querySelector(`.pin-btn[data-key="${k}"]`).click());
   assert(modal.classList.contains('active') && a.tramas.length === 0,
     `Aviso: con MODO:DEGRADADO, SET_MODO:MANUAL abre el aviso y NO sale nada: ${a.tramas.join(' | ')}`);
-  assert(/SET_MODO:MANUAL/.test(d.getElementById('aviso-deg-orden').textContent) && ok.disabled,
-    `Aviso: el aviso nombra la orden y "Cambiar este poste" esta apagado sin la casilla`);
+  const rotulo = d.getElementById('aviso-deg-orden').textContent;   // D-80: el rotulo del boton, no la orden
+  assert(/Maniobra: Modo Manual/.test(rotulo) && !/SET_MODO/.test(rotulo) && ok.disabled,
+    `Aviso: el aviso nombra la maniobra sin jerga ("${rotulo}") y "Cambiar este poste" esta apagado sin la casilla`);
 
   // (2) Cancelar no envia.
   d.getElementById('btn-aviso-deg-cancelar').click();

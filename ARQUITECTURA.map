@@ -1,292 +1,247 @@
 # ARQUITECTURA.map - DONDE VIVE CADA COSA Y QUIEN DEPENDE DE QUIEN
 
-Rehecho el 28/09/2026 (`cerrar-sesion` paso 5). La version anterior -tablas por pack de los
-82 packs de entonces, cronica con fechas, cabecera "ultima re-medida 12/09"- **no se perdio**:
-la version anterior, literal, en HISTORIA.md §9 (y en `git show 925c71e:ARQUITECTURA.map`).
+**Indice, no fuente.** Cada cifra se RE-MIDE con el comando escrito al lado. Fuentes: cifras de banco, la acta
+vigente de `evidencia/` (hoy `evidencia/2026-10-14_compuerta.txt`, HEAD `9465a93`); cobre,
+`05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md`;
+normativa, `fuentes/md/Manual_Senalizacion_Vial_semaforos.md`. Ningun pack vivo parsea este fichero
+(`grep -rn "ARQUITECTURA.map" 01_Firmware --include=*.py | grep -v historico`): reescribirlo no rompe la compuerta.
 
-**ESTE FICHERO ES UN INDICE, NO UNA FUENTE.** Cada afirmacion caduca sola: se RE-MIDE con el
-comando escrito al lado, nunca se copia a mano. La fuente de toda cifra de banco es el acta
-**vigente** de `evidencia/` (hoy `evidencia/2026-09-28_compuerta.txt`, HEAD `935050c`); este
-repositorio no tiene `fuentes/md/` (no hay PDF que transcribir), asi que no hay una segunda
-fuente de cifras que cotejar.
-
-⚠️ **NINGUN PACK VIVO PARSEA ESTE FICHERO HOY** `[MEDIDO 28/09 - grep -rn "ARQUITECTURA"
-01_Firmware --include=*.py | grep -v historico]`: el unico resultado es un comentario de
-prosa en `esp32_05_no_origina.py:23` ("LA ARQUITECTURA QUE HACE ESTO..."), no una lectura.
-El pack que si lo parseaba, `documentos_06_no_reabre_lo_cerrado`, esta HOY en
-`01_Firmware/Simulaciones/banco/historico/` (retirado, no vigilante). Reescribir este
-fichero no rompe la compuerta.
-
-Los numeros de apartado `## 4`, `## 5` y `## 7` **no se tocan**: `05_Funcional/SPEC_1`,
-`SPEC_2` y `SPEC_4` citan `ARQUITECTURA.map §4-5`, y `README.md` cita `§7.3` para `J14`
-(CLAUDE.md §5 de este repositorio). El resto de la numeracion es libre: ningun documento
-vivo cita un `§` distinto de esos dos por numero.
+Los apartados `§4`, `§5`, `§7` y `§7.3` los citan SPEC_1, SPEC_2, SPEC_4 y README: no se renumeran.
+Las marcas `[CONTRADICCION]` y `[CADUCO]` no se resuelven aqui: se marcan y se dice donde (CLAUDE.md §1).
 
 ---
 
 ## 1. EL SISTEMA
 
-Un nodo por categoria de `NODOS_MAPA` en `.claude/familia.conf:9`
-(`firmware,app,pantalla,protocolo,calibracion`), mas los nodos que representan la
-arquitectura real (los 4 roles de firmware y la cadena de instrumentos). Sin fechas ni
-estado en los nodos: el estado vive en `ESTADO.md` y en el acta.
+Un nodo por categoria de `NODOS_MAPA` en `.claude/familia.conf:9` (firmware, app, pantalla, protocolo,
+calibracion), mas los nodos de la arquitectura real. Sin fechas ni estado en los nodos.
 
 ```mermaid
 graph TD
-    FW["FIRMWARE (categoria)<br/>01_Firmware/"]
-    MAE["Maestro<br/>01_Firmware/Maestro/src/main.cpp:41 setup()"]
-    ESC["Esclavo<br/>01_Firmware/Esclavo/src/main.cpp:181 setup()"]
+    FW["FIRMWARE (categoria firmware)<br/>01_Firmware/"]
+    MAE["Maestro<br/>01_Firmware/Maestro/src/main.cpp:50 setup()"]
+    ESC["Esclavo<br/>01_Firmware/Esclavo/src/main.cpp:170 setup()"]
     REP["Repetidor<br/>01_Firmware/Repetidor/src/main.cpp:121 setup()"]
     ESP["ESP32_Expansion<br/>01_Firmware/ESP32_Expansion/src/main.cpp:124 setup()"]
-    PROTO["PROTOCOLO (categoria)<br/>01_Firmware/Maestro/include/protocolo.h:169 SFTY6_SILENCIO_MS"]
-    APP["APP (categoria)<br/>05_Funcional/App_Semaforo/js/bluetooth_driver.js:52 connect()"]
-    PANT["PANTALLA (categoria) - RETIRADA<br/>menu.cpp:13 (D-32(1), D-17.bis)"]
-    CALIB["CALIBRACION (categoria) - NO EXISTE<br/>familia.conf:9, sin carpeta ni codigo"]
-    INSTR["INSTRUMENTOS<br/>01_Firmware/compuerta.py:1"]
-    PACKS["banco/packs (70 vivos)<br/>01_Firmware/Simulaciones/banco/correr.py:1"]
+    PROTO["PROTOCOLO (categoria protocolo)<br/>01_Firmware/Maestro/include/protocolo.h:155 SFTY6_SILENCIO_MS"]
+    APP["APP (categoria app)<br/>05_Funcional/App_Semaforo/js/bluetooth_driver.js:52 connect()"]
+    PANT["PANTALLA (categoria pantalla) RETIRADA<br/>01_Firmware/Maestro/src/menu.cpp:13 coordinador_forzarMenu()"]
+    CALIB["CALIBRACION (categoria calibracion) SIN CODIGO<br/>.claude/familia.conf:9 solo la declara"]
+    CONEC["CONECTORES J14-J17<br/>§7.3 de este fichero"]
+    INSTR["INSTRUMENTOS<br/>01_Firmware/compuerta.py:142 guarda de rutas"]
+    PACKS["banco/packs (70 vivos)<br/>01_Firmware/Simulaciones/banco/correr.py:55 main()"]
     ARNES["Validacion_* (arneses C++ real)<br/>01_Firmware/Validacion_Automatico/compilar.ps1:1"]
+    APPT["Pruebas de la app<br/>05_Funcional/App_Semaforo/test_funcional_app.py:1"]
 
     FW --> MAE
     FW --> ESC
     FW --> REP
     FW --> ESP
-    MAE -- radio, protocolo.h --> PROTO
-    ESC -- radio, protocolo.h --> PROTO
-    MAE -- SPP, bluetooth.cpp --> APP
-    ESC -- SPP, bluetooth.cpp --> APP
-    ESP -- UART J17, enlace_stm32.cpp --> MAE
+    MAE -- "radio, protocolo.h" --> PROTO
+    ESC -- "radio, protocolo.h" --> PROTO
+    MAE -- "SPP, bluetooth.cpp" --> APP
+    ESC -- "SPP, bluetooth.cpp" --> APP
+    ESP -- "UART J17, enlace_stm32.cpp" --> MAE
+    MAE -. "J14 J15 J16" .-> CONEC
     MAE -.-> PANT
     ESC -.-> PANT
     INSTR --> PACKS
     INSTR --> ARNES
+    INSTR --> APPT
     PACKS -. mide .-> MAE
     PACKS -. mide .-> ESC
-    ARNES -- compila .cpp real --> MAE
-    ARNES -- compila .cpp real --> ESC
+    ARNES -- "compila .cpp real" --> MAE
+    ARNES -- "compila .cpp real" --> ESC
+    APPT -- "mide" --> APP
 ```
 
-**Lo que el grafo no dice, dicho para que nadie lo lea de mas:** una flecha es una
-dependencia de codigo o de dato, no una prueba de que funcione en la tarjeta (CLAUDE.md
-§0.3). `PANT` va con flecha punteada porque el codigo de menu sigue compilando pero **no
-hay pantalla fisica ni arnes que la mida** desde el 12/09 (§4).
-
-**Categorias que NO existen en este repo, dicho en vez de inventadas:**
-`calibracion` no tiene carpeta, ni codigo, ni documento: solo aparece en la propia
-declaracion de `familia.conf:9`. `pantalla` existe como CATEGORIA (habia una LCD ST7920)
-pero esta RETIRADA en dos capas: del hardware (D-17.bis) y del firmware (D-32(1),
-`17d3a1f`, 13/09) - `menu.cpp` sigue compilando sin pantalla, para el enclavamiento de
-`coordinador_forzarMenu()`.
+Una flecha es dependencia de codigo o de dato, no prueba de que funcione en la tarjeta (CLAUDE.md §0.3).
+`PANT` va punteada: el codigo de menu compila, pero no hay pantalla fisica ni arnes que la mida.
+`CALIBRACION` no tiene carpeta, codigo ni documento.
 
 ---
 
 ## 2. REFERENCIAS CRUZADAS
 
-### 2.1 Quien cita este fichero, y a quien apunta
+### 2.1 Quien cita este fichero
 
-`[grep -rn "ARQUITECTURA.map" --include=*.md . | grep -v ".claude/worktrees" | grep -v
-historico]`. **No se copia el total aqui**: al medirlo el 28/09 salio entre 34 y 49 segun
-el instante, porque `HISTORIA.md`, `README.md` y `roadmap.md` se estaban reescribiendo en
-paralelo esta misma sesion (CLAUDE.md §11: el arbol en vuelo no se mide). Se re-corre el
-comando con el arbol quieto. Lo que SI es estable, porque cita un `§` concreto:
+`grep -rn "ARQUITECTURA.map" --include=*.md . | grep -v -E "worktrees|historico|entregas"`
 
-| documento | cita | vigente hoy |
+| documento:linea | cita | estado |
 |---|---|---|
-| `05_Funcional/SPEC_1_Ciclo_y_Luces.md:299` | `ARQUITECTURA.map §4-5` | SI, ver 2.3 |
-| `05_Funcional/SPEC_2_Dos_Puntas_y_Radio.md:289` | `ARQUITECTURA.map §4-5` | SI |
-| `05_Funcional/SPEC_4_App_y_Bluetooth.md:340,349` | `ARQUITECTURA.map §4-5` | SI |
-| `README.md` (sin linea fija, cerca de la estructura de firmware) | `ARQUITECTURA.map §7.3` (J14) | SI - §7 apunta a `ARQUITECTURA_conectores.map §7.3` |
-| `INDICE_CRUZADO.md` (11 citas) | `ARQUITECTURA.map` general, `Anexo A`, `C4`, `:97`, `:267` | 🔴 **NO**: `Anexo A`, `C4` y las citas por linea (`:97`, `:267`) no existen en esta reescritura (ver 4 de mas abajo) |
-| `CLAUDE.md` (3), `DECISIONES.md` (1), `99_Legacy/LEEME.md` (1; fuera de git desde el 02/10, se borra al entregar en campo), `05_Funcional/historico/MANUAL_PANTALLA_LCD.md` (1) | generica, sin `§` | sin cambio |
+| `SPEC_1_Ciclo_y_Luces.md:505` | `§4-5` | vigente |
+| `SPEC_2_Dos_Puntas_y_Radio.md:936` | `§4-5` | vigente |
+| `SPEC_4_App_y_Bluetooth.md:573` | `§4-5` | vigente |
+| `SPEC_4_App_y_Bluetooth.md:582` | `§3.7`, nota 3 | [CADUCO] no existe `§3.7` aqui |
+| `README.md:245` | `§7.3` (J14) | vigente (§7.3 abajo) |
+| `README.md:410`, `roadmap.md:38`, `CLAUDE.md:38,155,192`, `05_Funcional/README.md:315` | generica, sin `§` | vigente |
+| `HISTORIA.md` (varias) | cronica | historica |
 
-**A quien apunta este fichero:** `ARQUITECTURA_conectores.map` (§7, integro, mismos
-numeros 7.1-7.7) · `evidencia/2026-09-28_compuerta.txt` (§2.4, §5) ·
-`05_Funcional/SPEC_0..8` · `DECISIONES.md` · `roadmap.md`. **`ARQUITECTURA_hist.map` deja
-de citarse desde aqui**: la cronica que movia alli (§1.2/1.3/9 viejos) sale de este
-fichero en vez de mudarse otra vez (§0 de arriba explica donde queda: `HISTORIA.md` y git).
-Nadie mas lo cita `[MEDIDO 28/09 - grep -rln ARQUITECTURA_hist --include=*.md . | grep -v
-worktrees]`, asi que **queda huerfano**: lo hereda quien mantenga `HISTORIA.md`.
+Quien cita `ARQUITECTURA_hist.map`: solo el propio `HISTORIA.md`. Queda sin enlace vivo (§8).
 
-### 2.2 Jerarquia de documentos - quien gana a quien
+### 2.2 Jerarquia de documentos
 
 ```
-05_Funcional/SPEC_0..8 (17_... en cobre)  >  el FUENTE (lo que HACE)  >  DECISIONES.md (indice)  >  ESTADO.md/roadmap.md
-    >  OPTIMIZACIONES.md / INDICE_CRUZADO.md / README.md / CLAUDE.md / ARQUITECTURA.map
+05_Funcional/SPEC_0..8 (17_... en cobre)  >  el FUENTE (lo que HACE)  >  DECISIONES.md  >  ESTADO.md / roadmap.md
+    >  OPTIMIZACIONES.md / README.md / CLAUDE.md / ARQUITECTURA.map
 ```
 
-"¿que hace el firmware?" lo gana el fuente. "¿que hay en un pin/conector?" lo gana
-`05_Funcional/17_...` (CLAUDE.md §3, §12 de este repositorio). "¿esta decidido?" lo gana la
-SPEC (`DECISIONES.md` es su indice). "¿cuanto mide / cuantos packs hay?" lo gana el acta mas reciente de
-`evidencia/`, nunca una copia a mano en este fichero.
+"Que hace el firmware" lo gana el fuente. "Que hay en un pin o conector" lo gana `17_...` (CLAUDE.md §3 y §12).
+"Esta decidido" lo gana la SPEC. "Cuanto mide / cuantos packs" lo gana la acta mas reciente de `evidencia/`.
 
-### 2.3 Que requisito de la SPEC vive en que fichero de codigo
+### 2.3 Requisito de la SPEC -> fichero de codigo
 
-`[MEDIDO 28/09 - lectura de SPEC_1 §13, la unica tabla requisito->codigo->arnes del
-repositorio]`. La tabla completa esta en `05_Funcional/SPEC_1_Ciclo_y_Luces.md:294-317`;
-aqui solo el cruce con esta reescritura:
-
-| requisito (SPEC) | fichero de codigo | arnes que lo ejerce (numero de fila, HOY) |
+| requisito | fichero de codigo | quien lo ejerce |
 |---|---|---|
-| Enclavamiento nunca verde+rojo (`SFTY-2`) | `{Maestro,Esclavo}/src/semaforo.cpp` | fila **16** solo Maestro (`arnes_automatico.cpp`) |
-| Pluma en la puerta unica (`SFTY-28`) | `semaforo.cpp` (`escribirPines`, `Maestro/src/semaforo.cpp:108`) | filas 16, 17, 18 |
-| Todo-rojo de despeje (`SFTY-4`) | `coordinador.cpp` | filas 16, 17 |
-| Watchdog (`SFTY-1`) | `main.cpp` de cada rol | 🔴 nadie lo ejerce; solo PlatformIO compila el `loop()` |
-| Menu en rojo fijo / test de lamparas (`SFTY-12`) | `menu.cpp`, `maestro_09_test_leds.py` | 🔴 nadie: `Validacion_LCD` (que compilaba `menu.cpp`) ya no existe (§4) |
-| `DAR PASO` en Manual (`D-7`) | `modo_manual.cpp` | 🔴 solo PlatformIO; ningun arnes lo compila |
+| enclavamiento, nunca verde y rojo (`SFTY-2`) | `Maestro/src/semaforo.cpp:105` `escribirPines()`; `Esclavo/src/semaforo.cpp:79` | `compilar_dos_puntas.ps1` (semaforo.cpp:53); `Validacion_Automatico` |
+| pluma en la puerta unica (`SFTY-28`) | `semaforo.cpp:105` `escribirPines()` (Maestro) | idem |
+| todo-rojo de despeje (`SFTY-4`) | `Maestro/src/coordinador.cpp` | `compilar_dos_puntas.ps1:60`, `compilar_degradado.ps1:71` |
+| watchdog (`SFTY-1`) | `main.cpp` de cada rol | ninguno: solo PlatformIO lo compila |
+| menu en rojo fijo (`SFTY-12`) | `Maestro/src/menu.cpp:13` | ninguno: `menu_setup()` lo sustituyen los arneses |
+| `DAR PASO` en Manual (`D-7`) | `Maestro/src/modo_manual.cpp` | ninguno: solo PlatformIO |
+| silencio de radio (`SFTY-6`) | `Maestro/include/protocolo.h:155`; `coordinador.h:143` (`RTT_PUBLICABLE_MAX_MS`) | - |
+| amarillo de cierre (`D-45`) | `protocolo.h:163` (Maestro y Esclavo) | `compilar_dos_puntas.ps1` |
+| rojo+amarillo (`D-53`) | `protocolo.h:171`; `ciclo_degradado.h:46,82` | `Validacion_Ciclo` |
+| horario nocturno (`SFTY-20`) | `Maestro/src/reloj.cpp:508` `reloj_esHorarioNocturno()` | [CONTRADICCION] `SPEC_1:455` dice "andamio `SFTY-20` en `reloj.*`": el ID no aparece en ningun `.cpp`/`.h` |
 
-> 🔴 **CONTRADICCION MEDIDA: `SPEC_1_Ciclo_y_Luces.md:303-312` NOMBRA FILAS 14, 17, 18, 19
-> DE LA COMPUERTA, Y ESAS FILAS YA NO EXISTEN CON ESE NUMERO.** La compuerta bajo de 20 a
-> 19 filas el 13/09 (`17d3a1f`, se retiro "arnes de pantalla", que era la fila 14) y todo
-> lo que estaba debajo se corrio un puesto: la fila 17 de la SPEC (`arnes_automatico.cpp`)
-> es HOY la fila **16** del acta; la 18 (`dos_puntas`) es hoy la **17**; la 19
-> (`Degradado`) es hoy la **18**. **Y la propia SPEC ya se auto-contradice**: dice "el menu
-> solo lo compila la fila 14" y hoy la fila 14 es `arnes del ciclo` (`Validacion_Ciclo`),
-> que NO compila `menu.cpp`. Se marca, no se elige (CLAUDE.md §1): la SPEC no se corrige
-> desde este instrumento.
+Censo de IDs (`grep -ohE 'SFTY-[0-9]+'`): la SPEC cita 15 IDs; 14 aparecen en firmware (falta `SFTY-20`).
+El firmware cita 24 IDs; 10 no aparecen en ninguna SPEC (`SFTY-5,8,10,11,14,16,18,19,22,27`).
+`SFTY-20,24,25,26,29` aparecen en `OPTIMIZACIONES.md` sin codigo que las cite.
+
+[CONTRADICCION] `SPEC_1_Ciclo_y_Luces.md:509-519` numera las filas de la compuerta como si hubiera 20 (`fila 14`, `18`,
+`19`, `20`);
+la acta vigente tiene 19 (§5). `SPEC_4_App_y_Bluetooth.md:582` cita `fila 20`. No se corrige desde aqui.
 
 ### 2.4 De donde sale cada cifra
 
-No hay `fuentes/md/` en este repositorio (no hay PDF de origen): la fuente de toda cifra
-de banco es el acta **vigente**, y la de cobre es `05_Funcional/17_Arquitectura...md`.
-
-| cifra | de donde sale | como se re-mide |
+| cifra | valor | fuente |
 |---|---|---|
-| Flash Maestro 64,7 % / Esclavo 55,4 % / Repetidor 20,6 % / ESP32 35,7 % | `evidencia/2026-09-28_compuerta.txt:13-16` | `python 01_Firmware/compuerta.py` completo (nunca `--rapido` para esta fila) |
-| `18 PASS \| 1 FALLA \| 0 ABORTADO` | `evidencia/2026-09-28_compuerta.txt:36` | idem |
-| `banco por packs`: 69 PASS, 1 FALLA, 0 ABORTADO, 1318/1319 | `evidencia/2026-09-28_compuerta.txt:24` | `01_Firmware/Simulaciones/banco/correr.py` |
-| 70 packs vivos | `ls 01_Firmware/Simulaciones/banco/packs/*.py \| grep -v __init__ \| wc -l` | conteo directo, no del acta |
-| 63 rutas censadas por la guarda | `evidencia/2026-09-28_compuerta.txt:12` | fila 1 de la compuerta |
-| Pines J14/J16/J15 (cobre) | `05_Funcional/17_Arquitectura...md` (via `ARQUITECTURA_conectores.map §7`) | gana a este fichero (CLAUDE.md §3) |
+| `AMARILLO_SEG` (`protocolo.h:163`) | 3 s | `fuentes/md/Manual_Senalizacion_Vial_semaforos.md:89` (rotulo Fig. 4-9, p. 394, "Duracion 3 seg." a 50 km/h); duracion minima de amarillo en texto: `:120` "NO CONSTA" |
+| `ROJO_AMARILLO_SEG` (`protocolo.h:171`) | 2 s | `fuentes/md/Manual_Senalizacion_Vial_semaforos.md:90` (Fig. 4-9, p. 394, "Rojo - Amarillo Duracion 2 seg.") |
+| `SFTY6_SILENCIO_MS` (`protocolo.h:155`) | 28 s | [CADUCO-SIN-FUENTE] ninguna cifra de 28 s en `fuentes/md/` (grep); origen en SPEC_2 sin re-medir |
+| banco, compilacion, PASS, packs | ver §5 | `evidencia/2026-10-14_compuerta.txt`, lineas 12-32 |
+
+Quien cita la transcripcion: `SPEC_1_Ciclo_y_Luces.md:109` (§2 y §5), `SPEC_1:159` (§2), `roadmap.md:232` (4.4.3, pp.
+394-395).
+`fuentes/md/` tiene un unico fichero, y ese fichero esta citado.
 
 ---
 
 ## 3. LOS INSTRUMENTOS Y SUS RUTAS
 
-`banco/fuente.py` es la unica puerta: `ruta()`/`codigo()` resuelven dentro de
-`01_Firmware` y **abortan** si el fichero no existe -sin valor por defecto, nunca-;
-`fuentes_de(punta, carpeta)` censa un DIRECTORIO ENTERO en vez de una lista a mano.
-
-**Packs vivos hoy: 70** `[MEDIDO 28/09 - ls .../packs/*.py | grep -v __init__ | wc -l]`.
-**Retirados a `banco/historico/`: 10** -`costura_02_fase_ciclo`, `costura_04_config`,
-`costura_07_motivos_rechazo`, `costura_11_lcd_sin_bus`, `documentos_02_trazabilidad_sfty`,
-`documentos_04_cifras_sin_vigilante`, `documentos_05_copias_coherentes`,
-`documentos_06_no_reabre_lo_cerrado`, `enlace_02_silencio_j17`,
-`maestro_05_ciclo_sin_radio`-.
-
-> 🔴 **CUATRO PACKS DESAPARECIERON SIN PASAR POR `historico/`, A DIFERENCIA DE LOS DIEZ DE
-> ARRIBA:** `maestro_06_fuentes_pantalla`, `maestro_07_menu_opciones`,
-> `esclavo_02_inhibicion_menu` (los tres, commit `17d3a1f`, LCD fuera del firmware) y
-> `maestro_01_mando` (commit `f57a401`, mando fisico fuera). Median un sujeto que dejo de
-> existir del todo, no uno retirado-pero-consultable; `historico/` es para lo segundo
-> (§16 de `CLAUDE.md`). No se corrige desde aqui: se deja escrito para quien decida si
-> archivar o si el borrado directo es correcto cuando el sujeto entero desaparece.
-
-**La guarda de rutas** (fila 1 de la compuerta) solo censa dos formas, bajo los 4 roles:
-la tupla `("Maestro"|"Esclavo"|"Repetidor"|"ESP32_Expansion", "src"|"include", "*.h|cpp")`
-y el par `M+E` exigido en las dos puntas. **NO vigila:** contenido que se muda de fichero
-(el fichero sigue existiendo), los documentos que un pack abre con `ruta_repo()`, los
-ficheros de la app, ni un quinto rol bajo un directorio nuevo. Su blindaje real, en
-`3.7` de la version anterior (`git show 925c71e:ARQUITECTURA.map`): que un `.cpp` nuevo
-bajo un rol conocido **si** cae bajo la guarda; que un directorio entero nuevo, no.
-
-**Los tres MODELOS** (`banco/modelos/{costura,esclavo,maestro}.py`) leen constantes **en
-el import**: un fichero que falta no da FALLA, da ABORTADO en cascada. Tocar uno mueve
-varios packs a la vez -la cuenta exacta se recalcula con `grep -l 'banco.modelos'
-banco/packs/*.py`, no se copia aqui-.
+- `01_Firmware/compuerta.py:142`: guarda de rutas; cada fila es un `anotar(...)`. Modo `--rapido` salta la compilacion.
+- `01_Firmware/Simulaciones/banco/fuente.py`: `ruta()` :40, `codigo()` :66, `ruta_repo()` :121, `fuentes_de()` :157.
+  Aborta si el fichero no existe.
+- `01_Firmware/Simulaciones/banco/correr.py:55`: `main()`, una fila de la compuerta.
+- Packs vivos: **70** (`ls 01_Firmware/Simulaciones/banco/packs/*.py | grep -v __init__ | wc -l`). Retirados a
+  `banco/historico/`: 10 mas `LEEME.txt`.
+- Modelos: `01_Firmware/Simulaciones/banco/modelos/{costura,esclavo,maestro}.py`; leen constantes en el import.
+- La guarda de rutas solo censa tuplas `("Maestro"|"Esclavo"|"Repetidor"|"ESP32_Expansion", "src"|"include", ...)` y el
+  par M+E.
+  NO vigila: contenido mudado de fichero, documentos, la app, ni un rol nuevo.
+- [CADUCO] `compuerta.py:802` describe el STM32 con `mando.cpp` compilado; `mando.cpp` salio con D-30 (`ba6faab`,
+  14/09). Solo es comentario.
+- Desaparecidos sin paso por `historico/` (medido): `maestro_06_fuentes_pantalla`, `maestro_07_menu_opciones`,
+  `esclavo_02_inhibicion_menu`, `maestro_01_mando`. Si el sujeto ya no existe, el pack se borra; si no, se archiva.
 
 ---
 
 ## 4. LOS ARNESES QUE COMPILAN C++ REAL - Y SU PUNTO CIEGO
 
-`[MEDIDO 28/09 - lectura de los $fuentesMaestro/$fuentesEsclavo de cada compilar*.ps1 y
-grep de #include ".*\.cpp" en los adaptadores]`. **SON SEIS.** `Validacion_LCD` **ya NO
-es uno de ellos**: su `compilar.ps1` no existe (solo quedan tres cabeceras stub en
-`01_Firmware/Validacion_LCD/`), y la fila "arnes de pantalla" no esta en el acta (§5).
+`grep -n "\.cpp" 01_Firmware/Validacion_*/compilar*.ps1 01_Firmware/Simulaciones/puente_esp32/compilar.ps1`
 
-| arnes | guion | `.cpp` REALES que enlaza | PUNTO CIEGO |
-|---|---|---|---|
-| `Validacion_Ciclo` | `compilar.ps1` | solo `arnes_ciclo.cpp` (`#include ciclo_degradado.h`) | funcion pura: sin maquina de estados, sin tiempo |
-| `Validacion_Respaldo` | `compilar.ps1` | `arnes_respaldo.cpp` `#include respaldo.cpp` REAL | no ejerce el arranque; si compara identidad M/E |
-| `Validacion_Automatico` | `compilar.ps1` | Maestro: `coordinador`, `botones`, `semaforo`, `modo_automatico`, `modo_inteligente`, `demanda` (6; `mando.cpp` salio con D-30, `ba6faab`) | solo el Maestro; no ejerce Degradado ni microcorte |
-| `.../dos_puntas` | `compilar_dos_puntas.ps1` | M(3+1 via include): `coordinador`, `semaforo`, `modo_automatico` + `modo_ambar.cpp` REAL via `adaptador_maestro.cpp:151` · E(6+1 via include): `semaforo`, `main`, `modo_degradado`, `config_ciclo`, `demanda`, `respaldo` + `bluetooth.cpp` REAL via `adaptador_esclavo.cpp:354` | el microcorte y `respaldo.cpp`/`protocolo.cpp` del MAESTRO no entran |
-| `.../dos_puntas` Degradado | `compilar_degradado.ps1` | M(7): `coordinador`, `semaforo`, `modo_degradado`, `modo_ambar`, `modos`, `respaldo`, `reloj` + `rtc_periferico.cpp` (silicio sustituto) · E(7): los mismos seis hermanos de E en `dos_puntas` (sin `mando`, que ya no existe) + `reloj.cpp` REAL | no ejerce el microcorte (lo mide el bloque D del arnes hermano) |
-| `Simulaciones/puente_esp32` | `compilar.ps1` | M(7): `bluetooth`, `semaforo`, `coordinador`, `modo_automatico`, `modos`, `demanda`, `identidad` (sin `mando`) · E(5): `bluetooth`, `semaforo`, `demanda`, `identidad`, `modo_degradado` | el ESP32 es modelo en Python: no carga su binario |
+| arnes (guion) | `.cpp` reales que enlaza | punto ciego |
+|---|---|---|
+| `Validacion_Ciclo/compilar.ps1` | `arnes_ciclo.cpp` (`ciclo_degradado.h`) | funcion pura: sin maquina de estados ni tiempo |
+| `Validacion_Respaldo/compilar.ps1` | `arnes_respaldo.cpp`, `respaldo.cpp` | no ejerce el arranque; compara identidad M/E |
+| `Validacion_Automatico/compilar.ps1` | Maestro: coordinador, botones, semaforo, modo_automatico, modo_inteligente, demanda | solo el Maestro; no ejerce Degradado ni microcorte |
+| `Validacion_Automatico/compilar_dos_puntas.ps1` | M: coordinador:60, modo_automatico:62, semaforo:53, adaptador_maestro:64; E: main:73, modo_degradado:74, config_ciclo:75, demanda:76, respaldo:77, deg_auto:78, adaptador_esclavo:79 | el microcorte y `respaldo.cpp`/`protocolo.cpp` del Maestro no entran |
+| `Validacion_Automatico/compilar_degradado.ps1` | M: coordinador, semaforo, modo_degradado, modo_ambar, modos, respaldo, `rtc_periferico.cpp` (sustituto); E: `reloj.cpp` REAL, mas los seis hermanos | no ejerce el microcorte |
+| `Simulaciones/puente_esp32/compilar.ps1` | `arnes_puente.cpp`; bluetooth, coordinador, modo_automatico, modo_degradado, semaforo, identidad | el ESP32 es modelo en Python: no carga su binario |
 
-> 🔴 **`mando.cpp` SALIO DEL FIRMWARE ENTERO (`D-30`, `ba6faab`, 14/09) Y LOS TRES ARNESES
-> QUE LO ENLAZABAN YA ESTAN ACTUALIZADOS** -ninguno lo nombra hoy-. La version anterior de
-> este fichero (12/09) todavia documentaba `mando.cpp` en las tres tablas: afirmacion
-> caducada, no se copia.
-
-> **Un arnes que no se ha visto fallar es un adorno que da verde.** Antes de conectar uno
-> se inyecta un defecto en el `.cpp` real, se corre, y se exige que baje la cuenta y
-> cambie el codigo de salida; restaurando desde una copia tomada ANTES de inyectar,
-> verificada por hash (`git checkout --` no deshace una inyeccion sin comitear: vuelve a
-> HEAD y se lleva el trabajo por delante).
+`ESP32_Expansion/src/despachador.cpp` no lo compila ningun arnes (SPEC_4:582): solo lo cruza PlatformIO.
+Antes de conectar un arnes se inyecta un defecto en el `.cpp` real y se exige que baje la cuenta (CLAUDE.md §6).
 
 ---
 
 ## 5. LAS FILAS DE LA COMPUERTA
 
-`[MEDIDO 28/09 - evidencia/2026-09-28_compuerta.txt, HEAD 935050c, arbol con cambios sin
-commitear]`. **Son DIECINUEVE, no veinte**: la fila "arnes de pantalla" (antes fila 14)
-se retiro el 13/09 con el LCD (`17d3a1f`) y todo lo de debajo se corrio un puesto -por
-eso `SPEC_1 §13` cita numeros de fila que ya no valen (2.3)-.
+`[MEDIDO 14/10 - evidencia/2026-10-14_compuerta.txt, lineas 12-32]`. **Son DIECINUEVE.** Los numeros son los de la acta.
 
-| # | fila | que mide | cifra (acta vigente) |
+| fila | acta:linea | que mide | cifra |
 |---|---|---|---|
-| | **-- Instrumento --** | | |
-| 1 | `guarda de rutas` | que cada fuente que los instrumentos dicen abrir existe | 63 rutas, todas existen |
-| | **-- Compilacion -- (se salta con `--rapido`)** | | |
-| 2 | `compila maestro` | PlatformIO sobre `Maestro/` | 64,7 % - 42.372/65.536 B |
-| 3 | `compila esclavo` | PlatformIO sobre `Esclavo/` | 55,4 % - 36.328/65.536 B |
-| 4 | `compila repetidor` | PlatformIO sobre `Repetidor/` | 20,6 % - 270.497/1.310.720 B |
-| 5 | `compila esp32` | PlatformIO sobre `ESP32_Expansion/` | 35,7 % - 1.123.565/3.145.728 B |
-| | **-- Modelos de comportamiento --** | | |
-| 6 | `simulador funcional` | `simulador_sistema_v7_6.py` | 9/9 |
-| 7 | `simulador de repetidor` | `simulador_repetidor.py` (modelo puro, no abre rutas reales) | 10/10 |
-| 8 | `simulador de app y bluetooth` | `simulador_app_bluetooth.py` | 12/12 |
-| 9 | `test funcional de la app` | `test_funcional_app.py` | 70/70 |
-| 10 | `test unitarios de la app` | `test_unitarios_app.js` (node) | 63/63 |
-| 11 | `test unitarios TDD de la app` | `tests/test_unitarios.js` (node) | 75/75 |
-| 12 | `app ejecutada en DOM` | `test_dom_execution.js` sobre jsdom | 310/310 |
-| | **-- Validador de firmware --** | | |
-| 13 | `banco por packs` | `Simulaciones/banco/correr.py` - **70 packs** | 🔴 **FALLA - 1318/1319 - 69 PASS, 1 FALLA, 0 ABORTADO** |
-| | **-- Firmware compilado y ejecutado en el PC (lo unico cuyo PASS habla del codigo) --** | | |
-| 14 | `arnes del ciclo` | `Validacion_Ciclo` | 22/22 |
-| 15 | `arnes del respaldo` | `Validacion_Respaldo` | identicos entre puntas + PING/PONG |
-| 16 | `arnes del automatico` | `Validacion_Automatico` | 75/75 |
-| 17 | `arnes de las dos puntas` | `Validacion_Automatico/dos_puntas` | 122/122 |
-| 18 | `arnes del Degradado a dos puntas` | `compilar_degradado.ps1` | 71/71 |
-| 19 | `simulador del puente ESP32` | `simulador_puente_esp32.py` | 123/123 |
+| 1 `guarda de rutas` | :12 | rutas que los instrumentos abren existen | 61 rutas, todas existen |
+| 2 `compila maestro` | :13 | PlatformIO sobre `Maestro/` | 70,7 % (45.580 de 64.512 B) |
+| 3 `compila esclavo` | :14 | PlatformIO sobre `Esclavo/` | 62,8 % (40.496 de 64.512 B) |
+| 4 `compila repetidor` | :15 | PlatformIO sobre `Repetidor/` | 20,6 % |
+| 5 `compila esp32` | :16 | PlatformIO sobre `ESP32_Expansion/` | 35,7 % |
+| 6 `simulador funcional` | :17 | `simulador_sistema_v7_6.py` | 9/9 |
+| 7 `simulador de repetidor` | :18 | `simulador_repetidor.py` | 10/10 |
+| 8 `simulador de app y bluetooth` | :19 | `simulador_app_bluetooth.py` | 12/12 |
+| 9 `test funcional de la app` | :20 | `05_Funcional/App_Semaforo/test_funcional_app.py` | 70/70 |
+| 10 `test unitarios de la app` | :21 | `05_Funcional/App_Semaforo/test_unitarios_app.js` | 63/63 |
+| 11 `test unitarios TDD de la app` | :22 | `App_Semaforo/tests/test_unitarios.js` | 85/85 |
+| 12 `app ejecutada en DOM` | :23 | `App_Semaforo/test_dom_execution.js` | 652/652 |
+| 13 `banco por packs` | :24 | `banco/correr.py`, 70 packs | FALLA 1379/1380: 69 PASS, 1 FALLA |
+| 14 `arnes del ciclo` | :25 | `Validacion_Ciclo` | 55/55 |
+| 15 `arnes del respaldo` | :26 | `Validacion_Respaldo` | identicos entre puntas + PING/PONG |
+| 16 `arnes del automatico` | :27 | `Validacion_Automatico` | 88/88 |
+| 17 `arnes de las dos puntas` | :28 | `compilar_dos_puntas.ps1` | 127/127 |
+| 18 `arnes del Degradado a dos puntas` | :29 | `compilar_degradado.ps1` | 155/155 |
+| 19 `simulador del puente ESP32` | :30 | `simulador_puente_esp32.py` | 150/150 |
 
-**Codigos de salida:** `0` PASS · `1` FALLA · `2` ABORTADO. Escribe el acta en
-`evidencia/` con fecha y hash de HEAD. **Las cifras de los documentos se copian del acta,
-nunca a mano** (§2.4). Un `19/19` dice que los modelos y arneses de PC no encuentran
-nada; NO dice que el firmware funcione en la tarjeta (CLAUDE.md §0.3).
+Resumen, `evidencia/2026-10-14_compuerta.txt:32`: `18 PASS | 1 FALLA | 0 ABORTADO`. Codigos de salida: `0` PASS, `1`
+FALLA, `2` ABORTADO.
+Un `19/19` dice que modelos y arneses de PC no encuentran nada; NO dice que el firmware funcione en la tarjeta
+(CLAUDE.md §0.3).
 
-> ⚠️ **NO ES IDEMPOTENTE DESPUES DE UN `--rapido`.** `--rapido` deja un acta sin las
-> filas 2-5, y la corrida siguiente compara contra un acta mutilada. La cura no es tocar
-> el pack: correr la completa dos veces (CLAUDE.md §4 de este repositorio).
+[CADUCO] La version anterior de este fichero (28/09) daba `1318/1319`, `63` rutas, `DOM 310/310`, `arnes del ciclo
+22/22`,
+`automatico 75/75`, `dos puntas 122/122`, `degradado 71/71`, `puente 123/123`, `TDD 75/75` y flash 55,4 % en Esclavo:
+ninguna cifra vigente.
+
+`NO ES IDEMPOTENTE DESPUES DE UN --rapido`: deja un acta sin las filas 2-5. Se corre la completa dos veces (CLAUDE.md
+§4).
 
 ---
 
 ## 6. LA CADENA DE LA APP - tres copias que tienen que ser la misma
 
-`05_Funcional/App_Semaforo/{index.html,app.js,style.css,sw.js,js/*}` se edita una vez y
-vive en TRES copias: la raiz (lo que se prueba en navegador), `www/` (de donde construye
-Capacitor) y `android/app/src/main/assets/public/` (lo que va en la APK). Lo vigila
-`documentos_03_trama_status`, que **censa el directorio**, no una lista escrita a mano.
-Antes de compilar la APK: `md5sum` de las tres copias de cada fichero editado, identicas
-o no se compila. La razon, medida el 27/08: `app.js` y `www/app.js` llegaron a tener el
-mismo numero de lineas y contenido distinto -dos programas, uno probado y otro instalado-.
+`05_Funcional/App_Semaforo/{index.html,app.js,style.css,sw.js,js/*}` se edita una vez y vive en TRES copias:
+la raiz (navegador), `www/` (versionada; de donde construye Capacitor) y `android/app/src/main/assets/public/`
+(lo que va en la APK). [CADUCO] esa tercera copia **no esta versionada** (`git ls-files | grep assets/public` = 0);
+existe en disco. Lo vigila `documentos_03_trama_status`, que censa el directorio.
+Antes de compilar la APK: `md5sum` de las tres copias de cada fichero editado.
 
 ---
 
 ## 7. EL HARDWARE
 
-**Vive integro en [`ARQUITECTURA_conectores.map`](05_Funcional/historico/ARQUITECTURA_conectores.map), mismos
-numeros de apartado (7.1-7.7)**: el fichero de KiCad, las diez cadenas de potencia,
-`J14`/`J15`/`J16`/`J17` pad a pad (7.3), el censo de pines, los pines libres, lo que
-sigue abierto y los avisos que no se pueden perder. **`05_Funcional/17_Arquitectura...md`
-GANA a esa seccion en todo lo medido con puntas** (§2.2 de este fichero; CLAUDE.md §3 y
-§12 de este repositorio). `README.md:251` cita `ARQUITECTURA.map §7.3` para `J14`: la
-cita sigue viva porque `ARQUITECTURA_conectores.map` conserva su propio §7.3 con ese pin.
+### 7.1-7.2 Ficha KiCad y cadenas de potencia
+
+Viven en `05_Funcional/historico/ARQUITECTURA_conectores.map` (§7.1, §7.2, §7.4 a §7.7: censo de pines,
+pines libres, lo abierto y los avisos). `17_...` gana en todo lo medido con puntas (CLAUDE.md §3).
+
+### 7.3 Conectores (resumen; fuente `17_...`)
+
+| conector | que es | fuente |
+|---|---|---|
+| `J14` | ENTRADA del micro (`PB0`, 3,3 V, sin opto ni diodo). LIBRE y sin cablear (`D-27`). Un rele cableado aqui se desconecta antes de energizar. | `17_...:29-30` |
+| `J15` | SALIDA de talanquera (p1 12 V, p2 drenador) | `17_...:30`, `:71` |
+| `J16` | Camaras: p9/p10 = camara 1 (`CAM_C_PIN`), p11/p12 = camara 2 (`CAM_D_PIN`), a 3,3 V. **p1 = 12 V CRUDOS: se TAPA en cada equipo** (`D-4`, `N-120`). p5 y p8 VACIOS: no se cablean. | `17_...:26`, `:32`, `:70-71` |
+| `J17` | UART ESP32 <-> STM32: ESP32 GPIO17 (TX2) -> J17 p2 (PB7 RX); J17 p3 (PB6 TX) -> GPIO16 (RX2) | `17_...:234-235` |
+
+En campo manda lo CARGADO (`SPEC_5` §3). Pines libres y censo: `historico/ARQUITECTURA_conectores.map` §7.4-7.5.
+
+---
+
+## 8. MARCAS ABIERTAS (no se corrigen aqui)
+
+1. [CONTRADICCION] Numeracion de filas: `SPEC_1:509-519` y `SPEC_4:582` frente a la acta (§2.3, §5).
+2. [CONTRADICCION] `SFTY-20`: `SPEC_1:455` lo sitúa en `reloj.*`; no aparece en codigo (§2.3).
+3. [CADUCO] `SPEC_4:582` cita `ARQUITECTURA.map §3.7`; no existe.
+4. [CADUCO] `compuerta.py:802` cita `mando.cpp` como compilado.
+5. [HUERFANO] `ARQUITECTURA_hist.map`: solo lo cita `HISTORIA.md`.
+6. [HUERFANO] `SPEC_0_El_Sistema.md` y `SPEC_7_Modo_Sin_Reloj.md`: ningun documento los enlaza por nombre.
+7. [SIN-VERSIONAR] copia 3 de la app (§6).
+8. Packs desaparecidos sin `historico/` (§3).

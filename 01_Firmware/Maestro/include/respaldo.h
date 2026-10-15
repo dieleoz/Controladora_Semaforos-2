@@ -123,3 +123,25 @@ bool respaldo_rojoSinHora();
 
 // Borra todo. Deja el respaldo como en un equipo nuevo.
 void respaldo_borrar();
+
+// D-61/D-62 (N-178 M1): reinicios fechados. anotarArranque() recibe RCC->CSR leido como
+// PRIMERA linea de setup(); loop() cuenta los segundos encendido y escribe ANTES cada hora.
+void respaldo_anotarArranque(uint32_t csr);
+// D-62: lee RCC_CSR y lo limpia. En el PC (arneses, sin RCC) devuelve 0 y la causa sale OTRA;
+// en la tarjeta, si faltara la definicion del registro, no compila.
+static inline uint32_t respaldo_leerCsr() {
+#if defined(RCC_CSR_IWDGRSTF)
+  const uint32_t csr = RCC->CSR;
+  __HAL_RCC_CLEAR_RESET_FLAGS();
+  return csr;
+#elif defined(ARDUINO_ARCH_STM32)
+#error "D-62: sin RCC_CSR en la tarjeta"
+#else
+  return 0;
+#endif
+}
+void respaldo_loop(uint32_t ahoraMs);
+uint8_t respaldo_reinicios();            // REIN: arranques contados, da la vuelta en 255
+const char* respaldo_causa();            // WATCHDOG, SOFTWARE, CORTE, PIN u OTRA
+uint32_t respaldo_segundosEncendido();   // UP: contador propio de 32 bits
+uint8_t respaldo_horasAnterior();        // ANTES: horas de la vida anterior, satura en 255

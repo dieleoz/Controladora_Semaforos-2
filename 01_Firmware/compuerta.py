@@ -799,7 +799,7 @@ def simulador_puente_esp32():
       - la app corre en jsdom -index.html, js/*.js y app.js-, compone sus comandos con
         enviarComandoFirmware() y parsea las tramas con parseNmeaTelemetry();
       - el STM32 es bluetooth.cpp COMPILADO, con semaforo.cpp, coordinador.cpp,
-        modo_automatico.cpp, mando.cpp, modos.cpp, demanda.cpp e identidad.cpp detras,
+        modo_automatico.cpp, modos.cpp, demanda.cpp e identidad.cpp detras,
         asi que el EFECTO de un comando se mide sobre los pines que escribio el
         firmware y no sobre la respuesta que imprimio;
       - el ESP32 es modelo en Python, y es el unico que puede serlo: su C++ tiene cero

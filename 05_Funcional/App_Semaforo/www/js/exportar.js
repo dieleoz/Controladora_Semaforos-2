@@ -46,7 +46,7 @@ const Exportar = {
   // app.js no puede crecer). horaDe es el _horaDe de app.js.
   textoCinta(state, horaDe) {
     const _horaDe = horaDe;
-    return RegistroCrudo.aTexto(Date.now(), {
+    return Exportar.marcaPractica() + RegistroCrudo.aTexto(Date.now(), {
       App: 'IOT-VIAL V9.0 (Controladora Semaforos)',
       Cruce: state.site,
       Equipo: state.node === null ? 'sin identificar (ningun $STATUS con NODE)' : state.node,
@@ -63,6 +63,11 @@ const Exportar = {
     });
   },
 
+  // SPEC_4 9.10 (d), D-89: en la practica sin poste la primera linea lo dice. Fuera de ella, nada.
+  marcaPractica() {
+    return typeof Practica !== 'undefined' && Practica.activa() ? Practica.MARCA + '\n' : '';
+  },
+
   textoFirmware(mapa) {
     const nodos = Object.keys(mapa || {});
     if (!nodos.length) return this.SIN_PEDIR;
@@ -77,7 +82,8 @@ const Exportar = {
     const d = fecha instanceof Date ? fecha : new Date();
     const p = n => String(n).padStart(2, '0');
     const s = String(serie || 'SIN_SERIE').replace(/[^A-Za-z0-9_-]+/g, '_');
-    return 'IOTVIAL_' + s + '_' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) +
+    const sim = typeof Practica !== 'undefined' && Practica.activa() ? 'SIMULADO_' : '';   // D-89
+    return 'IOTVIAL_' + sim + s + '_' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) +
            '-' + p(d.getHours()) + p(d.getMinutes()) + p(d.getSeconds()) + '.txt';
   },
 
@@ -159,6 +165,7 @@ const Exportar = {
     const sep = '\n\n' + '='.repeat(72) + '\n\n';
     const ses = typeof RegistroSesion !== 'undefined' ? RegistroSesion.textoEstado() : 'no cargado';
     return sep + (typeof RegistroCambios !== 'undefined' ? RegistroCambios.aTexto() : '') +
+           sep + (typeof RegistroEquipo !== 'undefined' ? RegistroEquipo.aTexto() : '') +
            sep + (typeof RegistroEnlace !== 'undefined' ? RegistroEnlace.aTexto() : '') +
            sep + 'IOT-VIAL - FICHERO DE LA SESION\n' + ses + '\n';
   },
@@ -296,6 +303,7 @@ const RegistroSesion = {
   },
 
   anotar(ms, texto) {
+    if (typeof Practica !== 'undefined' && Practica.activa()) return;   // D-89: la practica no va a EXTERNAL
     const t = typeof ms === 'number' ? ms : Date.now();
     if (this.estado === 'APAGADO') {
       const f = this._plugin();

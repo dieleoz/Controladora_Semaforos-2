@@ -394,6 +394,11 @@ escribe una vez por testigo, con el poste en ROJO, y lleva su propia suma. `resp
   testigo guardado con un formato de flash anterior se lee como ausente. **Medianoche:** `inicio` vencido si
   `(inicio − reloj) mod 86400 > 12 h`. **A los 28 días sólo avisa** (`TESTIGO_AVISO_S`); no hay ámbar por antigüedad
   (§7.ter (d)).
+- **Reanudar tras un corte repite la guarda del verde (`D-76`; construido, sin banco):** un registro con
+  verde fuera de 180..900 o no múltiplo de 60 es AUSENTE y el poste arranca por el camino «no vigente». Una regla por
+  poste, `verdeTestigoAdmitido()` en `modo_degradado.cpp` (la de `entrarTestigo`); `testigo_flash.cpp` sólo valida
+  formato y suma. Bordes del Esclavo: `VERDE_MIN_MIN/MAX_HEREDADO`, copia de `limites_ciclo.h` que `costura_01`
+  compara (`D-33`, `D-77`). Lo ejerce el bloque K5 del arnés a dos puntas: página con 960 y con 190, ninguna reanuda.
 - **El cerrojo de 48 h del Esclavo** (`syncVencidaLatch`) no actúa en modo testigo.
 - **Ventana aceptada por `D-35`:** si el Esclavo rechaza por `INICIO_VENCIDO` y nadie vuelve al Maestro, a la hora de
   `inicio` el Maestro da verde por reloj contra el ámbar de huérfano del Esclavo. La app lo dice al rechazar: «vuelva
@@ -402,10 +407,9 @@ escribe una vez por testigo, con el poste en ROJO, y lleva su propia suma. `resp
 **Lo que queda fuera de este apartado:** la pantalla de la app (SPEC 4 §3.ter) y la vista de campo (SPEC 6 A.1.bis).
 
 **Packs que leen por FORMA las funciones de entrada de hoy, y que NO ven la puerta nueva porque tiene otro nombre**
-(`grep -rln "modo_degradado_evaluarEntrada\|degradado_entrar" 01_Firmware/Simulaciones/banco/packs`):
-`camara_02_j16.py` · `costura_06_reanudacion.py` · `esclavo_01_latch_ambar.py` · `esclavo_06_no_abre_paso.py` ·
-`maestro_03_puerta_degradado.py` · `reloj_04_hora_que_caduca.py`. **Ninguno se toca ni se clona**: el simulador está
-congelado (§4), y la verificación de esta puerta es de banco, no de pack.
+(`grep -rln "modo_degradado_evaluarEntrada\|degradado_entrar" 01_Firmware/Simulaciones/banco/packs`): `camara_02_j16`
+· `costura_06_reanudacion` · `esclavo_01_latch_ambar` · `esclavo_06_no_abre_paso` · `maestro_03_puerta_degradado` ·
+`reloj_04_hora_que_caduca`. **Ninguno se toca ni se clona**: simulador congelado (§4); esta puerta se verifica en banco.
 
 ## 7.ter EL DEGRADADO AUTOMÁTICO — entra solo tras 5 min sin radio, si el técnico lo dejó activado (`A-15`)
 
@@ -887,7 +891,9 @@ configuración imposible tiene respuesta escrita:** con verde o despeje a cero d
 > - **Ningún verde se enciende sin su rojo+amarillo, aunque la fase salte a verde** (inicio del día, entrada, salto
 >   de hora): lo garantiza el semáforo, no la fase, y el rojo+amarillo sale del principio de ese verde.
 > - **Medianoche:** un rojo+amarillo cuyo verde no se va a encender sale como despeje; `ciclo_degradado_restante()`
->   cuenta las mismas fronteras y su tope suma el rojo+amarillo.
+>   cuenta las mismas fronteras y su tope suma el rojo+amarillo. **Coste (`D-79`):** devuelve al primer cambio (las
+>   iteraciones son su resultado) y sólo la llama `verdeConTiempo()` en el flanco rojo→verde; `arnes_ciclo` barre
+>   verde 900 con despeje 30 y 255, exige que nunca devuelva 0 y publica el máximo. Ciclos de M3 sin medir (banco).
 > - 🔴 **Firmware mixto entre postes = desfase**, como `D-45`: los dos postes se cargan con `D-53` en la misma visita.
 
 ## 9. LOS DOS RELOJES Y LOS DOS PRESUPUESTOS — todos cierran sobre el umbral de silencio
@@ -949,10 +955,10 @@ HUECO 5** — el compromiso que `T-2` resolvió en campo: **SPEC 6 D.**
 | §8 (c) la puerta del Degradado del Maestro | ✅ **fila 19**: su adaptador llama a las dos consultas del coordinador real |
 | §8 (d) el cruce de los dos umbrales de sincronización | 🔴 **NADIE lo cierra** — un pack lo mide y lo publica, pero no falla por él (HUECO 7) |
 | §2.2.bis y §8 (e.bis) el amarillo de cierre en la radio y en la fase (`D-45`) | ✅ **filas 18 y 19** (el orden de la luz en las dos puntas, el amarillo del Poste 2 ante la orden de rojo, la suelta adelantada, la fase de seis tramos dentro del modo) y **15** (la fase pura); invertidas en `cda33df`. El presupuesto, `costura_09` por texto. Sin acta de compuerta sobre `cda33df` |
-| §2.2.ter y §8 (e.ter) el rojo+amarillo en la radio y en la fase (`D-53`) | 🔴 **NADIE: sin construir** (`N-176`). Las filas 15, 18 y 19 aseveran hoy la apertura directa y el ciclo de seis fases: se invierten |
+| §2.2.ter y §8 (e.ter) el rojo+amarillo en la radio y en la fase (`D-53`) | ✅ **filas 15, 18 y 19**, construido en `5f1d37f` (`N-176`), sin banco: la apertura ROJO - ROJO+AMARILLO - VERDE por pines en las dos puntas y el `ACK_GREEN` retenido hasta el verde real; las aserciones de apertura directa se repartieron o invirtieron (`CLAUDE.md` §9) |
 | §7.quater la salida programada y el rojo total del Degradado (`D-52`, `D-51` corregida) | 🔴 **Construido el 04/10 (`a4545bb`), sin banco.** Pruebas en PC en el bloque `J`; los cinco casos de banco de (i) (reanudación con salida incluida) los cierra el banco |
 
-**Cuenta: 18 barreras — 12 ejecutadas, 5 sin nadie, 1 partida** *(05/10: entra `D-53`, sin construir)* (la barrera de
+**Cuenta: 18 barreras — 13 ejecutadas, 4 sin nadie, 1 partida** *(15/10: `D-53` construido y ejecutado)* (la barrera de
 salidas, ejecutada en una punta y de texto en la otra). Los rojos del CRC, de la vuelta del enlace y de la supresión
 del latido **no son tres casillas pendientes**: apuntan al fichero de protocolo y al coordinador fuera del ciclo — es
 el mismo hueco visto tres veces.

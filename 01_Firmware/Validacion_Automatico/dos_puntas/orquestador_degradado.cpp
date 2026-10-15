@@ -1314,11 +1314,9 @@ int main() {
 
   // =========================================================================
   std::printf("\n--- BLOQUE F: D-21 (1), UNA HORA QUE CADUCA ES UNA HORA QUE MIENTE ---\n");
-  // H1 del veredicto del 11/09: con el J17 de una punta mudo, su hora corre sobre el HSI (hasta 90 s
-  // por hora) mientras la otra se siembra de su DS3231: verde-verde en cada ciclo. D-38 (30/09) lo
-  // contesta con ROJO FIJO en esa punta (D-21 (1): ambar); HORA_CADUCA_MS lo hace medible. reloj.cpp
-  // REAL en las dos, HSI de la afectada en su extremo rapido (HSI_PPM_PEOR, releido), cada DS3231 con
-  // su hora. LA OTRA PUNTA sigue ciclando: es la asimetria que D-38 cierra en rojo (F2.3/F3.3).
+  // H1 (11/09): con el J17 de una punta mudo su hora corre sobre el HSI y la otra sobre su DS3231: verde-verde.
+  // D-38 lo contesta con ROJO FIJO en esa punta; HORA_CADUCA_MS lo hace medible. reloj.cpp REAL, HSI en su
+  // extremo rapido (HSI_PPM_PEOR, releido); la otra punta sigue ciclando (F2.3/F3.3).
   const unsigned long AVISO_ROJO_MS = leerNumero(RAIZ + "/Maestro/src/modo_degradado.cpp",
       R"(AVISO_ROJO_SIN_HORA_MS\s*=\s*(\d+)UL)", "AVISO_ROJO_SIN_HORA_MS");   // D-38: repite la $ALARM
   {
@@ -2025,10 +2023,8 @@ int main() {
                 std::to_string(r.alarmasNoCuenta) + " $ALARM DEGRADADO,RELOJ_NO_CUENTA de " +
                 std::to_string(r.alarmasDeg) + " del Degradado (las demas, ROJO_SIN_HORA cada minuto)");
     }
-    // --- G9: N-172. Dos cortes en Degradado con el contador cruzando el dia: la libreria del RTC
-    // reescribia DR6/DR7 (REG_SYNC_BAJA/REG_SUMA_BAJA), plegaba el contador y el segundo corte borraba
-    // la pila (visto en ROJO con un modelo, retirado). BORDE: 10000 s al arrancar (byte alto >= 26) y
-    // 86380 tras el primer corte; siembra a +30 s.
+    // --- G9: N-172. Dos cortes cruzando el dia: la libreria del RTC reescribia DR6/DR7 y el segundo corte
+    // borraba la pila. BORDE: 10000 s al arrancar (byte alto >= 26) y 86380 tras el primer corte; siembra +30 s.
     {
       g_cntAlArrancar = 10000;
       const ResG r = microcorte(false, false, 30000, 30000, 86380, 2, 0);
@@ -2038,11 +2034,8 @@ int main() {
                 "la pila sigue con el permiso (" + cifras(r) + ")");
     }
     // --- G8: EL LIMITE DE VERDAD EN UNA TARJETA SIN CRISTAL (1.49b3) ---------------------
-    // En campo el Y2 NO oscila (SPEC_7 5.1): sin corte, la sync por radio vive en RAM y el limite
-    // duro se cuenta con millis(); a las 48 h la averia es la radio. G7.2 exige RELOJ_NO_CUENTA para
-    // un contador que ARRANCO y se paro; aqui no arranco nunca. Juntar "no hay cristal" con "cristal
-    // parado" manda al tecnico lejos de la radio. EL BORDE: las 48 h a PASO_MS, sin atajo; el ESP32
-    // siembra en eco (sin el, la caida seria "Reloj no fiable", no el limite).
+    // El Y2 no oscila en campo (SPEC_7 5.1): el limite se cuenta con millis() y a las 48 h la averia es la
+    // radio, no "reloj sin contar" (G7.2). EL BORDE: 48 h a PASO_MS sin atajo; el ESP32 siembra en eco.
     {
       const unsigned long G8_LIMITE_MS = leerNumero(RAIZ + "/Maestro/src/modo_degradado.cpp",
                                                     R"(LIMITE_DURO_MS\s*=\s*(\d+))",
@@ -2058,8 +2051,7 @@ int main() {
       avanzar(3000);
       const bool entro = MAESTRO.orden("modo_actual") == MODO_DEGRADADO_V;
 
-      // Hasta una hora ANTES del limite contado desde la sync: el control. Si cae antes, lo
-      // que se mide no es el limite.
+      // Hasta una hora ANTES del limite: el control (si cae antes, no se mide el limite).
       const unsigned long ANTES = G8_LIMITE_MS - 3600000UL;
       while ((unsigned long)MAESTRO.orden("ms_desde_sync") < ANTES &&
              MAESTRO.estado() != S_FALLO_V) {
@@ -2070,7 +2062,6 @@ int main() {
                               MAESTRO.estado() != S_FALLO_V;
       const long alarmasAntes = MAESTRO.orden("alarmas_degradado");
 
-      // Y hasta el limite, con dos horas de sobra para que la caida tenga donde ocurrir.
       unsigned long tCaida = 0;
       long msCaida = -1;
       for (unsigned long h = 0; h < 2UL * 3600000UL && tCaida == 0; h += PASO_MS) {
@@ -2106,6 +2097,15 @@ int main() {
                     std::to_string(aNoCuenta) + ", SYNC_SIN_FECHA " + std::to_string(aSinFecha) +
                     " (estado_cristal " + std::to_string(estadoCristalFin) +
                     "). Un cristal que nunca arranco no es 'reloj sin contar': es la radio");
+      // G8.2 (D-67/D-68): la alarma dura lo que el ambar, en las dos (SPEC_6 C.1); el Esclavo se rinde tras su despeje.
+      avanzar(2 * AVISO_ROJO_MS);
+      const long aLim2 = MAESTRO.orden("alarmas_limite_48h"), aDeg2 = MAESTRO.orden("alarmas_degradado");
+      const long eLim2 = ESCLAVO.orden("alarmas_limite_48h"), eDeg2 = ESCLAVO.orden("degradado_estado");
+      comprobar(aLim2 >= 2 && aDeg2 == aLim2 && MAESTRO.estado() == S_FALLO_V && eDeg2 == DEG_RENDIDO_V && eLim2 >= 2,
+                "G8.2 (D-67/D-68): " + std::to_string(2 * AVISO_ROJO_MS) + " ms despues, Maestro LIMITE_48H " +
+                    std::to_string(aLim2) + " de " + std::to_string(aDeg2) + " (>= 2, solo esa causa), estado " +
+                    std::to_string(MAESTRO.estado()) + "; Esclavo en " + std::to_string(eDeg2) + " (DEG_RENDIDO " +
+                    std::to_string(DEG_RENDIDO_V) + ") con LIMITE_48H " + std::to_string(eLim2) + " (>= 2)");
     }
   }
   bloqueH();

@@ -535,9 +535,9 @@ PUNTA_API long punta_mando(const char* que, long arg) {
   }
   if (!strcmp(que, "alarmas_caducada"))    return (long)g_alarmasCaducada;
   if (!strcmp(que, "eventos_salto_rojo"))  return (long)g_eventosSaltoRojo;
-  // Con bluetooth.cpp fuera, las alarmas se cuentan en el doble de arriba, y el veto del
-  // ambar de la app se mueve a mano: es la unica forma de recorrer la rama vetada cuando
-  // el despachador que arma el cerrojo no se compila.
+  if (!strcmp(que, "alarmas_limite_48h"))  return (long)g_alarmasLimite48h;   // D-68
+  // Con bluetooth.cpp fuera, las alarmas se cuentan en el doble de arriba y el veto del
+  // ambar de la app se mueve a mano: la unica forma de recorrer la rama vetada.
   if (!strcmp(que, "alarmas"))             return (long)g_alarmasEmitidas;
   if (!strcmp(que, "ambar_bluetooth"))     { g_ambarEmergencia = (arg != 0); return 1; }
 #else

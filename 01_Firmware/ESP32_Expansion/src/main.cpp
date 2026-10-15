@@ -120,6 +120,7 @@
 #include "reloj_ds3231.h"
 #include "puente.h"
 #include "siembra.h"
+#include "registro.h"
 
 void setup() {
   // EL CENSO ANTES QUE EL PERRO, Y ES LA MITAD QUE FALTABA.
@@ -174,6 +175,11 @@ void setup() {
 
   reloj_setup();
   vigilante_alimentar();
+  // D-72: antes de abrir el SPP, sin emitir nada (6.4); el parte entra como clase P.
+  if (registro_setup()) {
+    char parte[VIGILANTE_PARTE_MAX];
+    if (vigilante_parteDeArranque(parte, sizeof(parte)) > 0) registro_anotar('P', parte + 1);
+  }
 
   transporte_abrir();
   vigilante_alimentar();
@@ -184,6 +190,7 @@ void setup() {
 void loop() {
   // Una vuelta = las dos direcciones + el reloj.
   puente_bombear();
+  registro_volcar();   // D-72: un registro a flash como mucho por vuelta
   reloj_revisar();
 
   // D-20 / D-26: LA HORA HACIA EL STM32. Detras de reloj_revisar() para que la barrera

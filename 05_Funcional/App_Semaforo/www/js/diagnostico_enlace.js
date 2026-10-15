@@ -78,7 +78,28 @@ const DiagnosticoEnlace = {
   // pertenecen a la bitacora. Sacarlas de ahi por parecerse en el ORIGEN seria esconder
   // justo las lineas que cuentan una caida. Un patron sin anclar -- o que solo mirara
   // "RX:" -- se las llevaria por delante el dia que a un DETALLE le crezca un prefijo.
-  PATRON: /^RX:(\d+)\s+OK:(\d+)\s+RUIDO:(\d+)$/,
+  //
+  // D-60/D-64: el firmware nuevo anade REIN:<r> (arranques contados, da la vuelta en 255); el
+  // que esta en campo no lo lleva, asi que es OPCIONAL y su ausencia se lee como null.
+  // D-92: el Maestro anade AMBAR:<o> solo mientras esta en MODO_AMBAR; tambien OPCIONAL.
+  PATRON: /^RX:(\d+)\s+OK:(\d+)\s+RUIDO:(\d+)(?:\s+REIN:(\d+))?(?:\s+AMBAR:(APP|POSTE2|ARRANQUE))?$/,
+
+  // D-93 (SPEC_4 9.11): el origen se afirma solo cuando se ha leido; la clave '' es "sin dato".
+  FRASES_AMBAR: {
+    '': 'ámbar en este poste (origen sin dato): pasar con precaución',
+    APP: 'ámbar pedido por el operario: pasar con precaución',
+    POSTE2: 'ámbar pedido desde el POSTE 2: pasar con precaución',
+    ARRANQUE: 'ámbar de arranque (poste reiniciado): pasar con precaución'
+  },
+
+  // D-64: la causa del acuse de REINICIOS, en palabras (SPEC_4 9.4).
+  CAUSAS: {
+    WATCHDOG: 'el vigilante lo reinició: el firmware se quedó colgado (SFTY-1)',
+    CORTE: 'se fue la luz o se puso la pila',
+    SOFTWARE: 'reinicio pedido por el firmware',
+    PIN: 'pata NRST: carga del firmware por SWD o reset a mano',
+    OTRA: 'otra causa'
+  },
 
   // ---- Estado de la sesion ----------------------------------------------
   //
@@ -93,12 +114,22 @@ const DiagnosticoEnlace = {
   _ultimoDelta: null,
   _mudo: false,
   _ruidoso: false,
+  // D-64: REINICIOS se pide sola una vez por sesion con el primer REIN, y a cada cambio.
+  _reinPedido: false,
+  _reiniciosEnCurso: false,
+  _ambar: null,   // D-93: ultimo AMBAR: leido; se olvida con un MODO distinto de AMBAR
+
+  olvidarAmbar() { this._ambar = null; },
+  fraseAmbar() { return this.FRASES_AMBAR[this._ambar || '']; },
 
   olvidar() {
+    this._ambar = null;
     this._ultima = null;
     this._ultimoDelta = null;
     this._mudo = false;
     this._ruidoso = false;
+    this._reinPedido = false;
+    this._reiniciosEnCurso = false;
   },
 
   // ---- Lectura ----------------------------------------------------------
@@ -116,7 +147,8 @@ const DiagnosticoEnlace = {
     // (4.294.967.295) y un double lo representa exacto, asi que no hay redondeo que
     // explicar. parseInt aceptaria ademas basura detras de las cifras, y el patron ya
     // dijo que no la hay.
-    return { rx: Number(m[1]), ok: Number(m[2]), ruido: Number(m[3]) };
+    return { rx: Number(m[1]), ok: Number(m[2]), ruido: Number(m[3]),
+             rein: m[4] === undefined ? null : Number(m[4]), ambar: m[5] || null };
   },
 
   // ---- La muestra, su delta y lo que merece una linea --------------------
@@ -139,21 +171,27 @@ const DiagnosticoEnlace = {
     const ahora = typeof ms === 'number' ? ms : Date.now();
     const ant = this._ultima;
     const muestra = {
-      rx: leido.rx, ok: leido.ok, ruido: leido.ruido, ms: ahora,
+      rx: leido.rx, ok: leido.ok, ruido: leido.ruido, ms: ahora, rein: leido.rein,
+      nodo: data.NODE || null,
       // La hora del EQUIPO, que no tiene por que ser la del telefono y es la que hay que
       // citar al reportar. Puede venir "--:--:--" si ese poste no esta en hora.
       hora: data.HORA || null
     };
 
     const primera = !ant;
-    // UN CONTADOR QUE BAJA NO ES UN DELTA NEGATIVO: ES OTRO ARRANQUE. Restar daria un
-    // numero grande y con signo que no significa nada, y peor, un "entraron -4000 bytes"
-    // se lee como una averia de la radio cuando lo que hubo fue un reset del micro.
-    const reinicio = !!ant && (leido.rx < ant.rx || leido.ok < ant.ok ||
-                               leido.ruido < ant.ruido);
+    // UN CONTADOR QUE BAJA NO ES UN DELTA NEGATIVO, pero tampoco prueba un arranque: el
+    // 06/10 lo puso a cero PRUEBA ALCANCE (SFTY-15, retirado por D-63). D-64: reinicio es
+    // solo que REIN CAMBIE en el mismo NODE; la bajada sin REIN distinto se dice aparte.
+    const bajada = !!ant && (leido.rx < ant.rx || leido.ok < ant.ok ||
+                             leido.ruido < ant.ruido);
+    const conRein = !!ant && ant.rein !== null && leido.rein !== null &&
+                    ant.nodo === muestra.nodo;
+    const reinicio = conRein && leido.rein !== ant.rein;
+    const pedirReinicios = leido.rein !== null && (!this._reinPedido || reinicio);
+    if (pedirReinicios) { this._reinPedido = true; this._reiniciosEnCurso = true; }
 
     let delta = null;
-    if (ant && !reinicio) {
+    if (ant && !bajada && !reinicio) {
       delta = {
         rx: leido.rx - ant.rx,
         ok: leido.ok - ant.ok,
@@ -174,16 +212,23 @@ const DiagnosticoEnlace = {
       });
     }
 
-    if (reinicio) {
+    if (reinicio || bajada) {
       // El tono es el de una alarma y no el de una nota: un poste que rearranca solo en
-      // mitad de un turno es lo que el tecnico ha venido a cazar, y hasta hoy la app no
-      // tenia forma de verlo -- los contadores se reiniciaban en silencio --.
+      // mitad de un turno es lo que el tecnico ha venido a cazar.
+      const bajo = ' (' + ant.rx + '→' + leido.rx + ' bytes)';
       avisos.push({
         tono: 'red',
-        texto: 'ATENCIÓN: los contadores de radio de este poste BAJARON (' +
-               ant.rx + '→' + leido.rx + ' bytes). Los contadores solo arrancan de cero ' +
-               'con el micro, así que este poste SE HA REINICIADO desde la muestra ' +
-               'anterior. La cuenta arranca otra vez aquí.'
+        texto: reinicio
+          ? 'ATENCIÓN: este poste SE HA REINICIADO (REIN ' + ant.rein + '→' + leido.rein +
+            ') desde la muestra anterior; se pide la causa al equipo (REINICIOS). La cuenta ' +
+            'arranca otra vez aquí.'
+          : conRein
+            ? 'ATENCIÓN: los contadores de radio de este poste BAJARON SIN REINICIO' + bajo +
+              ' (REIN:' + leido.rein + ' sigue): o el contador dio la vuelta en 4294967295 o es ' +
+              'un defecto del firmware; repórtelo con esta línea.'
+            : 'ATENCIÓN: los contadores de radio de este poste BAJARON' + bajo + ': o se ' +
+              'reinició o entró en PRUEBA ALCANCE; este firmware no publica REIN. La cuenta ' +
+              'arranca otra vez aquí.'
       });
       this._mudo = false;
       this._ruidoso = false;
@@ -225,9 +270,42 @@ const DiagnosticoEnlace = {
       }
     }
 
+    // D-93: una linea por CAMBIO de origen, nunca por repeticion del periodico.
+    const ambarCambio = leido.ambar !== null && leido.ambar !== this._ambar;
+    if (leido.ambar !== null) this._ambar = leido.ambar;
+    if (ambarCambio) avisos.push({ tono: 'amber', texto: 'ámbar de este poste: ' + this.fraseAmbar() });
+
     this._ultima = muestra;
     this._ultimoDelta = delta;
-    return { muestra, delta, primera, reinicio, avisos };
+    return { muestra, delta, primera, reinicio, bajada, pedirReinicios, avisos, ambarCambio };
+  },
+
+  // D-64: el acuse de REINICIOS (o su rechazo) en una linea, o null si no es suyo. La hora
+  // del arranque la pone el TELEFONO (ms - UP): el poste puede no tener hora (SPEC_7).
+  acuseReinicios(data, ms) {
+    if (!data) return null;
+    if (data.CMD === 'REINICIOS' && data.RESULT === 'OK') {
+      this._reiniciosEnCurso = false;
+      const up = Number(data.UP), antes = Number(data.ANTES);
+      const t = new Date((typeof ms === 'number' ? ms : Date.now()) - up * 1000);
+      const dd = n => String(n).padStart(2, '0');
+      const hace = Math.floor(up / 3600) + ' h ' + Math.floor((up % 3600) / 60) + ' min';
+      return { tono: data.CAUSA === 'WATCHDOG' ? 'red' : 'cyan', toast: 'Reinicios consultados',
+        texto: 'Reinicios del ' + (data.NODE || 'poste') + ': último arranque el ' +
+          dd(t.getDate()) + '/' + dd(t.getMonth() + 1) + ' a las ' + dd(t.getHours()) + ':' +
+          dd(t.getMinutes()) + ' (hace ' + hace + '); causa ' + data.CAUSA + ', ' +
+          (this.CAUSAS[data.CAUSA] || this.CAUSAS.OTRA) + '; la vida anterior duró ' +
+          (antes >= 255 ? 'más de 10 días' : antes + ' h') + '; arranques contados: ' +
+          data.REIN + ' (da la vuelta en 255).' };
+    }
+    const noLaLleva = this._reiniciosEnCurso && data.CMD === 'DESCONOCIDO' &&
+                      data.DESC === 'COMANDO_NO_SOPORTADO' && data.NODE !== 'PUENTE';
+    if (data.CMD !== 'REINICIOS' && !noLaLleva) return null;
+    this._reiniciosEnCurso = false;
+    return noLaLleva
+      ? { texto: 'Este firmware no lleva REINICIOS.', toast: 'REINICIOS: no está en este firmware' }
+      : { texto: 'El equipo no pudo componer la respuesta de REINICIOS (' + (data.DESC || '?') +
+                 '): repórtelo.', toast: 'REINICIOS rechazado' };
   },
 
   // ---- Derivadas para pintar --------------------------------------------

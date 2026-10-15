@@ -20,25 +20,21 @@
 //
 // LO QUE EL MODO SIGUE HACIENDO, que es lo que lo mantiene vivo con la app:
 //   1. coordinador_forzarMenu()        - el mismo estado seguro que el menu.
-//   2. protocolo_reiniciarContadores() - SFTY-15 arranca de cero, para que la
-//      medida sea la de ESTA prueba y no el acumulado desde el encendido.
-//   3. coordinador_actualizar()        - mantiene el latido de 3 s, que es de donde
+//   2. coordinador_actualizar()        - mantiene el latido de 3 s, que es de donde
 //      sale la telemetria que publica bluetooth.cpp.
+// D-63 (N-178 M1): YA NO pone a cero los contadores de SFTY-15. Su lector era el LCD
+// (D-44); la app mide por ventanas de 30 s (D-23), y el cero del 06/10 se leyo como un
+// reinicio que no hubo. Desde aqui un contador que baja es un arranque (REIN, D-60).
 // O sea: la prueba de alcance se sigue haciendo; lo que cambia es que se lee por la
 // app y no en el gabinete.
 //
-// EFECTO LATERAL MEDIDO Y NO DISIMULADO: protocolo_bytesRecibidos() y
-// protocolo_tramasValidas() se quedan SIN NINGUN LECTOR en el Maestro -aqui estaba el
-// unico-. En el Esclavo si los publica su $ALARM/$EVENT; en esta punta nadie. Queda
-// anotado en costura_10 y reportado: el sustituto seria publicarlos en el $STATUS.
+// protocolo_bytesRecibidos() y protocolo_tramasValidas() los publica hoy el $EVENT
+// ENLACE_RF de bluetooth.cpp en las dos puntas (D-23).
 
 void modoAlcance_setup() {
   // Mismo estado seguro que el Menu Principal: Rojo Fijo en ambos extremos con
   // enlace, Amarillo Intermitente si se pierde. No arranca ningun ciclo.
   coordinador_forzarMenu();
-  // SFTY-15: los contadores arrancan de cero al entrar, para que lo que se vea en
-  // pantalla corresponda a ESTA medicion y no al acumulado desde el encendido.
-  protocolo_reiniciarContadores();
 }
 
 void modoAlcance_loop() {

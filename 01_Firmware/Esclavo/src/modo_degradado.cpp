@@ -50,14 +50,13 @@ static const unsigned long PERIODO_FASE_MS = 200UL;
 // ---------------------------------------------------------------------------
 // D-35 - EL DEGRADADO CON TESTIGO (SPEC_2 7.bis). Gemelo del Maestro, con el porque alli: misma tolerancia, despeje
 // 30..255, vigencia con la fecha del DS3231. Con testigo la fase usa el ciclo DEL TESTIGO (su verde y su despeje), no
-// el de config_ciclo, que lo manda por radio un Maestro que en este modo no se oye. D-59: verde 180..900, x60; ESTA
-// PUNTA NO TIENE limites_ciclo.h: los bordes son VERDE_MIN_MIN/MAX del Maestro en s (el arnes a dos puntas los ejerce).
-// ---------------------------------------------------------------------------
+// el de config_ciclo, que lo manda por radio un Maestro que en este modo no se oye. D-59: verde 180..900, x60. D-77:
+// sin limites_ciclo.h, copia a mano (patron D-33) de VERDE_MIN_MIN/MAX que costura_01_contratos compara cada corrida.
 static const int32_t  TOLERANCIA_TESTIGO_S   = 3;
-static const int      TESTIGO_DESPEJE_MIN    = 30;
-static const int      TESTIGO_DESPEJE_MAX    = 255;
+static const int      TESTIGO_DESPEJE_MIN    = 30, TESTIGO_DESPEJE_MAX = 255;
 static const uint8_t  TESTIGO_VERDE_SEG      = 180;
-static const int      TESTIGO_VERDE_MIN_S = 180, TESTIGO_VERDE_MAX_S = 900;   // D-59: 3..15 min
+static const uint8_t  VERDE_MIN_MIN_HEREDADO = 3, VERDE_MIN_MAX_HEREDADO = 15;   // D-77: minutos, del Maestro
+static const int TESTIGO_VERDE_MIN_S = VERDE_MIN_MIN_HEREDADO * 60, TESTIGO_VERDE_MAX_S = VERDE_MIN_MAX_HEREDADO * 60;
 static const uint32_t TESTIGO_INICIO_MAX_S   = 43200UL;           // 12 h: mas es "ya paso"
 static const uint32_t TESTIGO_AVISO_S        = 28UL * 86400UL;    // 28 dias: solo aviso
 
@@ -456,8 +455,9 @@ static void entrarTestigoPorRojo(uint32_t marcaS, uint32_t inicioS, uint16_t ver
   reanudacionPorDecidir = false;   // D-29: una entrada cierra la reanudacion pendiente
 }
 
-// Tras un corte: vigente si hay registro integro, fecha del DS3231 no anterior a la marca y
-// hora fiable, sin tope de edad (H9). Si el reinicio cayo antes de inicio, DEG_ENTRANDO lo deja en rojo hasta esa hora.
+// D-76: la guarda del verde (D-59) de la entrada, repetida al reanudar: fuera es AUSENTE. Tras un corte, vigente con
+// registro integro, fecha DS3231 >= marca y hora fiable, sin tope de edad (H9); antes de inicio, DEG_ENTRANDO en rojo.
+static bool verdeTestigoAdmitido(int v) { return v >= TESTIGO_VERDE_MIN_S && v <= TESTIGO_VERDE_MAX_S && v % 60 == 0; }
 static bool reanudarTestigo() {
   TestigoFlash t;
   const bool hayRegistro = testigoFlash_leer(&t);
@@ -465,8 +465,8 @@ static bool reanudarTestigo() {
   if (hayRegistro && ahora == 0 && millis() < VENTANA_REANUDACION_MS) return false;
   reanudacionPorDecidir = false;
   // D-52 (d): una salida vencida durante el corte no reanuda; una pendiente se restaura y sale a su hora.
-  const bool vigente = hayRegistro && ahora != 0 && reloj_horaFiable() &&
-                       ahora >= t.marcaS && !salidaVencida(t.salidaS, ahora);
+  const bool vigente = hayRegistro && verdeTestigoAdmitido(t.verdeSeg) && ahora != 0 && reloj_horaFiable() &&
+                       ahora >= t.marcaS && !salidaVencida(t.salidaS, ahora);   // D-76
   if (!vigente) {
     respaldo_guardarDegradado(false);
     return false;
@@ -502,7 +502,7 @@ RechazoTestigo degradado_comprobarTestigo(uint32_t ahora, uint32_t inicio, int v
   // LA QUE MUERDE: el operario llega del Maestro y el traslado ya se agoto. No se reintenta
   // con el mismo inicio; se repite el testigo entero en el Maestro (D-35).
   if ((inicio + 86400UL - reloj) % 86400UL > TESTIGO_INICIO_MAX_S) return DEG_RECHAZO_T_INICIO_VENCIDO;
-  if (verde < TESTIGO_VERDE_MIN_S || verde > TESTIGO_VERDE_MAX_S || verde % 60 != 0) return DEG_RECHAZO_T_VERDE_RANGO;
+  if (!verdeTestigoAdmitido(verde)) return DEG_RECHAZO_T_VERDE_RANGO;
   if (despeje < TESTIGO_DESPEJE_MIN || despeje > TESTIGO_DESPEJE_MAX) return DEG_RECHAZO_T_DESPEJE_RANGO;
   if (bluetooth_ambarEmergencia()) return DEG_RECHAZO_T_AMBAR_VIGENTE;   // R-4, el mismo veto
   return DEG_T_ACEPTADO;
@@ -689,14 +689,9 @@ bool degradado_reanudarTrasCorte() {
 
   reanudacionPorDecidir = false;
 
-  // Se siembra el reloj del limite duro con la antiguedad REAL de la pila, no con el arranque: tUltimaSync = millis()
-  // regalaria 48 h nuevas en cada corte y el limite seria un boton de posponer. La resta puede quedar bajo cero en
-  // aritmetica sin signo y es correcto: todas las comparaciones son (ahora - tUltimaSync).
-  //
-  // D-29: SOLO SI NO HAY YA UNA MEDIDA EN RAM. Con la decision diferida pudo entrar antes una sync de verdad por
-  // radio (CMD_HORA_S), medida directa del instante en que las dos puntas coincidieron; pisarla con la pila seria
-  // envejecerla por una lectura peor. La pila no se ignora: msDesdeSyncEfectivo() se queda con la MAYOR de las dos en
-  // cada vuelta.
+  // El reloj del limite duro se siembra con la antiguedad REAL de la pila (con el arranque, cada corte regalaria
+  // 48 h); la resta sin signo bajo cero es correcta: todo compara (ahora - tUltimaSync). D-29: solo si no hay ya una
+  // sync de radio en RAM (CMD_HORA_S, medida mejor); msDesdeSyncEfectivo() se queda con la MAYOR de las dos.
   const bool sembradaAqui = !huboSyncAlguna;
   if (sembradaAqui) {
     huboSyncAlguna = true;
@@ -705,10 +700,7 @@ bool degradado_reanudarTrasCorte() {
   }
   syncVencidaLatch = false;
 
-  // Y se entra por la MISMA puerta que usa el operario desde la pantalla. Asi el
-  // todo-rojo de entrada, el reseteo del filtro de repeticion y la revalidacion de
-  // condiciones son identicos: reanudar no es un camino alternativo con reglas
-  // propias, es la entrada de siempre con el permiso recuperado de la pila.
+  // Por la MISMA puerta que el operario: reanudar es la entrada de siempre con el permiso de la pila.
   if (degradado_entrar() != DEG_ACEPTADO) {
     if (sembradaAqui) { huboSyncAlguna = false; syncDesdePila = false; }
     respaldo_guardarDegradado(false);
@@ -812,15 +804,23 @@ void degradado_actualizar() {
       }
       break;
 
+    case DEG_RENDIDO:   // D-68: la alarma se repite mientras dure el ambar; la luz no se toca aqui
+      if (ahora - tAvisoRojo >= AVISO_ROJO_SIN_HORA_MS) {
+        tAvisoRojo = ahora;
+        bluetooth_reportarAlarma("DEGRADADO", "LIMITE_48H", "CAMBIO_A_AMBAR");
+      }
+      break;
+
     case DEG_SALIENDO:
       if ((ahora - tCambioEstado) >= rojoObligatorioMs()) {
         if (rendicionEnCurso) {
-          // Rendicion por el limite de 48 h (la hora va a rojo fijo desde D-38): ambar
-          // intermitente, encendido aqui y no por el temporizador de 12 s de main.cpp.
+          // Rendicion por el limite de 48 h (la hora va a rojo fijo, D-38): ambar encendido aqui, no por main.cpp.
           estado = DEG_RENDIDO;
           respaldo_guardarRendido(true);   // arquitecto 29/09: sin reentrada automatica hasta un PING
           semaforo_iniciarFallo();
           protocolo_resetReplayProtection();
+          bluetooth_reportarAlarma("DEGRADADO", "LIMITE_48H", "CAMBIO_A_AMBAR");   // D-68: ya no es muda
+          tAvisoRojo = ahora;
         } else {
           estado = DEG_INACTIVO;
         }

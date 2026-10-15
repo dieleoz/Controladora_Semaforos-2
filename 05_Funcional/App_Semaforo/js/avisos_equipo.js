@@ -2,7 +2,7 @@
 // Lo que el equipo AVISA por su cuenta -$ALARM y $EVENT-, traducido a LO QUE HAY QUE
 // HACER en el poste.
 //
-// ES EL MISMO MOLDE QUE ERR_MOTIVO / ACK_TEXTO DE app.js: una entrada por literal del
+// ES EL MISMO MOLDE QUE ERR_MOTIVO / ACK_TEXTO (js/textos_err.js, js/textos_ack.js): una entrada por literal del
 // firmware, con {tono, texto, toast}; el literal en crudo NO se sustituye -la rama que
 // pinta pone los dos, crudo primero y traduccion detras-; y lo que la tabla no nombra se
 // ensena en crudo, que es la mitad que impide que esto se convierta en un filtro.
@@ -81,7 +81,7 @@ const AvisosEquipo = {
              'que va del ESP32 a la controladora. ' + _mientrasTanto(data) + ' Ponerle la ' +
              'hora desde el telefono NO lo arregla: entra en el reloj del ESP32 y no llega ' +
              'a la controladora, aunque el acuse diga OK.',
-      toast: 'Hora: la controladora no oye a su ESP32 - revise el circuito ESP32-STM32 (J17)'
+      toast: 'Este poste no tiene hora fiable: avise al tecnico (detalle en Eventos)'   // D-101
     }),
     // El ESP32 solo manda horas que su reloj ya dio por buenas; si la controladora la tira
     // por la forma, la estropeo el camino.
@@ -94,7 +94,7 @@ const AvisosEquipo = {
              'comprobado-: lo que la estropea es el camino entre los dos. Mire el conector ' +
              'J17, su cableado y que no haya un hilo flojo. ' + _mientrasTanto(data) +
              ' Ponerle la hora desde el telefono NO lo arregla: llegaria por el mismo camino.',
-      toast: 'Hora rechazada por la controladora - revise el circuito ESP32-STM32 (J17)'
+      toast: 'Este poste no tiene hora fiable: avise al tecnico (detalle en Eventos)'   // D-101
     }),
     // El latido si llega y la hora no: el reloj del ESP32 no tiene hora fiable y no
     // siembra sin ella. Es lo unico de las tres que arregla el telefono.
@@ -107,7 +107,7 @@ const AvisosEquipo = {
              ' Si al sincronizar el equipo contesta con un rechazo del reloj, ese motivo dice ' +
              'que tocar (pila o modulo). Si la hora queda puesta y este aviso vuelve a salir, ' +
              'el ESP32 de este poste no esta mandando la hora: revise que firmware lleva.',
-      toast: 'Este poste no recibe hora de su ESP32 - pongasela desde el telefono (Tecnico > Sincronizar)'
+      toast: 'Este poste no tiene hora: pongasela desde el telefono (Tecnico > Sincronizar)'   // D-101
     }),
     // D-38 (30/09): en Degradado la hora de esta punta llevo demasiado sin sembrarse y dejo
     // de poder decidir una luz: la punta queda en ROJO FIJO (antes ambar, D-21). NO vuelve

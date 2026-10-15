@@ -105,6 +105,20 @@ static const uint16_t FLAG_ROJO_SIN_HORA = 0x0100;
 
 static bool contenidoValido = false;
 
+// D-61 (N-178 M1): REIN en el byte ALTO de DR3 y ANTES en el byte alto de DR2. Los dos
+// registros guardan un uint8 en el byte bajo; el alto estaba libre y ya entra en la suma,
+// asi que la FIRMA no cambia (molde de FLAG_TESTIGO) y un firmware anterior lo ignora. En
+// BKP y no en testigo_flash: un bucle de watchdog escribe cada 4 s y la flash se gasta.
+// Se publica la copia en RAM leida en respaldo_setup(), no el registro.
+static uint8_t reinPublicado = 0;
+static uint8_t antesPublicado = 0;
+static uint32_t segundosEncendido = 0;
+static uint32_t tUltimoSegundo = 0;
+// D-62: bits de RCC_CSR (RM0008 7.3.10). Locales para que el arnes de PC, sin RCC, compile.
+static const uint32_t CSR_PIN = 1UL << 26, CSR_POR = 1UL << 27, CSR_SFT = 1UL << 28;
+static const uint32_t CSR_IWDG = 1UL << 29, CSR_WWDG = 1UL << 30, CSR_LPWR = 1UL << 31;
+static const char* causaArranque = "OTRA";
+
 // --- Acceso crudo ----------------------------------------------------------
 // El dominio de respaldo esta protegido contra escritura para que un programa
 // descarrilado no pueda corromper lo unico que sobrevive a un reinicio. Hay que
@@ -208,7 +222,45 @@ void respaldo_setup() {
     // arrastrar restos: un dato a medias es peor que ninguno, porque parece bueno.
     respaldo_borrar();
   }
+
+  // D-61: un arranque mas; la vida anterior queda en ANTES y la nueva empieza en 0 h.
+  const uint16_t despeje = leerReg(REG_DESPEJE), verde = leerReg(REG_VERDE);
+  reinPublicado = (uint8_t)((despeje >> 8) + 1U);
+  antesPublicado = (uint8_t)(verde >> 8);
+  escribirReg(REG_DESPEJE, (uint16_t)(((uint16_t)reinPublicado << 8) | (despeje & 0xFFU)));
+  escribirReg(REG_VERDE, (uint16_t)(verde & 0xFFU));
+  sellar();
 }
+
+// D-62: prioridad WATCHDOG > SOFTWARE > CORTE > PIN > OTRA. En el F1 un POR y un IWDG
+// levantan tambien PINRSTF, asi que PIN solo cuando NRST es el unico motivo.
+void respaldo_anotarArranque(uint32_t csr) {
+  if (csr & CSR_IWDG) causaArranque = "WATCHDOG";
+  else if (csr & CSR_SFT) causaArranque = "SOFTWARE";
+  else if (csr & CSR_POR) causaArranque = "CORTE";
+  else if ((csr & CSR_PIN) && !(csr & (CSR_WWDG | CSR_LPWR))) causaArranque = "PIN";
+  else causaArranque = "OTRA";
+}
+
+// D-62: UP es un contador propio de segundos (millis()/1000 da la vuelta a los 49 dias).
+// D-61: ANTES se escribe cada hora en el byte alto de DR2, saturado en 255.
+void respaldo_loop(uint32_t ahoraMs) {
+  while (ahoraMs - tUltimoSegundo >= 1000UL) {
+    tUltimoSegundo += 1000UL;
+    segundosEncendido++;
+    if (segundosEncendido % 3600UL != 0) continue;
+    const uint32_t horas = segundosEncendido / 3600UL;
+    const uint16_t alto = (uint16_t)(horas > 255UL ? 255U : horas);
+    escribirReg(REG_VERDE, (uint16_t)((alto << 8) | (leerReg(REG_VERDE) & 0xFFU)));
+    escribirReg(REG_FIRMA, FIRMA);
+    sellar();
+  }
+}
+
+uint8_t respaldo_reinicios() { return reinPublicado; }
+const char* respaldo_causa() { return causaArranque; }
+uint32_t respaldo_segundosEncendido() { return segundosEncendido; }
+uint8_t respaldo_horasAnterior() { return antesPublicado; }
 
 bool respaldo_valido() { return contenidoValido; }
 
@@ -228,8 +280,9 @@ void respaldo_guardarCiclo(uint8_t verdeSeg, uint8_t despejeSeg) {
   // Un ciclo con algun tramo a cero no es configuracion, es ausencia de ella. Se
   // rechaza en vez de guardarse, para que respaldo_hayCiclo() no mienta.
   if (verdeSeg == 0 || despejeSeg == 0) return;
-  escribirReg(REG_VERDE, verdeSeg);
-  escribirReg(REG_DESPEJE, despejeSeg);
+  // D-61: el byte alto es ANTES (DR2) y REIN (DR3); se conserva.
+  escribirReg(REG_VERDE, (uint16_t)((leerReg(REG_VERDE) & 0xFF00U) | verdeSeg));
+  escribirReg(REG_DESPEJE, (uint16_t)((leerReg(REG_DESPEJE) & 0xFF00U) | despejeSeg));
   escribirReg(REG_FLAGS, (uint16_t)(leerReg(REG_FLAGS) | FLAG_CICLO));
   escribirReg(REG_FIRMA, FIRMA);
   sellar();
@@ -277,7 +330,8 @@ bool respaldo_hayCiclo() {
   if (!contenidoValido) return false;
   if ((leerReg(REG_FLAGS) & FLAG_CICLO) == 0) return false;
   // El indicador podria estar puesto y el dato ser cero si algo salio mal a medias.
-  return leerReg(REG_VERDE) != 0 && leerReg(REG_DESPEJE) != 0;
+  // D-61: solo el byte bajo es el ciclo; el alto es REIN/ANTES.
+  return (leerReg(REG_VERDE) & 0xFFU) != 0 && (leerReg(REG_DESPEJE) & 0xFFU) != 0;
 }
 
 // --- Sincronizacion --------------------------------------------------------

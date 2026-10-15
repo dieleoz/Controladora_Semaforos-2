@@ -453,11 +453,11 @@ def _exporta(js):
 
 
 def _usos(nombre, texto):
-    """Las veces que alguien USA el modulo: X.algo, new X, o X( .
+    """Las veces que alguien USA el modulo: X.algo, X[clave] (tabla pura, D-98), new X.
 
     La declaracion propia no cuenta -es `const X = {`- y por eso se exige que detras
-    del nombre venga un punto, un parentesis o que delante venga `new`."""
-    return (len(re.findall(r"\b%s\s*\." % re.escape(nombre), texto))
+    del nombre venga un punto o un corchete, o que delante venga `new`."""
+    return (len(re.findall(r"\b%s\s*[.\[]" % re.escape(nombre), texto))
             + len(re.findall(r"\bnew\s+%s\b" % re.escape(nombre), texto)))
 
 

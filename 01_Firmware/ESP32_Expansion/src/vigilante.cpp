@@ -6,6 +6,7 @@
 #include "transporte_app.h"
 #include "enlace_stm32.h"
 #include "version_fw.h"
+#include "registro.h"
 #include <esp_task_wdt.h>
 #include <esp_system.h>
 #include <stdio.h>
@@ -90,7 +91,7 @@ static bool parteEmitido = false;
 // mal y seguir dando verde. Es N-89 por el otro lado: alli el compositor escondia los
 // literales del pack, aqui se evita darle uno que solo entiende a medias.
 static const char FORMATO_PARTE[] =
-  "$EVENT,NODE:PUENTE,EVT:ARRANQUE,CAUSA:%s,ARRANQUES:%lu,PERRO:%s,WDT_MS:%lu";
+  "$EVENT,NODE:PUENTE,EVT:ARRANQUE,CAUSA:%s,ARRANQUES:%lu,PERRO:%s,WDT_MS:%lu,LOG:%lu";
 
 // EL NOMBRE DE CADA CAUSA, UNA RAMA POR VALOR DEL ENUM DEL IDF.
 //
@@ -148,7 +149,8 @@ size_t vigilante_parteDeArranque(char* destino, size_t capacidad) {
                    nombreCausa(causa),
                    (unsigned long)arranques,
                    vigilante_armado() ? "ARMADO" : "SIN_ARMAR",
-                   (unsigned long)ESP32_WDT_MS);
+                   (unsigned long)ESP32_WDT_MS,
+                   (unsigned long)registro_ultimo());   // D-74: la app solo pide LOG si viene
 
   // snprintf trunca en silencio y devuelve lo que HABRIA escrito. Un parte truncado
   // saldria por trama_componer() con un checksum perfectamente calculado sobre el
@@ -201,7 +203,8 @@ void vigilante_declarar() {
   // ",FW:%s" dentro de FORMATO_PARTE sube a TRES los %s, y esp32_10 reserva -a
   // proposito, y lo dice- el texto MAS LARGO para cada uno sin mirar cual va en cual:
   // 21 caracteres, que es lo que mide PERRO_DE_INTERRUPCION. Su desigualdad pasaria de
-  // 127 a 152 contra un VIGILANTE_PARTE_MAX de 144, cuando el peor caso REAL con el
+  // 127 a 152 (cifras del 16/09; con ,LOG:%lu de D-74 la base es 142) contra un VIGILANTE_PARTE_MAX
+  // de 144, cuando el peor caso REAL con el
   // sello dentro son 132. O sea que el campo obligaria a AGRANDAR el buffer para cubrir
   // un sello de 21 caracteres que no puede existir -el sello mide 7, o 13 con la marca
   // de sucio-, y CLAUDE.md 10 dice justo lo contrario: "no se agrandan buffers". En su

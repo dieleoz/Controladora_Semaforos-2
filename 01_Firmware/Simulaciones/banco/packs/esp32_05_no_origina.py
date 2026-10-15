@@ -167,7 +167,7 @@ EMITE_HACIA_LA_APP = {
     "$ERR,NODE:PUENTE,CMD:LEER_RTC,DESC:MOTIVO_NO_CONTEMPLADO":
         "un valor nuevo del enum sin rama: se contesta en vez de dejar la consulta muda",
 
-    "$EVENT,NODE:PUENTE,EVT:ARRANQUE,CAUSA:%s,ARRANQUES:%lu,PERRO:%s,WDT_MS:%lu":
+    "$EVENT,NODE:PUENTE,EVT:ARRANQUE,CAUSA:%s,ARRANQUES:%lu,PERRO:%s,WDT_MS:%lu,LOG:%lu":
         "el parte de arranque: por que arranco el puente y cuantas veces lleva "
         "arrancando. Revisado a mano el 01/09 y aprobado por tres cosas: va a la APP "
         "y no hacia el STM32 -sale por puente_emitirPropio()-, lleva NODE:PUENTE asi "
@@ -189,17 +189,17 @@ EMITE_HACIA_LA_APP = {
     #      binario-, no pide ni ordena, y su contenido lo fija el PREPROCESADOR
     #      (version_fw.h), asi que no hay nada que este firmware pueda decidir en marcha.
     #
-    # POR QUE ES UNA LINEA PROPIA Y NO UN CAMPO DEL PARTE DE ARRIBA, medido: un ",FW:%s"
-    # dentro de ese formato sube a TRES los %s, y esp32_10 reserva -a proposito- el texto
-    # mas largo para cada uno (21 car., PERRO_DE_INTERRUPCION). Su desigualdad pasaria de
-    # 127 a 152 contra un VIGILANTE_PARTE_MAX de 144, cuando el peor caso REAL son 132: el
-    # campo obligaria a AGRANDAR el buffer para cubrir un sello de 21 caracteres que no
-    # puede existir -mide 7, o 13 con la marca de sucio-, y CLAUDE.md 10 dice lo contrario.
+    # POR QUE UNA LINEA PROPIA: un ",FW:%s" en el parte reservaria 21 car. (esp32_10) para un
+    # sello de 7 (13 sucio) y pasaria de VIGILANTE_PARTE_MAX 144 (base 142 desde ",LOG:%lu").
     "$EVENT,NODE:PUENTE,EVT:VERSION,FW:":
         "el sello de firmware de ESTE modulo, en su propia linea y delante del parte de "
         "arranque -sin saber que firmware se reinicio, el parte no tiene sujeto-. Cierra "
         "CLAUDE.md 0.2 por el lado del accesorio: hasta el 16/09 el hash de lo que habia "
         "dentro solo vivia en la memoria de quien cargo el modulo",
+    "$ACK,NODE:PUENTE,CMD:LOG,RESULT:OK,": "D-74, registro.cpp: cabecera del lote que responde a CMD:LOG",
+    "$EVENT,NODE:PUENTE,EVT:LOG,": "un registro de la flash del puente, D: codificado (, -> ; y : -> =)",
+    "$ERR,NODE:PUENTE,CMD:LOG,DESC:FORMATO_INVALIDO": "DESDE: no es un entero: defecto de la app",
+    "$ERR,NODE:PUENTE,CMD:LOG,DESC:SIN_FLASH": "registro_setup() no hallo la particion spiffs",
 }
 
 # Literales con '$' que NO son emisiones: reconocimiento y censo. Se listan aparte
@@ -213,8 +213,8 @@ NO_SON_EMISIONES = {
     "$EVENT": "censo PREFIJOS_STM32",
     # 11/09: entra al censar tambien "CMD:...". Es la constante con la que el predicado
     # del despachador COMPARA la linea que llega; no se escribe en ningun cable.
-    "CMD:LEER_RTC": "constante de COMPARACION de despachador_esParaElPuente(): la "
-                    "consulta que el puente se queda. No sale por ningun sitio",
+    "CMD:LEER_RTC": "constante de COMPARACION del predicado: la consulta que el puente se queda; no sale",
+    "CMD:LOG,DESDE:": "CMD_LOG_PREFIJO (D-74): prefijo de COMPARACION del predicado, como CMD:LEER_RTC",
 }
 
 # 🔴 LO QUE EL ESP32 ORIGINA HACIA EL STM32. DOS, CON SU MOTIVO, Y NINGUNO MAS.

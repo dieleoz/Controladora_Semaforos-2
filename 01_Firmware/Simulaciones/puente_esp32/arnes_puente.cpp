@@ -1,7 +1,5 @@
 // ===== Simulaciones/puente_esp32/arnes_puente.cpp =====
-//
 // LA PUNTA STM32 DEL SIMULADOR DEL PUENTE — CODIGO REAL, NO UNA COPIA.
-//
 // Este fichero NO reimplementa procesarComando() ni el bucle receptor. Compila el
 // `bluetooth.cpp` REAL de una de las dos puntas -la que diga -DPUNTA_MAESTRO o
 // -DPUNTA_ESCLAVO- y lo expone como un proceso que habla por su entrada y su salida
@@ -391,11 +389,11 @@ bool modo_degradado_syncVencida()          { return mdg_ms_sync >= MDG_LIMITE_MS
 #include "arnes_puente_testigo1.inc"  // D-35: dobles del testigo
 // modo_ambar.cpp: lo llama bluetooth.cpp al atender SET_MODO:AMBAR desde la app -es
 // el unico camino que queda para pedir el ambar, desde D-30 (14/09)-.
-// Aqui habia tambien un modo_degradado_setup(): su unico llamador era mando.cpp, y
-// se retira con el. Si algun dia otro .cpp de los que compila este arnes lo pide, el
-// enlazador lo dira -que es como se ha medido que sobraba-.
+// Sin modo_degradado_setup(): su unico llamador era mando.cpp. Si otro .cpp lo pide, lo
+// dira el enlazador. D-92: el origen del ambar lo lee el periodico ENLACE_RF (ambar de la app).
 void modo_ambar_setup() {}
 void modo_ambar_fijarMotivo(const char*, const char*) {}
+bool modo_ambar_esDeArranque() { return false; }  bool modo_ambar_origenEsclavo() { return false; }
 
 // respaldo.cpp escribe en los registros de respaldo del RTC. Sin RTC no hay donde.
 void respaldo_marcarSync(uint32_t) {}
@@ -482,6 +480,8 @@ bool respaldo_hayCiclo()                    { return resp_hayCiclo; }
 uint32_t respaldo_horasDesdeSync(uint32_t)  { return resp_horas; }
 
 #endif
+uint8_t respaldo_reinicios() { return 1; } const char* respaldo_causa() { return "OTRA"; }  // D-60
+uint32_t respaldo_segundosEncendido() { return 0; } uint8_t respaldo_horasAnterior() { return 0; }
 
 // N-108 - LOS CONTADORES DE LINEA DE SFTY-15, que protocolo.cpp lleva y este arnes
 // sustituye. Suben con cada paquete que el arnes entrega, para que el $EVENT de enlace y

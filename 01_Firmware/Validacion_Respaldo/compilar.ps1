@@ -77,4 +77,18 @@ $OutputEncoding = New-Object System.Text.UTF8Encoding $false
 $respuesta = "PING" | & $exe
 if ($respuesta -ne 'PONG') { Write-Error "El arnes compila pero no responde al PING: '$respuesta'" }
 
-Write-Host "OK: $exe" -ForegroundColor Green
+# D-62: prioridad WATCHDOG > SOFTWARE > CORTE > PIN > OTRA sobre anotarArranque() REAL.
+# Los bits son los de RCC_CSR del manual de referencia del F1 (RM0008 §7.3.10), NO las
+# constantes de respaldo.cpp: PINRSTF 26, PORRSTF 27, SFTRSTF 28, IWDGRSTF 29. En el F1
+# un POR y un IWDG levantan tambien PINRSTF, por eso los casos llevan PIN junto al motivo.
+$PIN = [uint32]1 -shl 26; $POR = [uint32]1 -shl 27; $SFT = [uint32]1 -shl 28; $IWDG = [uint32]1 -shl 29
+$casos = @(@(($IWDG -bor $PIN), 'WATCHDOG'), @(($SFT -bor $PIN), 'SOFTWARE'),
+           @(($POR -bor $PIN), 'CORTE'), @($PIN, 'PIN'), @(0, 'OTRA'))
+$causas = @($casos | ForEach-Object { "CAUSA $($_[0])" } | & $exe)
+for ($i = 0; $i -lt $casos.Count; $i++) {
+    if ($causas[$i] -ne $casos[$i][1]) {
+        Write-Error "CAUSA DIFIERE de D-62: RCC_CSR=$($casos[$i][0]) da '$($causas[$i])', se esperaba '$($casos[$i][1])'"
+    }
+}
+
+Write-Host "OK: $exe (CAUSA D-62 $($casos.Count)/$($casos.Count))" -ForegroundColor Green

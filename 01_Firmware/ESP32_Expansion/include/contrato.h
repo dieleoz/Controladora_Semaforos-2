@@ -332,4 +332,17 @@ extern const char* const PREFIJOS_STM32[PREFIJOS_STM32_N];
 #define ROTULO_PROVISIONAL    "SEM-SIN-MATRICULA"
 #define ROTULO_MAX            32
 
+// ---------------------------------------------------------------------------
+// REGISTRO DEL PUENTE (SPEC_4 9.8, D-72..D-74). FIFO en la particion `spiffs` en crudo.
+// Un registro mide REGISTRO_REG_B: seq u32, up_ms u32, fecha u8[6], clase u8, len u8,
+// texto[REGISTRO_TEXTO_MAX], crc16 u16. Ocho en RAM entre dos vueltas de loop(); un lote
+// de la consulta CMD:LOG,DESDE:<N> lleva como mucho REGISTRO_LOTE_MAX (16 x ~170 B, la
+// mitad de la cola de BluetoothSerial). El periodico de radio (D-23, 120/h) no se anota.
+// ---------------------------------------------------------------------------
+#define REGISTRO_REG_B        128
+#define REGISTRO_TEXTO_MAX    110
+#define REGISTRO_ANILLO       8
+#define REGISTRO_LOTE_MAX     16
+#define REGISTRO_EXCLUIR      "ORIGEN:ENLACE_RF"
+
 #endif // CONTRATO_H

@@ -48,4 +48,31 @@ module.exports = async function pruebaExportarApk(montarAppLimpia, assert) {
   await esperar();
   assert(/EXPORTAR COMO ARCHIVO fallo: esta APK no trae la pieza nativa/.test(eventos(vieja)),
     'Exportar APK sin plugins: el rojo de siempre, no un boton mudo');
+
+  // SPEC_4 9.10 (d), D-89: en la practica sin poste el fichero se llama SIMULADO, abre con la marca y la sesion de
+  // EXTERNAL (D-55) no escribe nada.
+  const lp = { write: [], append: [] };
+  const pr = montar({
+    Filesystem: { writeFile: (x) => { lp.write.push(x); return Promise.resolve({ uri: 'file:///c/' + x.path }); },
+                  appendFile: (x) => { lp.append.push(x); return Promise.resolve(); } },
+    Share: { share: () => Promise.resolve({}) }
+  });
+  const g = (id) => pr.d.getElementById(id);
+  g('btn-toggle-role').click(); g('clave-entrada').value = '1234'; g('btn-clave-entrar').click();
+  g('btn-bt-disconnect').click();
+  const P = pr.w.Practica || { entrar() {}, salir() {}, _tick() {} };
+  P.entrar();
+  await esperar();
+  lp.write.length = 0; lp.append.length = 0;
+  const fila = pr.d.querySelector('#bt-modal .bt-device-item[data-mac="SIM:1"]');
+  if (fila) fila.click();
+  for (let i = 0; i < 60; i++) P._tick();
+  g('btn-exportar-todo').click();
+  await esperar();
+  const wp = lp.write.find(x => x.directory === 'CACHE') || {};
+  assert(!!pr.w.Practica && lp.append.length === 0 && !lp.write.some(x => x.directory === 'EXTERNAL') &&
+         /^IOTVIAL_SIMULADO_.*\.txt$/.test(wp.path || '') && /^Simulado: SI/.test(wp.data || ''),
+    `Exportar en practica: IOTVIAL_SIMULADO_*.txt que abre con "Simulado: SI" y nada en EXTERNAL (${wp.path}, ` +
+    `${lp.append.length} append)`);
+  P.salir();
 };

@@ -8,7 +8,7 @@
 //
 // LO QUE ESTE MODULO NO HACE, Y ES A PROPOSITO:
 //   - No pinta ningun modo. Pulsar es "orden enviada"; lo que el equipo hizo lo dicen su
-//     $ACK (texto en ACK_TEXTO de app.js) o su $ERR (texto aqui, en MOTIVOS).
+//     $ACK (texto en ACK_TEXTO, js/textos_ack.js) o su $ERR (texto aqui, en MOTIVOS).
 //   - No escribe al cable: todo sale por enviarComandoFirmware(), cuyo bool se mira.
 //   - No lleva al ESCLAVO un testigo que el MAESTRO no haya ACUSADO: una punta dentro y
 //     la otra no es el caso peor de SPEC_6 §8. Sin acuse queda ENVIADO, y ENVIADO no se
@@ -180,6 +180,14 @@ const Testigo = {
       g.aceptadoMs = Date.now();
       this.guardar(g);
     }
+    // D-78: la app no ve el ciclo del POSTE 1 (D-60); la medida es el acuse. OK con enCaliente es entrada nueva.
+    // El toast va tras el de ACK_TEXTO, que app.js pone despues de este enganche.
+    if (node === 'MAESTRO' && g && g.enCaliente && data.RESULT === 'OK') {
+      const t = 'el POSTE 1 cambio de ciclo en marcha: el POSTE 2 sigue con el anterior hasta aceptar este ' +
+                'testigo; mantenga el paletero en los dos extremos';
+      this.ctx.addEvent('red', 'Degradado con testigo: ' + t);
+      setTimeout(() => this.ctx.showToast(t, 6000), 0);
+    }
     if (node === 'MAESTRO' && g) {
       this.ctx.addEvent('red', 'Testigo del POSTE 1 guardado en este telefono: inicio ' +
         g.inicio + ', verde ' + this._min(g.verde) + ', despeje ' + g.despeje + ' s. Lleve el ' +
@@ -341,8 +349,9 @@ const Testigo = {
   // difieren. Se pregunta si cambian respecto al testigo guardado, o si no hay con que comparar.
   _cambioEnCaliente(punta, previa) {
     if (punta !== 'MAESTRO' || this.ctx.state.modo !== 'DEGRADADO') return false;
-    const g = this.leer();
-    return !g || previa.verde !== g.verde || previa.despeje !== g.despeje;
+    const g = this.leer();   // D-78: tambien si el guardado es de otra SERIE
+    return !g || previa.verde !== g.verde || previa.despeje !== g.despeje ||
+           !!(g.serie && this.ctx.state.serie && g.serie !== this.ctx.state.serie);
   },
 
   _pulsar(punta, confirmado) {
@@ -363,12 +372,13 @@ const Testigo = {
       return;
     }
     if (!confirmado && this._cambioEnCaliente(punta, previa)) {
-      if (typeof Dialogo === 'undefined') { this._aviso('no se puede preguntar: no se envia.'); return; }
-      Dialogo.confirmar('Cambio de tiempos con el Degradado en marcha',
-        'Cambio de tiempos con el Degradado en marcha. Hasta que el POSTE 2 acepte el MISMO testigo, ' +
-        'los dos postes llevan ciclos distintos y puede haber verde en los dos sentidos. Ponga ' +
-        'paletero en los dos extremos ANTES de seguir y lleve el testigo al POSTE 2 antes de las ' +
-        previa.inicio + '.', 'Paletero puesto: enviar', () => this._pulsar(punta, true));
+      // D-81 (SPEC_4 9.9 (e)): UN solo aviso, el de paleteros, con lo que exigian los dos; la barrera no afloja.
+      const av = typeof AvisoDegradado !== 'undefined' ? AvisoDegradado : null;
+      if (!av || !av.preguntar(this.ORDEN, 'Cambio de tiempos con el Degradado en marcha', 'Hasta que el POSTE 2 ' +
+        'acepte el MISMO testigo, los dos postes llevan ciclos distintos y puede haber verde en los dos sentidos. ' +
+        'Sin radio el otro poste no se entera y sigue dando verdes por su reloj. Ponga PALETEROS en los dos ' +
+        'extremos ANTES de seguir y lleve el testigo al POSTE 2 antes de las ' + previa.inicio + '.',
+        c.addEvent, () => this._pulsar(punta, true))) this._aviso('no se puede preguntar: no se envia.');
       return;
     }
     if (!c.state.pinVerificado) { c.pedirPin(() => this._pulsar(punta, confirmado)); return; }

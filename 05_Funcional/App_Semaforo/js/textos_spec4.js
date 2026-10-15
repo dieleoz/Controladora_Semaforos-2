@@ -1,6 +1,6 @@
 // ===== js/textos_spec4.js =====
 // Textos de los $ACK y $ERR de SPEC_4 §3.1/§3.2 que caian en el generico "ACEPTADA (...)" o en "motivo sin traducir",
-// y el texto de la emergencia del Maestro segun el modo. Molde de ACK_TEXTO / ERR_TEXTO de app.js (que los consulta
+// y el texto de la emergencia del Maestro por modo. Molde de ACK_TEXTO / ERR_TEXTO (js/textos_*.js; app.js los consulta
 // DESPUES de esta tabla): {tono, texto, toast}. Para quien esta de pie en la calzada: cortos, solo lo que el equipo dijo,
 // y ninguno promete el OTRO poste. ERR va por 'CMD|DESC', como ERR_TEXTO. Sin cifras del firmware (CLAUDE.md 14).
 const TextosSpec4 = {
@@ -14,14 +14,6 @@ const TextosSpec4 = {
       texto: 'Equipo: orden MANUAL aceptada en ESTE poste. Entra por el todo-rojo y espera: el paso se da ' +
              'con DAR PASO.',
       toast: 'Manual aceptado: todo-rojo hasta DAR PASO' },
-    // SPEC_4 §3.1 y §7: OK sin condicion fuera de Degradado (dentro, $ERR); la luz es lo que dice si entro.
-    'SET_MODO:ALCANCE|OK': { tono: 'cyan',
-      texto: 'Equipo: orden PRUEBA DE ALCANCE aceptada. Mire la luz: debe quedar en rojo fijo.',
-      toast: 'Alcance aceptado: compruebe el rojo fijo' },
-    'SET_MODO:INTELIGENTE|OK': { tono: 'cyan',
-      texto: 'Equipo: orden INTELIGENTE aceptada. El modo se ve en el rotulo del modo y en la luz, ' +
-             'no en este aviso.',
-      toast: 'Inteligente aceptado: compruebe el modo' },
     'TEST_LEDS|STARTING_6S': { tono: 'cyan',
       texto: 'Equipo: prueba de LEDs ARMADA, dura unos 6 s. Mire las lamparas mientras corre.',
       toast: 'Prueba de LEDs en marcha' },

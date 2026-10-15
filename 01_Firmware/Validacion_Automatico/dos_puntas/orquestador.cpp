@@ -1438,7 +1438,6 @@ int main() {
   }
 
   {
-    // Y el dominio de respaldo NO se pierde en ese corte: lo mantiene la pila.
     escenarioLimpio(0);
     sincronizarEsclavo(10, 12, 0, 0);
     long dominioAntes[PUNTA_DOMINIO_PALABRAS];
@@ -1447,8 +1446,9 @@ int main() {
     for (int i = 0; i < 10; i++) if (dominioAntes[i] != 0) habiaAlgo = true;
     microcorte(ESCLAVO);
     bool iguales = true;
-    for (int i = 0; i < 10; i++) if (ESCLAVO.domLeer(i) != dominioAntes[i]) iguales = false;
-    comprobar(habiaAlgo && iguales,
+    for (int i = 0; i < 10; i++)   // D-61: fuera REIN/ANTES (bytes altos de DR3/DR2) y la suma DR7/DR8
+      if ((ESCLAVO.domLeer(i) ^ dominioAntes[i]) & (i == 1 || i == 2 ? 0xFF : i == 6 || i == 7 ? 0 : 0xFFFF)) iguales = false;
+    comprobar(habiaAlgo && iguales && ((ESCLAVO.domLeer(2) >> 8) & 0xFF) == (((dominioAntes[2] >> 8) + 1) & 0xFF),
               "E6: el dominio de respaldo (BKP->DR1..DR10, el que mantiene la CR2032) "
               "SOBREVIVE al microcorte. Sin esto el Modo Degradado no podria reanudar "
               "nunca y el bloque B mediria un equipo que no existe");

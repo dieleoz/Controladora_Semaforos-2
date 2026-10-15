@@ -19,7 +19,6 @@ static const unsigned long MAX_VERDE_BACKSTOP_MS = 6300000UL;
 
 // ---------------------------------------------------------------------------
 // SFTY-17: Retardo de cortesia antes de responder
-//
 // En modo REPETIDOR hay una radio intermedia (B2) que acaba de TRANSMITIR la
 // orden hacia este nodo y necesita tiempo para volver a RECEPCION. Si el Esclavo
 // contesta de inmediato, su respuesta sale mientras B2 todavia esta conmutando y
@@ -63,7 +62,6 @@ static void atenderRespuestaPendiente() {
 
 // ---------------------------------------------------------------------------
 // SFTY-23: Sincronizacion horaria por radio (lado Esclavo)
-//
 // NADA de lo que hay en este bloque toca las luces ni el backstop de verde
 // maximo. El Esclavo puede estar en verde mientras se le pone en hora y no debe
 // enterarse: se escribe en el RTC y en dos variables, punto.
@@ -168,6 +166,7 @@ static int8_t calcularDesfase(uint8_t segundoMaestro) {
 }
 
 void setup() {
+  respaldo_anotarArranque(respaldo_leerCsr());  // D-62: antes que nada
   // LAS LUCES PRIMERO, SIEMPRE. Pase lo que pase mas abajo, el cruce ya esta en rojo
   // y es un semaforo. Esa parte del orden no se toca.
   semaforo_setup();
@@ -300,6 +299,7 @@ void setup() {
 void loop() {
   // SFTY-1: Watchdog reload
   IWatchdog.reload();
+  respaldo_loop(millis());  // D-61/D-62: UP y ANTES
 
   // N-25: reintento en segundo plano del cristal del reloj. Va al principio del bucle
   // y no cuesta nada -sale por la primera linea si el RTC ya cuenta, y si no, lee un

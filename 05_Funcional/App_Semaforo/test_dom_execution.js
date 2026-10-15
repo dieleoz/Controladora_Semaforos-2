@@ -1562,7 +1562,7 @@ assert(!/no lo publica/i.test(s2Text.textContent),
 // pintaria en el POSTE 1 el dato que dejo un Maestro hace dos minutos.
 conectarComo('MAESTRO', 'SERIE:SEM-M-01,MODO:AUTO,ESTADO:ROJO,T:20,RF:97,RTT:70,BAT:12.9,HORA:16:00:12,ESC:VERDE');
 conectarComo('ESCLAVO', 'SERIE:SEM-E-01,MODO:SUBORDINADO,ESTADO:ROJO,T:--,RF:--,RTT:--,BAT:--,HORA:16:00:14');
-assert(s1TextDom.textContent.includes('no viaja en esta trama'),
+assert(s1TextDom.textContent.includes('se ve desde el POSTE 1'),   // D-80: la frase sin jerga
   `Contra el ESCLAVO la columna del POSTE 1 sigue declarando que ese dato no viaja: "${s1TextDom.textContent}"`);
 assert(!s1TextDom.textContent.includes('VERDE'),
   'y NO hereda el ESC: que publico el Maestro hace dos tramas: es dato de otro equipo');
@@ -1852,8 +1852,8 @@ const conTramo = ultimoEvento();
 assert(conTramo.indexOf('REVISE EL CIRCUITO') >= 0 &&
        conTramo.indexOf('REVISE EL CIRCUITO') < conTramo.indexOf('[ultimo tramo'),
   'D-26: la instruccion sale ANTES que el ultimo tramo de la radio, pegada al literal');
-assert(/revise el circuito ESP32-STM32/i.test(toastDom.textContent),
-  `D-26: el aviso emergente dice que hacer, no solo "ALERTA: HORA_ESP32": "${toastDom.textContent}"`);
+assert(!require('./tests/dom_usabilidad.js').JERGA.test(toastDom.textContent) && /avise al tecnico/.test(toastDom.textContent),
+  `D-101: el toast dice que hacer sin jerga (el circuito sigue en Eventos): "${toastDom.textContent}"`);
 
 // 15.3 LA ALARMA SE GUARDA CON LA INSTRUCCION. El registro de eventos de la pantalla vive
 // en memoria; la bitacora es lo que sobrevive a que Android cierre la app y lo que se
@@ -2021,10 +2021,10 @@ assert(/deja de descartar/.test(ultimoEvento()),
 // Decia "NO publica calidad de radio" a secas, y desde D-23 eso manda al tecnico a no
 // buscar un dato que si existe (CLAUDE.md 14: el rotulo sobrevivio al sujeto).
 const textoPanelDiag = panelDiagDom.textContent.replace(/\s+/g, ' ');
-assert(/Sí publica, desde D-23/.test(textoPanelDiag) &&
+assert(/Sí publica también/.test(textoPanelDiag) &&   // D-80: sin D-23 lo mide J de dom_usabilidad
        /contadores de su propia radio/.test(textoPanelDiag),
   'D-23: la ventana del POSTE 2 dice que esta punta SI publica los contadores de su radio');
-assert(/BAT:--/.test(textoPanelDiag) && /porcentaje/.test(textoPanelDiag),
+assert(/NO publica: batería/.test(textoPanelDiag) && /porcentaje/.test(textoPanelDiag),   // D-80: sin el campo
   'D-23: y sigue diciendo lo que de verdad NO publica, que no ha cambiado');
 
 // =========================================================================

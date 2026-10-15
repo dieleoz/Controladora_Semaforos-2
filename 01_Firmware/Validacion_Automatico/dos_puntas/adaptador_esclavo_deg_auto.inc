@@ -51,6 +51,7 @@ static int  g_alarmasEmitidas = 0;
 // rojo (D-26 (4)), por su detalle. Ver el mismo par en adaptador_maestro_deg.cpp.
 static int  g_alarmasCaducada = 0;
 static int  g_eventosSaltoRojo = 0;
+static int  g_alarmasLimite48h = 0;   // D-68: la rendicion del Esclavo, por su causa
 
 void bluetooth_setup() {}
 void bluetooth_loop() {}
@@ -64,6 +65,7 @@ void bluetooth_reportarAlarma(const char* evento, const char* causa, const char*
   g_alarmasEmitidas++;
   arnesDegAuto_notar(evento, causa);   // A-15: bloque H
   if (!strcmp(evento, "HORA_ESP32") && !strcmp(causa, "CADUCADA")) g_alarmasCaducada++;
+  if (!strcmp(evento, "DEGRADADO") && !strcmp(causa, "LIMITE_48H")) g_alarmasLimite48h++;
 }
 void bluetooth_reportarEvento(const char* origen, const char* detalle) {
   arnesDegAuto_notar(origen, detalle);   // A-15: bloque H

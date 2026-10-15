@@ -50,11 +50,6 @@ static unsigned long tUltimoDiagEnlace = 0;
 
 // ---------------------------------------------------------------------------
 // A3 - EL REGISTRO DE SILENCIO DEL PUERTO J17.
-//
-// POR QUE LO LLEVA ESTE MICRO. El ESP32 no puede reportar su propia muerte: el equipo
-// que sobrevive al fallo es este, asi que el registro es suyo. Hoy, si J17 se calla, no
-// lo apunta nadie, y cuando el tecnico llega lo que paso ya no esta.
-//
 // QUE MIDEN ESTOS TRES NUMEROS Y QUE NO. ESTA ES LA MITAD IMPORTANTE.
 //
 // MEDIDO sobre el puente, no supuesto:
@@ -87,12 +82,6 @@ static unsigned long tUltimoDiagEnlace = 0;
 // Y ESTO CUENTA; NO ACTUA. De aqui no sale una sola escritura de luz. El ambar
 // automatico sigue reservado a los caminos que ya lo tienen -SFTY-6 y el watchdog-: la
 // maquina no decide sola operar de un modo que nadie pidio.
-//
-// SE MIDE POR LINEA COMPLETA, no por byte: el puente entrega lineas y el receptor de
-// abajo solo actua sobre lineas. La PRIMERA linea tras el arranque cierra el silencio
-// que empezo en el arranque, que es un silencio real y el unico capaz de contestar
-// "llevo tres dias sin que nadie hable por aqui".
-//
 //
 // EL ULTIMO SILENCIO NO SE GUARDA, Y NO ES UN OLVIDO. Se publica en el instante en que
 // se cierra -que es el unico en que alguien puede estar mirando, ver abajo-, asi que
@@ -285,8 +274,8 @@ void bluetooth_reportarEvento(const char* origen, const char* detalle) {
   // se truncaba POR EL FINAL -o sea por la HORA-, el checksum se calculaba sobre lo que
   // quedo y el otro extremo la habria descartado. Es N-108 letra por letra, y el numero
   // que lo dijo salio de la cuenta que rehace el pack, no de mirarlo. Los 12 B son de
-  // pila, no de flash, y el presupuesto de J17 los recalcula solo.
-  char payload[112];
+  // pila, no de flash; el presupuesto de J17 los recalcula. D-60: 128 por REIN; D-92: 144 por AMBAR.
+  char payload[144];
   snprintf(payload, sizeof(payload), "$EVENT,NODE:MAESTRO,ORIGEN:%s,DETALLE:%s,HORA:%s",
            origen, detalle, horaBuf);
   enviarTramaConCrc(payload);
@@ -680,6 +669,7 @@ static void procesarComando(const char* cmd) {
               strcmp(cmd + 4, "SET_MODO:ALCANCE") == 0 ||
               strcmp(cmd + 4, "CONSULTA_DEG_AUTO") == 0 ||   // A-15: solo mira
               strcmp(cmd + 4, "CONSULTA_DEG_FIN") == 0 ||    // D-52: solo mira
+              strcmp(cmd + 4, "REINICIOS") == 0 ||           // D-60: solo mira
               strcmp(cmd + 4, "VERSION") == 0)) {
     accion = cmd + 4;
   } else {
@@ -700,19 +690,12 @@ static void procesarComando(const char* cmd) {
     enviarTramaConCrc("$ACK,CMD:SET_MODO:MANUAL,RESULT:OK");
     bluetooth_reportarEvento("APP_BLUETOOTH", "SET_MODO_MANUAL");
   } else if (strcmp(accion, "SET_MODO:AMBAR") == 0) {
-    // N-146 (05/09): EL AMBAR CONTESTABA OK Y NO ENCENDIA NADA. LO DESTAPO UNA CINTA: el 04/09 a las 21:10 hay SEIS
-    // "CMD:PIN:****:SET_MODO:AMBAR" seguidos, los seis con "$ACK,CMD:SET_MODO:AMBAR,RESULT:OK" y 47 $STATUS despues
-    // con "MODO:AMBAR,ESTADO:ROJO": el operario pulso seis veces porque el cruce no se movia. POR QUE: entrar al
-    // ambar es trabajo de modo_ambar_setup(), y main.cpp solo lo llama EN EL FLANCO (modo != modoAnterior); con el
-    // modo ya en MODO_AMBAR modoActual_set() no hace nada. Al par (MODO_AMBAR, luz en rojo) se llega por un camino
-    // normal: CMD:FORZAR_ROJO cambia LA LUZ y no el MODO, a proposito (entra sin PIN desde cualquier modo). Se
-    // re-arma (barrera de salidas, CLAUDE.md 6: un $ACK que no depende de lo que se hizo es una mentira con formato
-    // de exito) y se contesta DISTINTO en los dos casos para que el diario los separe. Re-armar no es gratis
-    // -modo_ambar_setup() manda un todo-rojo-, y por eso NO se hace desde el aviso del Esclavo (N-142, main.cpp), que
-    // llega repetido; aqui lo pide una persona pulsando un boton. N-152 (05/09): ESTE AMBAR LO PIDE ALGUIEN DE ESTE
-    // POSTE, Y ESO SE ESCRIBE: la pantalla heredaba el motivo anterior (el unico de los cuatro caminos al ambar que
-    // no fijaba ninguno) y es lo que impide que el aviso de cancelacion del Esclavo saque al cruce de un ambar que
-    // pidio una persona de aqui. Ver modo_ambar.h.
+    // N-146 (05/09): EL AMBAR CONTESTABA OK Y NO ENCENDIA NADA (cinta del 04/09: seis pulsaciones, seis OK, cruce en
+    // rojo). main.cpp solo llama modo_ambar_setup() EN EL FLANCO (modo != modoAnterior), y al par (MODO_AMBAR, luz
+    // en rojo) se llega por CMD:FORZAR_ROJO, que cambia LA LUZ y no el MODO. Se re-arma y se contesta DISTINTO
+    // (CLAUDE.md 2: un $ACK depende de lo que se hizo). Re-armar manda un todo-rojo: por eso NO se hace desde el
+    // aviso repetido del Esclavo (N-142, main.cpp); aqui lo pide una persona. N-152: el motivo se fija aqui para que
+    // el aviso de cancelacion del Esclavo no saque al cruce de un ambar pedido en este poste. Ver modo_ambar.h.
     modo_ambar_fijarMotivo("Ambar pedido desde", "la app (celular)");
     const bool yaEnModo = (modoActual_get() == MODO_AMBAR);
     modoActual_set(MODO_AMBAR);
@@ -746,11 +729,13 @@ static void procesarComando(const char* cmd) {
       bluetooth_reportarEvento("APP_BLUETOOTH", "SET_MODO_MENU");
     }
   } else if (strcmp(accion, "SET_MODO:ALCANCE") == 0) {
-    // Del Degradado se sale por su puerta y no por aqui. El rojo fijo del alcance es
-    // seguro por si mismo, pero llegar a el saltandose el todo-rojo deja a la otra
-    // punta dando verde sin que nadie haya verificado las dos.
+    // Del Degradado se sale por su puerta: saltarse su todo-rojo deja a la otra punta dando verde sin verificar.
+    // D-65 (CLAUDE.md 2): con el modo ya puesto main.cpp no corre nada (solo en el flanco): SIN_CAMBIO y nada mas,
+    // sin re-armar (un REARMADO correria un todo-rojo que nadie pidio; se reinicia pasando por MENU).
     if (modoActual_get() == MODO_DEGRADADO) {
       enviarTramaConCrc("$ERR,CMD:SET_MODO:ALCANCE,DESC:EN_MARCHA_PARE_EL_MODO");
+    } else if (modoActual_get() == MODO_ALCANCE) {   // D-65: yaEnModo, leido ANTES de modoActual_set()
+      enviarTramaConCrc("$ACK,CMD:SET_MODO:ALCANCE,RESULT:SIN_CAMBIO");
     } else {
       modoActual_set(MODO_ALCANCE);
       enviarTramaConCrc("$ACK,CMD:SET_MODO:ALCANCE,RESULT:OK");
@@ -761,6 +746,8 @@ static void procesarComando(const char* cmd) {
     // todo-rojo de 30 s en las dos puntas, y ciclar sin cumplirlo deja a la otra unidad en su ciclo por reloj.
     if (modoActual_get() == MODO_DEGRADADO) {
       enviarTramaConCrc("$ERR,CMD:SET_MODO:INTELIGENTE,DESC:EN_MARCHA_PARE_EL_MODO");
+    } else if (modoActual_get() == MODO_INTELIGENTE) {   // D-65: como ALCANCE, sin re-armar
+      enviarTramaConCrc("$ACK,CMD:SET_MODO:INTELIGENTE,RESULT:SIN_CAMBIO");
     } else {
       modoActual_set(MODO_INTELIGENTE);
       enviarTramaConCrc("$ACK,CMD:SET_MODO:INTELIGENTE,RESULT:OK");
@@ -994,6 +981,16 @@ static void procesarComando(const char* cmd) {
       // hacen caso.
       enviarTramaConCrc("$ERR,CMD:DEMANDA,DESC:REPITA_EN_UNOS_SEGUNDOS");
     }
+  } else if (strcmp(accion, "REINICIOS") == 0) {
+    // D-60/D-61/D-62: solo mira y no va al Diario, como VERSION. char[96]: peor caso 89 con
+    // las cotas de tipo (uint8 REIN y ANTES). El $ACK depende de que la trama cupiera.
+    char r[96];
+    const int n = snprintf(r, sizeof(r),
+        "$ACK,CMD:REINICIOS,RESULT:OK,NODE:MAESTRO,REIN:%u,CAUSA:%s,UP:%lu,ANTES:%u",
+        (unsigned)respaldo_reinicios(), respaldo_causa(),
+        (unsigned long)respaldo_segundosEncendido(), (unsigned)respaldo_horasAnterior());
+    if (n > 0 && n < (int)sizeof(r)) enviarTramaConCrc(r);
+    else enviarTramaConCrc("$ERR,CMD:REINICIOS,DESC:NO_CABE,NODE:MAESTRO");
   } else if (strcmp(accion, "VERSION") == 0) {
     // 1.51 - EL EQUIPO DICE QUE FIRMWARE LLEVA. Ver version_fw.h para el sello.
     //
@@ -1156,6 +1153,13 @@ static void diagDegradadoPublicar(unsigned long ahora) {
   snprintf(det, sizeof(det), "SYNC:%s AVISO:%s VENCIDA:%s",
            syncTxt, aviso ? "SI" : "NO", vencida ? "SI" : "NO");
   bluetooth_reportarEvento("DEGRADADO", det);
+}
+
+// D-92 (SPEC_4 9.11): el origen del ambar del Poste 1, de las marcas que ya gobiernan el veto
+// R-4 y la cancelacion N-152 (sin estado nuevo). Solo literales: esp32_07 lo acota por su return.
+static const char* ambarOrigenTxt() {
+  return modoActual_get() != MODO_AMBAR ? "" : (modo_ambar_esDeArranque() ? " AMBAR:ARRANQUE"
+         : (modo_ambar_origenEsclavo() ? " AMBAR:POSTE2" : " AMBAR:APP"));
 }
 
 void bluetooth_loop() {
@@ -1532,11 +1536,8 @@ void bluetooth_loop() {
   // del $STATUS este en las DOS puntas, y el Esclavo esta en el mismo techo. Por eso es un
   // $EVENT: el sitio donde D-32 (2) ya puso el dato gemelo el mismo dia.
   //
-  // ES EL MISMO BLOQUE QUE EL DEL ESCLAVO LETRA POR LETRA -misma constante, misma cadencia,
-  // mismo ORIGEN, mismo formato y mismo buffer- Y ESO NO ES COPIA PEREZOSA: es lo que
-  // permite que el tecnico compare la linea de un poste con la del otro sin traducir nada,
-  // que es la mitad del valor del dato. Dos formatos distintos para el mismo par de
-  // contadores obligarian a recordar cual es cual justo cuando hay prisa.
+  // EL MISMO BLOQUE QUE EL DEL ESCLAVO -constante, cadencia, ORIGEN y contadores-, para que el
+  // tecnico compare un poste con otro sin traducir; D-92 solo anade aqui el AMBAR: final.
   //
   // POR QUE FUERA DEL if DEL $STATUS Y CON SU PROPIO RELOJ: colgando de aquel, la cadencia
   // dejaria de ser la que dice DIAG_ENLACE_MS para pasar a ser un multiplo del periodico, y
@@ -1544,10 +1545,8 @@ void bluetooth_loop() {
   // -esp32_07_presupuesto_bytes y simulador_puente_esp32- estarian midiendo un bloque que
   // ya no es solo el $STATUS.
   //
-  // POR QUE 30 s Y NO OTRO NUMERO: es el mismo que el Esclavo, y el motivo entero esta
-  // escrito alli -no sale de los bytes, sale de la bitacora de 30 entradas de la app-.
-  // Separarlos seria dos numeros que significan lo mismo, o sea dos que se separan el dia
-  // que alguien toca uno.
+  // POR QUE 30 s: el del Esclavo, con su motivo escrito alli (la bitacora de 30 entradas de la
+  // app). Separarlos seria dos numeros que significan lo mismo y se separan el dia que se toca uno.
   //
   // LIMITE DECLARADO, el mismo que alli: arranca en 0, asi que la primera sale a los
   // DIAG_ENLACE_MS de encender y no en el arranque, cuando todavia puede no haber nadie
@@ -1561,10 +1560,8 @@ void bluetooth_loop() {
   // que prometer, al reves que el RF/RTT/SINRESP del $ALARM, que si tienen cota declarada y
   // por eso se comparan-, asi que se acotan a su tope de TIPO, que son las diez cifras de un
   // unsigned long. Parte fija de este formato: "RX:" + " OK:" + " RUIDO:" = 14.
-  // 14 + 30 = 44 caracteres + NUL = 45. Inventarles un techo para estrechar el buffer seria
-  // una cota escrita en vez de medida. Que el $EVENT ENTERO quepa luego en su payload[112]
-  // no se afirma aqui: lo recalcula esp32_07_presupuesto_bytes leyendo este snprintf y el
-  // del emisor.
+  // 14 + 30 = 44 caracteres + NUL = 45; un techo inventado seria una cota escrita, no medida.
+  // Que el $EVENT entero quepa en su payload lo recalcula esp32_07_presupuesto_bytes.
   //
   // EL SEPARADOR SON ESPACIOS Y NO COMAS, y no es estilo: _camposNmea() de la app parte la
   // trama por ',' y cada trozo por su PRIMER ':', asi que una coma dentro del DETALLE
@@ -1572,10 +1569,10 @@ void bluetooth_loop() {
   // ---------------------------------------------------------------------------
   if (ahora - tUltimoDiagEnlace >= DIAG_ENLACE_MS) {
     tUltimoDiagEnlace = ahora;
-    char det[45];
-    snprintf(det, sizeof(det), "RX:%lu OK:%lu RUIDO:%lu",
+    char det[76];  // D-60: " REIN:" (6) y un %u por TIPO (10); D-92: " AMBAR:ARRANQUE" (15): 44+16+15+NUL
+    snprintf(det, sizeof(det), "RX:%lu OK:%lu RUIDO:%lu REIN:%u%s",
              protocolo_bytesRecibidos(), protocolo_tramasValidas(),
-             protocolo_tramasDescartadas());
+             protocolo_tramasDescartadas(), (unsigned)respaldo_reinicios(), ambarOrigenTxt());
     bluetooth_reportarEvento("ENLACE_RF", det);
   }
 

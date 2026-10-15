@@ -134,6 +134,10 @@ COPIAS_DEL_DESPEJE = [
      "acotar el retardo de bajada de la pluma contra el todo-rojo mas corto (D-33)"),
     ("DESPEJE_MAX_HEREDADO_SEG", ("Esclavo", "src", "botones.cpp"), "DESPEJE_SEG_MAX",
      "decidir cuando una pluma retenida deja de ser segura para el tramo (D-33)"),
+    ("VERDE_MIN_MIN_HEREDADO", ("Esclavo", "src", "modo_degradado.cpp"), "VERDE_MIN_MIN",
+     "acotar por abajo el verde del testigo, en la entrada y al reanudar (D-77)"),
+    ("VERDE_MIN_MAX_HEREDADO", ("Esclavo", "src", "modo_degradado.cpp"), "VERDE_MIN_MAX",
+     "acotar por arriba el verde del testigo, en la entrada y al reanudar (D-77)"),
 ]
 
 

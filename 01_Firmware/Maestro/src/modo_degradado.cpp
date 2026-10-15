@@ -138,12 +138,12 @@ static const unsigned long ROJO_TRANSICION_MS = (unsigned long)DEG_DESPEJE_SEG *
 // DS3231 (reloj_segundosDesde2000()), no con el contador del RTC: sin Y2 no cuenta, y HAL_RTC_GetTime lo reescribe.
 // ---------------------------------------------------------------------------
 static const int32_t  TOLERANCIA_TESTIGO_S   = 3;
-static const int      TESTIGO_DESPEJE_MIN    = 30;
-static const int      TESTIGO_DESPEJE_MAX    = 255;
+static const int      TESTIGO_DESPEJE_MIN    = 30, TESTIGO_DESPEJE_MAX = 255;
 static const uint16_t TESTIGO_VERDE_MIN_S = VERDE_MIN_MIN * 60U, TESTIGO_VERDE_MAX_S = VERDE_MIN_MAX * 60U;   // D-59
+// D-76: la guarda del verde, la misma en la entrada y al reanudar (un registro fuera es AUSENTE).
+static bool verdeTestigoAdmitido(int v) { return v >= TESTIGO_VERDE_MIN_S && v <= TESTIGO_VERDE_MAX_S && v % 60 == 0; }
 static const uint32_t TESTIGO_INICIO_MAX_S   = 43200UL;           // 12 h: mas es "ya paso"
-// 29/09 (responsable, H9): el testigo YA NO VENCE -se retiro TESTIGO_VIGENCIA_S, los 31 dias
-// a ambar-. Queda el aviso: a los 28 dias y despues una vez al dia, sin tocar luz ni modo.
+// H9 (29/09): el testigo YA NO VENCE (sin TESTIGO_VIGENCIA_S); avisa a los 28 dias y a diario, sin tocar luz ni modo.
 static const uint32_t TESTIGO_AVISO_S        = 28UL * 86400UL;    // 28 dias: solo aviso
 
 static bool testigo = false;            // el Degradado en curso es de testigo
@@ -256,8 +256,9 @@ enum EstadoDeg {
   DEG_SALIDA_ROJO,   // todo-rojo obligatorio antes de devolver el mando al menu
   DEG_ROJO_SIN_HORA  // D-38: la hora dejo de ser fiable; rojo fijo hasta el operario
 };
-static const unsigned long AVISO_ROJO_SIN_HORA_MS = 60000UL;   // D-38: repite la $ALARM
+static const unsigned long AVISO_ROJO_SIN_HORA_MS = 60000UL;   // D-38/D-67: repite la $ALARM
 static unsigned long tAvisoRojo = 0;
+static bool rendidoSinFecha = false;   // D-67: la causa de la rendicion, solo en RAM (tras un corte no se repite)
 
 static EstadoDeg estado = DEG_RECHAZO;
 static MotivoDegradado motivo = MDG_OK;
@@ -523,8 +524,8 @@ bool modo_degradado_reanudarTrasCorte() {
     const uint32_t ahora = reloj_segundosDesde2000();
     if (hayRegistro && ahora == 0 && millis() < VENTANA_REANUDACION_MS) return false;
     // D-52 (d): una salida ya vencida durante el corte no reanuda; una pendiente se restaura en setup().
-    const bool vigente = hayRegistro && ahora != 0 && reloj_horaFiable() &&
-                         ahora >= t.marcaS && !salidaVencida(t.salidaS, ahora);
+    const bool vigente = hayRegistro && verdeTestigoAdmitido(t.verdeSeg) && ahora != 0 && reloj_horaFiable() &&
+                         ahora >= t.marcaS && !salidaVencida(t.salidaS, ahora);   // D-76
     reanudacionPorDecidir = false;
     if (!vigente) {
       respaldo_guardarDegradado(false);
@@ -600,9 +601,7 @@ static bool verdeConTiempo() {
 }
 
 static void irAAmbar(const char* l1, const char* l2) {
-  // N-20: el Degradado se ha ACABADO: el indicador se borra. Reanudar un modo abandonado por inseguro seria revivir
-  // la decision contraria, y evita el bucle de un equipo que reintenta en cada reinicio para caer a ambar a los
-  // segundos.
+  // N-20: el Degradado se ha ACABADO y el indicador se borra: reanudar lo abandonado por inseguro lo reviviria.
   respaldo_guardarDegradado(false);
   respaldo_guardarRendido(true);   // arquitecto 29/09: sin reentrada automatica hasta un PONG
   soltarSalida();                  // D-52: la rendicion es una salida
@@ -612,14 +611,17 @@ static void irAAmbar(const char* l1, const char* l2) {
   // el paso primero. D-45: amarillo, ese rojo y, un par de segundos despues, el ambar.
   semaforo_forzarRojo();
 
-  // FASE 4: el motivo se fija por el setter publico de modo_ambar.cpp, que hace
-  // exactamente estas dos asignaciones. Antes se escribian los dos static a pelo, y
-  // era lo unico que ataba los dos modulos.
-  modo_ambar_fijarMotivo(l1, l2);
+  modo_ambar_fijarMotivo(l1, l2);   // FASE 4: el setter publico de modo_ambar.cpp
 
   ambarArrancado = false;
   estado = DEG_AMBAR;
   tEstado = millis();
+  tAvisoRojo = millis();   // D-67: la primera $ALARM sale en la rama del limite; esta cuenta la siguiente
+}
+// D-67: la causa del limite se repite mientras dure el ambar (SPEC_6 C.1). D-69: no hay consulta de activas ni
+// $EVENT de cierre; la cierra el $ACK de la orden que saca del modo.
+static void avisarRendicion() {
+  bluetooth_reportarAlarma("DEGRADADO", rendidoSinFecha ? "SYNC_SIN_FECHA" : "LIMITE_48H", "CAMBIO_A_AMBAR");
 }
 
 // D-38 (N-168): sin radio la otra punta sigue alternando por reloj; ambar aqui seria verde
@@ -775,7 +777,7 @@ MotivoTestigo modo_degradado_evaluarEntradaTestigo(uint32_t ahora, uint32_t inic
   const uint32_t reloj = reloj_segundosDelDia();
   const int32_t d = difCircular(ahora, reloj);   // por el camino corto: 23:59:59 vs 00:00:01 = 2 s
   if (d > TOLERANCIA_TESTIGO_S || d < -TOLERANCIA_TESTIGO_S) return MDT_AHORA_DESFASADO;
-  if (verde < TESTIGO_VERDE_MIN_S || verde > TESTIGO_VERDE_MAX_S || verde % 60 != 0) return MDT_VERDE_RANGO;
+  if (!verdeTestigoAdmitido(verde)) return MDT_VERDE_RANGO;
   if (despeje < TESTIGO_DESPEJE_MIN || despeje > TESTIGO_DESPEJE_MAX) return MDT_DESPEJE_RANGO;
   if ((inicio + 86400UL - reloj) % 86400UL > TESTIGO_INICIO_MAX_S) return MDT_INICIO_VENCIDO;
   // R-4 en esta punta: el ambar de emergencia es MODO_AMBAR; el de arranque (D-40) no lo es.
@@ -977,12 +979,14 @@ void modo_degradado_loop() {
       return;
 
     case DEG_AMBAR:
-      // Rojo un par de segundos y despues ambar. El salto directo desde un verde a un
-      // ambar intermitente le diria al conductor "negocie usted" en el mismo instante
-      // en que le estabamos diciendo "pase": primero se cierra, luego se avisa.
+      // Rojo un par de segundos y despues ambar: primero se cierra el paso, luego se avisa.
       if (!ambarArrancado && millis() - tEstado >= 2000) {
         semaforo_iniciarFallo();
         ambarArrancado = true;
+      }
+      if (millis() - tAvisoRojo >= AVISO_ROJO_SIN_HORA_MS) {   // D-67
+        tAvisoRojo = millis();
+        avisarRendicion();
       }
       return;
 
@@ -1015,15 +1019,10 @@ void modo_degradado_loop() {
     return;
   }
 
-  // LIMITE DURO. En cada iteracion y por delante de cualquier decision de luz: agotado el plazo, ya no importa la
-  // fase. N-20: la antiguedad sale de msDesdeSyncEfectivo(), que tras un reinicio cae a la marca de la pila: se
-  // cuenta desde la sincronizacion de VERDAD, no desde el arranque, o un corte a las 47 h regalaria 48 h mas.
-  // 1.49(b3) - LA CAIDA SE DICE, CON SU CAUSA VERDADERA. msDesdeSyncEfectivo() devuelve 0xFFFFFFFF tambien cuando la
-  // marca NO SE PUEDE FECHAR: RELOJ_NO_CUENTA (contador parado: D-49, ROJO FIJO como D-38; SIN_CRISTAL no entra
-  // aqui), SYNC_SIN_FECHA (cuenta, pero la pila dice CADUCADA) y LIMITE_48H (el plazo de verdad). La mas concreta
-  // primero; se publica UNA vez. Los rotulos no nombran ninguna pieza, por lo mismo que N-45 quito "Es Y2: toca
-  // hardware". D-35: CON TESTIGO NO HAY TOPE DE 48 h: mide la sync de radio, que este modo existe para no necesitar.
-  // Y desde el 29/09 (responsable, H9) tampoco el de 31 dias: solo el aviso.
+  // LIMITE DURO, en cada vuelta y antes de decidir luz. N-20: la antiguedad sale de msDesdeSyncEfectivo() (tras un
+  // reinicio, la marca de la pila: un corte a las 47 h no regala 48 h). 1.49(b3): la caida dice su causa verdadera,
+  // la mas concreta primero: RELOJ_NO_CUENTA (D-49, rojo fijo como D-38), SYNC_SIN_FECHA y LIMITE_48H (D-67: estas
+  // dos se repiten en DEG_AMBAR). Sin nombrar piezas (N-45). D-35: con testigo no hay tope; H9: tampoco el de 31 dias.
   if (testigo) {
     avisarRenovacion();   // 29/09: a los 28 dias y despues una vez al dia
   } else {
@@ -1035,10 +1034,10 @@ void modo_degradado_loop() {
       irARojoSinHora();
     } else if (respaldo_horasDesdeSync(reloj_contadorSegundos()) == RESPALDO_SYNC_CADUCADA &&
                desdeSync == 0xFFFFFFFFUL) {
-      bluetooth_reportarAlarma("DEGRADADO", "SYNC_SIN_FECHA", "CAMBIO_A_AMBAR");
+      rendidoSinFecha = true; avisarRendicion();
       irAAmbar("Sync sin fecha", "Sincronice de nuevo");
     } else {
-      bluetooth_reportarAlarma("DEGRADADO", "LIMITE_48H", "CAMBIO_A_AMBAR");
+      rendidoSinFecha = false; avisarRendicion();
       irAAmbar("Limite 48h sin sync", "Revise el radio");
     }
     return;

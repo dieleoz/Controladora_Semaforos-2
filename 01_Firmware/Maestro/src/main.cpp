@@ -48,6 +48,7 @@ static void entrarAmbarDeArranque() {
 }
 
 void setup() {
+  respaldo_anotarArranque(respaldo_leerCsr());  // D-62: antes que nada
   botones_setup();
   coordinador_setup();
 
@@ -149,6 +150,7 @@ void setup() {
 void loop() {
   // SFTY-1: Alimentar al perro guardián. Si el loop se traba por > 4s, la placa se reinicia.
   IWatchdog.reload();
+  respaldo_loop(millis());  // D-61/D-62: UP y ANTES
 
   // N-25: reintento en segundo plano del cristal del reloj. Va al principio del bucle
   // y no cuesta nada -sale por la primera linea si el RTC ya cuenta, y si no, lee un

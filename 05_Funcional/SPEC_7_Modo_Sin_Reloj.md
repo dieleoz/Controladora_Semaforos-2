@@ -307,9 +307,10 @@ relojes que se creen el uno al otro sin hablarse.** Las tres perdidas:
 
 Los motivos de rechazo existen como enumerados en las dos puntas y **solo salen como `$ERR` a quien
 mando la orden**. ~~y de salida~~ → **la salida del Maestro por su limite ya sale como `$ALARM
-DEGRADADO` con su causa** (1.49 (b), §6); la del Esclavo, no, y **la app no la traduce** —
-`js/avisos_equipo.js` no tiene entrada para ese evento y la pinta en crudo—. Los textos de causa que
-el operario lee en el badge siguen escritos en `app.js`. **Sin `D-x` que lo ordene, no se construye.**
+DEGRADADO` con su causa** (1.49 (b), §6); la del Esclavo, no (HACE; DEBE con `D-68`, SPEC 6 C.1: `$ALARM
+DEGRADADO,CAUSA:LIMITE_48H` al rendirse y repetida mientras dure). ~~la app no la traduce~~ → traduce las
+tres causas desde `js/avisos_equipo.js` (remedido el 14/10). Los textos de causa que el operario lee en el
+badge siguen escritos en `app.js` y el badge sigue sin afirmar causa (§6): la causa llega por la alarma.
 ⚠️ **Y esa causa puede mentir:** en una tarjeta con el cristal parado, un limite de verdad sin radio
 sale como `RELOJ_NO_CUENTA` (SPEC 3, H-1, registro 2).
 

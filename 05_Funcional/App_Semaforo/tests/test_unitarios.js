@@ -445,6 +445,49 @@ async function pruebasExportar12() {
     'Un fallo de la hoja que no es cancelar se propaga (la app lo pinta en rojo)');
 }
 
+console.log('\n--- 13. app.js en modulos, tanda 1 (SPEC_4 9.12, D-98) ---');
+// Corte sin cambio de comportamiento: las tablas de acuse y rechazo salen de app.js a
+// js/textos_ack.js y js/textos_err.js. La guarda (4) es el modo de fallo del corte: un
+// modulo que lea un nombre del cierre de app.js como global revienta en el telefono.
+const fs13 = require('fs');
+const path13 = require('path');
+const leer13 = (rel) => { try { return fs13.readFileSync(path13.join(__dirname, '..', rel), 'utf8'); } catch (e) { return null; } };
+const html13 = leer13('index.html') || '';
+const app13 = leer13('app.js') || '';
+assert(/<script src="js\/textos_ack\.js"><\/script>[\s\S]*<script src="js\/textos_err\.js"><\/script>[\s\S]*<script src="app\.js"><\/script>/.test(html13),
+  'index.html carga js/textos_ack.js y js/textos_err.js ANTES de app.js');
+assert(!/^\s+const (ACK_TEXTO|ERR_TEXTO|ERR_MOTIVO) = \{/m.test(app13),
+  'app.js ya no declara ACK_TEXTO, ERR_TEXTO ni ERR_MOTIVO: viven en js/');
+let ack13 = null, err13 = null;
+try { ack13 = require('../js/textos_ack.js'); } catch (e) { ack13 = null; }
+try { err13 = require('../js/textos_err.js'); } catch (e) { err13 = null; }
+assert(!!ack13 && !!ack13['SET_MODO:ALCANCE|OK'] && typeof ack13['SET_MODO:ALCANCE|OK'].texto === 'string',
+  'js/textos_ack.js exporta ACK_TEXTO con SET_MODO:ALCANCE|OK y su texto');
+assert(!!err13 && typeof err13.ERR_TEXTO === 'object' && typeof err13.ERR_MOTIVO === 'object' &&
+       !!err13.ERR_TEXTO && !!err13.ERR_MOTIVO,
+  'js/textos_err.js exporta { ERR_TEXTO, ERR_MOTIVO }');
+// (4) Ningun nombre del cierre (declarado a dos espacios en app.js) aparece como
+// identificador en un modulo partido, salvo que el modulo lo declare o lo reciba por dep.
+const PARTIDOS13 = ['textos_ack.js', 'textos_err.js'];
+const nombres13 = new Set();
+for (const m of app13.matchAll(/^  (?:const|let|var|function|class)\s+(\w+)/gm)) nombres13.add(m[1]);
+const fugas13 = [];
+for (const mod of PARTIDOS13) {
+  const crudo = leer13('js/' + mod);
+  if (crudo === null) { fugas13.push(mod + ': no existe'); continue; }
+  const limpio = crudo
+    .replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*|'(?:\\.|[^'\\\n])*'|"(?:\\.|[^"\\\n])*"|`(?:\\.|[^`\\])*`/g, ' ')
+    .replace(/([{,]\s*)[A-Za-z_$][\w$]*\s*:/g, '$1 :');
+  for (const n of nombres13) {
+    if (!new RegExp('(?<![\\w$.])' + n + '(?![\\w$])').test(limpio)) continue;
+    if (new RegExp('(?:const|let|var|function|class)\\s+' + n + '(?![\\w$])').test(crudo)) continue;
+    if (crudo.includes('dep.' + n)) continue;
+    fugas13.push(mod + ': ' + n);
+  }
+}
+assert(nombres13.size > 100 && fugas13.length === 0,
+  'Ningun modulo partido lee un nombre del cierre de app.js como global (' + nombres13.size + ' nombres): [' + fugas13.join(', ') + ']');
+
 pruebasExportar12().catch(e => { assert(false, 'pruebasExportar12 lanzo: ' + e); }).then(() => {
   console.log('\n' + '='.repeat(80));
   console.log(` RESUMEN TDD: ${passed} PASS | ${failed} FALLAS  (Total: ${passed + failed})`);

@@ -14,13 +14,6 @@
 const assert = require('assert');
 
 // 🔴 ESTE FICHERO ERA LA TERCERA COPIA DEL PARSER, Y LA PEOR DE LAS TRES (05/09).
-//
-// La cabecera de arriba dice "Modulos Puros de la App", y esa frase era el problema: lo
-// que habia debajo NO eran los modulos de la app, eran reimplementaciones a mano del
-// checksum, del parser y del generador de comandos, escritas en este mismo fichero y
-// probadas contra si mismas. 29 comprobaciones en verde que no tocaban una sola linea de
-// lo que se instala en el telefono.
-//
 // La forma es la de CLAUDE.md 3.bis -"una segunda copia del firmware escrita a mano que
 // alguien sincroniza"- con la vuelta de tuerca de que aqui la copia es la que tiene las
 // pruebas. Y ya habia derivado: el bucle de abajo partia los campos con
@@ -53,8 +46,6 @@ function runTest(suiteName, testName, testFn) {
 // IMPLEMENTACIÓN DE FUNCIONES A TESTEAR (Módulos Puros de la App)
 // -----------------------------------------------------------------------------
 
-// El XOR ya no se reimplementa: se llama al de la app. Era byte a byte el mismo codigo,
-// y "el mismo codigo" mantenido en dos sitios es el que deja de serlo sin avisar.
 function calcularChecksumNmea(cadena) {
   return NMEAParser.calcularChecksum(cadena);
 }
@@ -494,7 +485,6 @@ runTest('Escalabilidad', 'Eliminación masiva secuencial de exactamente 17 de 20
     const item = mgr.save({ name: `Cruce Masivo Km ${i}`, location: `PR ${i}+000` });
     ids.push(item.id);
   }
-  // Total antes de borrar: 20 nuevos + 1 base = 21 cruces
   assert.strictEqual(mgr.getAll().length, 21);
 
   // Eliminar exactamente 17 de los 20 cruces creados
@@ -583,7 +573,7 @@ const CIFRA_DE_TIEMPO = /\b\d+([.,]\d+)?\s*(ms|s|seg|segundos?|min|minutos?|h|ho
     assert.ok(a, 'la app no traduce J17_MUDO');
     assert.match(a.texto, /^REVISE EL CIRCUITO ESP32-STM32 DE ESTE POSTE/);
     assert.ok(a.texto.includes(node), 'el texto no nombra el poste que avisa');
-    assert.match(a.toast, /revise el circuito ESP32-STM32/i);
+    assert.ok(!require('./tests/dom_usabilidad.js').JERGA.test(a.toast) && /avise al tecnico/.test(a.toast), a.toast);  // D-101
   });
   runTest('Avisos D-26', `RECHAZADA_FORMATO del ${node}: revisar el circuito, y el telefono NO lo arregla`, () => {
     const a = AvisosEquipo.traducirAlarma(alarmaHora(node, 'RECHAZADA_FORMATO'));
@@ -657,21 +647,16 @@ runTest('D-23 diagnostico', 'el periodico del Esclavo se reconoce y se leen sus 
   DiagnosticoEnlace.olvidar();
   const d = diagRadio(1200, 300, 2);
   assert.ok(DiagnosticoEnlace.esPeriodico(d), 'no reconoce el periodico de D-23');
-  assert.deepStrictEqual(DiagnosticoEnlace.leer(d), { rx: 1200, ok: 300, ruido: 2 });
+  assert.deepStrictEqual(DiagnosticoEnlace.leer(d), { rx: 1200, ok: 300, ruido: 2, rein: null, ambar: null });
 });
 
-// EL CORAZON DEL ARREGLO. Si esto se pone rojo, el periodico esta volviendo a la lista
-// de 30 y la bitacora se vuelve a comer los $ALARM en quince minutos.
 runTest('D-23 diagnostico', 'los OTROS $EVENT del mismo ORIGEN NO son el periodico: son sucesos y van a la bitacora', () => {
   DiagnosticoEnlace.olvidar();
-  // La vuelta del enlace del Esclavo y los tres cambios de estado del Maestro. Los
-  // literales son los de los snprintf de las dos puntas.
   ['RECUPERADO_OK:300_RUIDO:2', 'PERDIDO_RF:80', 'SIN_MEDIDA_RF:--', 'OK_RF:97']
     .forEach(det => {
       assert.ok(!DiagnosticoEnlace.esPeriodico(eventoEquipo('ESCLAVO', 'ENLACE_RF', det)),
                 `se traga como periodico un SUCESO del enlace: ${det}`);
     });
-  // Y un $EVENT de otro origen tampoco, aunque su detalle empezara por RX:.
   assert.ok(!DiagnosticoEnlace.esPeriodico(eventoEquipo('ESCLAVO', 'RELOJ', 'RX:1 OK:1 RUIDO:0')),
             'mira el DETALLE sin mirar el ORIGEN');
 });
@@ -685,24 +670,53 @@ runTest('D-23 diagnostico', 'el delta se mide contra la muestra anterior y nombr
   assert.deepStrictEqual(b.delta, { rx: 300, ok: 50, ruido: 3, ventanaMs: 30000 });
 });
 
-// N-144 en esta pantalla: un contador que baja no es un delta negativo.
-runTest('D-23 diagnostico', 'un contador que BAJA se lee como reinicio del poste, no como delta negativo', () => {
+// D-64 (CLAUDE.md 9: INVERTIDA). Celebraba el defecto del 06/10: sin REIN no se afirma un reinicio.
+runTest('D-23 diagnostico', 'sin REIN un contador que BAJA no se afirma reinicio: o reinicio o PRUEBA ALCANCE', () => {
   DiagnosticoEnlace.olvidar();
   DiagnosticoEnlace.ver(diagRadio(9000, 900, 5), 1000);
   const r = DiagnosticoEnlace.ver(diagRadio(12, 2, 0), 31000);
-  assert.ok(r.reinicio, 'no detecta que el poste rearranco');
-  assert.strictEqual(r.delta, null, 'resta contra la cuenta del arranque anterior');
-  assert.ok(r.avisos.some(a => /SE HA REINICIADO/.test(a.texto) && a.tono === 'red'),
-            'un poste que rearranca solo no deja aviso rojo');
+  assert.ok(!r.reinicio && r.delta === null, 'afirma un reinicio sin REIN o resta contra la cuenta anterior');
+  assert.ok(r.avisos.some(a => a.tono === 'red' && /PRUEBA ALCANCE/.test(a.texto)), 'la bajada no deja aviso rojo honesto');
+  assert.ok(!r.avisos.some(a => /SE HA REINICIADO/.test(a.texto)), 'afirma SE HA REINICIADO sin REIN');
+});
+function diagRein(rx, ok, ruido, rein) { return diagRadio(rx, ok, ruido + ' REIN:' + rein); }
+runTest('D-64 reinicios', 'el periodico con REIN se lee, y la primera vez pide REINICIOS una sola vez', () => {
+  DiagnosticoEnlace.olvidar();
+  assert.deepStrictEqual(DiagnosticoEnlace.leer(diagRein(1200, 300, 2, 3)), { rx: 1200, ok: 300, ruido: 2, rein: 3, ambar: null });
+  assert.ok(DiagnosticoEnlace.ver(diagRein(1000, 100, 0, 3), 1000).pedirReinicios, 'no pide REINICIOS al primer REIN');
+  assert.ok(!DiagnosticoEnlace.ver(diagRein(1300, 150, 0, 3), 31000).pedirReinicios, 'pide REINICIOS sin cambio');
+});
+runTest('D-64 reinicios', 'REIN que CAMBIA es reinicio aunque ningun contador baje', () => {
+  DiagnosticoEnlace.olvidar();
+  DiagnosticoEnlace.ver(diagRein(1000, 100, 0, 3), 1000);
+  const r = DiagnosticoEnlace.ver(diagRein(1300, 150, 0, 4), 31000);
+  assert.ok(r.reinicio && r.pedirReinicios, 'REIN 3->4 no se lee como reinicio o no pide REINICIOS');
+  assert.ok(r.avisos.some(a => a.tono === 'red' && /SE HA REINICIADO \(REIN 3→4\)/.test(a.texto)), 'sin aviso rojo');
+});
+runTest('D-64 reinicios', 'contador que BAJA con REIN igual: alarma SIN REINICIO', () => {
+  DiagnosticoEnlace.olvidar();
+  DiagnosticoEnlace.ver(diagRein(9000, 900, 5, 5), 1000);
+  const r = DiagnosticoEnlace.ver(diagRein(12, 2, 0, 5), 31000);
+  assert.ok(!r.reinicio && r.delta === null, 'lo lee como reinicio o resta');
+  assert.ok(r.avisos.some(a => a.tono === 'red' && /SIN REINICIO/.test(a.texto)), 'sin alarma roja');
+});
+runTest('D-64 reinicios', 'el acuse de REINICIOS se traduce a una linea; $ERR DESCONOCIDO dice que no lo lleva', () => {
+  DiagnosticoEnlace.olvidar();
+  const ack = parseNmeaTelemetry(tramaCompleta(
+    '$ACK,CMD:REINICIOS,RESULT:OK,NODE:MAESTRO,REIN:3,CAUSA:WATCHDOG,UP:3605,ANTES:52'));
+  const t = DiagnosticoEnlace.acuseReinicios(ack, Date.UTC(2026, 9, 14, 12, 0, 5));
+  assert.ok(t && /vigilante/.test(t.texto) && /52 h/.test(t.texto), 'acuse sin traducir: ' + (t && t.texto));
+  DiagnosticoEnlace.ver(diagRein(1000, 100, 0, 3), 1000);
+  const e = DiagnosticoEnlace.acuseReinicios(parseNmeaTelemetry(tramaCompleta(
+    '$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO')));
+  assert.ok(e && /no lleva REINICIOS/.test(e.texto), 'el $ERR DESCONOCIDO no se atribuye a REINICIOS');
 });
 
 // LA REGLA DE ESTE FICHERO, MEDIDA: las lineas las gobiernan los sucesos, no el reloj.
 runTest('D-23 diagnostico', 'en regimen NO gasta bitacora: solo anota cuando algo CAMBIA', () => {
   DiagnosticoEnlace.olvidar();
   let ms = 1000;
-  // La primera si deja una linea: que el diagnostico empezo a llegar hay que decirlo.
   assert.strictEqual(DiagnosticoEnlace.ver(diagRadio(1000, 100, 0), ms).avisos.length, 1);
-  // Veinte muestras seguidas de radio sana -diez minutos- y ni una linea mas.
   let lineas = 0;
   for (let i = 1; i <= 20; i++) {
     ms += 30000;
@@ -716,13 +730,11 @@ runTest('D-23 diagnostico', 'el ruido se anota cuando EMPIEZA y cuando PARA, una
   DiagnosticoEnlace.olvidar();
   let ms = 1000;
   DiagnosticoEnlace.ver(diagRadio(1000, 100, 0), ms);
-  // Tres ventanas seguidas comiendo ruido: una sola linea, la de que empieza.
   const empieza = DiagnosticoEnlace.ver(diagRadio(1300, 150, 4), ms += 30000);
   assert.ok(empieza.avisos.some(a => /EMPIEZA a descartar/.test(a.texto)), 'no avisa del ruido');
   assert.strictEqual(DiagnosticoEnlace.ver(diagRadio(1600, 200, 9), ms += 30000).avisos.length, 0,
     'repite el aviso de ruido en cada muestra: eso es volver a llenar la bitacora');
   assert.strictEqual(DiagnosticoEnlace.ver(diagRadio(1900, 250, 14), ms += 30000).avisos.length, 0);
-  // Y cuando para, se dice: si no, el tecnico no sabe que el episodio se cerro.
   const para = DiagnosticoEnlace.ver(diagRadio(2200, 300, 14), ms += 30000);
   assert.ok(para.avisos.some(a => /deja de descartar/.test(a.texto)), 'no avisa de que el ruido paro');
 });
@@ -734,7 +746,6 @@ runTest('D-23 diagnostico', 'una radio que no recibe NADA se anota, y se disting
   const mudo = DiagnosticoEnlace.ver(diagRadio(1000, 100, 0), ms += 30000);
   assert.ok(mudo.avisos.some(a => /NO recibió un solo byte/.test(a.texto) && a.tono === 'red'),
             'una radio muda no deja rastro');
-  // Y al volver el trafico se dice tambien.
   const vuelve = DiagnosticoEnlace.ver(diagRadio(1300, 150, 0), ms += 30000);
   assert.ok(vuelve.avisos.some(a => /Vuelven a entrar bytes/.test(a.texto)));
 });
@@ -799,24 +810,17 @@ runTest('Camara-pluma', "el '!' de fuera de cota se admite y NO se convierte en 
   AvisoCamaraPluma.ver(eventoCamara('VETO_SOSTENIDO_S:!'));
   const v = AvisoCamaraPluma.vigente();
   assert.ok(/más tiempo del que el equipo puede publicar/.test(v.medida), v.medida);
-  // La hora del equipo SI lleva digitos y es legitima; lo que no puede aparecer es una
-  // cuenta de segundos, que es justo el dato que el equipo dijo que no cabia.
   assert.ok(!/\d+\s*s\b/.test(v.medida), 'se ha colado una cifra de segundos inventada');
 });
 
 runTest('Camara-pluma', 'lo que la tabla no nombra se devuelve null y sigue por el camino del crudo', () => {
   AvisoCamaraPluma.olvidar();
-  // Un DETALLE nuevo del mismo ORIGEN, y un prefijo con basura detras: los dos tienen
-  // que caer fuera. Un patron sin anclar se los tragaria en el cartel equivocado.
   ['VETO_SOSTENIDO_MIN:4', 'VETO_SOSTENIDO_S:180 EXTRA', 'CAM_NUEVA:1', '']
     .forEach(det => assert.strictEqual(AvisoCamaraPluma.ver(eventoCamara(det)), null, det));
-  // Y el mismo DETALLE con otro ORIGEN tampoco: se miran los dos campos.
   assert.strictEqual(AvisoCamaraPluma.ver(eventoEquipo('MAESTRO', 'RELOJ', 'VETO_SOSTENIDO_S:180')), null);
   assert.strictEqual(AvisoCamaraPluma.vigente(), null, 'ha abierto cartel sin aviso valido');
 });
 
-// EL CONTROL QUE SEPARA "la camara hizo su trabajo" de "la camara tiene la barrera
-// secuestrada". Un cartel que saltara con cada vehiculo se aprende a ignorar.
 runTest('Camara-pluma', 'un veto que ACTUA es lo normal: linea de bitacora, pero NO cartel', () => {
   AvisoCamaraPluma.olvidar();
   const v = AvisoCamaraPluma.ver(eventoCamara('VETO_ACTUADO_N:3'));
@@ -844,8 +848,6 @@ runTest('Camara-pluma', 'las repeticiones del episodio refrescan el cartel y NO 
   assert.strictEqual(AvisoCamaraPluma.vigente().segundos, 720, 'el cartel no sigue la ultima medida');
 });
 
-// QUIEN DICE QUE YA BAJO ES EL $STATUS, no el silencio del equipo: el firmware no
-// publica un evento de fin, y "deja de repetir" es indistinguible de un cable cortado.
 runTest('Camara-pluma', 'el cartel NO se retira al bajar la barrera, pero deja de decir que esta arriba', () => {
   AvisoCamaraPluma.olvidar();
   AvisoCamaraPluma.ver(eventoCamara('VETO_SOSTENIDO_S:200'));
@@ -857,7 +859,6 @@ runTest('Camara-pluma', 'el cartel NO se retira al bajar la barrera, pero deja d
   assert.ok(c && c.bajada === true, 'el cartel se ha retirado solo');
   assert.ok(!/está ARRIBA/.test(c.accion) && /revise el apunte/.test(c.accion), c.accion);
   assert.ok(/estuvo retenida/.test(c.medida) && !/lleva retenida/.test(c.medida), c.medida);
-  // Y no repite la linea en cada $STATUS siguiente: es una transicion, no una cadencia.
   assert.strictEqual(AvisoCamaraPluma.verPluma('ABAJO'), null, 'repite la linea de bajada');
 });
 
@@ -879,7 +880,6 @@ runTest('Camara-pluma', 'ningun texto afirma que la camara este averiada, y se d
     const d = AvisoCamaraPluma.vigente();
     textos.push(d.titulo, d.medida, d.accion);
   });
-  // El detector sabe fallar, o este verde no dice nada.
   assert.ok(AVERIA.test('la camara esta averiada') && !AVERIA.test('revise el apunte'),
             'el detector de averia no distingue');
   const malos = textos.filter(t => AVERIA.test(t || ''));

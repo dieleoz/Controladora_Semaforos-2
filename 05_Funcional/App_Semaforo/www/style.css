@@ -1,5 +1,4 @@
 /* ===== IOT-VIAL · Centro de Control Semafórico V9.0 ===== */
-/* Design System: Cyber-Industrial Dark Glassmorphism, 3D LED Optics & Touch Ergonomics */
 
 :root {
   --bg-main: #060911;
@@ -18,7 +17,6 @@
      Se sube al mismo gris del texto secundario: 7.4:1, AAA. */
   --text-muted: #94A3B8;
 
-  /* Signal Colors & Blooms */
   --red-lamp: #FF1E44;
   /* N-75: rojo SOLO para texto. La lampara conserva el suyo -es un
      componente grafico, umbral 3:1, y cumple con 4.9:1-, pero el rotulo
@@ -52,11 +50,9 @@
   --enlace-cayendo: #FF6B6B;
   --enlace-sindato: #94A3B8;
 
-  /* Typography */
   --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
-  /* Transitions & Radii */
   --radius-sm: 8px;
   --radius-md: 14px;
   --radius-lg: 20px;
@@ -541,7 +537,7 @@ body {
 .ring-fill.green { stroke: var(--green-lamp); filter: drop-shadow(0 0 8px rgba(0,230,118,0.5)); }
 .ring-fill.amber { stroke: var(--amber-lamp); filter: drop-shadow(0 0 8px rgba(255,179,0,0.5)); }
 .ring-fill.red   { stroke: var(--red-lamp); filter: drop-shadow(0 0 8px rgba(255,30,68,0.5)); }
-
+.ring-fill.sindato { stroke: var(--text-muted); }   /* D-83: gris es sin dato */
 .ring-text {
   position: absolute;
   display: flex;
@@ -561,7 +557,7 @@ body {
 .ring-num.green { color: var(--green-lamp); }
 .ring-num.amber { color: var(--amber-lamp); }
 .ring-num.red   { color: var(--red-text); }
-
+.ring-num.sindato { color: var(--text-muted); }
 .ring-unit {
   font-size: 10px;
   color: var(--text-muted);
@@ -2199,3 +2195,7 @@ body { padding-bottom: var(--hueco-barra, calc(90px + env(safe-area-inset-bottom
 /* SPEC_4 9.2 (D-56): lo que solo ve quien puso la clave de administracion; setRole() pone .admin en body. */
 body:not(.admin) .solo-admin { display: none !important; }
 #clave-modal .btn-top { margin-top: 8px; }
+/* SPEC_4 9.10 (D-86): la franja de la practica sin poste, encima de modales (999) y toast (1000); magenta, fuera de D-83. */
+#franja-simulado { position: fixed; top: 0; left: 0; right: 0; z-index: 2000; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 12px; background: #c2009a; color: #fff; font: 700 12px/1.3 var(--font-mono, monospace); }
+#franja-simulado[hidden] { display: none; } #franja-simulado button { background: #fff; color: #c2009a; border: 0; border-radius: 6px; padding: 6px 12px; font-weight: 700; }
+body.simulado { padding-top: 40px; }

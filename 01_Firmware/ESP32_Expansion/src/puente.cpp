@@ -7,6 +7,7 @@
 #include "transporte_app.h"
 #include "despachador.h"
 #include "reloj_ds3231.h"
+#include "registro.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -365,6 +366,7 @@ static void desdeElEquipo() {
       // Y va ANTES de componer `salida` porque sella EN SITIO y sin cambiar la
       // longitud: `largo` sigue valiendo lo mismo despues.
       sellarHoraSiFaltaba(deSTM32);
+      registro_verSubida(deSTM32);   // D-73: solo copia a RAM; la trama sigue intacta
 
       // B-5: entra entera y sale entera -salvo el hueco de HORA, que es la unica
       // excepcion y esta acotada y razonada sobre sellarHoraSiFaltaba()-. Se reponen los

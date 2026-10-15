@@ -114,6 +114,8 @@ static const Config CONFIGS_EXTRA[] = {
   { 255, 255, "el tope del byte" },
   { 180, 180, "C2: al salir del tramo inicial al verde le quedan RA_S s" },
   { 180, 181, "C2: al salir del tramo inicial al verde le queda 1 s" },
+  { 900,  30, "D-59/D-79: verde maximo del testigo, despeje minimo" },
+  { 900, 255, "D-59/D-79: verde y despeje maximos" },
 };
 static const int N_CONFIGS_EXTRA = sizeof(CONFIGS_EXTRA) / sizeof(CONFIGS_EXTRA[0]);
 
@@ -274,10 +276,14 @@ int main() {
     // 4. ciclo_degradado_restante() concuerda con la fase: el numero que se pinta en
     //    pantalla tiene que ser el que de verdad falta. Si mintiera, el operario veria
     //    una cuenta atras que no corresponde a lo que van a hacer las luces.
-    long restante_malo = 0;
+    //    D-79: un 0 es la busqueda agotada sin cambio de fase; se cuenta, no se salta. El coste por
+    //    llamada es su resultado en iteraciones: se publica el maximo.
+    long restante_malo = 0, ceros = 0;
+    uint32_t rMax = 0;
     for (uint32_t s = 0; s < SEGUNDOS_DEL_DIA; s += 7) {   // paso primo: no se alinea
       uint32_t r = ciclo_degradado_restante(s, v, d);
-      if (r == 0) continue;
+      if (r == 0) { ceros++; continue; }
+      if (r > rMax) rMax = r;
       FaseDegradado ahora = ciclo_degradado_fase(s, v, d);
       FaseDegradado antes = ciclo_degradado_fase((s + r - 1) % SEGUNDOS_DEL_DIA, v, d);
       FaseDegradado justo = ciclo_degradado_fase((s + r) % SEGUNDOS_DEL_DIA, v, d);
@@ -287,6 +293,9 @@ int main() {
              "la cuenta atras cae EXACTAMENTE en el cambio de fase, ni antes ni "
              "despues (desajustes: %ld)", restante_malo);
     comprobar(restante_malo == 0, msg);
+    snprintf(msg, sizeof(msg), "D-79: restante() nunca agota la busqueda (ceros: %ld; maximo %lu iteraciones)",
+             ceros, (unsigned long)rMax);
+    comprobar(ceros == 0, msg);
   }
 
   // CONTROL NEGATIVO. Una comprobacion que aprueba todo no comprueba nada: se exige

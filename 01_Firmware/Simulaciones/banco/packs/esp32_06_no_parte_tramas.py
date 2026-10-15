@@ -169,6 +169,36 @@ def correr(b, fw):
         "los contadores existen y NO se exponen. Un contador que nadie puede leer es la "
         "version silenciosa de no contar nada")
 
+    # 5.bis D-70/D-71 (SPEC_4 9.7): con el SPP congestionado no se llama a spp.write()
+    # -BluetoothSerial espera hasta 1000 ticks por trama con la cola llena- y se cuenta.
+    tapp = fw.codigo("ESP32_Expansion", "src", "transporte_app.cpp")
+    tcab = fw.codigo("ESP32_Expansion", "include", "transporte_app.h")
+    escr = _cuerpo(tapp, r"size_t\s+transporte_escribir\s*\([^)]*\)")
+    if escr is None:
+        raise fw.Abortado("no se hallo transporte_escribir() en %s/src/transporte_app.cpp" % ROL)
+    escr = re.sub(r"//[^\n]*", "", escr)
+    mCb = re.search(r"spp\.register_callback\s*\(\s*(\w+)\s*\)", tapp)
+    obs = mCb and _cuerpo(tapp, r"static\s+void\s+" + mCb.group(1) + r"\s*\([^)]*\)")
+    b.verificar(
+        bool(obs) and "ESP_SPP_CONG_EVT" in obs and "ESP_SPP_WRITE_EVT" in obs,
+        "D-70: register_callback() con un observador de ESP_SPP_CONG_EVT y ESP_SPP_WRITE_EVT",
+        "sin register_callback() que observe ESP_SPP_CONG_EVT y ESP_SPP_WRITE_EVT: nadie "
+        "sabe que el telefono dejo de leer")
+    iCong, iWr = escr.find("congestionado"), escr.find("spp.write(")
+    b.verificar(
+        0 <= iCong < iWr and "descartadasCongestion++" in escr,
+        "D-70: transporte_escribir() mira congestionado antes de spp.write() y cuenta el descarte",
+        "spp.write() sin mirar congestionado antes o sin descartadasCongestion++ (cong=%d, "
+        "write=%d): con la cola llena la llamada espera y loop() no alimenta al perro" % (iCong, iWr))
+    b.verificar(
+        not re.search(r"\bdelay\s*\(|vTaskDelay\s*\(|millis\s*\(\s*\)|vigilante_alimentar\s*\(", escr),
+        "D-71: transporte_escribir() no espera (sin delay, vTaskDelay, millis ni alimentar)",
+        "transporte_escribir() espera dentro: deroga D-71, loop() deja de servir J17 y al perro")
+    b.verificar(
+        re.search(r"unsigned\s+long\s+transporte_descartadasPorCongestion\s*\(", tcab) is not None,
+        "D-70: transporte_descartadasPorCongestion() expuesto en transporte_app.h",
+        "transporte_descartadasPorCongestion no expuesto en transporte_app.h: contador ilegible")
+
     # ---- 6. N-145: EL SELLO DE HORA, QUE ES LA UNICA EXCEPCION A "SALE ENTERA" --
     #
     # 🔴 POR QUE ESTAS COMPROBACIONES ESTAN AQUI Y NO EN UN PACK NUEVO.

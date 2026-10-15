@@ -16,10 +16,11 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
    que ya se hicieron salen de la hoja.
 3. **A campo (El Sisga) va el firmware que salga de este banco** (responsable, 06/10), solo tras el banco de Marco
    (`CLAUDE.md` §0.2). Pendiente: C3 `Validacion_LCD`; C4 el grafo; `N-175`. El Degradado automatico se queda.
-4. **Version siguiente:** los bajos del arquitecto de `N-177` (`roadmap.md`); dos dialogos seguidos al cambiar el verde
-   en Degradado (el nuevo y el de paleteros: fusionarlos lo decide el responsable); `empaquetar_funcional.py` sella con
-   HEAD y no sirve para una candidata anterior (receta fijada en el scratchpad del 14/10). **Sin explicar:** los
-   contadores de radio del 06/10 de 1789 a 91 (`evidencia/061020261110`). **Fase F** (partir `17_...`).
+4. **`N-178` comiteado, sin banco**: M1-M13 y ronda 2, `D-60`..`D-102`
+   (lo abierto lo decidio Fable). Acta `2026-10-15` convergida, 1 FALLA: `D-22` y `D-94`..`D-97` sin construir (M12,
+   solo SPEC): piden placa, como `D-22`. Arquitecto y QA: condiciones cerradas. Parches en el scratchpad
+   `n178`/`n178r2`. La hoja del proximo paquete dice «APK primero, luego firmware» (`D-102`). **Sin explicar:** los
+   contadores de radio del 06/10 de 1789 a 91 (`evidencia/061020261110`).
 
 ## Frentes abiertos (tres como maximo)
 
@@ -39,15 +40,15 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 
 ## Verificacion en escritorio
 
-Cifras copiadas del acta [`evidencia/2026-10-14_compuerta.txt`](evidencia/2026-10-14_compuerta.txt), que dice en su
+Cifras copiadas del acta [`evidencia/2026-10-15_compuerta.txt`](evidencia/2026-10-15_compuerta.txt), que dice en su
 cabecera con que HEAD y que arbol se midio; las comprueba `documentos_01` en cada corrida.
 
 | | |
 |---|---|
-| Flash | Maestro **70.7 %** · Esclavo **62.8 %** · Repetidor **20.6 %** · ESP32 **35.7 %** |
-| Banco por packs | **1379/1380 comprobaciones** en **70 packs**; el unico FALLA, `D-22`, es correcto: pide una tarjeta delante (`CLAUDE.md` §1) |
-| Arneses de C++ real | 88/88 automatico · 55/55 ciclo · 127/127 dos puntas · 155/155 Degradado a dos puntas |
-| App y puente | **652/652** jsdom · **70/70** funcional · **63/63** unitarios · 85/85 TDD · puente 150/150 |
+| Flash | Maestro **72.2 %** · Esclavo **64.0 %** · Repetidor **20.6 %** · ESP32 **35.8 %** |
+| Banco por packs | **1453/1458 comprobaciones** en **70 packs**, 1 FALLA: `D-22` pide una tarjeta delante; `D-94`..`D-97` sin construir (`CLAUDE.md` §1) |
+| Arneses de C++ real | 88/88 automatico · 78/78 ciclo · 127/127 dos puntas · 158/158 Degradado a dos puntas |
+| App y puente | **721/721** jsdom · **70/70** funcional · **67/67** unitarios · 90/90 TDD · puente 156/156 |
 
 ## BLOQUEANTES: lo que no se cierra con teclado (roadmap §1 y §4)
 

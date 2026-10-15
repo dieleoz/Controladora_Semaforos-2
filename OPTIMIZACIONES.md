@@ -88,14 +88,14 @@ que no la comprueba es **peor** que una fila vacía, porque la vacía al menos n
 | SFTY-12 | `Maestro/src/coordinador.cpp` · `Maestro/src/modo_manual.cpp` | — |
 | SFTY-13 | `Maestro/src/coordinador.cpp` | — |
 | SFTY-14 | `Maestro/src/coordinador.cpp` | — |
-| SFTY-15 | `*/src/protocolo.cpp` · `Maestro/src/modo_alcance.cpp` | — |
+| SFTY-15 | `*/src/protocolo.cpp` (D-63: PRUEBA ALCANCE ya no los pone a cero) | — |
 | SFTY-16 | `Repetidor/src/main.cpp` | — |
 | SFTY-17 | `Esclavo/src/main.cpp` | — |
 | **SFTY-18** | `Maestro/src/reloj.cpp` · `Maestro/include/reloj.h` · `ESP32_Expansion` *(el reloj del puente)* | ✅ `esp32_04_osf` · ✅ `esp32_11_bien_formada_no_es_cierta` |
 | **SFTY-19** | **— solo diseño, ver abajo.** La única mención en el código es una advertencia en `reloj.h` aclarando que este modo **no** se apoya en el RTC | — |
-| SFTY-20 | `Maestro/src/reloj.cpp` · `Maestro/include/reloj.h` (`reloj_esHorarioNocturno`, `reloj_ajustarFranjaNocturna`, `reloj_inicioNoche`, `reloj_finNoche`, sin llamador) · `ESP32_Expansion/include/reloj_ds3231.h` *(diseño, no implementado: el andamio; ~~`modo_hora.h`~~ borrado con `D-44`; lo construirá `N-175`)* | — |
+| SFTY-20 | `Maestro/src/reloj.cpp` · `Maestro/include/reloj.h` (`reloj_esHorarioNocturno`, `reloj_ajustarFranjaNocturna`, `reloj_inicioNoche`, `reloj_finNoche`, sin llamador) · `ESP32_Expansion/include/reloj_ds3231.h` *(diseño, no implementado: el andamio; ~~`modo_hora.h`~~ borrado con `D-44`; no se construye, `D-90`)* | — |
 | **SFTY-21** | `*/src/modo_degradado.cpp` · ~~`*/src/mando.cpp`~~ *(retirado el 14/09)* · `*/include/ciclo_degradado.h` | ✅ `esclavo_01_latch_ambar` · `esclavo_07_ambar_emergencia` · `esclavo_08_ambar_en_degradado` · `maestro_05_ciclo_sin_radio` · `costura_02_fase_ciclo` · `costura_06_reanudacion` · `costura_12_margen_deriva` · `costura_13_ambar_ordenado` · `costura_14_cancela_ambar` · `camara_02_j16` — *14/09: maestro_01_mando se borro con el mando y sale de esta fila; su unica propiedad viva se mudo a maestro_09_test_leds, que NO declara esta regla y por eso tampoco se cita (§13: una regla cubierta por una prueba que no la ejerce es peor que una fila vacia)* |
-| SFTY-22 | `Maestro/include/modo_ambar.h` *(sólo referencias; la pantalla no existe)* | — |
+| SFTY-22 | **la app, no una pantalla** (`D-91`): `Maestro/src/bluetooth.cpp` (` AMBAR:` del periodico `ENLACE_RF`, `D-92`) · `App_Semaforo/js/diagnostico_enlace.js` (`D-93`) | `tests/dom_cabecera_fase.js` (4) — rojo hasta construir |
 | **SFTY-23** | `Maestro/src/coordinador.cpp` · `Esclavo/src/config_ciclo.cpp` *(Fase 2)* · `*/src/reloj.cpp` | ✅ `esclavo_03_par_config` · `esclavo_04_desfase` · `esclavo_05_hora_atomica` · `maestro_04_sync_horaria` |
 | SFTY-24 | **— solo diseño.** Cero etiquetas en el firmware | — |
 | SFTY-25 | **— solo diseño.** Cero etiquetas en el firmware | — |
@@ -380,35 +380,27 @@ sigue siendo necesario.
 
 ---
 
-## 📺 SFTY-22 — Pantalla informativa durante el ámbar (MEJORA, **NO IMPLEMENTADO**)
+## 📺 SFTY-22 — Informar durante el ámbar sin alterar lo que se diagnostica (decidido el 14/10, `D-91`; NO construido)
 
-**Estado:** marcada como mejora el 01/08/2026. No es urgente: el sistema funciona.
+**Estado:** mejora del 01/08 para un LCD que salio del equipo (`D-17.bis`): la unica pantalla es la app, y lo que
+pedia ya esta en ella menos UNA cosa (la tabla completa, en SPEC 4 §9.11): la causa y el tramo del enlace van en el
+`$ALARM` (`N-108`) y se repiten mientras dure (`D-67`, `D-68`); el desde cuando, en `HORA` y en el LOG del puente
+(`D-73`); los tres contadores de SFTY-15 que separan cobertura, cableado y enlace correcto, en el periodico
+`ENLACE_RF` (`D-23`, `D-32` (1)). Lo que faltaba: el ORIGEN del ambar del Poste 1 (app, Poste 2, arranque `D-40`) no se
+publica y la app lo lee siempre como «pedido por el operario». Se cierra con ` AMBAR:<o>` al final del periodico
+(`D-92`) y la frase por origen en la app (`D-93`); el ambar del Poste 2 queda a version siguiente.
 
-Al perder el enlace el equipo entra en ámbar intermitente **sin decir por qué**. La propuesta es que
-al entrar en ámbar **aparezca sola** una pantalla con la causa (`SIN ENLACE`), el **desde cuándo**
-—lo aporta el RTC de SFTY-18—, y los contadores que ya existen: la fila `RX` de SFTY-15
-(`RX 0 - nada llega` / `RX 4k - BASURA` / enlace correcto) y la telemetría de SFTY-14
-(`RF:100% 340ms`). Casi todo el dato ya está dentro del firmware; lo único que falta es juntarlo y
-**la hora**.
-
-### ⚠️ Un diagnóstico no debe alterar lo que diagnostica
-
-**Aparece sola al entrar en ámbar, y ésa es la vía principal.** Es gratis: el equipo ya está
-detenido, así que informar no cambia nada. **No debe diseñarse como una opción más del menú**,
-porque entrar al menú **detiene el ciclo** (SFTY-12 deja ambas unidades en rojo fijo): se acabaría
-diagnosticando un equipo que ya dejó de hacer aquello que se quería diagnosticar.
-
-**Su público es el técnico, no el conductor.** Su valor está en separar **tres averías que hoy se
-ven todas igual** —cobertura/antena, cableado/línea flotando, y enlace correcto—, que es la
-distinción que costó la jornada completa del 31/07.
+**Lo que se conserva de la regla:** aparece sola (la frase sigue al `$STATUS`; nada se pide al equipo) y **no pasa
+por el menu**, porque `MENU` es el todo-rojo de las dos puntas (SFTY-12): diagnosticar no cambia lo diagnosticado.
+Su publico es el tecnico, no el conductor.
 
 ---
 
 ## 🌙 SFTY-20 — Operación intermitente nocturna (DISEÑO, **NO IMPLEMENTADO**)
 
-**Estado:** especificado el 01/08/2026. Corresponde al pendiente **N-3** y es **para lo que se soldó
-la pila**. Se construye, pero **no va a campo** hasta cerrar las antenas y la prueba de banco de la
-telemetría. Requisito de origen: `MANUAL_USUARIO.md §2`.
+**Estado:** especificado el 01/08/2026 (pendiente **N-3**). 🔴 **NO SE CONSTRUYE: `D-90` (14/10, SPEC_0 §5.10)**:
+en un paso alternado de un solo carril el intermitente de 4.4.3 deja entrar a las dos puntas. Queda como diseño;
+el andamio de `reloj.*` sigue sin llamador (`D-46`). Requisito de origen: `MANUAL_USUARIO.md §2`.
 
 **Disparo por horario**, decidido el 31/07 —el disparo por flujo real exigiría la cámara instalada—.
 La franja es **configurable**, porque el horario no es el mismo en todas las obras.

@@ -113,6 +113,7 @@ COMANDOS_PERMITIDOS = {
     "SET_MODO:DEG_FIN:": "CIERRA a una hora (D-52, SPEC_2 7.quater): programa la salida del Degradado por "
                         "rojo y despeje; no abre paso. Pide PIN y la flash solo se escribe en rojo",
     "CONSULTA_DEG_FIN": "CONTESTA y no hace nada mas: la hora programada y lo que falta (SPEC_4 3.2)",
+    "REINICIOS":        "CONTESTA y no hace nada mas: REIN, CAUSA, UP y ANTES del respaldo (D-60)",
     "FORZAR_ROJO":      "presente solo para RECHAZARLO ensenando el nombre nuevo",
     "TEST_LEDS":        "presente solo para RECHAZARLO con un motivo legible",
     # 11/09 (D-20 / A-15): SUSTITUYE a "SET_RTC:", que desde hoy es solo del puente. Entra

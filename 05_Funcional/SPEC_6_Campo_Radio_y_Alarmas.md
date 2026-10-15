@@ -82,22 +82,27 @@ app en el primero, no uno nuevo, pero LEE `ahora` otra vez al enviarlo—.
 
 ## A.2.bis LOS MOTIVOS DEL TESTIGO, Y CUÁL SE PAGA CAMINANDO (construido, `990c278`)
 
-**MAESTRO — cinco motivos:**
+**MAESTRO — ocho motivos del testigo (`modo_degradado_textoTestigo()`) y dos del despachador (`bluetooth.cpp`):**
 
 | lo que se lee en el teléfono | qué falta, y qué se hace |
 |---|---|
 | `Falta: reloj sin poner en hora` | esta punta no tiene una hora propia fiable con qué comparar. Ponga la hora |
 | `Ahora no coincide` | el reloj del teléfono y el del poste difieren más de la tolerancia — revise la hora del teléfono y repita |
+| `Verde fuera de rango (3-15 min)` | corrija el verde en la app antes de reenviar (`D-59`) |
 | `Despeje fuera de rango (30-255)` | corrija el número en la app antes de reenviar |
 | `Inicio ya vencido` | el reloj de esta punta ya pasó de `inicio` al recibir la orden — repita el flujo |
 | `Ambar de emergencia puesto` | alguien lo dejó encendido; hay que `CANCELAR_AMBAR` antes de reintentar |
+| `En verde: repita en rojo` | renovar escribe la flash y sólo se escribe en rojo: espere a ver el poste en rojo y repita |
+| `No se pudo guardar el testigo` | la flash no quedó escrita: NO entró. Repita; si vuelve a salir, el equipo tiene una avería |
+| `FORMATO_INVALIDO` | el poste no entendió la orden (horas, verde o despeje); con verde ≠ 180, firmware anterior a `D-59` |
+| `Cancele antes la salida programada` | hay una salida fijada (`D-52`): `SET_MODO:DEG_FIN:CANCELAR` y repita |
 
-**ESCLAVO — los mismos cinco, y UNO es el que de verdad se paga en el poste:**
+**ESCLAVO — los mismos diez, y UNO es el que de verdad se paga en el poste:**
 
 | lo que se lee en el teléfono | qué falta, y qué se hace |
 |---|---|
-| `Inicio ya vencido` | 🔸 **la que muerde.** El traslado se agotó antes de llegar. **No se reintenta con el mismo `inicio`**: vuelva al Maestro y repita el testigo entero, con un traslado nuevo |
-| las otras cuatro | mismo texto y mismo remedio que en el Maestro |
+| `Inicio ya vencido: repita el testigo en el Maestro` | 🔸 **la que muerde.** El traslado se agotó antes de llegar. **No se reintenta con el mismo `inicio`**: vuelva al Maestro y repita el testigo entero, con un traslado nuevo. Con el Poste 1 ya en otro ciclo, la app añade «verde cruzado posible: mantenga el paletero» |
+| las otras nueve | mismo texto y mismo remedio que en el Maestro (`degradado_textoRechazoTestigo()`) |
 
 **Y la comprobación visual sigue siendo la de A.3:** entrar por testigo no cambia qué se mira al confirmar que
 las dos puntas quedaron de acuerdo — sólo cambia cómo llegaron a ponerse de acuerdo sin radio.
@@ -139,7 +144,8 @@ Lo que el equipo hace solo; las tres primeras solo se ven en **`MODO:`** del `$S
 1. **Vuelve la radio ➜ sale del modo.** Solo con tramas de gobierno; las de servicio no sacan.
 2. **Se agota el limite duro ➜ se rinde sola a ambar**, y **el firmware no deja reentrar**: contesta el rechazo de
    sync caducada. **Hay que arreglar la radio, no reactivar el modo.** El Poste 1, ademas, lo dice en el instante
-   con `$ALARM DEGRADADO` y su causa (PARTE C); el Poste 2, no.
+   con `$ALARM DEGRADADO` y su causa (PARTE C); el Poste 2, no (HACE). DEBE: las dos puntas, y repetida mientras
+   dure (PARTE C.1, `D-67`, `D-68`).
 3. **Corte de energia ➜ PUEDE REANUDAR SOLA**, en todo-rojo, si al volver siguen vigentes hora, ciclo en la pila y
    sincronizacion fechable (`D-29`). **Ningun evento dice que reanudo**; si el corte apago tambien el ESP32, la app
    abre al conectar el cartel «ESTE POSTE SE QUEDO SIN LUZ» (SPEC 4 §6). Si no reanuda, el Poste 1 arranca en
@@ -234,7 +240,9 @@ fijo no compara nada.
 
 ⚠️ **Y lo que aquel modo daba en crudo hoy sale por OTRO sitio, no por el `$STATUS` — remedido el 14/09.** Los acumulados
 de **bytes recibidos, tramas validas y tramas descartadas** los publica el diario, en las **dos** puntas, como
-`$EVENT ENLACE_RF RX:<n> OK:<n> RUIDO:<n>`, al cambiar el estado del enlace y ademas cada medio minuto (`D-32` (1)).
+`$EVENT ENLACE_RF RX:<n> OK:<n> RUIDO:<n> REIN:<r>`, al cambiar el estado del enlace y ademas cada medio
+minuto (`D-32` (1)). `REIN` cuenta arranques del STM32 (`D-60`, SPEC_4 §9.4; construido, sin banco): los contadores
+solo vuelven a cero con el micro, desde `D-63` tambien en PRUEBA ALCANCE.
 **Para una sesion de antenas se leen de ahi, no del `$STATUS`. Lo unico que sigue sin sustituto son los LATIDOS
 PERDIDOS**, que no los cuenta nadie: si una sesion los necesita, **pregunta para el responsable.**
 
@@ -253,8 +261,8 @@ mas**: medido, el puente ESP32 **no origina ninguna** —solo retransmite— y e
 | `HORA_ESP32` | `J17_MUDO` · `SIN_HORA_DEL_ESP32` · `RECHAZADA_FORMATO` | `SIGUE_SU_HORA` | las dos | la hora del ESP32 **no llega, o llega y no sirve** | **es de la MISMA placa**: el ESP32, su reloj de calendario y el cable `J17`. Las tres causas mandan a sitios distintos: **SPEC 3 §7** |
 | `HORA_ESP32` | `CADUCADA` | `CAMBIO_A_ROJO` | las dos | la hora caduco **con el Degradado en marcha** (`D-38`) | esa punta ya esta en **ROJO FIJO** y no vuelve sola (A.5). Revisar `J17`, poner la hora y sacarla del modo antes de reintentarlo (A.2, A.6) |
 | `DEGRADADO` | `ROJO_SIN_HORA` | `ROJO_FIJO` | las dos | la hora dejo de ser fiable en Degradado (`D-38`, SPEC 3 §5); se **repite** cada `AVISO_ROJO_SIN_HORA_MS` mientras dure | **el otro poste puede seguir alternando**. Salir: `SET_MODO:MENU` en el Poste 1 (al Poste 2 lo saca el Maestro por radio, o `AMBAR_EMERGENCIA` alli); poner la hora y repetir el modo |
-| `DEGRADADO` | `LIMITE_48H` | `CAMBIO_A_AMBAR` | **solo Maestro** | vencio el limite duro sin sincronizar con la otra punta, y el equipo SI sabia fecharlo —en RAM o en la pila— (1.49 (b)) | **es la radio**: sin ella nadie renueva el limite. Parte B por orden. **No reactive el Degradado**: rechaza por sincronizacion (A.5), y poner la hora con el telefono **no renueva el tope** (`SPEC_7` §5) |
-| `DEGRADADO` | `SYNC_SIN_FECHA` | `CAMBIO_A_AMBAR` | **solo Maestro** | el contador del reloj cuenta, pero la marca de la ultima sincronizacion **no se puede fechar** —reloj movido hacia atras, dominio de respaldo borrado— y no hay medida en RAM | **no se sabe cuanto hace**, y el equipo lo trata como vencido. **Lo que lo levanta es una sincronizacion nueva entre las dos puntas, y esa solo viaja por radio**: la hora del telefono no la renueva (`SPEC_7` §5). Compruebe el enlace (Parte B) y que la puerta de A.2 acepte antes de reintentar el modo |
+| `DEGRADADO` | `LIMITE_48H` | `CAMBIO_A_AMBAR` | **solo Maestro** (HACE) · las dos (DEBE, C.1, `D-68`) | vencio el limite duro sin sincronizar con la otra punta, y el equipo SI sabia fecharlo —en RAM o en la pila— (1.49 (b)); DEBE repetirse cada `AVISO_ROJO_SIN_HORA_MS` mientras dure (`D-67`) | **es la radio**: sin ella nadie renueva el limite. Parte B por orden. **No reactive el Degradado**: rechaza por sincronizacion (A.5), y poner la hora con el telefono **no renueva el tope** (`SPEC_7` §5) |
+| `DEGRADADO` | `SYNC_SIN_FECHA` | `CAMBIO_A_AMBAR` | **solo Maestro** | el contador del reloj cuenta, pero la marca de la ultima sincronizacion **no se puede fechar** y no hay medida en RAM; DEBE repetirse cada `AVISO_ROJO_SIN_HORA_MS` mientras dure (`D-67`, C.1) | **no se sabe cuanto hace**, y el equipo lo trata como vencido. **Lo que lo levanta es una sincronizacion nueva entre las dos puntas, y esa solo viaja por radio**: la hora del telefono no la renueva (`SPEC_7` §5). Compruebe el enlace (Parte B) y que la puerta de A.2 acepte antes de reintentar el modo |
 | `DEGRADADO` | `RELOJ_NO_CUENTA` | `CAMBIO_A_ROJO` | **solo Maestro** | vencio el limite con el reloj de la tarjeta parado (`RELOJ_CRISTAL_CONGELADO`): pasa a ROJO FIJO y sale `ROJO_SIN_HORA` (`D-49`). El Esclavo solo publica `ROJO_SIN_HORA` | Mire LAS DOS COSAS: el reloj (SPEC 3, H-1) y la radio (Parte B). `REINICIAR_RELOJ` BORRA hora, ciclo y autorizacion: no se pulsa para mirar |
 | `CAM_PEGADA` | `CAM_C_CONTACTO_FIJO` · `CAM_D_CONTACTO_FIJO` | **`NINGUNA`** | las dos | el contacto de esa camara lleva cerrado mas del plazo de presencia legitima | **el borne lo dice el nombre**: son los dos de camara de `J16` (`D-25`, SPEC 5 §2.1). Revisar cableado y la configuracion de esa camara (`D-13`). **La causa dice `CONTACTO_FIJO` y NO «averia» a proposito**: no se puede distinguir de una presencia legitima larga |
 | `CAM_CIEGA` | `CAM_C_SIN_FLANCO` · `CAM_D_SIN_FLANCO` | **`NINGUNA`** | las dos | esa camara **dio flancos antes** y lleva demasiado paso abierto sin dar ninguno | lo mismo. ⚠️ **Solo puede salir de una camara que YA vio algo alguna vez**: una muerta desde la instalacion, o un borne vacio, **no la dispara nunca** (SPEC 5 §3.2) |
@@ -270,15 +278,69 @@ mas**: medido, el puente ESP32 **no origina ninguna** —solo retransmite— y e
 > y eso no se ve en esta alarma sino en el aviso de barrera retenida. **Atiendala mirando tambien si la
 > pluma bajo.**
 
-> ⚠️ **LAS TRES `DEGRADADO` DEL LIMITE SALEN SOLO DEL POSTE 1, Y UNA SOLA VEZ** —al contrario que las de hora y
-> que `ROJO_SIN_HORA`, no se repiten—: quien se conecte despues ve el ambar en `MODO:` y no la causa. El Poste 2
-> se rinde por su limite **sin `$ALARM`**: lo unico que deja es el parte periodico de sincronizacion diciendo que
-> vencio (HUECO 2). **Y la app todavia no las traduce**: llegan en crudo (SPEC 4 §7, hueco 11).
-> Con cualquiera de las tres, **mire tambien el Poste 2**.
+> ⚠️ **HACE (medido el 14/10 sobre el fuente): LAS TRES `DEGRADADO` DEL LIMITE SALEN SOLO DEL POSTE 1, Y UNA SOLA
+> VEZ** —al contrario que las de hora y que `ROJO_SIN_HORA`, no se repiten—: quien se conecte despues ve
+> `MODO:DEGRADADO` con `ESTADO:FALLO COM` (el Maestro sigue en `MODO_DEGRADADO`, estado interno `DEG_AMBAR`) y no
+> la causa. El Poste 2 se rinde por su limite **sin `$ALARM`** (`iniciarSalida(true)` -> `DEG_RENDIDO`): lo unico
+> que deja es `MODO:RENDIDO` y el parte periodico de sincronizacion diciendo que vencio (HUECO 2).
+> ~~Y la app todavia no las traduce~~ → `js/avisos_equipo.js` traduce las tres (`tests/dom_textos_spec4.js`, caso 4).
+> Con cualquiera de las tres, **mire tambien el Poste 2**. Lo que DEBE hacer: C.1.
 
 **Cuando se apaga una alarma.** Las de camara **se cierran solas por su prueba contraria** y lo dicen con un
 `$EVENT` de camara recuperada: una que no se cierra nunca deja al operario sin saber si aquello se arreglo.
 Las de hora **se repiten mientras duren**, porque quien las tiene que ver es el que se conecte **despues**.
+Las del limite se apagan solo por una orden (`SET_MODO:MENU`, `AMBAR_EMERGENCIA`) o por un corte: su cierre es el
+`$ACK` de esa orden, y no hay `$EVENT` de fin (`D-69`, C.1).
+
+## C.1 Las alarmas del limite se repiten mientras duren (`N-178` M3; `D-67`..`D-69`) — construido, sin banco
+
+Por que: `ROADMAP_APP.md` 9. Una alarma que sale una vez solo la ve quien estaba conectado en ese segundo; la
+rendicion por el limite dura hasta que alguien va al poste, y ese alguien llega horas despues. El molde ya existe y
+esta medido en el arnes de dos puntas: `ROJO_SIN_HORA` se repite cada `AVISO_ROJO_SIN_HORA_MS` con `tAvisoRojo`
+(`D-38`, `case DEG_ROJO_SIN_HORA` de `modo_degradado_loop()` en las dos puntas).
+
+Lo que el equipo HACE (leido en el fuente el 15/10; lo ejerce el bloque G8.2 del arnes del Degradado a dos puntas):
+1. **Maestro (`D-67`), `Maestro/src/modo_degradado.cpp`:** `irAAmbar()` deja `tAvisoRojo = millis()`; la causa la
+   guarda `static bool rendidoSinFecha` (solo en RAM) y la publica `avisarRendicion()`, que elige entre los dos
+   literales `"SYNC_SIN_FECHA"` y `"LIMITE_48H"`. En `case DEG_AMBAR:` del bucle, cada `AVISO_ROJO_SIN_HORA_MS`,
+   `avisarRendicion()` (`bluetooth_reportarAlarma("DEGRADADO", <causa>, "CAMBIO_A_AMBAR")`). La primera sale en la
+   rama del limite (en la caida); las siguientes, del bucle. `DEG_AMBAR` no toca nada mas: ni la luz ni el modo.
+   `RELOJ_NO_CUENTA` no se repite: va a rojo fijo y alli ya se repite `ROJO_SIN_HORA` (`D-49`, que no se reabre).
+   Tras un corte NO se repite: la pila guarda `FLAG_RENDIDO` sin causa y el Maestro arranca en el ambar de `D-40`;
+   la causa la da el rechazo de sync al reintentar (A.5.2).
+2. **Esclavo (`D-68`), `Esclavo/src/modo_degradado.cpp`:** al pasar a `DEG_RENDIDO` (rama `rendicionEnCurso` de
+   `case DEG_SALIENDO:`) publica `$ALARM DEGRADADO,CAUSA:LIMITE_48H,ACCION:CAMBIO_A_AMBAR` y deja `tAvisoRojo`; el
+   `case DEG_RENDIDO:` la repite cada `AVISO_ROJO_SIN_HORA_MS`, sin tocar luz (la fija `semaforo_iniciarFallo()`
+   al entrar). El Esclavo tiene una sola causa de rendicion (`syncVencidaLatch`; el cristal congelado va a rojo fijo
+   por `D-49`), asi que no distingue `SYNC_SIN_FECHA`. La fila `LIMITE_48H` de la tabla pasa de «solo Maestro» a
+   «las dos». Es el `D-x` que pedia `SPEC_7` H-2 para la salida del Esclavo.
+3. **Lo que NO se construye (`D-69`):** ni consulta `ALARMAS` ni lista con `FIN,<n>` ni `$EVENT` de cierre. Una
+   lista de «activas» tendria que definir «activa» para cada alarma, y las instantaneas (`REINTENTOS_AGOTADOS`,
+   `SIN_CONFIRMAR`, `AUTO_NO_*`) no la tienen: un `FIN,0` con una `CAM_PEGADA` reteniendo la pluma seria una
+   mentira con formato de exito (`CLAUDE.md` §2). Ademas es una rama de `$ACK` nueva en dos `bluetooth.cpp` que no
+   crecen, y la repeticion ya hace visible la alarma al minuto de conectar, que es lo que `D-38` acepto. El cierre
+   es el `$ACK` de la orden que saca del modo. Las de camara ya cierran con `$EVENT ... _RECUPERADA`.
+4. **La app no cambia:** las tres causas ya salen de la tabla `AvisosEquipo.ALARMA` (toast y linea roja), y el
+   `NODE:ESCLAVO` entra por `_cual(data)`. Que cada repeticion vuelva a abrir el toast es lo mismo que hoy hace
+   `ROJO_SIN_HORA`; agruparlas («x N, ultima a las HH:MM») es de M7 (`ROADMAP_APP.md` 2), no de aqui.
+
+Modo de fallo buscado (`CLAUDE.md` §11.7): ninguno sobre luces (la repeticion no toca `escribirPines()` ni el
+modo); el peor segundo de J17 no cambia porque `DEG_AMBAR`/`DEG_RENDIDO` y `DEG_ROJO_SIN_HORA` son excluyentes y
+usan el mismo temporizador: sigue cabiendo UN `$ALARM` de mas. Una repeticion cada minuto durante dias llena la
+cinta de la app (1440 lineas/dia): aceptado, es lo que ya hace `ROJO_SIN_HORA`.
+
+Quien lo ejerce (instrumentos existentes; simulador congelado, `CLAUDE.md` §4):
+- `Validacion_Automatico/dos_puntas/orquestador_degradado.cpp`, G8: tras G8.1 (que se conserva: la PRIMERA es
+  `LIMITE_48H` y es una sola a los 5 s) se avanza `AVISO_ROJO_MS + 5000` y una asercion nueva G8.2 exige
+  `alarmas_limite_48h` >= 2 en el Maestro, `alarmas_degradado == alarmas_limite_48h` (ninguna otra causa) y el
+  Esclavo en `DEG_RENDIDO_V` (constante ya leida, hoy sin asercion) con su propia `alarmas_limite_48h` >= 2; el
+  doble de `bluetooth_reportarAlarma()` de `adaptador_esclavo.cpp` gana el contador por causa que ya tiene el del
+  Maestro. **Rojo antes de construir:** el Maestro seguia en 1 y el Esclavo en 0.
+- `esp32_07_presupuesto_bytes`, sin tocar: no hay `causaRendicion[]`; la causa es uno de los dos literales de
+  `avisarRendicion()`, el mas largo `SYNC_SIN_FECHA`. Si aborta sobre el argumento, se arregla el fuente, no el pack.
+- `tests/dom_textos_spec4.js` caso 4: la misma vuelta con `NODE:ESCLAVO` para `LIMITE_48H` (guarda, verde ya).
+- `decisiones_01_anclas`, sin tocar: rojo hasta que `D-67` y `D-69` esten ancladas en `Maestro/src/modo_degradado.cpp`
+  y `D-68` en `Esclavo/src/modo_degradado.cpp`.
 
 # PARTE D — `T-2`: EL PARCHE DE PACIENCIA PARA LA VERSION QUE ESTA EN LA CALLE
 

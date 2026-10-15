@@ -137,6 +137,7 @@ inline FaseDegradado ciclo_degradado_fase(uint32_t segDia, uint16_t verdeSeg,
 
 // Segundos que faltan para el siguiente cambio de fase. Sirve para mostrar la
 // cuenta atras en pantalla sin recalcular el ciclo en cada modulo.
+// D-79: el coste por llamada es su resultado en iteraciones (arnes_ciclo lo mide con verde 900).
 inline uint32_t ciclo_degradado_restante(uint32_t segDia, uint16_t verdeSeg,
                                          uint16_t despejeSeg) {
   if (verdeSeg == 0 || despejeSeg == 0) return 0;

@@ -42,9 +42,13 @@ bool transporte_conectado();
 int transporte_disponible();
 int transporte_leer();
 
-// Devuelve los bytes entregados. Menos de n significa buffer lleno, y el que llama
-// tiene que contarlo (P-3): lo que se descarta callando se lee como que nunca existio.
+// Devuelve los bytes entregados, sin esperar nunca (D-71). 0 sin telefono: no habia a
+// quien dar. 0 con telefono conectado = descartada por congestion y contada (D-70).
 size_t transporte_escribir(const char* datos, size_t n);
+
+// Tramas descartadas por congestion del SPP desde el arranque (B-7). Legible; lo
+// publica el registro del puente de M5 (D-55), no el parte ni el $STATUS.
+unsigned long transporte_descartadasPorCongestion();
 
 // APRENDE EL ROTULO DE UNA TRAMA QUE YA VA DE CAMINO, SIN TOCARLA.
 //

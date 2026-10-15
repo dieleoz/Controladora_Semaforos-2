@@ -29,9 +29,13 @@ Orden por dano en campo, no por facilidad. Cada fase cierra con sus pruebas en v
    contadores y siglas a una pestana «Datos tecnicos». Medido el 09/10 (punto 4): contraste minimo 6,52:1 (el
    3,15:1 de alla no se da aqui); jerga a la vista del operario: `SET_MODO_AUTO`, `[J17] MUDO`, `OTRO_PERRO`, MAC,
    `RF:--`, `RTT`, `RSSI`, «CAMARAS J16», y en el Poste 2 «no viaja en esta trama», «desde D-23».
+   Decidido el 14/10 en `SPEC_4` §9.9 (`D-80`, `D-83`): dos zonas (Eventos queda en la tecnica), expresion `JERGA`
+   en `tests/dom_usabilidad.js`, gris para todo `--`, cyan se queda en los mandos; sin pestana «Datos tecnicos».
 3. **Cabecera**: a 360 px el rol y el enlace quedan en dos emoji (`style.css`, `@media (max-width: 400px)`); el
    rotulo del enlace llega a 246 de 248 px libres. El recorte del 06/10 no se reprodujo en simulado (fuentes con
    red; sin red, como en la APK, sin medir): se mide en el telefono antes de cambiarla.
+   Decidido el 14/10 en `SPEC_4` §9.9 (`D-82`): sin tocar `style.css`; `#rssi-text` <= 16 caracteres, «(sin radio)».
+   Y el aviso unico del cambio en caliente, `D-81` (§9.9 (e)): el modal de paleteros absorbe el `Dialogo`.
 4. **Revision UX en simulado: HECHA el 09/10** (agente, Chrome sin cabeza, 360x640 y 1280x800; informe y capturas en
    el scratchpad de la sesion, fuera del repo). Lo que le hace EQUIVOCARSE, primero:
    - a 360x640 la barra inferior flotante tapa 38 de 58 px de los botones AMBAR y ROJO TOTAL en Trafico;
@@ -58,24 +62,38 @@ Orden por dano en campo, no por facilidad. Cada fase cierra con sus pruebas en v
 8. **`app.js` (338 KB) partido en modulos y `www/` regenerado en cada compilacion.** Se hace por tandas al tocar
    cada zona, no de golpe: los instrumentos leen el fuente por RUTA (`CLAUDE.md` §5) y cada movimiento lleva su
    ruta en el mismo commit.
+   Molde, medida y tanda 1 (`ACK_TEXTO`, `ERR_TEXTO`, `ERR_MOTIVO` a `js/textos_ack.js` y `js/textos_err.js`)
+   decididos el 14/10 en `SPEC_4` §9.12 (`D-98`); orden de las tandas siguientes alli. Sin construir.
 
 ### Fase 3 — Lo que pide firmware (ESP32 del puente o STM32) y una decision
 
 9. **Alarmas que se ven aunque nadie estuviera conectado**: el equipo repite la alarma mientras dure y, al conectar,
    la app pide `ALARMAS` y el equipo lista las activas con `FIN,<n>`; el cierre repite la CAUSA de la apertura;
    toda frase sale de una tabla. Cierra las tres `DEGRADADO` de limite que salen una sola vez (`SPEC_6` parte C).
+   Decidido el 14/10 en `SPEC_6` C.1 (`D-67`..`D-69`): se repiten mientras duren (molde `ROJO_SIN_HORA`) y el
+   Esclavo publica la suya al rendirse; sin consulta `ALARMAS` ni `FIN` (lista a medias = mentira); la app ya
+   traduce las tres causas y no cambia.
 10. **Registro en el equipo, no en la cinta de la app**: anillo en RAM y FIFO en flash con CRC; la app pide
     `LOG,DESDE:<N>` y recuerda el ultimo N. Cabria en el ESP32 del puente, no en el STM32 (flash en la ultima acta,
     `CLAUDE.md` §10). Se hacen las dos cosas (`D-55`): esto y las cuatro mejoras de la app del 06/10 (`ESTADO.md`).
     Las de la app, HECHAS el 09/10 (`SPEC_4` §9.3): cambios de `$STATUS` en registro aparte (2000), un solo .txt
     con diario, cinta, cambios y enlace, copia fuera de CACHE y fichero de la sesion en la APK. El 06/10 la cinta
     tiro 1542 tramas. Sin probar en el telefono. La del equipo (ESP32 del puente), sin construir.
+    Decidida el 14/10 en `SPEC_4` §9.8 (`D-72`..`D-75`): particion `spiffs` del puente en crudo, FIFO de
+    128 B con CRC-16, `CMD:LOG,DESDE:<N>` sin PIN; la app pide solo si el parte de arranque trae `LOG:`.
 11. **Reinicios fechados**: `$STATUS` con REIN, ULT_REIN, UP_ANT y HEAP_MIN; la app alarma si un contador baja sin que
-    cambie REIN. Habria explicado la caida de 1789 a 91 del 06/10 a las 10:43:30.
+    cambie REIN. REFUTADO a medias el 14/10: la caida de 1789 a 91 del 06/10 a las 10:43:30 fue
+    `SET_MODO_ALCANCE` (10:43:00, SFTY-15), no un reinicio. Decidido en `SPEC_4` §9.4 (`D-60`..`D-64`): no
+    cabe en el `$STATUS`; `REIN` va en el `$EVENT ENLACE_RF` y el resto en la consulta `REINICIOS`.
 12. **Todo `$ACK` lleva `RES`/`APLICA` o es `$ERR`**; la orden que no cambia nada da `MOTIVO:SIN_CAMBIO` y la app
     dice «ya estaba asi» (`SPEC_4` §7, el cambio bajo `if (modo != modoAnterior)`). Alli tambien quedo a medias.
+    Decidido el 14/10 en `SPEC_4` §9.5 (`D-65`, `D-66`): el campo es `RESULT:` y ya va en todo `$ACK`; `SIN_CAMBIO`
+    solo en `SET_MODO:ALCANCE` e `INTELIGENTE` repetidos, sin re-armar.
 13. **SPP que no bloquea en el puente**: un `write` SPP espera hasta 1 s; si no hay sitio se descarta y se cuenta.
     Antes, un arnes que compile `transporte_app.cpp` y lo vea fallar con la cola llena (`SPEC_4` §7: hoy nadie).
+    Decidido el 14/10 en `SPEC_4` §9.7 (`D-70`, `D-71`): sin espera (el «hasta 1 s» no cabe en `loop()`: perro y
+    `J17`), con `CONG` se descarta y se cuenta; sin arnes nuevo (simulador congelado): guarda de texto en `esp32_06`
+    y el contador sale con el LOG de M5. Las cintas traen 28 `CAUSA:OTRO_PERRO` del puente, causa sin medir.
 
 ### Fase 4 — Modo de practica sin poste, con varios equipos (`D-58`)
 
@@ -90,6 +108,8 @@ Orden por dano en campo, no por facilidad. Cada fase cierra con sus pruebas en v
     - en la APK de campo, detras de la clave de administracion (`D-56`), no a un toque del tecnico;
     - una prueba que falla si un campo nuevo del `$STATUS` no esta en el simulador (alli se desfasaba a mano).
     No es el simulador de PC del repo, que sigue CONGELADO (`CLAUDE.md` §4): este es producto, en `www/js/`.
+    Decidido el 14/10 (`SPEC_4` §9.10, `D-86`..`D-89`): la cinta del 06/10 ya es posterior a `D-53`, pero ninguna
+    trae `ROJO+AMAR` crudo; la del 02/10 se queda hasta que una lo traiga.
 
 ## Lo que NO se trae, y por que
 

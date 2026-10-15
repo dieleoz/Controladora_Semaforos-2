@@ -36,11 +36,6 @@ static uint8_t btIdxIn = 0;
 
 // ---------------------------------------------------------------------------
 // A3 - EL REGISTRO DE SILENCIO DEL PUERTO J17.
-//
-// POR QUE LO LLEVA ESTE MICRO. El ESP32 no puede reportar su propia muerte: el equipo
-// que sobrevive al fallo es este, asi que el registro es suyo. Hoy, si J17 se calla, no
-// lo apunta nadie, y cuando el tecnico llega lo que paso ya no esta.
-//
 // QUE MIDEN ESTOS TRES NUMEROS Y QUE NO. ESTA ES LA MITAD IMPORTANTE.
 //
 // MEDIDO sobre el puente, no supuesto:
@@ -73,12 +68,6 @@ static uint8_t btIdxIn = 0;
 // Y ESTO CUENTA; NO ACTUA. De aqui no sale una sola escritura de luz. El ambar
 // automatico sigue reservado a los caminos que ya lo tienen -SFTY-6 y el watchdog-: la
 // maquina no decide sola operar de un modo que nadie pidio.
-//
-// SE MIDE POR LINEA COMPLETA, no por byte: el puente entrega lineas y el receptor de
-// abajo solo actua sobre lineas. La PRIMERA linea tras el arranque cierra el silencio
-// que empezo en el arranque, que es un silencio real y el unico capaz de contestar
-// "llevo tres dias sin que nadie hable por aqui".
-//
 //
 // EL ULTIMO SILENCIO NO SE GUARDA, Y NO ES UN OLVIDO. Se publica en el instante en que
 // se cierra -que es el unico en que alguien puede estar mirando, ver abajo-, asi que
@@ -394,8 +383,8 @@ void bluetooth_reportarEvento(const char* origen, const char* detalle) {
   // tipo-, y esta punta todavia no lo emite porque su reloj.h no declara
   // reloj_diagnostico(). Se sube igual: el dia que lo declare, este emisor tiene que
   // ser el mismo bloque letra por letra, y dos buffers distintos en la misma funcion de
-  // las dos puntas son la divergencia que luego nadie recuerda haber introducido.
-  char payload[112];
+  // las dos puntas son la divergencia que nadie recuerda. D-60: 128 por el REIN de ENLACE_RF.
+  char payload[128];
   snprintf(payload, sizeof(payload), "$EVENT,NODE:ESCLAVO,ORIGEN:%s,DETALLE:%s,HORA:%s",
            origen, detalle, horaBuf);
   enviarTramaConCrc(payload);
@@ -835,6 +824,18 @@ static void procesarComando(const char* cmd) {
 #else
     enviarTramaConCrc("$ERR,CMD:VERSION,DESC:SIN_SELLAR,NODE:ESCLAVO,FW:" FW_SIN_SELLO);
 #endif
+    return;
+  }
+
+  // D-60/D-61/D-62: REINICIOS solo mira; entra con y sin PIN, y es gemela de la del Maestro.
+  if (strcmp(cmd, "CMD:REINICIOS") == 0 || strcmp(cmd, "CMD:PIN:1234:REINICIOS") == 0) {
+    char r[96];
+    const int n = snprintf(r, sizeof(r),
+        "$ACK,CMD:REINICIOS,RESULT:OK,NODE:ESCLAVO,REIN:%u,CAUSA:%s,UP:%lu,ANTES:%u",
+        (unsigned)respaldo_reinicios(), respaldo_causa(),
+        (unsigned long)respaldo_segundosEncendido(), (unsigned)respaldo_horasAnterior());
+    if (n > 0 && n < (int)sizeof(r)) enviarTramaConCrc(r);
+    else enviarTramaConCrc("$ERR,CMD:REINICIOS,DESC:NO_CABE,NODE:ESCLAVO");
     return;
   }
 
@@ -1623,7 +1624,6 @@ void bluetooth_loop() {
   }
 
   // D-23 (13/09) - EL DIAGNOSTICO DEL ENLACE DE ESTA PUNTA, A SU PROPIA CADENCIA.
-  //
   // VA FUERA DEL if DEL $STATUS Y CON SU PROPIO RELOJ, y no es colocacion: colgando de
   // aquel, la cadencia de este dato dejaria de ser la que dice DIAG_ENLACE_MS para pasar
   // a ser un multiplo del periodico, y ademas los DOS instrumentos que leen
@@ -1651,10 +1651,10 @@ void bluetooth_loop() {
   // del enlace -como ve ESTA punta su radio-, y la app ya los distingue por el DETALLE.
   if (ahora - tUltimoDiagEnlace >= DIAG_ENLACE_MS) {
     tUltimoDiagEnlace = ahora;
-    char det[45];
-    snprintf(det, sizeof(det), "RX:%lu OK:%lu RUIDO:%lu",
+    char det[61];  // D-60: " REIN:" (6) y un %u por TIPO (10): 44 + 16 + NUL
+    snprintf(det, sizeof(det), "RX:%lu OK:%lu RUIDO:%lu REIN:%u",
              protocolo_bytesRecibidos(), protocolo_tramasValidas(),
-             protocolo_tramasDescartadas());
+             protocolo_tramasDescartadas(), (unsigned)respaldo_reinicios());
     bluetooth_reportarEvento("ENLACE_RF", det);
   }
 

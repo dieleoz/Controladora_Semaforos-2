@@ -170,6 +170,12 @@ int main(void) {
       bool ok = (leerReg(REG_FIRMA) == FIRMA) && (sumaGuardada == calcularSuma());
       printf("%d\n", ok ? 1 : 0);
 
+    } else if (strncmp(linea, "CAUSA", 5) == 0) {
+      // D-62: CAUSA <RCC_CSR en decimal> -> la causa que anotarArranque() REAL publica.
+      if (sscanf(linea + 5, "%lu", &v[0]) != 1) { printf("ERROR\n"); continue; }
+      respaldo_anotarArranque((uint32_t)v[0]);
+      printf("%s\n", respaldo_causa());
+
     } else if (linea[0] == '\n' || linea[0] == '\r' || linea[0] == '\0') {
       continue;
 

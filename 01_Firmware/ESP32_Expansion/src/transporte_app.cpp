@@ -2,7 +2,9 @@
 
 #include "transporte_app.h"
 #include "contrato.h"
+#include "trama.h"
 #include <BluetoothSerial.h>
+#include <esp_spp_api.h>
 #include <Preferences.h>
 #include <string.h>
 
@@ -10,6 +12,24 @@ static BluetoothSerial spp;
 static Preferences memoria;
 static bool abierto = false;
 static char rotulo[ROTULO_MAX];
+
+// D-70 (SPEC_4 9.7): estado de congestion del SPP, observado desde la tarea de la pila
+// Bluetooth. Con el telefono sin leer, BluetoothSerial::write() espera hasta 1000 ticks
+// por trama a que haya sitio en su cola: dos tramas en una vuelta de loop() son el techo
+// del perro (2000 ms). Lo que no se escribe por congestion se cuenta, no se espera.
+static volatile bool congestionado = false;
+static unsigned long descartadasCongestion = 0;
+
+// Observador, como transporte_aprenderRotulo(): no toca tramas ni decide nada mas.
+static void observadorSpp(esp_spp_cb_event_t evento, esp_spp_cb_param_t* param) {
+  if (evento == ESP_SPP_CONG_EVT) {
+    congestionado = param->cong.cong;
+  } else if (evento == ESP_SPP_WRITE_EVT) {
+    congestionado = param->write.cong;
+  } else if (evento == ESP_SPP_CLOSE_EVT || evento == ESP_SPP_SRV_OPEN_EVT) {
+    congestionado = false;   // sesion nueva: sin deuda de la anterior
+  }
+}
 
 // Lo aprendido en ESTA arrancada, para no reescribir la flash en cada $STATUS: el
 // equipo emite uno por segundo, y una escritura por segundo se come la NVS en semanas.
@@ -35,6 +55,7 @@ static void cargarRotulo() {
 
 bool transporte_abrir() {
   cargarRotulo();
+  spp.register_callback(observadorSpp);   // antes de begin(): D-70
   abierto = spp.begin(rotulo);
   return abierto;
 }
@@ -57,25 +78,17 @@ size_t transporte_escribir(const char* datos, size_t n) {
   // y contarla como entregada haria que el contador de descartes -que es lo unico que
   // se puede mirar desde fuera- mintiera justo cuando hace falta.
   if (!spp.hasClient()) return 0;
+  // D-70: con el SPP congestionado el telefono no lee; llamar a write() solo esperaria.
+  // D-71: sin espera de ningun tipo aqui (ni delay, ni millis, ni alimentar al perro).
+  if (congestionado) {
+    descartadasCongestion++;
+    return 0;
+  }
   return spp.write((const uint8_t*)datos, n);
 }
 
-// Copia el valor de un campo "CLAVE:" de una trama NMEA-like hasta la coma o el '*'.
-// Devuelve false si el campo no esta o no cabe: sin valor por defecto, porque un
-// rotulo a medias es un rotulo equivocado y este lo va a leer un tecnico para decidir
-// a que poste se conecta.
-static bool campo(const char* trama, const char* clave, char* dst, size_t cap) {
-  const char* p = strstr(trama, clave);
-  if (p == NULL) return false;
-  p += strlen(clave);
-  size_t i = 0;
-  while (p[i] && p[i] != ',' && p[i] != '*' && i < cap - 1) {
-    dst[i] = p[i];
-    i++;
-  }
-  if (i == 0) return false;
-  dst[i] = '\0';
-  return true;
+unsigned long transporte_descartadasPorCongestion() {
+  return descartadasCongestion;
 }
 
 void transporte_aprenderRotulo(const char* trama) {
@@ -85,8 +98,8 @@ void transporte_aprenderRotulo(const char* trama) {
 
   char serie[16];
   char nodo[16];
-  if (!campo(trama, "SERIE:", serie, sizeof(serie))) return;
-  if (!campo(trama, "NODE:", nodo, sizeof(nodo))) return;
+  if (!trama_campo(trama, "SERIE:", serie, sizeof(serie))) return;
+  if (!trama_campo(trama, "NODE:", nodo, sizeof(nodo))) return;
 
   // La letra final la decide el propio equipo, no una opcion de compilacion: el mismo
   // binario sirve a las dos puntas. Un firmware distinto por punta seria una segunda
