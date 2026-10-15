@@ -101,7 +101,7 @@ prometia rojo y hacia ambar con la talanquera arriba. Lo rechaza **nombrando el 
 | `SET_MODO:MENU` | **no** | **tres**: en `MODO_DEGRADADO` depende del bool de `modo_degradado_pedirSalida()` — `RESULT:SALIENDO_TODO_ROJO` si arranco la salida, `$ERR ... YA_VUELVE_AL_MENU` si ya estaba en marcha. Ninguno es OK: el menu tarda el todo-rojo. Fuera del Degradado, `RESULT:OK`. **Construido (`a4545bb`), sin banco:** sigue siendo la salida INMEDIATA del poste conectado, con el aviso de paleteros; con el Maestro en `MENU` esperando la siembra de `D-29`, revoca el permiso y contesta `RESULT:OK_REANUDACION_CANCELADA`. Hueco sin radio: SPEC 2 §7.quater |
 | `SET_MODO:ALCANCE` | **no** | **tres** (`D-65`, §9.5; construido, sin banco): `$ERR ... EN_MARCHA_PARE_EL_MODO` si `modoActual_get()` es `MODO_DEGRADADO`; `RESULT:SIN_CAMBIO` si ya era `MODO_ALCANCE` —leido ANTES de `modoActual_set()`, molde `N-146`, y no se vuelve a correr nada—; `RESULT:OK` si no |
 | `SET_MODO:INTELIGENTE` | si | igual que la anterior: `$ERR` en Degradado, `RESULT:SIN_CAMBIO` si ya era `MODO_INTELIGENTE`, `RESULT:OK` si no (`D-65`, §9.5; construido, sin banco) |
-| ~~`SET_MODO:DEGRADADO`~~ | — | **Salio con `D-46` (`f9cad1f`; sin banco):** `$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO`. Su puerta, `modo_degradado_evaluarEntrada()` con `DEG_RECHAZO`, queda en el fuente sin llamador que la alcance y se conserva |
+| `SET_NOCHE:n,dias,HHMM,HHMM,A/R` · `SET_NOCHE:n,OFF` · `SET_NOCHE_TR:s` · `CONSULTA_NOCHE` | si · si · si · no | Construido en `N-179` (`D-110`, SPEC 0 §5.10 (h); `modoNoche_orden()`), sin banco. Molde `SET_TIEMPOS`: `$ERR ... FORMATO_INVALIDO` / `RANGO` / `EN_NOCHE_SALGA_PRIMERO` / `FLASH_NO_RELEE`, y `RESULT:OK` solo si lo releido de la flash es lo pedido. La consulta contesta `$ACK,CMD:NOCHE,RESULT:OK,TR:<s>,F1:..,F4:..` (131 caracteres como mucho). Solo el Maestro; el Esclavo, §3.2. ~~`SET_MODO:DEGRADADO`~~ salio con `D-46` (`COMANDO_NO_SOPORTADO`) |
 | `SET_MODO:DEG_T:ahora,inicio,verde,despeje` | si | Construido (`990c278`; `D-35`, SPEC 2 §7.bis). **La unica orden de entrada al Degradado.** Puerta paralela a `modo_degradado_evaluarEntrada()`, sin sync de radio: `$ERR ... DESC:<texto>` (`modo_degradado_textoTestigo()`) por `MDT_FALTA_HORA`, `MDT_AHORA_DESFASADO` (`TOLERANCIA_TESTIGO_S`), `MDT_DESPEJE_RANGO`, `MDT_INICIO_VENCIDO`, `MDT_AMBAR_VIGENTE`, `MDT_EN_VERDE`, `MDT_NO_GUARDADO`; `RESULT:OK` / `RESULT:RENOVADO`. Con salida programada (`D-52`): `$ERR ... DESC:Cancele antes la salida programada` |
 | `SET_DEG_AUTO:1` / `SET_DEG_AUTO:0` | si | Construido (`A-15`, SPEC 2 §7.ter (a)). **El `$ACK` sale DIFERIDO**, cuando el `ECO` del otro poste refleja el cambio: `RESULT:ON_EFECTIVO` (el otro tambien apto) / `RESULT:ON_FALTA_EL_OTRO_POSTE` / `RESULT:OFF`. Rechazos: `$ERR ... SIN_ENLACE_CON_EL_OTRO_POSTE` · `EN_DEGRADADO_SALGA_PRIMERO` · `FORMATO_INVALIDO`; sin `ECO` en `DEG_AUTO_ACUSE_MS`, `$ERR ... CAMBIADO_AQUI_SIN_ACUSE_DEL_OTRO_POSTE` (el cambio queda y se sigue publicando). Maestro en `MENU`: siempre ese `$ERR` (SPEC 2 §7.ter (a)). Misma orden y mismos literales en el Esclavo |
 | `CONSULTA_DEG_AUTO` | no (es una consulta) | Construido. `RESULT:ESTE_<ON/OFF>_OTRO_<ON/OFF>_APTO_<SI/NO>`: la opcion propia, el ultimo `APTO` oido del otro y el `APTO` propio. Igual en el Esclavo |
@@ -126,7 +126,7 @@ que viviera en una funcion comun los dejaria midiendo un bloque vacio (`N-89`).
 | `AMBAR_EMERGENCIA` | **no** | **seis literales, y ninguno promete de mas.** Con la luz libre (`!degradado_gobiernaLuz()`) el ambar se enciende ya; lo que el `RESULT` anade es **si el aviso al Poste 1 puede haber sido oido**, y eso NO sale de `protocolo_enviarPaquete()` —que es `void`— sino de dos banderas: `enlaceCaidoAnunciado` (esta punta ya declaro que se quedo sin radio) y `avisoAmbarConfirmado` (`D-31`: el Poste 1 acuso un aviso anterior de ESTE ambar). De ahi `OK`, `OK_SIN_RADIO`, `OK_POSTE1_AVISADO` y sus tres gemelos `YA_EN_AMBAR_LATCH_PUESTO...` cuando la luz ya estaba en ambar y lo unico nuevo es el latch. **`SIN_RADIO` gana a `POSTE1_AVISADO`**: el acuse es de hace un rato, la caida es de ahora |
 | `AMBAR_EMERGENCIA` (con el Degradado gobernando) | — | `RESULT:SALIENDO_TODO_ROJO` si hay salida iniciada y `RESULT:SALIDA_YA_EN_CURSO` si es una rendicion (`degradado_rendicionEnCurso()`) — **no `OK`**, porque el ambar tarda el todo-rojo entero. Y si la salida en curso termina en ROJO porque la pidio otro: `$ERR ... SALIDA_A_ROJO_EN_CURSO_REPITA`, **sin armar el latch** |
 | `CANCELAR_AMBAR` | si | **PIDE PIN al reves que armar**, y es deliberado: quitar el ambar devuelve el cruce a dar verdes, o sea **abre paso**. Depende de `ambarEmergencia`: con latch puesto lo retira, avisa al Poste 1 y contesta `RESULT:RETIRADO` (la rama del mando salio con el, `D-30`). Sin latch, `RESULT:REENVIADO_AL_MAESTRO` si esta punta **sigue** en `S_FALLO` (la red de la trama perdida, `N-152`), y `$ERR ... NO_HAY_AMBAR_VIGENTE` si no |
-| ~~`SOLICITAR_PASO`~~ · ~~`SET_MODO:DEGRADADO`~~ | — | **Salieron con `D-46` (`f9cad1f`; sin banco):** `$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO_EN_ESCLAVO`. La app ya no las ofrecia (`D-36`, `D-37`). El paso se da desde el Maestro (Manual y DAR PASO, SPEC 1 §8); al Degradado se entra por el testigo |
+| `SET_NOCHE:*` · `SET_NOCHE_TR:*` · `CONSULTA_NOCHE` (y ~~`SOLICITAR_PASO`~~ · ~~`SET_MODO:DEGRADADO`~~, que salieron con `D-46`; la app ya no las ofrecia, `D-36`, `D-37`) | — | Con PIN, `$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO_EN_ESCLAVO`; sin PIN (tambien `CONSULTA_NOCHE`), la puerta del PIN: `AUTH_FAILED`/`PIN_INVALIDO` (`js/noche.js` lo absorbe). Las ordenes de noche solo existen en el Maestro, que manda la franja por radio (`CMD_GO_NOCHE`, SPEC 0 §5.10 (b)); el paso se da desde el Maestro (SPEC 1 §8) y al Degradado se entra por el testigo |
 | `SET_MODO:DEG_T:ahora,inicio,verde,despeje` | si | Construido (`990c278`; `D-35`, SPEC 2 §7.bis). Misma orden, `RechazoTestigo` propio: `DEG_RECHAZO_T_SIN_HORA` / `_AHORA_DESFASADO` / `_INICIO_VENCIDO` —texto «repita el testigo en el Maestro»— / `_DESPEJE_RANGO` / `_AMBAR_VIGENTE`, o `RESULT:OK` / `RESULT:RENOVADO` |
 | `SET_MODO:DEG_FIN:ahora,salida` · `...:CANCELAR` · `CONSULTA_DEG_FIN` | si · si · no | Construidos el 04/10 (`a4545bb`, `D-52`), sin banco. Misma orden y mismos literales que el Maestro (§3.1), con `RechazoSalida` propio; aqui muerde «Salida ya vencida», con el MISMO literal que el Maestro (el consejo lo dice la app). Al llegar la hora llama a `iniciarSalida(false)`: rojo, el despeje y `DEG_INACTIVO`, **sin menu**: sin radio queda en ambar por silencio. `DEG_T` con salida programada se rechaza igual |
 | `SET_DEG_AUTO:1` / `SET_DEG_AUTO:0` · `CONSULTA_DEG_AUTO` | si · no | Construidos. Los del Maestro (§3.1); aqui el enlace es una orden de gobierno del Maestro en los ultimos `SFTY6_SILENCIO_MS`, y el `ECO` llega en su `PING` |
@@ -506,10 +506,9 @@ alcanzable; leido en `modo_inteligente.cpp`: con el coordinador en `C_IDLE` el m
 cumplir el suelo, asi que no deja el cruce trabado. Lectura del fuente, sin banco ni tarjeta.
 
 ⚠️ **5 · El Modo Alcance no tiene superficie.** Todo lo que ese modo produce sale por
-`lcd_dibujarAlcance()`, y **el LCD se retiro** (`D-17.bis`). Desde el telefono, `MODO:ALCANCE` ensena el
-mismo `RF:`/`RTT:` que cualquier otro modo —vienen de la ventana de latidos del coordinador, **no** de los
-contadores que ese modo pone a cero—. Es un modo de medida sin nadie que lea la medida, y es `D-16` en su
-forma mas simple.
+`lcd_dibujarAlcance()`, y **el LCD se retiro** (`D-17.bis`). Desde el telefono, `MODO:ALCANCE` ensena el mismo
+`RF:`/`RTT:` que cualquier otro modo —vienen de la ventana de latidos del coordinador, **no** de los contadores que ese
+modo pone a cero—. Es un modo de medida sin nadie que lea la medida, y es `D-16` en su forma mas simple.
 
 🟢 **6 · CERRADO POR `D-44` (`f9cad1f`) — `menu.cpp` NO ERA SOLO PANTALLA.** `menu_setup()` llama a
 `coordinador_forzarMenu()`, el todo-rojo de las dos puntas, alcanzable desde la app con `SET_MODO:MENU` (§3.1, una de
@@ -583,11 +582,10 @@ rojo total corregido (§3.ter.ter; `7cd3042`; `js/deg_fin.js`). Sin banco ni tel
 | §1 **`sellarHoraSiFaltaba()`**, la unica trama que el puente modifica | 🟡 **texto** (`esp32_13_siembra_de_hora`, `reloj_02_siembra_que_miente`); nadie compila `X:siembra.cpp` |
 | §3.1 **las respuestas de `FORZAR_ROJO` en Degradado y las de `SET_MODO:DEG_FIN`** (`D-51` corregida, `D-52`) | 🔴 **Construido el 04/10 (`a4545bb`), sin banco.** Las respuestas las ejecuta el arnes del puente con `bluetooth.cpp` real (arquitecto 04/10, cond. 4); banco: SPEC 2 §7.quater (i) |
 **Cuenta: 10 filas y 12 barreras — 7 ejecutadas, 1 sin nadie, 4 vigiladas solo por texto.** 🔴 **El rojo y los
-textos del puente son el MISMO hecho: el ESP32 entero (9 `.cpp`) no se ejecuta en el PC en ningun sitio**, asi
-que todo lo que esta spec dice del puente —`D-15`, los limites de linea, los siete motivos de `LEER_RTC`—
-descansa en packs que leen texto.
-⚠️ **Y una refutacion que conviene dejar escrita: `Maestro/src/bluetooth.cpp` SI lo compila alguien** —la fila 20,
-junto con el del Esclavo—; lo que no compila nadie es el despachador del **ESP32**, que es otro fichero.
+textos del puente son el MISMO hecho: el ESP32 entero (9 `.cpp`) no se ejecuta en el PC en ningun sitio**, asi que todo
+lo que esta spec dice del puente —`D-15`, los limites de linea, los siete motivos de `LEER_RTC`— descansa en packs que
+leen texto. ⚠️ **Y una refutacion que conviene dejar escrita: `Maestro/src/bluetooth.cpp` SI lo compila alguien** —la
+fila 20, junto con el del Esclavo—; lo que no compila nadie es el despachador del **ESP32**, que es otro fichero.
 
 ## 9. VERSION SIGUIENTE — decidida del 09/10 al 15/10; cada apartado dice si esta construido
 
@@ -642,8 +640,7 @@ Lo que DEBE hacer, y HACE desde este cambio (lo ejerce `tests/dom_registro_sesio
    `INICIO`. La cinta sigue en 300.
 2. **Copia persistente fuera de CACHE.** «Exportar todo» en la APK copia el `.txt` de CACHE a `Directory.External`
    (`Android/data/com.iotvial.semaforos/files/`, sin permisos, se saca con `adb pull`) antes de abrir la hoja de
-   compartir; cancelar la hoja no borra la copia. Si la copia falla, rojo en la bitacora con el motivo; el envio
-   sigue.
+   compartir; cancelar la hoja no borra la copia. Si la copia falla, rojo en la bitacora con el motivo; el envio sigue.
 3. **Un solo `.txt`.** El `IOTVIAL_<serie>_<fecha>.txt` lleva, tras el diario y la cinta, dos secciones mas,
    separadas por la misma linea de 72 `=`: `IOT-VIAL - CAMBIOS DE ESTADO` y `IOT-VIAL - REGISTRO DEL ENLACE`, esta
    con las filas del CSV de siempre (`Fecha_ISO,Hora_local,Clase,Enlace_pct,RTT_ms,Detalle`). Exportar no dice
@@ -673,10 +670,12 @@ Lo que el equipo HACE (las dos puntas, bloques gemelos letra por letra; leido en
    arranques contados, byte alto de `DR3` (`REG_DESPEJE`) del respaldo, `uint8_t`, da la vuelta en 255: **la senal es
    que CAMBIA, no que sube.** Dentro de la suma y con la misma `FIRMA` (molde de `FLAG_TESTIGO`): un firmware anterior
    lo ignora; `respaldo_guardarCiclo()` conserva el byte alto; `respaldo_borrar()` lo deja en 0 (pila agotada o
-   `REINICIAR_RELOJ`: el siguiente arranque cuenta 1, que es un cambio, y es lo correcto). Se publica la copia en RAM
-   leida en `respaldo_setup()`. El `det` del periodico es `det[61]` en el Esclavo y `det[76]` en el Maestro (`AMBAR:`,
-   `D-92`); el `payload` del `$EVENT`, `[128]` y `[144]`. La cuenta la hace `esp32_07`, no este documento. En BKP
-   y no en `testigo_flash`: un bucle de watchdog escribe cada 4 s y la flash se gasta en 10.000 ciclos (`D-61`).
+   `REINICIAR_RELOJ`: el siguiente arranque cuenta 1, que es un cambio, y es lo correcto) y borra tambien `DR9`/`DR10`,
+   los tiempos del ciclo automatico (`D-114`, sin banco; verbo `BORRAR` del arnes de respaldo, visto en rojo). Se
+   publica la copia en RAM leida en `respaldo_setup()`. El `det` del periodico es `det[61]` en el Esclavo y `det[76]` en
+   el Maestro (`AMBAR:`, `D-92`); el `payload` del `$EVENT`, `[128]` y `[144]`. La cuenta la hace `esp32_07`, no este
+   documento. En BKP y no en `testigo_flash`: un bucle de watchdog escribe cada 4 s y la flash se gasta en 10.000 ciclos
+   (`D-61`).
 2. **La consulta `REINICIOS`**, sin PIN como `VERSION` (solo mira), en las dos puntas:
    `$ACK,CMD:REINICIOS,RESULT:OK,NODE:<MAESTRO|ESCLAVO>,REIN:<r>,CAUSA:<c>,UP:<s>,ANTES:<h>`. `UP`: segundos encendido,
    contador propio de 32 bits (no `millis()/1000`, que da la vuelta a los 49 dias). `ANTES`: horas que llevaba
@@ -765,19 +764,18 @@ la app no pide nada al conectar; lo que ve es la repeticion, al minuto como much
 ### 9.7 SPP del puente que no bloquea (`N-178` M4; `D-70`, `D-71`) — decidido y construido el 14/10, sin banco
 
 Por que (medido sobre el fuente y las cintas): `transporte_escribir()` (`ESP32_Expansion/src/transporte_app.cpp`)
-llama a `spp.write()` en cuanto hay telefono (`hasClient()`) y detras no hay buffer propio: `esp32_07` P-2 (refutada
-el 13/09) ya midio que «NINGUN buffer de este firmware acumula una rafaga» y que la cola es la de `BluetoothSerial`.
-Llena, se lee en la libreria y no esta medido en tarjeta (`BluetoothSerial.cpp` 3.20017: `write()` -> `xQueueSend(...,
+llama a `spp.write()` en cuanto hay telefono (`hasClient()`) y detras no hay buffer propio: `esp32_07` P-2 (refutada el
+13/09) ya midio que «NINGUN buffer de este firmware acumula una rafaga» y que la cola es la de `BluetoothSerial`. Llena,
+se lee en la libreria y no esta medido en tarjeta (`BluetoothSerial.cpp` 3.20017: `write()` -> `xQueueSend(...,
 SPP_TX_QUEUE_TIMEOUT 1000)`, cola de 32: hasta 1000 ticks por trama si el telefono no lee); con dos, `loop()` no vuelve,
 el perro (`ESP32_WDT_MS` 2000, `panic=true`) reinicia el puente y tira la sesion y la siembra de hora (SPEC 3 §2). La
 cabecera `transporte_app.h` promete «menos de n significa buffer lleno, y el que llama tiene que contarlo» y nadie lo
-cuenta: `puente.cpp` solo suma `tramasAlaApp` cuando entra entero. Cintas: 28 `EVT:ARRANQUE,CAUSA:OTRO_PERRO` del
-puente (`evidencia/011020260934/IOTVIAL_38EB53_20261001-073243.txt` 07:12:38, 07:12:46, 07:24:57, 07:29:41 y
-07:32:14; `051020261239/Enlace_KM_12_EL_SISGA_2026-10-05.csv`, 9). El parte solo sale al conectar
-(`vigilante_declarar()`), asi que la cinta no dice CUANDO se reinicio, y todos traen `ARRANQUES:1` (la cuenta RTC no
-sobrevive a ese perro; fuera de M4). Que el `write` bloqueado sea la causa NO esta medido: M4 retira ese candidato y
-deja el contador que lo diria. La guarda vale en los dos casos: si la libreria no bloquea, sobra la espera y falta
-el contador; si bloquea, falta todo.
+cuenta: `puente.cpp` solo suma `tramasAlaApp` cuando entra entero. Cintas: 28 `EVT:ARRANQUE,CAUSA:OTRO_PERRO` del puente
+(`evidencia/011020260934/IOTVIAL_38EB53_20261001-073243.txt` 07:12:38, 07:12:46, 07:24:57, 07:29:41 y 07:32:14;
+`051020261239/Enlace_KM_12_EL_SISGA_2026-10-05.csv`, 9). El parte solo sale al conectar (`vigilante_declarar()`), asi
+que la cinta no dice CUANDO se reinicio, y todos traen `ARRANQUES:1` (la cuenta RTC no sobrevive a ese perro; fuera de
+M4). Que el `write` bloqueado sea la causa NO esta medido: M4 retira ese candidato y deja el contador que lo diria. La
+guarda vale en los dos casos: si la libreria no bloquea, sobra la espera y falta el contador; si bloquea, falta todo.
 
 Lo que el equipo HACE (`D-70`, `D-71`; solo `ESP32_Expansion`, fuera del camino de las luces, SPEC 0 §1):
 1. **`transporte_app.cpp` registra con `spp.register_callback()`** un observador de eventos SPP (`esp_spp_api.h`)
@@ -858,11 +856,15 @@ Lo que el equipo HACE (`D-72`..`D-74`; solo `ESP32_Expansion`, fuera del camino 
 4. **Anillo en RAM y volcado acotado.** `registro_anotar()` solo escribe en un anillo de `REGISTRO_ANILLO` = 8
    registros en RAM (1 KB) y vuelve. `registro_volcar()`, desde `loop()` detras de `puente_bombear()`, escribe COMO
    MAXIMO UN registro por vuelta (`esp_partition_write()`); si ese registro estrena sector, antes lo borra
-   (`esp_partition_erase_range()`, 4 KB: pisa los 32 mas viejos). Anillo lleno (ocho anotaciones entre dos vueltas):
-   se pisa la mas antigua y se cuenta (`ANILLO`). Escritura fallida: se cuenta (`FLASH`) y el registro se tira, sin
-   reintento y SIN consumir `seq` ni ranura: `ULT` solo nombra lo escrito (`D-100`, construido sin banco:
-   `registro_volcar()` consume `seq` y ranura solo tras `ESP_OK` de borrado y escritura).
-   Nada de esto llama a `delay()`, `millis()` en bucle ni `vigilante_alimentar()` (`D-71`).
+   (`esp_partition_erase_range()`, 4 KB: pisa los 32 mas viejos). Anillo lleno (ocho anotaciones entre dos vueltas): se
+   pisa la mas antigua y se cuenta (`ANILLO`). Escritura fallida: se cuenta (`FLASH`) y el registro se tira, sin
+   reintento y SIN consumir `seq` ni ranura: `ULT` y `PRIMERO` solo nombran lo escrito (`D-100`, construido sin banco:
+   `registro_volcar()` consume `seq` y ranura solo tras `ESP_OK` de borrado y escritura; `D-114`, construido sin banco
+   ni arnes que ejecute el ESP32: tras borrar el sector mas viejo, `PRIMERO` pasa a la cabeza valida del siguiente o a
+   0, y toma el `seq` nuevo solo cuando la escritura devolvio `ESP_OK`, no antes). Nada de esto llama a
+   `delay()`, `millis()` en bucle ni `vigilante_alimentar()` (`D-71`). **Cuanto dura (calculo, no medido):** 7168
+   registros; cada `$ALARM` repetida (`D-67`, cada `AVISO_ROJO_SIN_HORA_MS` = 60 s) gasta 60 por hora: con una, ~5 dias;
+   con dos, ~2,5; sin ninguna, meses (solo cambios de `MODO`/`ESTADO` y eventos).
 5. **Arranque.** `registro_setup()` va en `setup()` antes de `transporte_abrir()` y NO emite nada (6.4, `esp32_08`):
    lee el `seq` del primer registro de cada sector (224 lecturas de 4 B); el sector vivo es el de `seq` valido mayor,
    el primer hueco dentro es la posicion de escritura y el `seq` anterior es `ULT`; `PRIMERO` es el menor entre las
@@ -872,11 +874,10 @@ Lo que el equipo HACE (`D-72`..`D-74`; solo `ESP32_Expansion`, fuera del camino 
    recalcula el peor caso, 127 + 5 + 10 = 142 contra `VIGILANTE_PARTE_MAX` 144; la constante no se toca. Es la unica
    puerta por la que la app sabe que este puente lleva registro (punto 8).
 7. **La consulta (`D-74`).** Linea `CMD:LOG,DESDE:<N>` (literal de `D-55`), sin PIN (solo mira, como `LEER_RTC` y
-   `REINICIOS`). Se la queda el puente (`despachador_esParaElPuente()`, `D-15`) con
-   `static const char CMD_LOG_PREFIJO[] = "CMD:LOG,DESDE:"` y `strncmp` de prefijo, NUNCA una ayudante con `strstr`:
-   el simulador del puente lee los `strstr` de las ayudantes del predicado como criterios «contiene» y los modela como
-   siembra. `despachador_atender()` delega en `registro_atender()`, que contesta, cada `$ERR` dentro de su `if`
-   (molde `SET_TIEMPOS`, `CLAUDE.md` §2):
+   `REINICIOS`). Se la queda el puente (`despachador_esParaElPuente()`, `D-15`) con `static const char CMD_LOG_PREFIJO[]
+   = "CMD:LOG,DESDE:"` y `strncmp` de prefijo, NUNCA una ayudante con `strstr`: el simulador del puente lee los `strstr`
+   de las ayudantes del predicado como criterios «contiene» y los modela como siembra. `despachador_atender()` delega en
+   `registro_atender()`, que contesta, cada `$ERR` dentro de su `if` (molde `SET_TIEMPOS`, `CLAUDE.md` §2):
    - `$ACK,NODE:PUENTE,CMD:LOG,RESULT:OK,DESDE:<a>,HASTA:<b>,ULT:<u>,PRIMERO:<p>,CONG:<x>,CRC:<y>,LARGO:<z>,ANILLO:<w>,`
      `FLASH:<f>,MALOS:<m>`: `a` = max(N, `PRIMERO`) (N = 0 vale 1); `b` = min(a + 15, `ULT`) (`REGISTRO_LOTE_MAX` 16:
      16 x ~170 B = 2,7 KB, la mitad de la cola de 32 paquetes de `BluetoothSerial`); sin nada que dar (a > `ULT`),
@@ -1002,13 +1003,12 @@ pasa a una clase `sindato` gris en `.ring-fill` y `.ring-num`). `js/testigo.js` 
 en rojo: es una accion.
 
 **(c) Una frase por estado.** `#phase-desc` = `<POSTE>: <frase> · <otro poste>`; la frase es UNA por `ESTADO:`,
-de `ESTADOS` (`app.js`), y esta tabla es el oraculo del test:
-`ROJO` «ROJO, este poste no da paso» · `ROJO+AMAR` «Rojo y amarillo: va a abrir el verde» · `VERDE` «VERDE, este
-poste da paso» · `AMARILLO` «AMARILLO, este poste está cerrando su paso» · `FALLO COM` «ámbar y pluma arriba: pasar
-con precaución», y con `MODO:AMBAR` la frase por ORIGEN de §9.11 (`D-93`), que decide `_fraseDeEstadoLuces()`.
-Sin estado: «SIN ENLACE - sin datos del equipo», «EQUIPO SIN IDENTIFICAR - esperando su primer dato», «ESTADO no
-reconocido: "<literal>"». Ninguna otra funcion escribe `#phase-desc`; ninguna frase pasa de 60 caracteres sin el
-otro poste (lo que ya exige `tests/dom_cabecera_fase.js` para FALLO COM).
+de `ESTADOS` (`app.js`), y esta tabla es el oraculo del test: `ROJO` «ROJO, este poste no da paso» · `ROJO+AMAR` «Rojo y
+amarillo: va a abrir el verde» · `VERDE` «VERDE, este poste da paso» · `AMARILLO` «AMARILLO, este poste está cerrando su
+paso» · `FALLO COM` «ámbar y pluma arriba: pasar con precaución», y con `MODO:AMBAR` la frase por ORIGEN de §9.11
+(`D-93`), que decide `_fraseDeEstadoLuces()`. Sin estado: «SIN ENLACE - sin datos del equipo», «EQUIPO SIN IDENTIFICAR -
+esperando su primer dato», «ESTADO no reconocido: "<literal>"». Ninguna otra funcion escribe `#phase-desc`; ninguna
+frase pasa de 60 caracteres sin el otro poste (lo que ya exige `tests/dom_cabecera_fase.js` para FALLO COM).
 
 **(d) Cabecera legible a 360 px (`D-82`).** jsdom no mide pixeles y el recorte del 06/10 no se reprodujo en
 simulado (`ROADMAP_APP.md` 3): no se toca el reparto de `style.css` (N-75, §4.ter) ni las pastillas en emoji a
@@ -1235,9 +1235,9 @@ aparece como identificador en un modulo partido salvo que el modulo lo declare o
 el 15/10: antes del corte 85 PASS | 5 FALLAS, despues 90 | 0; (4) en rojo con `state.node` inyectado en `ERR_MOTIVO`,
 restaurado por hash (`CLAUDE.md` §6). Lo demas, igual antes y despues: jsdom 683 | 1 (fallo previo de `D-59`).
 
-**Orden de las tandas siguientes (version siguiente, una por paso que toque la zona):** 2.a la pintura de luces
-(`ESTADOS`, `MODOS`, `PLUMA_LEYENDA`, `CAM_LEYENDA`, `renderLights`, `pintarPluma`, `pintarCamaras`: 641 lineas, 18
-nombres del cierre por `dep`; `app_04` cambia de tupla) cuando `D-80`..`D-83` se construyan; 3.a la depuracion (241
+**Orden de las tandas:** 2.a la pintura de luces, construida el 15/10 (`N-178` N5): tablas a `js/luces_tablas.js`,
+pintores a `js/luces.js` (`Luces.instalar(dep)`, 14 nombres del cierre; `renderLights`, `pintarPluma`, `pintarCamaras`
+quedan de envoltorio en `app.js`), `app_04` lee los tres ficheros; TDD 87|4 antes, 91|0 despues; 3.a depuracion (241
 lineas, 13 nombres) con `D-72`..`D-75`; 4.a el enlace y los equipos (648 lineas, 21 nombres); la ULTIMA, los modales y
 el PIN (189 lineas): es la barrera de §4 y se mueve solo con `dom_claves.js` delante y `app_01`/`app_05` recontados.
 

@@ -567,24 +567,9 @@
           </button>
         </form>
 
-        <!-- N-150 (05/09): EL CRUCE NO VUELVE A ARRANCAR SOLO, Y NADIE LO DECIA.
-             Reportado con el equipo delante: "le coloque 4 minutos y 15 seg, se
-             cambia el tiempo, se le da aplicar tiempos y se queda en rojo maestro y
-             esclavo y no cambian".
-
-             Es cierto y es correcto por partes: para fijar tiempos hay que sacar el
-             equipo del ciclo -el firmware rechaza SET_TIEMPOS con
-             EN_MARCHA_PARE_EL_MODO-, y en el menu el coordinador manda CMD_GO_RED a
-             las dos puntas cada 3 s. Lo que faltaba es que alguien volviera a arrancar
-             el ciclo, y ese alguien NO puede ser la app sola: arrancar el Automatico
-             ABRE PASO, y CLAUDE.md 6 dice que la maquina no decide sola operar de un
-             modo que nadie pidio.
-
-             Asi que aqui no se arranca nada: se DICE lo que pasa y se pone el mando a
-             mano, con su aviso de via detras. Sale SOLO cuando el equipo ha acusado
-             los tiempos -$ACK,CMD:SET_TIEMPOS,RESULT:OK-, no al pulsar Aplicar: un
-             aviso que aparece por haber pulsado estaria contando lo que la app hizo y
-             no lo que el equipo acepto. -->
+        <!-- N-150 (05/09): para fijar tiempos hay que sacar el equipo del ciclo (EN_MARCHA_PARE_EL_MODO) y nadie
+             lo vuelve a arrancar solo: arrancar ABRE PASO (CLAUDE.md 6). Se DICE y se pone el mando a mano, y sale
+             SOLO con $ACK,CMD:SET_TIEMPOS,RESULT:OK, no al pulsar Aplicar: lo que el equipo acepto. -->
         <div class="card card-parado" id="aviso-tiempos-parado" hidden>
           <strong class="parado-titulo">⛔ Tiempos guardados — el cruce sigue PARADO EN ROJO</strong>
           <p class="parado-texto">
@@ -600,6 +585,20 @@
             salir le va a preguntar si ha mirado el tramo.
           </small>
         </div>
+      </div>
+      <!-- D-106..D-111 (SPEC_0 §5.10 (i)): MODO NOCHE, lo gobierna js/noche.js; lo guardado lo dice CONSULTA_NOCHE. -->
+      <div class="card card-tiempos" id="card-noche" style="border-left: 4px solid var(--amber-lamp);">
+        <h3>🌙 Modo noche (se programa en el POSTE 1)</h3>
+        <p class="card-sub" id="noche-estado">Sin conectar.</p>
+        <p class="card-sub">Destellan los dos con la pluma arriba; con rojo en el POSTE 2, sin radio pasa a ámbar.</p>
+        <div class="form-group"><label for="num-noche-distancia">Distancia entre postes (m)</label>
+          <input type="number" id="num-noche-distancia" class="form-input" min="1" max="20000"></div>
+        <div class="form-group"><label for="num-noche-tr">Todo-rojo de entrada y salida (seg)</label>
+          <input type="number" id="num-noche-tr" class="form-input" min="10" max="900" value="180">
+          <small class="hint" id="noche-tr-propuesta">Ponga la distancia: la app propone el todo-rojo.</small></div>
+        <button type="button" class="btn-save-site" id="btn-noche-tr">Guardar todo-rojo</button>
+        <div id="noche-franjas"></div>
+        <div id="noche-salida" hidden></div>
       </div>
     </section>
 
@@ -1200,10 +1199,13 @@
   <script src="js/deg_auto.js"></script>
   <script src="js/deg_fin.js"></script>
   <script src="js/deg_auto_eleccion.js"></script>
+  <script src="js/noche.js"></script>
   <script src="js/aviso_degradado.js"></script>
   <script src="js/textos_spec4.js"></script>
   <script src="js/textos_ack.js"></script>
   <script src="js/textos_err.js"></script>
+  <script src="js/luces_tablas.js"></script>
+  <script src="js/luces.js"></script>
   <script src="js/serial_pc.js"></script>
   <script src="js/practica_cinta_1.js"></script>
   <script src="js/practica_cinta_2.js"></script>

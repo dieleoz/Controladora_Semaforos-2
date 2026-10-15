@@ -22,6 +22,13 @@ unsigned long coordinador_msDesdeRespuesta();
 // N-82.bis: true solo en C_MENU_IDLE y con el ACK_RED del Esclavo a la orden de rojo de
 // esta entrada al menu. Es lo que hace seguro el test de lamparas del Maestro.
 bool coordinador_rojoEsclavoConfirmado();
+// D-107/D-111 (SPEC_0 5.10 (e), (f)): el modo noche. vetarVerde(true) durante toda la noche:
+// pedirCambio() no hace nada y el ACK_RED de una recuperacion deja el rojo en vez del despeje.
+// rojoConstaEnLosDos(): C_IDLE, sin verde, ACK_RED oido y la luz propia en S_ROJO.
+// entrarNoche(): solo con el veto y el rojo constando; destella y manda CMD_GO_NOCHE.
+void coordinador_vetarVerde(bool v);
+bool coordinador_rojoConstaEnLosDos();
+bool coordinador_entrarNoche(bool rojoPoste2);
 const char* coordinador_nombreEstadoMaster();
 
 // ---------------------------------------------------------------------------

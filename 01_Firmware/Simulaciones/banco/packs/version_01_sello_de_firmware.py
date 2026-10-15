@@ -1,60 +1,27 @@
 # ===== banco/packs/version_01_sello_de_firmware.py =====
 #
-# LA PREGUNTA ABIERTA QUE ESTE PACK CONTESTA (CLAUDE.md 16):
+# LA PREGUNTA (CLAUDE.md 16): "¿Puede el equipo decir que firmware lleva dentro, y puede
+# MENTIR al decirlo?". Medida el 16/09: grep de VERSION / FW_VER / GIT_HASH / __DATE__ daba
+# CERO, y el hash de una foto de campo (CLAUDE.md 0.2) vivia en la memoria de quien cargo.
+# No vigila que el sello exista sino que no pueda MENTIR, que son cinco mentiras:
+#   1. Declarar un commit que el binario no contiene: sin marca de sucio      (A-3, A-4)
+#   2. Contestar "OK" sin saberlo: sin sello, $ERR y nunca RESULT:OK (CLAUDE.md 2) (A-6)
+#   3. Un sello escrito a mano, que nace caducado (CLAUDE.md 14)                   (A-2)
+#   4. Morir en silencio en el .ini: no se ve leyendo, y es la razon del pack      (A-3)
+#   5. Perder el 0 inicial: piobuild hace int() a un -D de solo cifras (N-179)     (A-10)
 #
-#   "¿Puede el equipo decir que firmware lleva dentro, y puede MENTIR al decirlo?"
-#
-# Estaba abierta y medida el 16/09: grep de VERSION / FW_VER / GIT_HASH / __DATE__ sobre
-# Maestro/{src,include} daba CERO. CLAUDE.md 0.2 exige que una foto de campo traiga el hash
-# de lo que habia dentro, y ese hash vivia SOLO en la memoria de quien cargo la tarjeta -la
-# cinta del Sisga del 16/09 se pudo atribuir porque el responsable se acordaba-. Este pack
-# no vuelve a certificar nada ya certificado: mide una propiedad de vida que nadie ejercia.
-#
-# Y LO QUE VIGILA NO ES QUE EL SELLO EXISTA -eso lo ve cualquiera- SINO QUE NO PUEDA
-# MENTIR, que son cuatro mentiras distintas y cada una tiene su comprobacion:
-#
-#   1. DECLARAR UN COMMIT QUE EL BINARIO NO CONTIENE. Un binario compilado sobre trabajo
-#      sin comitear lleva ese commit MAS lo que hubiera encima, que no esta en ningun
-#      sitio. Sin la marca de sucio, la foto de campo se atribuye al commit equivocado: el
-#      defecto que el sello viene a cerrar, con una capa de autoridad encima.  (A-3, A-4)
-#   2. CONTESTAR "OK" SIN SABERLO. CLAUDE.md 2: un acuse que no depende de lo que se pudo
-#      componer es una mentira con formato de exito. Un binario sin sellar NO SABE que
-#      firmware lleva y tiene que decirlo con un $ERR, no con RESULT:OK.            (A-6)
-#   3. UN SELLO ESCRITO A MANO. CLAUDE.md 14: un numero en un sitio que no puede
-#      recalcularlo nace caducado, y este ademas miente sobre de que commit sale el
-#      binario, que es lo unico que afirma.                                        (A-2)
-#   4. MORIR EN SILENCIO EN EL FICHERO DE CONFIGURACION. Esta no se ve leyendo, y es la
-#      razon principal de que esto sea un pack y no un comentario: ver A-3.
-#
-# ---------------------------------------------------------------------------------
-# EL BORDE, ESCRITO Y JUSTIFICADO (CLAUDE.md 7). LEASE ANTES QUE EL VERDE.
-# ---------------------------------------------------------------------------------
-#
-# 1. ES UN PACK DE TEXTO Y NO CERTIFICA COMPORTAMIENTO (CLAUDE.md 6.3). Un verde aqui NO
-#    dice que el equipo contestara la version en una tarjeta: dice que el sello esta
-#    inyectado, que las dos respuestas existen en el fuente, que la que no sabe no dice OK
-#    y que ninguna se puede truncar. Que el literal acaba DENTRO del binario se midio
-#    aparte, el 16/09, con `strings` sobre los tres .elf.
-#
-# 2. EL SELLO NO TIENE DOS RESPUESTAS EN UN MISMO BINARIO, Y ESO ES LO CORRECTO. FW_SELLADO
-#    se decide en el preprocesador porque es un hecho del tiempo de compilacion: un
-#    `if (FW_SELLADO)` compilaria a la guarda de un solo valor que CLAUDE.md 6.2 persigue
-#    -el enum que sale como `movs r0,#1`-. La consecuencia para el instrumento es que
-#    NINGUN arnes en ejecucion puede ver las dos ramas, asi que quien tiene que verlas es
-#    este pack: lee los DOS literales del fuente y exige cada uno en su rama (A-6). Las
-#    tres salidas se midieron ademas a mano el 16/09 con `g++ -E`: con sello, sin sello, y
-#    con el hash puesto pero sin la marca de suciedad -que tiene que salir SIN SELLAR-.
-#
-# 3. LO QUE ESTE PACK NO PUEDE COMPROBAR, DICHO PARA QUE NO SE LEA DE MAS: que el hash que
-#    entra sea el del arbol de verdad. Eso lo contesta git. Lo que si se exige es que la
-#    pregunta se le haga a git y no a una constante escrita a mano (A-2).
-#
-# NO LLEVA ETIQUETA SFTY, por el mismo motivo que esp32_01, esp32_02 y esp32_10: asignar
-# numero nuevo es del responsable (AB-8), y una fila de trazabilidad que no corresponde a
-# ninguna regla es peor que una fila vacia -la vacia no miente-.
+# EL BORDE (CLAUDE.md 7), LEASE ANTES QUE EL VERDE:
+# 1. Casi todo es TEXTO y no certifica comportamiento (CLAUDE.md 6.3); solo A-10 EJECUTA la
+#    orden del .ini y g++ -E. Que el literal acaba DENTRO del binario se mide aparte, con
+#    `strings` (16/09 los tres .elf; 15/10 el Maestro con FW_HASH.txt=0479942).
+# 2. FW_SELLADO se decide en el preprocesador: ningun arnes en ejecucion ve las dos ramas,
+#    asi que este pack lee los DOS literales y exige cada uno en su rama (A-6).
+# 3. No comprueba que el hash sea el del arbol de verdad (lo contesta git), sino que se le
+#    pregunte a git y no a una constante (A-2).
+# Sin etiqueta SFTY: asignar numero nuevo es del responsable (AB-8), como esp32_01/02/10.
 
 import configparser
-import re
+import os, re, shutil, subprocess, sys, tempfile
 
 NOMBRE = "version_01_sello_de_firmware"
 DESCRIPCION = "las tres puntas dicen que firmware llevan, y no pueden decirlo mal"
@@ -93,13 +60,9 @@ NODOS = {"Maestro": "NODE:MAESTRO", "Esclavo": "NODE:ESCLAVO"}
 # misma lista que esp32_10 exige a los nombres de causa, y por el mismo motivo.
 PROHIBIDOS = (",", "*", "$", "\r", "\n")
 
-# Los prefijos de comentario EN LINEA con que platformio lee su propio .ini. MEDIDO, no
-# supuesto: platformio/project/config.py:97 construye
-#     configparser.ConfigParser(inline_comment_prefixes=("#", ";"))
-# y ese es el borde que A-3 vigila. Se escriben aqui, y no se leen de platformio, por la
-# razon de esp32_10: "un instrumento no puede depender del entorno de quien lo llama"; un
-# pack que abriera el paquete de platformio abortaria en la maquina que no lo tenga y
-# dejaria abierta por ABORTADO justo la puerta que vino a cerrar.
+# Los prefijos de comentario EN LINEA con que platformio lee su .ini, MEDIDOS en
+# platformio/project/config.py:97 (el borde de A-3). Se escriben aqui y no se leen de
+# platformio: un pack que dependa del entorno de quien lo llama aborta (esp32_10).
 PREFIJOS_EN_LINEA = ("#", ";")
 
 
@@ -152,6 +115,12 @@ def _orden_de_sellado(valor):
     return [x.strip() for x in valor.splitlines() if x.strip().startswith("!")]
 
 
+def _como_piobuild(valor):
+    """El valor de un -D como lo pasa platformio al compilador. MEDIDO, no supuesto:
+    platformio/builder/tools/piobuild.py:209 hace int() si es solo cifras (N-179)."""
+    return str(int(valor)) if valor.isdigit() else valor
+
+
 def _ancho_decl(codigo, nombre):
     """El ancho de un buffer declarado, leido del C++.
 
@@ -199,15 +168,9 @@ def correr(b, fw):
 
     # ---- A-3: LA LINEA DEL SELLO NO PUEDE MORIR EN SILENCIO EN EL .ini ---------
     #
-    # 🔴 ESTA ES LA RAZON PRINCIPAL DE QUE ESTO SEA UN PACK.
-    #
-    # platformio lee su .ini con ConfigParser(inline_comment_prefixes=("#", ";")), que CORTA
-    # el valor en el primer '#' o ';' precedido de espacio. La orden de sellado es un
-    # one-liner de python lleno de ';', asi que UN SOLO ESPACIO de mas la deja a medias:
-    # python falla, platformio sigue compilando, el binario sale SIN SELLAR y el unico
-    # sintoma es que el equipo contesta que no sabe que firmware lleva. Nadie relacionaria
-    # eso con un espacio en un fichero de configuracion, y el binario ya estaria en un
-    # poste.
+    # platformio CORTA el valor del .ini en el primer '#' o ';' precedido de espacio: un
+    # espacio de mas deja a medias el one-liner, el binario sale SIN SELLAR y el unico
+    # sintoma es que el equipo no sabe que firmware lleva.
     ordenes = {}
     for t in INI:
         valor = _valor_ini(fw.texto(*t), "build_flags")
@@ -534,6 +497,38 @@ def correr(b, fw):
             "trama_componer() devolveria 0 y el sello no saldria NUNCA, en silencio, que "
             "es el reinicio mudo de esp32_10 con otro sujeto" % (total_x, salida))
 
+    # ---- A-10: UN HASH QUE EMPIEZA POR 0 SALE CON SU 0 (N-179, D-113) -----------
+    # Medido el 15/10: el binario de 0479942 contesto FW:479942. Se EJECUTA la orden real
+    # sin git y con FW_HASH.txt=0479942, se pasa por piobuild y se preprocesa el sello.
+    m = re.match(r'!python -c "(.*)" \|\| exit 0$', orden)
+    gpp = shutil.which("g++")
+    if not m or not gpp:
+        raise fw.Abortado("A-10: sin la orden de sellado legible o sin g++ en el PATH")
+    with tempfile.TemporaryDirectory() as tmp:
+        with open(os.path.join(tmp, "FW_HASH.txt"), "w") as f:
+            f.write("0479942\n")
+        env = dict(os.environ, GIT_DIR=os.path.join(tmp, "sin_git"))
+        out = subprocess.run([sys.executable, "-c", m.group(1)], cwd=tmp, env=env,
+                             capture_output=True, text=True).stdout.split()
+        valor = _como_piobuild(next((x[10:] for x in out if x.startswith("-DFW_HASH=")), ""))
+        b.verificar(
+            all(len(x) == 1 for x in valor.split(",")) and valor.replace(",", "") == "0479942",
+            "A-10: sin git y con FW_HASH.txt=0479942 la orden da -DFW_HASH=%s: tokens de un "
+            "caracter que piobuild no convierte en numero" % valor,
+            "A-10: tras piobuild llega -DFW_HASH=%s (%r). Un hash de solo cifras pasa por "
+            "int() y pierde el 0 inicial: el equipo diria FW:479942" % (valor, out))
+        with open(os.path.join(tmp, "s.cpp"), "w") as f:
+            f.write('#include "version_fw.h"\nSELLO FW_TEXTO\n')
+        pre = subprocess.run([gpp, "-E", "-P", "-I", os.path.dirname(fw.ruta(*SELLO_M)),
+                              "-DFW_HASH=" + valor, "-DFW_SUCIO=0", "s.cpp"], cwd=tmp,
+                             capture_output=True, text=True)
+    linea = [x for x in pre.stdout.splitlines() if x.startswith("SELLO")]
+    texto = "".join(re.findall(r'"([^"]*)"', linea[0])) if linea else None
+    b.verificar(
+        texto == "0479942",
+        "A-10: g++ -E del sello de version_fw.h da \"0479942\": el 0 inicial llega al binario",
+        "A-10: el sello compone %r y no \"0479942\" (g++: %s)" % (texto, pre.stderr[-200:]))
+
     # ---- LO QUE NINGUN FIRMWARE DE ESTE ARBOL PUEDE APROBAR -------------------
     #
     # reportar() NO CUENTA (CLAUDE.md 4). Va aqui porque es el residual honesto de este
@@ -572,6 +567,10 @@ def correr(b, fw):
         bool(cortado) and cortado[0] == '!python -c "a',
         "una orden con un ';' PRECEDIDO DE ESPACIO llega recortada al lector de "
         "platformio, y A-3 sabe verlo: lo que se pierde es el final del comando")
+
+    b.control_negativo(
+        _como_piobuild("0479942") == "479942",
+        "el modelo de piobuild pierde el 0 de un -D de solo cifras: A-10 sabe verlo")
 
     b.control_negativo(
         any(p in "be4cd5d,SUCIO" for p in PROHIBIDOS),

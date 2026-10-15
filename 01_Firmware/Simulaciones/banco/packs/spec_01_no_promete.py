@@ -581,15 +581,15 @@ def correr(b, fw):
         "`PLUMA_RETARDO_BAJADA_MS` se perdona")
 
     # (c) M3 acusa declarar huerfano a quien tiene llamadores, y perdona al que no los
-    #     tiene: escribirPines() y reloj_esHorarioNocturno() (andamio SFTY-20, DEFINIDO; D-44
+    #     tiene: escribirPines() y respaldo_valido() (gemela de respaldo.cpp, DEFINIDA; D-44
     #     retiro semaforo_toggle(), y un sujeto inexistente tambien da 0 usos).
     con_llamador = juzgar("`escribirPines()` no tiene ningun llamador.\n", _M3)
-    sin_llamador = juzgar("`reloj_esHorarioNocturno()` no tiene ningun llamador.\n", _M3)
+    sin_llamador = juzgar("`respaldo_valido()` no tiene ningun llamador.\n", _M3)
     b.control_negativo(
         len(con_llamador) == 1 and usos(corpus, con_llamador[0][1]) > 0
         and len(sin_llamador) == 1 and usos(corpus, sin_llamador[0][1]) == 0
-        and re.search(r"\bbool\s+reloj_esHorarioNocturno\s*\(\s*\)\s*\{", corpus),
-        "M3: huerfano `escribirPines()` se acusa (%d llamadas); `reloj_esHorarioNocturno()`, "
+        and re.search(r"\bbool\s+respaldo_valido\s*\(\s*\)\s*\{", corpus),
+        "M3: huerfano `escribirPines()` se acusa (%d llamadas); `respaldo_valido()`, "
         "definida y sin llamador, se perdona (0)" % usos(corpus, "escribirPines"))
 
     # (d) Lo tachado no se juzga. La MISMA frase, dentro y fuera de ~~.

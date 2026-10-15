@@ -38,6 +38,10 @@ TESTIGO_JS = ("05_Funcional", "App_Semaforo", "js", "testigo.js")
 # paleteros (js/aviso_degradado.js) se lee por si un dia manda algo por su cuenta.
 DEG_AUTO_JS = ("05_Funcional", "App_Semaforo", "js", "deg_auto.js")
 AVISO_DEG_JS = ("05_Funcional", "App_Semaforo", "js", "aviso_degradado.js")
+# D-110 (15/10): las ordenes de noche salen desde js/noche.js y el Maestro las atiende en
+# modo_noche.cpp, al que bluetooth.cpp las pasa (modoNoche_orden) con la accion en `a`.
+NOCHE_JS = ("05_Funcional", "App_Semaforo", "js", "noche.js")
+NOCHE_CPP = ("Maestro", "src", "modo_noche.cpp")
 APP_HTML = ("05_Funcional", "App_Semaforo", "index.html")
 
 # EL TERCER DESPACHADOR, Y NO ESTABA (A-9, 05/09).
@@ -82,7 +86,16 @@ NO_LA_MANDA_LA_APP = "HORA_ESP32"
 
 def _atiende(fw, punta):
     """Los comandos que el despachador de esa punta reconoce. Leidos del C++."""
-    return _atiende_codigo(fw.codigo(punta, "src", "bluetooth.cpp"))
+    atiende = _atiende_codigo(fw.codigo(punta, "src", "bluetooth.cpp"))
+    if punta == NOCHE_CPP[0]:
+        atiende |= _atiende_noche(fw.codigo(*NOCHE_CPP))
+    return atiende
+
+
+def _atiende_noche(codigo):
+    """D-110: modoNoche_orden() compara la accion `a` (sin CMD: ni PIN): exactas y prefijos."""
+    return (set(re.findall(r'strcmp\s*\(\s*a\s*,\s*"([A-Z0-9_:]+)"', codigo)) |
+            set(re.findall(r'strncmp\s*\(\s*a\s*,\s*"([A-Z0-9_]+):"', codigo)))
 
 
 def _atiende_codigo(codigo):
@@ -135,7 +148,7 @@ def _envia(fw):
     "sin interfaz" un FORZAR_ROJO y un TEST_LEDS que la app manda desde hace meses
     -por openPinModal(), que guarda el comando y lo ejecuta al validar el PIN-.
     Es la regla del instrumento: descartar al buscador antes de acusar."""
-    return _envia_de([fw.texto_repo(*r) for r in (APP_JS, TESTIGO_JS, DEG_AUTO_JS, AVISO_DEG_JS)],
+    return _envia_de([fw.texto_repo(*r) for r in (APP_JS, TESTIGO_JS, DEG_AUTO_JS, AVISO_DEG_JS, NOCHE_JS)],
                      fw.texto_repo(*APP_HTML))
 
 

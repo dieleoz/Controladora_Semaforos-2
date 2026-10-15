@@ -135,11 +135,22 @@ se revierte el paso y sigue el siguiente. Simulador congelado (§4): pruebas en 
 | M12 | Interruptores de SPEC_8 §6: solo SPEC, sin placa no hay codigo | SPEC_8 §6 | solo SPEC (D-94..D-97), rojo honesto |
 | M13 | `app.js` en modulos y fase F | `ROADMAP_APP.md` 8 | tanda 1 y fase F hechas |
 | MF | Compuerta completa convergida, arquitecto y QA una vez sobre la candidata | runbook | acta 2026-10-15 convergida; condiciones cerradas salvo orden «APK primero» en la hoja del proximo paquete (D-102) |
-N-179 (version siguiente): modo noche `D-103` (SPEC_0 §5.10) y la cabecera de `MENU` que diga que hacen las luces
-(`D-105`); sin construir, no van en el paquete de Marco.
-Y el sello de firmware: con un hash corto que empieza por 0, SCons lo lee como numero y el binario dice `FW:479942`
-por `0479942` (medido el 15/10 con `pio run -v`); `version_01_sello_de_firmware` no lo ve. Mientras, no se empaqueta
-un commit cuyo hash empiece por cifra.
+**DESPUES (15/10, orden del responsable): `N-179` cadena sin parar hasta el runbook entero.** Mismo molde que
+`N-178`: subagentes en cadena en el arbol principal, nunca dos a la vez; SPEC primero, prueba vista en rojo, codigo,
+compuerta; dos fallos en un punto, se revierte el paso. Lo no definido lo decide Fable (SPEC y fila de `DECISIONES.md`).
+El paquete `5288c3d` de Marco no se toca: sale otra candidata.
+
+| # | paso | fuente | estado |
+|---|---|---|---|
+| N1 | Modo noche: varias franjas por dia; salida por hora o por la app con PIN, siempre por un todo-rojo configurable desde la app (180 s de fabrica, el administrador lo cambia; la app lo propone por distancia entre postes); sin radio, lo que diga su Degradado | `D-103`, responsable 15/10 | construido, sin banco; QA: la salida por minuto exacto de fin se perdia (24 h de ambar), cerrado con `D-115` y N11 del arnes de dos puntas |
+| N2 | Cabecera de `MENU` que dice que hacen las luces | `D-105` | hecho (`D-112`): `js/luces_tablas.js`, `tests/dom_cabecera_fase.js` |
+| N3 | Sello de firmware: un hash que empieza por 0 pierde el cero (`FW:479942` por `0479942`, medido con `pio run -v`) | paquete 15/10 | hecho (`D-113`): `strings` del `.bin` da `FW:6115e59+SUCIO`; un hash con 0 inicial, en la tarjeta |
+| N4 | Menores de QA de `N-178`: `registro.cpp` primero inexistente tras fallo; `respaldo_borrar()` y `DR9`/`DR10`; duracion del registro en SPEC_4 | QA 15/10 | |
+| N5 | `app.js` en modulos, tanda 2 | `N-178` M13 | |
+| N6 | Lint del 14/10: SPEC_1 filas de la compuerta, SFTY sin spec, huerfanos, packs sin historico; documentos vivos al tope | cierre 14/10 | |
+| NF | Compuerta convergida, arquitecto y QA, una ronda de condiciones, hoja, APK y paquete candidato | runbook | hoja `Pruebas_Funcional_2026-10-16.html` (41 casos: los 33 del 15/10 y 8 de `N-179`; la del 15/10 a historico) y APK `aa9dd44a...` del arbol sin comitear; falta compuerta, comitear y paquete |
+
+Sin teclado (no entra): hardware `N-108`, `N-120`, `C-6`, `N-116`, `Y2`; `D-94`..`D-97` (placa con barrera y pila).
 
 **Antes (05/10, el funcional espera en banco): `N-176` ROJO+AMARILLO antes del verde (`D-53`).** Coste medido
 sobre `a5db18e`: ~28 ficheros (firmware ~10, app 4, arneses 4, packs/modelos 5, SPEC 5). Riesgos que se revisan

@@ -428,7 +428,7 @@ escribe una vez por testigo, con el poste en ROJO, y lleva su propia suma. `resp
 | `DEG_AUTO_MARCA_S` | 300 | la marca de inicio, múltiplo de 5 min del día de pared (`A-15`) |
 | `DEG_AUTO_ROJO_MIN_S` | 420 | rojo fijo mínimo antes de `inicio`, (b) |
 | verde / despeje | 180 / 30 | fijos en el automatico (`DEG_VERDE_SEG`/`TESTIGO_VERDE_SEG`, `TESTIGO_DESPEJE_MIN`); el testigo manual elige el verde (`D-59`) |
-| `CMD_PRESENTE` | `0x17` | primer código libre de la cabecera de protocolo (la última es `CMD_ACK_AVISO_AMBAR` `0x16`) |
+| `CMD_PRESENTE` | `0x17` | primer código libre de la cabecera de protocolo (la última es `CMD_ACK_AVISO_AMBAR` `0x16`); el siguiente, `CMD_GO_NOCHE` `0x18` (param bit0 = Poste 2 rojo intermitente), es la orden de gobierno del modo noche, DEBE, sin construir: SPEC 0 §5.10 (e) |
 | `DEG_AUTO_APTO` / `DEG_AUTO_ECO` | `0x02` / `0x04` del param | `0x01` es `PONG_VERDE_SOLTADO` (`D-34`) |
 | `FLAG_DEG_AUTO` / `FLAG_OTRO_APTO` | bit4 / bit5 de `REG_FLAGS` | libres; bit3 es `FLAG_TESTIGO` |
 | `FLAG_RENDIDO` / `FLAG_APTO_DADO` | bit6 / bit7 de `REG_FLAGS` | la rendición sin intercambio sano después, (b); el `ECO` oído del otro, (a) |

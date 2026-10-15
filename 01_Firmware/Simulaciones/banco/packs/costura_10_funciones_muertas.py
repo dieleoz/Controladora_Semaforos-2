@@ -51,10 +51,8 @@ CONOCIDAS = {
         # maestro_02_respaldo): estas tres no tienen lector en el Maestro y no se pueden
         # retirar de una sola punta.
         "respaldo_valido", "respaldo_verdeSeg", "respaldo_despejeSeg",
-        # SFTY-20, franja nocturna: OPTIMIZACIONES.md la declara "DISENO, NO
-        # IMPLEMENTADO". Andamio de D-103 (modo noche): se construye en N-179.
-        "reloj_ajustarFranjaNocturna", "reloj_esHorarioNocturno",
-        "reloj_inicioNoche", "reloj_finNoche",
+        # N-179: SALEN las cuatro reloj_*Noche* (andamio SFTY-20): el modo noche se construyo
+        # en modo_noche.cpp con franjas en flash (D-108) y el andamio se retiro del firmware.
         # D-63: PRUEBA ALCANCE ya no pone a cero los contadores; protocolo.h es gemelo.
         "protocolo_reiniciarContadores",
     },

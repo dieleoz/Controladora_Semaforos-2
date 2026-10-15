@@ -94,6 +94,8 @@ static void cargarRegistros(const unsigned long *v) {
 //          terna firma+suma_alta+suma_baja de una sola vez, que es como la lee
 //          el arranque.
 //
+//   BORRAR -> D-114: "<DR9> <DR10> <hayTiempos>" tras respaldo_borrar() sobre basura.
+//
 //   PING -> PONG. Sirve para que el validador compruebe que tiene delante un
 //           binario vivo antes de fiarse de un solo numero suyo.
 //
@@ -169,6 +171,15 @@ int main(void) {
                                     (uint32_t)leerReg(REG_SUMA_BAJA);
       bool ok = (leerReg(REG_FIRMA) == FIRMA) && (sumaGuardada == calcularSuma());
       printf("%d\n", ok ? 1 : 0);
+
+    } else if (strncmp(linea, "BORRAR", 6) == 0) {
+      // D-114: DR9/DR10 con basura (un firmware anterior o un bit volteado), respaldo_borrar()
+      // REAL, y se publica lo que queda: "<DR9> <DR10> <hayTiempos 0/1>".
+      for (uint8_t r = 1; r <= 10; r++) escribirReg(r, 0x0A0AU);
+      respaldo_borrar();
+      uint8_t ro = 0, ve = 0, de = 0;
+      printf("%u %u %d\n", (unsigned)leerReg(REG_CICLO_RV), (unsigned)leerReg(REG_CICLO_DESPEJE),
+             respaldo_tiemposCiclo(&ro, &ve, &de) ? 1 : 0);
 
     } else if (strncmp(linea, "CAUSA", 5) == 0) {
       // D-62: CAUSA <RCC_CSR en decimal> -> la causa que anotarArranque() REAL publica.

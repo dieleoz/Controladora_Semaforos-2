@@ -63,7 +63,7 @@
 // Pasar -DFW_HASH=\"abc1234\" obliga a que las comillas sobrevivan al shell que ejecuta el
 // '!' -cmd.exe en Windows, sh en otra maquina- y a SCons detras. Ese escape es justo lo que
 // se rompe en silencio, y cuando se rompe el binario sale SIN SELLAR sin que nada lo diga.
-// Un token desnudo -un hash corto es una pp-number valida- no necesita escapar nada, y la
+// Un token desnudo -un caracter hexadecimal suelto- no necesita escapar nada, y la
 // comilla la pone el preprocesador aqui, donde no hay shell que la toque.
 //
 // SE EXIGEN LAS DOS. Con el hash puesto y la suciedad ausente, el binario declararia un
@@ -75,10 +75,12 @@
   #define FW_SELLADO 0
 #endif
 
-// La vuelta de tuerca obligatoria: sin el nivel intermedio, '#' congela el NOMBRE de la
-// macro -"FW_HASH"- en vez de su valor.
-#define FW_TEXTUAL2(x) #x
-#define FW_TEXTUAL(x)  FW_TEXTUAL2(x)
+// EL HASH LLEGA EN SIETE TOKENS DE UN CARACTER -FW_HASH=0,4,7,9,9,4,2-, Y TAMPOCO ES ESTILO:
+// platformio pasa por int() todo -D de solo cifras (piobuild.py:209), y el binario de
+// 0479942 contestaba FW:479942 (N-179, D-113). El nivel intermedio expande FW_HASH antes
+// de repartirlo; sin el, '#' congelaria el NOMBRE de la macro en vez de su valor.
+#define FW_UNIR7(a, b, c, d, e, f, g) #a #b #c #d #e #f #g
+#define FW_UNIR(...)  FW_UNIR7(__VA_ARGS__)
 
 // Ninguna de las dos lleva ',' '*' '$' CR ni LF: la coma separa campos de la trama y el
 // asterisco abre el checksum, asi que cualquiera de los dos partiria la trama por dentro
@@ -88,9 +90,9 @@
 
 #if FW_SELLADO
   #if FW_SUCIO
-    #define FW_TEXTO  FW_TEXTUAL(FW_HASH) FW_MARCA_SUCIO
+    #define FW_TEXTO  FW_UNIR(FW_HASH) FW_MARCA_SUCIO
   #else
-    #define FW_TEXTO  FW_TEXTUAL(FW_HASH)
+    #define FW_TEXTO  FW_UNIR(FW_HASH)
   #endif
 #else
   #define FW_TEXTO  FW_SIN_SELLO

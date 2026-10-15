@@ -354,10 +354,11 @@ document.addEventListener('DOMContentLoaded', () => {
   //   SET_MODO:MENU / SET_MODO:ALCANCE   Maestro. Menu sin ciclo / rojo fijo; MENU es la vuelta atras universal.
   // Se aceptan TAMBIEN con PIN: aqui no se abre ninguna puerta, solo se pueden usar sin teclear delante de un cruce
   // parado. Vale para las DOS de emergencia: una caida segura que pide clave no es segura.
-  // LEER_RTC, VERSION y las consultas (CONSULTA_DEG_AUTO, CONSULTA_DEG_FIN, REINICIOS D-64, LOG D-75) no abren ni paran
-  // ni cambian nada: hay que poder MIRAR antes de decidir si se toca; VERSION es la primera pregunta si algo va raro.
+  // LEER_RTC, VERSION y las consultas (CONSULTA_DEG_*, CONSULTA_NOCHE D-110, REINICIOS D-64, LOG D-75) no abren ni
+  // paran ni cambian nada: hay que poder MIRAR antes de tocar; VERSION es la primera pregunta si algo va raro.
   const SIN_PIN = ['FORZAR_ROJO', 'AMBAR_EMERGENCIA', 'SET_MODO:MENU', 'SET_MODO:ALCANCE',
-                   'LEER_RTC', 'VERSION', 'CONSULTA_DEG_AUTO', 'CONSULTA_DEG_FIN', 'REINICIOS', 'LOG,DESDE'];
+                   'LEER_RTC', 'VERSION', 'CONSULTA_DEG_AUTO', 'CONSULTA_DEG_FIN', 'CONSULTA_NOCHE', 'REINICIOS',
+                   'LOG,DESDE'];
 
   // DEVUELVE SI LA ORDEN LLEGO A SALIR, y el que llama TIENE QUE MIRARLO.
   //
@@ -1394,542 +1395,25 @@ document.addEventListener('DOMContentLoaded', () => {
   // =========================================================================
   // 2. RENDER DE SEMAFOROS: SE PINTA LA PUNTA QUE HABLA, Y SE DECLARA LA OTRA
   // =========================================================================
-  // $STATUS TRAE EL ESTADO DE UN SOLO POSTE, Y ESTA PANTALLA TIENE DOS.
-  //
-  // El vocabulario que este bloque leia -V1_R2, Y1_R2, R1_R2, ALL_RED, R1_V2, R1_Y2,
-  // AMBAR_FAIL- describe LOS DOS semaforos a la vez, y NO LO EMITE NINGUN FIRMWARE:
-  // sale del puente de PC (servidor_puente_simulador.py:28), que es un simulador.
-  // Lo que manda el equipo es el enum de semaforo_nombreEstado() (semaforo.cpp de las
-  // dos puntas, identicos): "ROJO" "ROJO+AMAR" (D-53) "VERDE" "AMARILLO" "FALLO COM".
-  // La interseccion con el del simulador es VACIA; lo vigila app_04_valores_de_status.
-  //
-  // No se renombran los `case`: `V1_R2` afirma algo de DOS postes y la trama habla de
-  // UNO: el que dice NODE:. La app NO TIENE el estado del otro extremo -no llega por
-  // Bluetooth, y ninguna punta lo pone en $STATUS-. Deducirlo -"si este da verde, el
-  // otro estara en rojo"- seria inventar justo la cifra que decide si se cruza, y
-  // seria FALSO precisamente cuando mas se mira el telefono: en Modo Degradado cada
-  // punta cicla por su cuenta, un ambar de emergencia es local, y con la radio caida
-  // las dos puntas se van a S_FALLO por separado.
-  //
-  // Asi que se pinta el poste que habla, con su valor literal, y del otro se dice que
-  // no se sabe. Un tablero quieto que admite que no sabe es honesto; uno que pinta un
-  // cruce que no ha medido le miente a quien decide sobre el trafico mirandolo (CLAUDE.md 3.quinquies).
-  //
-  // Y el otro sentido, que se cobra al reves: "FALLO COM" NO ES "APAGADO" NI ES ROJO.
-  // Es ambar intermitente CON LA TALANQUERA ARRIBA -SFTY-6, la politica que eligio el
-  // cliente el 27/08-: por ahi SE PASA con precaucion. El anillo lo pintaba de rojo
-  // (ver mas abajo), que dice lo contrario de lo que hace el equipo.
-  const ESTADOS = {
-    'ROJO':      { lampara: 'red',   texto: 'ROJO (ESPERA)',  color: 'var(--red-text)',   anillo: 'red',
-                   frase: 'ROJO, este poste no da paso' },
-    // D-53 (05/10): antes de cada verde, rojo y amarillo encendidos a la vez. Es la
-    // UNICA fila con dos lamparas (`lamparas`); `lampara` sigue siendo la que manda en el
-    // anillo y en lo que lee una sola luz: rojo, porque todavia no da paso.
-    'ROJO+AMAR': { lampara: 'red', lamparas: ['red', 'amber'], texto: 'ROJO Y AMARILLO',
-                   color: 'var(--amber-lamp)', anillo: 'amber',
-                   frase: 'Rojo y amarillo: va a abrir el verde' },
-    'VERDE':     { lampara: 'green', texto: 'VERDE (PASO)',   color: 'var(--green-lamp)', anillo: 'green',
-                   frase: 'VERDE, este poste da paso' },
-    'AMARILLO':  { lampara: 'amber', texto: 'AMARILLO',       color: 'var(--amber-lamp)', anillo: 'amber',
-                   frase: 'AMARILLO, este poste está cerrando su paso' },
-    // FALLO COM ES UN SOLO S_FALLO PARA DOS CAUSAS DISTINTAS (28/09, funcional en
-    // campo). El firmware entra en el mismo estado -y publica el mismo literal- tanto
-    // cuando el ambar lo PIDE el operario (SET_MODO:AMBAR) como cuando se pierde la
-    // radio entre postes, y eso no se toca aqui: es semaforo.cpp, no la app. Lo que SI
-    // puede hacer la app es no llamarle "FALLO" a un ambar que el propio operario acaba
-    // de pedir -asi lo leyo el funcional, como averia-. La distincion se hace con MODO,
-    // que llega en la MISMA trama (ver 4117-4121): AMBAR es el modo que puso el
-    // operario; cualquier otro modo (o su ausencia) deja la frase de fallo de siempre.
-    // Este `frase` de aqui es ese fallback; quien pinta la version AMBAR es
-    // _fraseDeEstadoLuces(), que las dos llamadas de mas abajo usan en vez de leer
-    // `.frase` directo.
-    'FALLO COM': { lampara: 'amber', texto: 'ÁMBAR DESTELLO', color: 'var(--amber-lamp)', anillo: 'amber',
-                   frase: 'ámbar y pluma arriba: pasar con precaución' }  // la falla: cabecera y cartel
-  };
+  // Las tablas (ESTADOS, ESC_LUZ, MODOS, PLUMA_LEYENDA, CAM_LEYENDA) viven en js/luces_tablas.js y la
+  // pintura (renderLights, pintarBadgeModo, pintarPluma, pintarCamaras) en js/luces.js: corte del 15/10
+  // sin cambio de comportamiento (SPEC_4 9.12 tanda 2, D-98). Aqui quedan los envoltorios de siempre.
+  const pintorLuces = Luces.instalar({
+    state: state, s1Red: s1Red, s1Amber: s1Amber, s1Green: s1Green, s1Text: s1Text, s2Red: s2Red, s2Amber: s2Amber,
+    s2Green: s2Green, s2Text: s2Text, phaseDescEl: phaseDescEl, plumaEl: plumaEl,
+    badgeModoEl: badgeModoEl, camEstadoEl: camEstadoEl, camDetalleEl: camDetalleEl
+  });
 
-  // LA UNICA FUNCION QUE DECIDE SI 'FALLO COM' SE LEE COMO AVERIA O COMO PEDIDO.
-  // Otro MODO (DEGRADADO, RENDIDO, sin dato...) es radio caida o Degradado vencido: frase
-  // original. Con AMBAR, D-93: la frase por el ORIGEN leido del periodico (SPEC_4 9.11).
-  function _fraseDeEstadoLuces(estado) {
-    const info = ESTADOS[estado];
-    if (!info) return null;
-    if (estado === 'FALLO COM' && state.modo === 'AMBAR') {
-      return typeof DiagnosticoEnlace !== 'undefined' ? DiagnosticoEnlace.fraseAmbar()
-        : 'ámbar en este poste (origen sin dato): pasar con precaución';
-    }
-    return info.frase;
-  }
-
-  // =========================================================================
-  // EL VOCABULARIO DE ESC:, QUE NO ES EL DE ESTADO: Y POR ESO ES OTRA TABLA
-  // =========================================================================
-  // N-149 (05/09). Decision del responsable: "cuando me conecto al maestro no me
-  // aparecen los estados del semaforo del esclavo... yo necesito que maestro me traiga
-  // los datos del esclavo". Y sobre lo que la app ofrecia hasta hoy -un boton para
-  // conectarse al otro poste-: "hay un problema porque ahi esta haciendo la conexion
-  // por Bluetooth, pero tendrias que caminar 1000 metros hasta el otro lado".
-  //
-  // POR QUE NO SE REUSA `ESTADOS`, que es la pregunta que hay que contestar antes de
-  // escribir una segunda tabla en este repositorio: son DOS campos distintos con DOS
-  // vocabularios distintos. ESTADO: sale de semaforo_nombreEstado() y puede valer
-  // "AMARILLO" o "FALLO COM"; ESC: es un resumen que el Maestro compone de lo que sabe
-  // del otro poste y su tercer valor es "AMBAR". Meter las claves de uno en la tabla
-  // del otro haria FALLAR a app_04_valores_de_status con razon -diria que la app sabe
-  // pintar un ESTADO que ninguna punta emite-, y ese pack es el que caza que el tablero
-  // no hable el idioma de un simulador.
-  //
-  // Lo que NO esta en esta tabla es '?' y esta escrito aparte a proposito: '?' no es un
-  // color, es el Maestro declarando que no lo sabe. Darle una fila aqui lo convertiria
-  // en un estado mas y es justo lo contrario de lo que significa.
-  const ESC_LUZ = {
-    'ROJO':  { lampara: 'red',   texto: 'ROJO (ESPERA)', color: 'var(--red-text)' },
-    'VERDE': { lampara: 'green', texto: 'VERDE (PASO)',  color: 'var(--green-lamp)' },
-    'AMBAR': { lampara: 'amber', texto: 'ÁMBAR',         color: 'var(--amber-lamp)' }
-  };
-
-  // =========================================================================
-  // LA PLUMA, QUE ES LO UNICO DEL EQUIPO QUE SE MUEVE (N-153, 05/09)
-  // =========================================================================
-  // MEDIDO ANTES DE ESCRIBIR NADA: "talanquera", "pluma" y "barrera" daban 28
-  // coincidencias en este fichero y NINGUNA era un estado. Todas explican lo que hace
-  // un boton -"pone ambar y ABRE la talanquera"-, o sea que un operario delante del
-  // cruce no podia saber si la barrera estaba arriba o abajo AHORA. Y no era que la app
-  // lo ignorara: el equipo no lo publicaba. Desde N-153 viaja en el campo PLUMA del
-  // $STATUS de las dos puntas.
-  //
-  // POR QUE ES EL DATO QUE MAS FALTA, y no un adorno mas del tablero: el conductor le
-  // hace mas caso a la barrera que a la lampara -por eso se pone-. Con D-13 va a haber
-  // ratos de LUZ ROJA CON LA PLUMA ARRIBA -una camara ve presencia debajo y la barrera
-  // no baja-, y eso HOY un operario lo lee como averia y llama. La pantalla tiene que
-  // DECIRLO, no insinuarlo, y por eso la frase esta escrita entera abajo.
-  //
-  // LAS CUATRO SALIDAS NO SE COLAPSAN, igual que con ESC: arriba, abajo, el campo que
-  // no viene -firmware anterior- y un literal que esta tabla no conoce, que se ensena en
-  // crudo. La quinta -sin enlace- va aparte porque no es un valor: es que lo que hay en
-  // pantalla ya no vale.
-  // MODO: los nueve literales que las dos puntas pueden emitir (D-44 retiro HORA). Ocho
-  // son los `case` de obtenerNombreModo() (Maestro/src/bluetooth.cpp) y el noveno es el
-  // literal fijo que el Esclavo escribe dentro de su propio snprintf,
-  // MODO:SUBORDINADO (Esclavo/src/bluetooth.cpp:328).
-  //
-  // La cadena de `if` anterior tenia CUATRO ramas -AUTO, MANUAL, AMBAR y un
-  // ROJO_TOTAL que no emite nadie- y ningun `else`: con MENU, INTELIGENTE, ALCANCE,
-  // HORA, DEGRADADO, DESCONOCIDO o SUBORDINADO el badge se quedaba con el modo
-  // ANTERIOR pintado y con su color, o sea un modo vencido con aspecto de vigente. El
-  // que mas duele de esa lista es DEGRADADO: es el unico modo que da verde SIN
-  // confirmacion del otro extremo, y era invisible en la pantalla.
-  const MODOS = {
-    'AUTO':        { texto: '🟢 AUTOMÁTICO',                fondo: 'rgba(0,230,118,0.15)',   borde: 'var(--green-lamp)', color: 'var(--green-lamp)' },
-    'MANUAL':      { texto: '✋ MODO MANUAL',                fondo: 'rgba(0,240,255,0.15)',   borde: 'var(--cyan-neon)',  color: 'var(--cyan-neon)' },
-    'AMBAR':       { texto: '🟡 ÁMBAR PRECAUCIÓN',          fondo: 'rgba(255,179,0,0.15)',   borde: 'var(--amber-lamp)', color: 'var(--amber-lamp)' },
-    'MENU':        { texto: '☰ EN MENÚ · SIN CICLO',        fondo: 'rgba(0,240,255,0.15)',   borde: 'var(--cyan-neon)',  color: 'var(--cyan-neon)' },
-    'INTELIGENTE': { texto: '👁 INTELIGENTE · POR DEMANDA',  fondo: 'rgba(0,240,255,0.15)',   borde: 'var(--cyan-neon)',  color: 'var(--cyan-neon)' },
-    'ALCANCE':     { texto: '🛑 ALCANCE · ROJO FIJO',       fondo: 'rgba(255,30,68,0.2)',    borde: 'var(--red-lamp)',   color: 'var(--red-lamp)' },
-    'DEGRADADO':   { texto: '⚠️ DEGRADADO', fondo: 'rgba(255,179,0,0.15)', borde: 'var(--amber-lamp)', color: 'var(--amber-lamp)' },
-    'SUBORDINADO': { texto: '🔗 SUBORDINADO AL MAESTRO',    fondo: 'rgba(0,240,255,0.15)',   borde: 'var(--cyan-neon)',  color: 'var(--cyan-neon)' },
-    // A-11 (05/09). EL DECIMOPRIMERO, Y ES DEL ESCLAVO. Esa punta dejo de publicar
-    // MODO:SUBORDINADO fijo el dia que se pudo pedir su Modo Degradado desde aqui: ahora
-    // dice SUBORDINADO, DEGRADADO o RENDIDO segun donde este.
-    //
-    // RENDIDO NO ES UN DEGRADADO MAS FLOJO, Y POR ESO NO COMPARTE TEXTO. Es el Degradado
-    // que TERMINO SOLO al vencer el limite de 48 h sin que el Maestro sincronizara la
-    // hora, y la luz quedo en ambar intermitente. Pintarlo como DEGRADADO diria que el
-    // cruce sigue operando por reloj cuando ya no opera: el tecnico leeria un modo
-    // vigente donde hay una autorizacion caducada, que es lo contrario de lo que tiene
-    // que hacer -volver a sincronizar y volver a entrar-.
-    'RENDIDO':     { texto: '⏳ RENDIDO · ÁMBAR', fondo: 'rgba(255,179,0,0.15)', borde: 'var(--amber-lamp)', color: 'var(--amber-lamp)' },
-    // Este no es "la app no lo conoce": es el equipo diciendo que no sabe en que modo
-    // esta -el `default` de su propio switch-. Se distingue del de abajo a proposito.
-    'DESCONOCIDO': { texto: '❔ EL EQUIPO NO SABE SU MODO',  fondo: 'rgba(148,163,184,0.15)', borde: 'var(--text-muted)', color: 'var(--text-muted)' }
-  };
-
-  function pintarBadgeModo() {
-    if (!badgeModoEl) return;
-    const info = MODOS[state.modo];
-    badgeModoEl.className = 'badge badge-auto';
-    if (info) {
-      badgeModoEl.style.background = info.fondo;
-      badgeModoEl.style.borderColor = info.borde;
-      badgeModoEl.style.color = info.color;
-      badgeModoEl.textContent = info.texto;
-    } else {
-      // Un MODO que esta tabla no conoce se DICE, con el literal a la vista. Callarlo
-      // dejaria el badge anterior en pantalla; ensenarlo hace visible el dia que el
-      // firmware estrene un modo y a esta lista se le olvide crecer.
-      badgeModoEl.style.background = 'rgba(148,163,184,0.15)';
-      badgeModoEl.style.borderColor = 'var(--text-muted)';
-      badgeModoEl.style.color = 'var(--text-muted)';
-      badgeModoEl.textContent = state.modo
-        ? '❔ MODO NO RECONOCIDO: ' + state.modo
-        : 'SIN DATOS DE MODO';
-    }
-  }
-
-  const PLUMA_LEYENDA = {
-    'ARRIBA': '▲ PLUMA ARRIBA',
-    'ABAJO':  '▼ PLUMA ABAJO'
-  };
-
-  // LO QUE SIGNIFICA CADA PAREJA (luz, pluma), QUE ES LO QUE DE VERDAD SE LEE.
-  //
-  // La pluma sola no dice si lo que pasa es normal: ARRIBA con verde es el ciclo y no
-  // hay nada que explicar; ARRIBA sin verde es justo lo que hay que explicar. Se decide
-  // con el ESTADO que ya esta en pantalla y no con una segunda copia de la regla del
-  // firmware -la regla vive en semaforo.cpp, SFTY-28, y aqui solo se LEE el resultado-.
-  //
-  // LAS FRASES SON CORTAS Y ESTA MEDIDO POR QUE. A 320 px esta fila da unos 54
-  // caracteres por linea; la mas larga de aqui son dos lineas -unos 30 px- y el hueco
-  // que hay entre el ultimo mando y la barra de pestanas en esa pantalla son 79 px.
-  // Una explicacion de cinco lineas taparia un mando, que es el defecto que la foto de
-  // campo del 04/09 destapo. Lo que no se recorta es la palabra que importa: AVERIA.
-  function _fraseDeLaPareja(pluma) {
-    if (pluma === 'ARRIBA') {
-      if (state.estadoLuces === 'VERDE') return 'acompaña al verde';
-      // SFTY-6: el ambar intermitente sube la pluma A PROPOSITO -politica del cliente,
-      // 27/08-. Se dice aqui aunque la tabla ESTADOS ya lo diga, porque quien mira la
-      // barrera puede no estar mirando la lampara.
-      //
-      // Y con el mismo MODO:AMBAR de _fraseDeEstadoLuces() (28/09): si el ambar lo pidio
-      // el operario, "sin enlace" es una averia que no existe -la radio puede estar
-      // perfecta-. Sin ese MODO (radio caida, Degradado vencido...) la causa SI es de
-      // enlace y la frase se queda.
-      if (state.estadoLuces === 'FALLO COM') {
-        return state.modo === 'AMBAR'
-          ? 'ámbar pedido por el operario: se pasa con precaución'
-          : 'sin radio entre postes: se pasa con precaución';
-      }
-      // D-45 (SPEC_4 6 (2)): el amarillo es el CIERRE de cada verde, y la pluma sigue arriba
-      // en el por diseno (SFTY-28), no por un veto: baja al llegar el rojo.
-      if (state.estadoLuces === 'AMARILLO') return 'amarillo de cierre: baja al pasar a rojo';
-      if (state.estadoLuces === 'ROJO' || state.estadoLuces === 'ROJO+AMAR') {  // D-53: la pluma sube con el VERDE
-        // D-13. Con las camaras habra ratos de LUZ ROJA CON LA PLUMA ARRIBA: hay algo
-        // debajo y la barrera no baja. Hoy un operario eso lo lee como averia y llama.
-        // La frase lo DICE, no lo insinua.
-        return 'con la luz en ROJO · NO es avería: no baja mientras haya alguien debajo';
-      }
-      return null;
-    }
-    // Verde con la barrera abajo es la direccion SEGURA y esta admitida en SFTY-28 -la
-    // barrera puede ser mas restrictiva que la lampara-, pero el que espera delante
-    // necesita saber que la luz no basta.
-    if (pluma === 'ABAJO' && state.estadoLuces === 'VERDE') {
-      return 'verde, pero espere a que suba';
-    }
-    return null;
+  function renderLights() {
+    pintorLuces.renderLights();
   }
 
   function pintarPluma() {
-    if (!plumaEl) return;
-    const decir = (txt, color, fondo) => {
-      plumaEl.hidden = false;
-      plumaEl.textContent = txt;
-      plumaEl.style.color = color || 'var(--text-muted)';
-      plumaEl.style.borderColor = color || 'var(--text-muted)';
-      plumaEl.style.background = fondo || 'transparent';
-    };
-
-    // SIN PUNTA IDENTIFICADA NO HAY POSTE AL QUE ATRIBUIR UNA BARRERA, y la fila se
-    // OCULTA en vez de escribir "sin datos". No es cosmetica y el numero esta medido: en
-    // esa pantalla -la de antes del primer $STATUS, con los DOS mandos de emergencia a
-    // la vista- el ultimo mando diario termina a 493 px y la barra de pestanas empieza a
-    // 497 px en un telefono de 320 px. Cuatro pixeles. Una fila mas ahi tapa un mando,
-    // que es el defecto que la foto de campo del 04/09 destapo. La ausencia ya la
-    // declara el tablero entero: "SIN ENLACE - sin datos del equipo".
-    if (!state.node) { plumaEl.hidden = true; return; }
-
-    const rotulo = state.node === 'ESCLAVO' ? 'POSTE 2' : 'POSTE 1';
-
-    // El enlace caido va ANTES que el valor: lo guardado es de hace rato, y una barrera
-    // de hace rato no es una barrera. Un "PLUMA ARRIBA" viejo tiene la misma cara que
-    // uno de ahora y quien lo lee cruza por debajo.
-    if (!state.telemetriaViva) {
-      decir(rotulo + ' · PLUMA: sin enlace, el dato ya no vale');
-      return;
-    }
-
-    // El campo NO VINO: equipo con firmware anterior a N-153. Se dice CUAL es la
-    // carencia y no "sin datos" a secas, por lo mismo que en pintarAjeno(): un equipo
-    // viejo y una radio caida mandan al tecnico a sitios opuestos.
-    //
-    // Y "no vino" es SOLO null/undefined. Un PLUMA con el valor vacio SI vino y cae
-    // abajo, en el camino del literal desconocido, para que se vea.
-    if (state.pluma === null || state.pluma === undefined) {
-      decir(rotulo + ' · PLUMA: este equipo no la publica (firmware anterior)');
-      return;
-    }
-
-    const texto = PLUMA_LEYENDA[state.pluma];
-    if (!texto) {
-      // Un literal que esta tabla no conoce se ENSENA, igual que hace pintarBadgeModo()
-      // con un MODO nuevo. Callarlo dejaria la fila en blanco el dia que el firmware
-      // estrene un valor, y una fila en blanco no se distingue de una app vieja.
-      decir(rotulo + ' · PLUMA NO RECONOCIDA: "' + state.pluma + '"');
-      return;
-    }
-
-    const frase = _fraseDeLaPareja(state.pluma);
-    // EL COLOR NO ES EL DE LA LUZ, Y ESO ES DELIBERADO. Verde aqui significaria "puede
-    // pasar", y la pareja rojo+arriba no autoriza a nadie: quien autoriza es el
-    // semaforo. Arriba con verde va en verde; arriba sin verde, en ambar -hay algo que
-    // explicar-; abajo, neutro, que es lo normal.
-    const color = state.pluma === 'ABAJO' ? 'var(--text-muted)'
-                : (state.estadoLuces === 'VERDE' ? 'var(--green-lamp)' : 'var(--amber-lamp)');
-    const fondo = (state.pluma === 'ARRIBA' && state.estadoLuces !== 'VERDE')
-                ? 'rgba(255,179,0,0.12)' : 'transparent';
-    decir(rotulo + ' · ' + texto + (frase ? ' · ' + frase : ''), color, fondo);
+    pintorLuces.pintarPluma();
   }
-
-  // =========================================================================
-  // LAS CAMARAS, QUE SON LO QUE VA A DECIDIR SI LA PLUMA BAJA (D-13 fase 1, 05/09)
-  // =========================================================================
-  // El equipo publica UNA sola palabra en CAM: y es LA PEOR de sus dos camaras. El
-  // orden de gravedad vive en el enum de botones.cpp -OK < ? < CIEGA < PEGADA- y aqui
-  // solo se LEE: una segunda copia de ese orden en este fichero seria la que se queda
-  // vieja el dia que la de alla cambie, y D-13 la va a cambiar.
-  //
-  // '?' NO ES 'OK', Y ES LA MITAD QUE MAS IMPORTA DE ESTA TABLA. Es el estado con el
-  // que arranca el vigilante: por esos pines todavia no ha pasado nada, asi que NO se
-  // sabe si la camara ve. Pintarlo en verde -o dejarlo caer en la misma casilla que
-  // "sin datos"- seria decirle al operario que la deteccion esta comprobada cuando lo
-  // unico que consta es que nadie la ha ejercido. Por eso el firmware le da mas peso
-  // que a OK y por eso aqui tiene fila propia.
-  //
-  // Y '?' TAMPOCO ES '--', que es la otra confusion facil. '--' es la APP diciendo que
-  // no tiene dato -no hay enlace, o el campo no vino-; '?' es el EQUIPO diciendo que el
-  // dato que tiene es "todavia no lo se". Mandan a sitios distintos: uno a mirar la
-  // radio, el otro a esperar o a provocar una deteccion.
-  const CAM_LEYENDA = {
-    'OK':     { texto: 'OK',           frase: 'las dos ven y ninguna esta pegada',
-                color: 'var(--green-lamp)' },
-    '?':      { texto: 'SIN COMPROBAR', frase: 'aun no ha pasado nada por esos pines: no consta que vean',
-                color: 'var(--text-muted)' },
-    'CIEGA':  { texto: 'CIEGA',        frase: 'lleva demasiado tiempo de paso abierto sin una sola deteccion: puede estar tapada o sin corriente',
-                color: 'var(--amber-lamp)' },
-    'PEGADA': { texto: 'PEGADA',       frase: 'contacto fijo: dice que hay alguien y no se suelta',
-                color: 'var(--red-lamp)' }
-  };
 
   function pintarCamaras() {
-    if (!camEstadoEl && !camDetalleEl) return;
-    const decir = (valor, frase, color) => {
-      if (camEstadoEl) {
-        camEstadoEl.textContent = valor;
-        camEstadoEl.style.color = color || 'var(--text-muted)';
-      }
-      if (camDetalleEl) camDetalleEl.textContent = frase;
-    };
-
-    // El enlace caido va PRIMERO: lo guardado es de hace rato, y una camara que estaba
-    // bien hace diez minutos no dice nada de la de ahora. Se retira igual que la hora y
-    // la pluma, y con el marcador de ausencia de esta app, que es '--'.
-    if (!state.telemetriaViva) {
-      decir('--', 'Sin enlace: el dato ya no vale');
-      return;
-    }
-
-    // El campo NO VINO: equipo con firmware anterior a D-13. Se dice CUAL es la
-    // carencia y no "sin datos" a secas, por lo mismo que en la pluma: un equipo viejo
-    // y una radio caida mandan al tecnico a sitios opuestos.
-    if (state.cam === null || state.cam === undefined) {
-      decir('--', 'Este equipo no las publica (firmware anterior)');
-      return;
-    }
-
-    // D-24, segunda mitad (08/09): EL MODO INTELIGENTE OPERANDO CON UNA CAMARA AVERIADA
-    // SE DICE. Hasta hoy no se decia, y no por falta de dato: el equipo publica CAM:
-    // desde e3a21ec y esta app tenia el MODO y el ESTADO DE CAMARA en dos sitios SIN
-    // CRUZARSE NUNCA. Faltaba la frase, no la telemetria.
-    //
-    // ESTO NO ES UNA BARRERA Y NO SE DISFRAZA DE UNA: no cambia ni una luz. El firmware
-    // ya degrada solo y bien -modo_inteligente.cpp lo lleva escrito y razonado: "CON LAS
-    // CAMARAS MUERTAS ESTE MODO SE COMPORTA EXACTAMENTE COMO EL AUTOMATICO ... degrada al
-    // comportamiento conocido, no a uno raro"-. Lo que faltaba era que alguien se
-    // enterase, que es otra cosa.
-    //
-    // Y SE DEJA EN LA APP A PROPOSITO, en vez de que el equipo se cambie solo de modo:
-    // que la maquina decida operar en un modo que nadie pidio es justo lo que la barrera
-    // de salidas prohibe, y ademas no compraria nada -el comportamiento ya es ese-.
-    //
-    // SON DOS FRASES Y NO UNA PORQUE LAS DOS AVERIAS FALLAN EN DIRECCIONES OPUESTAS:
-    //   CIEGA  nunca dice "hay coches" -> la condicion de mantener no se cumple jamas y
-    //          la fase acaba en el SUELO. El operario cree tener demanda y tiene un ciclo
-    //          fijo: pierde la funcion por la que eligio este modo, sin sintoma.
-    //   PEGADA dice "hay alguien" siempre -> MANTIENE mientras el otro lado no pida, hasta
-    //          el TECHO (el doble del tiempo configurado). No es peligroso -nadie espera
-    //          enfrente- pero el verde se alarga y nadie sabe por que.
-    // Meterlas en una sola frase mandaria al tecnico a buscar el sintoma contrario.
-    const CAM_EN_INTELIGENTE = {
-      'CIEGA':  ' | MODO INTELIGENTE SIN DEMANDA: esta funcionando como el Automatico. Revise esa camara.',
-      'PEGADA': ' | MODO INTELIGENTE ALARGANDO VERDES: mantiene hasta el techo aunque no pase nadie. Revise esa camara.'
-    };
-
-    const info = CAM_LEYENDA[state.cam];
-    if (!info) {
-      // LLEGO ALGO QUE NO PUEDE SER, y eso NO es '--'. '--' significa "todavia no lo
-      // se" y aplastar aqui un valor imposible lo esconderia entre los huecos normales.
-      // El literal en crudo va al renglon de abajo: sin el, el que mira no puede decir
-      // si el equipo estreno una palabra o si la trama llego rota.
-      decir('!', 'Valor no reconocido: "' + state.cam + '"', 'var(--red-lamp)');
-      return;
-    }
-    // El aviso solo se anade cuando SE SABE el estado de la camara: si el valor no se
-    // reconoce, o no vino, o el enlace esta caido, ya se salio por arriba. Afirmar ahi
-    // que el modo esta degradado seria decidir sobre un dato que no se tiene.
-    const aviso = (state.modo === 'INTELIGENTE' && CAM_EN_INTELIGENTE[state.cam]) || '';
-    decir(info.texto, info.frase + aviso, info.color);
-  }
-
-  function renderLights() {
-    if (!s1Red || !s1Amber || !s1Green || !s2Red || !s2Amber || !s2Green) return;
-
-    [s1Red, s1Amber, s1Green, s2Red, s2Amber, s2Green].forEach(l => l.classList.remove('active'));
-
-    // Cual de las dos columnas es la que habla. El reparto no se inventa aqui: es el
-    // mismo que ya rotula el HTML -POSTE 1 = MAESTRO, POSTE 2 = ESCLAVO- y el mismo
-    // que usa la cabecera al leer NODE:.
-    const esEsclavo = state.node === 'ESCLAVO';
-    // SPEC_4 9.9 (c): la UNICA funcion que escribe #phase-desc; con el equipo callado, "SIN ENLACE" (marcarSinEnlace()).
-    const fase = (t) => { if (phaseDescEl) phaseDescEl.textContent = state.telemetriaViva ? t : 'SIN ENLACE - sin datos del equipo'; };
-    const propias = esEsclavo ? [s2Red, s2Amber, s2Green] : [s1Red, s1Amber, s1Green];
-    const ajenas = esEsclavo ? [s1Red, s1Amber, s1Green] : [s2Red, s2Amber, s2Green];
-    const textoPropio = esEsclavo ? s2Text : s1Text;
-    const textoAjeno = esEsclavo ? s1Text : s2Text;
-    const rotuloAjeno = esEsclavo ? 'POSTE 1 · MAESTRO' : 'POSTE 2 · ESCLAVO';
-
-    // EL OTRO EXTREMO, QUE DESDE N-149 A VECES SI SE PUEDE PINTAR.
-    //
-    // Hasta el 04/09 esto era `declararAjeno()` y no tenia mas remedio: el $STATUS
-    // llevaba UN solo ESTADO -el del que lo manda- y el Maestro no publicaba el del
-    // otro. Ahora publica ESC:, y la consola de operacion pinta LOS DOS POSTES.
-    //
-    // LAS TRES SALIDAS SON DISTINTAS Y NINGUNA SE COLAPSA CON OTRA, que es todo lo que
-    // este bloque tiene que hacer bien (CLAUDE.md 3.quinquies): tres lamparas apagadas
-    // a secas se leen como "ese poste esta apagado", y el ultimo color conocido
-    // repintado se lee como el de ahora. Las dos serian afirmaciones sin medida.
-    //
-    // Devuelve la frase con la que la linea del centro nombra al otro poste, para que
-    // el rotulo y la columna no se puedan desincronizar: los escribe la misma decision.
-    function pintarAjeno() {
-      // Las tres del otro poste se apagan al entrar y solo se vuelve a encender una si
-      // hay dato de AHORA. Hoy el forEach de la cabecera de renderLights() ya las dejo
-      // apagadas y esta linea no cambia nada; se escribe igual porque la propiedad que
-      // importa -"una trama sin ESC: no puede dejar encendida la lampara de la trama
-      // anterior"- tiene que vivir donde se decide, y no depender de que el barrido de
-      // arriba siga estando ahi el dia que alguien lo mueva.
-      ajenas.forEach(l => { if (l) l.classList.remove('active'); });
-      const decir = (txt, color) => {
-        if (!textoAjeno) return;
-        textoAjeno.textContent = txt;
-        textoAjeno.style.color = color || 'var(--text-muted)';
-      };
-
-      // Contra el ESCLAVO no hay nada del POSTE 1 y no lo va a haber: esa punta no
-      // emite ESC: -no tiene a quien preguntarle- y esta pantalla es la ventana de
-      // DIAGNOSTICO, no la consola de operacion. Se conserva la frase de siempre.
-      if (state.node !== 'MAESTRO') {
-        decir('SIN DATOS · se ve desde el POSTE 1');   // D-80
-        return rotuloAjeno + ' no informa';
-      }
-
-      // El campo NO VINO: firmware anterior a N-149. Se dice CUAL es la carencia, no
-      // "sin datos" a secas: sin eso, un equipo viejo y una radio caida se leen igual
-      // en pantalla y mandan al tecnico a sitios opuestos.
-      //
-      // Y "no vino" es SOLO null/undefined. Un campo ESC con el valor vacio SI vino -el
-      // equipo publico el campo y no puso nada dentro- y cae abajo, en el camino del
-      // literal desconocido, para que se vea. Meterlo aqui acusaria de firmware viejo a
-      // un equipo que acaba de mandar el campo, y taparia el unico sintoma que tiene un
-      // %s vacio en el snprintf del C++.
-      //
-      // (El nombre del campo va SIN comillas invertidas a proposito. app_01_comandos
-      // censa lo que la app manda buscando una raiz en mayusculas entre comillas
-      // invertidas seguida de dos puntos y de algo pegado detras -asi es como se ve una
-      // plantilla de trama-, y NO distingue una plantilla de un comentario. Escrito con
-      // ellas, este parrafo hacia FALLAR al pack acusando a la app de mandar un comando
-      // que ninguna punta conoce. Medido las dos veces, y las dos veces por el mismo
-      // motivo: primero con el nombre del campo y luego con la palabra que lo describe.)
-      if (state.esc === null || state.esc === undefined) {
-        decir('SIN DATO DEL POSTE 2 · este equipo no lo publica');
-        return rotuloAjeno + ': el POSTE 1 no publica su estado (firmware anterior)';
-      }
-
-      // El Maestro contesta que NO LO SABE. Es un dato, y de los buenos: dice que la
-      // radio entre postes no esta entregando.
-      if (state.esc === '?') {
-        decir('SIN DATO DEL POSTE 2 · el POSTE 1 no lo sabe', 'var(--amber-lamp)');
-        return rotuloAjeno + ': el POSTE 1 dice que NO SABE como esta (enlace entre ' +
-               'postes caído o aún sin respuesta)';
-      }
-
-      const luz = ESC_LUZ[state.esc];
-      if (!luz) {
-        // Un literal que esta tabla no conoce se ENSENA en crudo, igual que hace
-        // pintarBadgeModo() con un MODO nuevo. Callarlo dejaria la columna en blanco el
-        // dia que el firmware estrene un valor, y una columna en blanco es
-        // indistinguible de una radio caida.
-        decir('POSTE 2 NO RECONOCIDO: "' + state.esc + '"');
-        return rotuloAjeno + ': valor no reconocido "' + state.esc + '"';
-      }
-
-      ajenas[{ red: 0, amber: 1, green: 2 }[luz.lampara]].classList.add('active');
-      decir(luz.texto, luz.color);
-      return null;   // 06/10: su columna ya lo dice; repetirlo partia la frase en ~9 renglones
-    }
-
-    pintarBadgeModo();
-    // N-153: la fila de la pluma se pinta AQUI ARRIBA y no al final, para que salga por
-    // los tres caminos de esta funcion -sin punta, ESTADO no reconocido y el normal-.
-    // Solo lee state, asi que no depende de nada que se calcule mas abajo.
-    pintarPluma();
-
-    if (!state.node) {
-      // Ni siquiera se sabe QUE punta hay al otro lado, asi que no hay columna que
-      // pintar. Ocurre entre la conexion y el primer $STATUS.
-      [s1Text, s2Text].forEach(t => {
-        if (!t) return;
-        t.textContent = 'SIN DATOS';
-        t.style.color = 'var(--text-muted)';
-      });
-      if (phaseDescEl) phaseDescEl.textContent = state.connected ? 'EQUIPO SIN IDENTIFICAR - esperando su primer dato'
-        : 'SIN ENLACE - sin datos del equipo';   // D-80: entre la conexion y el primer $STATUS
-      return;
-    }
-
-    const info = ESTADOS[state.estadoLuces];
-    if (!info) {
-      // Llego un ESTADO que no esta en el enum del firmware. No se adivina: se ensena
-      // el literal. Es lo que hace visible el desajuste en vez de dejar la pantalla
-      // congelada, que es justo como este defecto sobrevivio.
-      // El otro poste SE SIGUE PINTANDO: ESC: es un campo aparte y que el Maestro no
-      // sepa nombrar SU luz no dice nada de lo que sabe de la otra punta. Tirar los dos
-      // datos por uno malo seria perder el unico que quedaba bueno.
-      const frAjeno = pintarAjeno();
-      if (textoPropio) {
-        textoPropio.textContent = 'ESTADO NO RECONOCIDO';
-        textoPropio.style.color = 'var(--text-muted)';
-      }
-      fase((state.estadoLuces ? 'ESTADO no reconocido: "' + state.estadoLuces + '"'
-                              : 'SIN ESTADO en la última trama') + ' · ' + frAjeno);
-      return;
-    }
-
-    (info.lamparas || [info.lampara]).forEach(l => {
-      propias[{ red: 0, amber: 1, green: 2 }[l]].classList.add('active');
-    });
-    if (textoPropio) {
-      textoPropio.textContent = info.texto;
-      textoPropio.style.color = info.color;
-    }
-    const frAjeno = pintarAjeno();
-
-    // La linea del centro deja de anunciar una FASE DEL CRUCE -"FASE: SENTIDO 1"-,
-    // que es una afirmacion sobre los dos postes, y pasa a decir DE QUIEN es el dato
-    // que se esta viendo y que dice. Es la misma diferencia de arriba, escrita donde
-    // el operario la lee. Desde N-149 la segunda mitad ya no es siempre "no informa":
-    // la escribe pintarAjeno(), que es quien decidio que se pinto en esa columna.
-    // info.frase NO se lee directo: FALLO COM tiene dos causas y solo MODO -de esta
-    // MISMA trama- distingue cual es (_fraseDeEstadoLuces(), 28/09).
-    fase((esEsclavo ? 'ESCLAVO' : 'MAESTRO') + ': ' + _fraseDeEstadoLuces(state.estadoLuces) + (frAjeno ? ' · ' + frAjeno : ''));
+    pintorLuces.pintarCamaras();
   }
 
   function updateCountdownRing() {
@@ -2862,6 +2346,7 @@ document.addEventListener('DOMContentLoaded', () => {
   Testigo.iniciar({ state, enviarComandoFirmware, puntaCorrecta, avisarOtraPunta, addEvent,
                     showToast, horaLocal24, fechaLocalISO, pedirPin });
   DegAuto.iniciar({ state, enviarComandoFirmware, addEvent, showToast, pedirPin, horaLocal24 });
+  Noche.iniciar({ state, enviarComandoFirmware, addEvent, showToast, pedirPin });   // D-110, js/noche.js
 
   // =========================================================================
   // 4.quater DEMANDA: UN CONTROL QUE REFLEJA EL MODO EN VEZ DE GASTAR UN RECHAZO
@@ -3085,7 +2570,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // Resuelve una entrada de las dos tablas de rechazo: puede ser el objeto directo o
   // una funcion de los campos de la trama, para los motivos que traen un dato dentro.
   function _traducirRechazo(data) {
-    const entrada = DegAuto.rechazo(data) || DiagnosticoEnlace.acuseReinicios(data) || Testigo.rechazo(data, state.node) ||
+    const entrada = DegAuto.rechazo(data) || Noche.rechazo(data) || DiagnosticoEnlace.acuseReinicios(data) ||
+                    Testigo.rechazo(data, state.node) ||
                     TextosSpec4.ERR[(data.CMD || '?') + '|' + (data.DESC || '')] || ERR_TEXTO[(data.CMD || '?') + '|' + (data.DESC || '')] || ERR_MOTIVO[data.DESC || ''];
     if (!entrada) return null;
     return typeof entrada === 'function' ? entrada(data) : entrada;
@@ -3161,7 +2647,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!state.telemetriaViva) marcarConEnlace();
 
       if (data.NODE) {
-        DegAuto.alStatus(data.NODE);  // A-15: consulta la opcion al identificar el poste
+        DegAuto.alStatus(data.NODE); Noche.alStatus(data.NODE);  // A-15 y D-110: consultan al identificar el poste
         state.node = data.NODE;
         if (nodeNameEl) {
           nodeNameEl.textContent = data.NODE === 'MAESTRO' ? 'MAESTRO (POSTE 1)' : 'ESCLAVO (POSTE 2)';
@@ -3336,7 +2822,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // js/avisos_equipo.js -el porque, en su cabecera- y sigue el molde de ERR_MOTIVO:
       // el literal en crudo se queda y la traduccion va detras. Lo que la tabla no
       // nombra sale como salia, en crudo, que es la red y no el destino.
-      const aviso = DegAuto.alarma(data) || AvisosEquipo.traducirAlarma(data);
+      const aviso = Noche.alarma(data) || DegAuto.alarma(data) || AvisosEquipo.traducirAlarma(data);
       showToast(aviso && aviso.toast ? aviso.toast
                                      : 'ALERTA: ' + (data.EVENTO || 'Fallo detectado'));
 
@@ -3430,7 +2916,8 @@ document.addEventListener('DOMContentLoaded', () => {
       // N-162: este acuse NO toca state.hora. Viene de NODE:PUENTE -el DS3231 del ESP32-
       // y state.hora es la hora del CONTROLADOR, la del $STATUS. Pintar una con la otra
       // tapaba justo lo que hay que ver: un STM32 que no recibio la hora.
-      Testigo.anotarAcuse(data, state.node); const degAuto = DegAuto.acuse(data) || DiagnosticoEnlace.acuseReinicios(data);  // A-15, D-64
+      Testigo.anotarAcuse(data, state.node); Noche.anotarAcuse(data);   // D-110: su consulta va tras la del automatico
+      const degAuto = DegAuto.acuse(data) || Noche.acuse(data) || DiagnosticoEnlace.acuseReinicios(data);  // A-15, D-64
       const dicho = ACK_TEXTO[clave] || degAuto || TextosSpec4.ACK[clave] || TextosSpec4.tiempos(clave, state.modo);
       if (dicho) {
         addEvent(dicho.tono, dicho.texto);
@@ -3533,7 +3020,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // vuelve, la que se ignora porque manda la radio, y el salto de hora que pasa por
       // rojo-. Mismo molde que el $ALARM de arriba: crudo primero, traduccion detras, y
       // lo que la tabla no nombra en crudo y en cyan como siempre.
-      const aviso = DegAuto.evento(data) || AvisosEquipo.traducirEvento(data);
+      const aviso = Noche.evento(data) || DegAuto.evento(data) || AvisosEquipo.traducirEvento(data);
       const textoEvento = AvisosEquipo.cabezaEvento(data) + (aviso ? ' -> ' + aviso.texto : '');
       addEvent(aviso && aviso.tono ? aviso.tono : 'cyan', textoEvento); if (aviso && aviso.toast) showToast(aviso.toast);
       RegistroEnlace.anotar('EVENTO', enlaceDeAhora(), textoEvento); renderRegistroEnlace();

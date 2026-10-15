@@ -220,7 +220,9 @@ static void escribirPines(bool rojo, bool amarillo, bool verde) {
   // accion-. Quien avisa es el vigilante de botones.cpp: CAM_PEGADA a los 20 min si el
   // contacto se queda cerrado, y el $EVENT del contador en cuanto el veto actua.
   // D-53: S_ROJO_AMARILLO no la sube (verde apagado, fuera de la lista): sube con el VERDE.
-  const bool luzPideArriba = (verde && !testLedsActivo) || estado == S_FALLO || estado == S_AMARILLO;
+  // D-110: y en los destellos de la noche, pluma ARRIBA en los dos (SPEC_0 5.10 (a)).
+  const bool luzPideArriba = (verde && !testLedsActivo) || estado == S_FALLO || estado == S_AMARILLO ||
+                             estado == S_AMBAR_INT || estado == S_ROJO_INT;
   bool plumaArriba;
   if (luzPideArriba) {
     plumaCierrePendiente = false;
@@ -343,19 +345,22 @@ void semaforo_iniciarFallo() {
   aplicarSalidas(LOW, LOW, LOW); // Empieza apagado, luego parpadea en actualizar()
 }
 
+// D-107/D-110: el destello del modo noche, con el parpadeo de S_FALLO (gemela del Esclavo).
+bool semaforo_iniciarNoche(bool rojo) {
+  if (estado == S_VERDE || estado == S_AMARILLO || estado == S_ROJO_AMARILLO) return false;
+  const EstadoSemaforo e = rojo ? S_ROJO_INT : S_AMBAR_INT;
+  if (estado != e) { estado = e; tCambio = millis(); aplicarSalidas(LOW, LOW, LOW); }
+  return true;
+}
+
 // N-82.bis (cinta del 28/09, serie 4D2007): EL TEST SOLO CORRE FUERA DE SERVICIO.
 //
-// La fase verde del test enciende VERDE1/VERDE2 sin mirar el ciclo, y el enclavamiento
-// SFTY-2 de aplicarSalidas() no lo impide: solo prohibe rojo y verde en ESTE poste, no
-// sabe nada del otro. Medido con el arnes del automatico (coordinador.cpp + semaforo.cpp
-// reales): en AUTO, con el Maestro en rojo y el Esclavo en verde, el test dejo el verde
-// del Maestro encendido 2 s con ESC:VERDE a la vez. Es el mismo motivo por el que el
-// Esclavo rechaza TEST_LEDS desde siempre (SPEC_4), que aqui faltaba.
-//
-// Admitido solo en los modos que dejan los DOS postes en rojo fijo por
-// coordinador_forzarMenu() -MENU y ALCANCE (D-44)- y con la luz de este poste en S_ROJO:
-// en esos modos, sin enlace, el coordinador pasa a S_FALLO (ambar intermitente en las
-// dos puntas) y un verde ahi seria un verde contra un ambar que invita a pasar.
+// La fase verde enciende VERDE1/VERDE2 sin mirar el ciclo y SFTY-2 no lo impide (solo mira
+// ESTE poste). Medido con el arnes del automatico: en AUTO el test dejo el verde del Maestro
+// 2 s con ESC:VERDE a la vez; por eso el Esclavo rechaza TEST_LEDS desde siempre (SPEC_4).
+// Admitido solo en MENU y ALCANCE (D-44: los DOS postes en rojo fijo por
+// coordinador_forzarMenu()) y con S_ROJO aqui: sin enlace pasan a S_FALLO, y un verde ahi
+// seria un verde contra un ambar que invita a pasar.
 //
 // Y EL ROJO DEL ESCLAVO TIENE QUE CONSTAR (coordinador_rojoEsclavoConfirmado()): al entrar
 // en MENU desde AUTO la luz de aqui pasa a S_ROJO en el acto, pero el Esclavo sigue en
@@ -380,6 +385,7 @@ static void terminarTestLeds() {
     case S_AMARILLO: iniciarTransicionARojo(false); break;   // el cierre sigue su reloj
     case S_FALLO:    semaforo_iniciarFallo(); break;
     case S_ROJO_AMARILLO: semaforo_forzarVerde(); break;   // D-53: el R+A sigue su reloj
+    case S_AMBAR_INT: case S_ROJO_INT: break;   // D-110: inalcanzable (el test pide S_ROJO)
   }
 }
 
@@ -455,33 +461,25 @@ void semaforo_actualizar() {
   } else if (estado == S_ROJO_AMARILLO && (ahora - tCambio >= ROJO_AMARILLO_SEG * 1000UL)) {
     estado = S_VERDE;   // D-53: el R+A acaba en VERDE
     aplicarSalidas(LOW, LOW, HIGH);
-  } else if (estado == S_FALLO) {
+  } else if (estado == S_FALLO || estado == S_AMBAR_INT || estado == S_ROJO_INT) {
     if (ahora - tCambio >= 500) {
       tCambio = ahora;
       static bool ambarStatus = false;
       ambarStatus = !ambarStatus;
-      aplicarSalidas(LOW, ambarStatus, LOW);
+      const bool r = (estado == S_ROJO_INT);   // D-110: el rojo intermitente parpadea el rojo
+      aplicarSalidas(r && ambarStatus, !r && ambarStatus, LOW);
     }
   }
 
-  // D-33: HAY QUE VOLVER A PASAR POR LA PUERTA, Y ESTE ES EL SITIO.
-  //
-  // Antes de D-33 la pluma solo dependia de los argumentos de escribirPines(), asi que
-  // bastaba con que se la llamara en cada CAMBIO de luz. Ahora depende ademas del RELOJ
-  // -el retardo- y de un aparato de fuera -la camara-, y ninguna de las dos cosas
-  // provoca una llamada por si sola: en rojo estable, sin senal del mando y sin
-  // S_FALLO, nadie vuelve a escribir un pin hasta la transicion siguiente. Sin esta
-  // linea la pluma se quedaria arriba HASTA EL PROXIMO CAMBIO DE LUZ, que es minutos.
-  //
-  // NO ES UN SEGUNDO ESCRITOR: se vuelve a entrar por aplicarSalidas() con lo ultimo
-  // que pidio la logica -ultR/ultA/ultV-, o sea que el enclavamiento SFTY-2 y la
-  // intercepcion de SFTY-21 siguen delante. Y la condicion es la BANDERA que dejo
-  // puesta escribirPines(), no una segunda copia de la formula de SFTY-28.
+  // D-33: la pluma depende del RELOJ (retardo) y de la camara, y ninguno provoca una llamada:
+  // sin esta linea quedaria arriba hasta el proximo cambio de luz. NO ES UN SEGUNDO ESCRITOR:
+  // reentra por aplicarSalidas() con ultR/ultA/ultV y la BANDERA de escribirPines().
   if (plumaCierrePendiente) aplicarSalidas(ultR, ultA, ultV);
 }
 
 bool semaforo_estable() {
-  return estado == S_ROJO || estado == S_VERDE || estado == S_FALLO;
+  return estado == S_ROJO || estado == S_VERDE || estado == S_FALLO || estado == S_AMBAR_INT ||
+         estado == S_ROJO_INT;
 }
 
 EstadoSemaforo semaforo_estado() {
@@ -495,6 +493,8 @@ const char* semaforo_nombreEstado() {
     case S_AMARILLO: return "AMARILLO";
     case S_FALLO: return "FALLO COM";
     case S_ROJO_AMARILLO: return "ROJO+AMAR";   // D-53: 9, como FALLO COM
+    case S_AMBAR_INT: return "AMBAR_INT";      // D-110: 9, cabe en estadoStr
+    case S_ROJO_INT: return "ROJO_INT";
   }
   return "";
 }

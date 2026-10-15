@@ -194,7 +194,9 @@ static void escribirPines(bool rojo, bool amarillo, bool verde) {
   // accion-. Quien avisa es el vigilante de botones.cpp: CAM_PEGADA a los 20 min si el
   // contacto se queda cerrado, y el $EVENT del contador en cuanto el veto actua.
   // D-53: S_ROJO_AMARILLO no la sube (verde apagado, fuera de la lista): sube con el VERDE.
-  const bool luzPideArriba = (verde && !testLedsActivo) || estado == S_FALLO || estado == S_AMARILLO;
+  // D-110: y en los destellos de la noche, pluma ARRIBA en los dos (SPEC_0 5.10 (a)).
+  const bool luzPideArriba = (verde && !testLedsActivo) || estado == S_FALLO || estado == S_AMARILLO ||
+                             estado == S_AMBAR_INT || estado == S_ROJO_INT;
   bool plumaArriba;
   if (luzPideArriba) {
     plumaCierrePendiente = false;
@@ -338,6 +340,15 @@ void semaforo_iniciarFallo() {
   aplicarSalidas(LOW, LOW, LOW); // Empieza apagado, luego parpadea en actualizar()
 }
 
+// D-107/D-110: el destello del modo noche, con el parpadeo de S_FALLO. Idempotente: la orden
+// que se repite cada NOCHE_REENVIO_MS no reinicia el parpadeo; si cambia el color, si.
+bool semaforo_iniciarNoche(bool rojo) {
+  if (estado == S_VERDE || estado == S_AMARILLO || estado == S_ROJO_AMARILLO) return false;
+  const EstadoSemaforo e = rojo ? S_ROJO_INT : S_AMBAR_INT;
+  if (estado != e) { estado = e; tCambio = millis(); aplicarSalidas(LOW, LOW, LOW); }
+  return true;
+}
+
 void semaforo_actualizar() {
   unsigned long ahora = millis();
 
@@ -348,12 +359,13 @@ void semaforo_actualizar() {
   } else if (estado == S_ROJO_AMARILLO && (ahora - tCambio >= ROJO_AMARILLO_SEG * 1000UL)) {
     estado = S_VERDE;   // D-53: el R+A acaba en VERDE
     aplicarSalidas(LOW, LOW, HIGH);
-  } else if (estado == S_FALLO) {
+  } else if (estado == S_FALLO || estado == S_AMBAR_INT || estado == S_ROJO_INT) {
     if (ahora - tCambio >= 500) {
       tCambio = ahora;
       static bool ambarStatus = false;
       ambarStatus = !ambarStatus;
-      aplicarSalidas(LOW, ambarStatus, LOW);
+      const bool r = (estado == S_ROJO_INT);   // D-110: el rojo intermitente parpadea el rojo
+      aplicarSalidas(r && ambarStatus, !r && ambarStatus, LOW);
     }
   }
 
@@ -374,7 +386,8 @@ void semaforo_actualizar() {
 }
 
 bool semaforo_estable() {
-  return estado == S_ROJO || estado == S_VERDE || estado == S_FALLO;
+  return estado == S_ROJO || estado == S_VERDE || estado == S_FALLO || estado == S_AMBAR_INT ||
+         estado == S_ROJO_INT;
 }
 
 EstadoSemaforo semaforo_estado() {
@@ -388,6 +401,8 @@ const char* semaforo_nombreEstado() {
     case S_AMARILLO: return "AMARILLO";
     case S_FALLO: return "FALLO COM";
     case S_ROJO_AMARILLO: return "ROJO+AMAR";   // D-53: 9, como FALLO COM
+    case S_AMBAR_INT: return "AMBAR_INT";      // D-110: 9, cabe en estadoStr
+    case S_ROJO_INT: return "ROJO_INT";
   }
   return "";
 }

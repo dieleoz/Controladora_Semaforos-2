@@ -364,6 +364,13 @@
 #define DEG_AUTO_APTO  0x02
 #define DEG_AUTO_ECO   0x04
 
+// D-107 (SPEC_0 5.10 (e)): EL MODO NOCHE. El Maestro manda CMD_GO_NOCHE tras su todo-rojo y lo
+// repite cada NOCHE_REENVIO_MS mientras dure; el Esclavo lo toma como orden de gobierno (renueva
+// su silencio), destella y contesta PONG. param bit0 = Poste 2 en ROJO intermitente.
+#define CMD_GO_NOCHE      0x18
+#define NOCHE_ROJO_INT    0x01
+#define NOCHE_REENVIO_MS  10000UL
+
 // N-130: EL PARAM DE CMD_ACK_DEMANDA DICE SI LA DEMANDA SE VA A ATENDER O NO.
 //
 // Hasta el 04/09 el Maestro acusaba la demanda SIEMPRE y armaba su bandera SIEMPRE,

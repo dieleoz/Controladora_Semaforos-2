@@ -30,7 +30,7 @@ que es donde se anotan las medidas.
 > **3.** Ejecute el checklist y firme el acta
 > → **[`3_Protocolo_Pruebas_Rigurosas.md`](historico/3_Protocolo_Pruebas_Rigurosas.md)**
 > **4.** 🔧 **Si va a una SESIÓN DE BANCO, la hoja vigente es la
-> [`Pruebas_Funcional_2026-10-15.html`](Pruebas_Funcional_2026-10-15.html)** — se abre en
+> [`Pruebas_Funcional_2026-10-16.html`](Pruebas_Funcional_2026-10-16.html)** — se abre en
 > el navegador, **se rellena y se devuelve en PDF**. *(El `ENCARGO_SESION_BANCO.md` de 29 pasos se
 > archivó el 07/09 en [`historico/`](historico/ENCARGO_SESION_BANCO_ARCHIVADO_07-09.md): se conserva
 > como **acta** de la 1.ª noche, no como guion. **Un solo encargo vigente.**)*

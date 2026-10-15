@@ -601,8 +601,8 @@ int main() {
       "el amarillo de cierre Verde->Rojo (D-45, AMARILLO_SEG)");
 
   long FALLO_PERIODO_MS = leerConstante("semaforo.cpp",
-      R"(S_FALLO\)\s*\{\s*if\s*\(ahora\s*-\s*tCambio\s*>=\s*(\d+)\))",
-      "el periodo del ambar intermitente de fallo");
+      R"(S_FALLO(?:\s*\|\|\s*estado\s*==\s*S_\w+_INT)*\)\s*\{\s*if\s*\(ahora\s*-\s*tCambio\s*>=\s*(\d+)\))",
+      "el periodo del ambar intermitente de fallo (y del destello de la noche, N-179)");
 
   // N-69: el umbral se mudo al contrato compartido (protocolo.h) para que las dos
   // puntas no puedan divergir. Este arnes ABORTO el dia del cambio en vez de seguir

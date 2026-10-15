@@ -270,6 +270,10 @@ void respaldo_borrar() {
   escribirReg(REG_FLAGS, 0);
   escribirReg(REG_SYNC_ALTA, 0);
   escribirReg(REG_SYNC_BAJA, 0);
+  // D-114: tambien los tiempos del ciclo (N-133). Sin esto sellar() metia en la suma lo que
+  // hubiera en DR9/DR10 y respaldo_tiemposCiclo() lo daba por un ciclo configurado.
+  escribirReg(REG_CICLO_RV, 0);
+  escribirReg(REG_CICLO_DESPEJE, 0);
   escribirReg(REG_FIRMA, FIRMA);
   sellar();
 }

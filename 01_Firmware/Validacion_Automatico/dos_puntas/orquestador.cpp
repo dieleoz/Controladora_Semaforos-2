@@ -395,7 +395,7 @@ static unsigned long g_goVerdeEntregadoEnRA = 0;
 // siga llegando trafico del Maestro -un PING le refresca la orfandad-. El bloque G necesita
 // saber cuantos salieron, cuantos llegaron y cuantos se tiraron, y poder tirar los N
 // siguientes a proposito. Codigo releido de protocolo.h (ver main).
-static uint8_t CMD_GO_RED_V = 0;
+static uint8_t CMD_GO_RED_V = 0, CMD_GO_NOCHE_V = 0;   // N-179: GO_NOCHE gobierna como GO_RED
 static long g_goRojoAPerder = 0;           // se tiran los N siguientes GO_RED del Maestro
 static unsigned long g_goRojoPerdidos = 0; // ...tirados por esa perdida selectiva
 static unsigned long g_goRojoCortados = 0; // ...perdidos por tener cortada la direccion
@@ -450,7 +450,7 @@ static unsigned long g_tAckRojoRetenido = 0;
 
 // Los valores del enum EstadoSemaforo, releidos de semaforo.h (ver main). -1 = sin leer.
 static int S_VERDE_V = -1, S_AMARILLO_V = -1;
-static int S_ROJO_V = -1, S_FALLO_V = -1;
+static int S_ROJO_V = -1, S_FALLO_V = -1, S_AMBAR_INT_V = -1, S_ROJO_INT_V = -1;   // N-179: los destellos
 
 // N-162 (bloque G): cuantas veces la EXCEPCION de A9 -"la otra punta esta en S_FALLO"-
 // perdono un instante en los bloques A a F, y su racha mas larga. La excepcion es el
@@ -588,7 +588,8 @@ static void vigilar(unsigned long t) {
     // D-45: y el amarillo de cierre, que pide la pluma arriba como el verde (SPEC_8 1).
     if (p->pin(MOTOR_TALANQUERA) == TALANQUERA_ABRIR &&
         p->pin(VERDE1) != HIGH && p->pin(VERDE2) != HIGH &&
-        p->estado() != S_FALLO && p->estado() != S_AMARILLO_V) {
+        p->estado() != S_FALLO && p->estado() != S_AMARILLO_V && p->estado() != S_AMBAR_INT_V &&
+        p->estado() != S_ROJO_INT_V) {   // N-179: en la noche la pluma va ARRIBA (SPEC_0 5.10 (a))
       if (g_plumaSinVerdeDesde[i] == 0) g_plumaSinVerdeDesde[i] = g_t + 1;
       const unsigned long dur = g_t - (g_plumaSinVerdeDesde[i] - 1);
       if (dur > g_peorVentanaPlumaMs[i]) g_peorVentanaPlumaMs[i] = dur;
@@ -681,7 +682,7 @@ static void unTick() {
             (c163 == CMD_GO_GREEN_V &&
              (ESCLAVO.estado() == S_AMARILLO_V || ESCLAVO.estado() == S_VERDE_V ||
               (ESCLAVO.rojo() && ESCLAVO.ambar() && !ESCLAVO.verde())));
-        if (c163 == CMD_PING_V || c163 == CMD_GO_RED_V ||
+        if (c163 == CMD_PING_V || c163 == CMD_GO_RED_V || c163 == CMD_GO_NOCHE_V ||
             (c163 == CMD_GO_GREEN_V && !goVerdeRepetido))
           g_tGobiernoEsclavo = g_t;
         else if (!goVerdeRepetido)
@@ -1093,6 +1094,7 @@ static void imprimirTrazaG(const char* titulo, const CorridaG& c) {
   }
 }
 
+#include "orquestador_noche.inc"   // N-179: BLOQUE N, el modo noche
 // ---------------------------------------------------------------------------
 int main() {
   std::printf("==============================================================\n");
@@ -1124,6 +1126,7 @@ int main() {
     CMD_HORA_S_V         = hex(PROTO_M, "CMD_HORA_S");
     CMD_CONFIG_VERDE_V   = hex(PROTO_M, "CMD_CONFIG_VERDE");
     CMD_CONFIG_DESPEJE_V = hex(PROTO_M, "CMD_CONFIG_DESPEJE");
+    CMD_GO_NOCHE_V       = hex(PROTO_M, "CMD_GO_NOCHE");   // N-179 (D-107)
 
     // N-162 (bloque F): el filtro del canal reconoce GO_GREEN y ACK_GREEN por su codigo.
     // El GO_GREEN lo emite el Maestro y el ACK_GREEN el Esclavo, y cada uno lo escribe con
@@ -3134,17 +3137,15 @@ int main() {
                   g11Cortes, CORTES_G11[0], CORTES_G11[nCortes - 1], g11MaxSilE, g11MaxSilM,
                   SIL, g11AmbE, g11EspE, g11AmbM, g11EspM);
       // DE QUE DEPENDE LA DERIVACION, Y POR ESO SE MIDE AQUI: el reloj de silencio del
-      // Esclavo se modela contando SOLO PING, GO_RED y GO_GREEN, que son los tres sitios
-      // donde main.cpp REFRESCA tUltimoComando. El dia que aparezca un cuarto, este modelo
-      // se quedaria fechando el silencio de otro firmware y la cuenta derivada de abajo
-      // aprobaria un ambar de mas sin decir nada. Se recuenta sobre el fuente sin
-      // comentarios: este repositorio cita sus propios simbolos en los comentarios.
+      // Esclavo se modela contando SOLO PING, GO_RED, GO_NOCHE (N-179, D-107) y GO_GREEN, los
+      // cuatro sitios donde main.cpp REFRESCA tUltimoComando. El dia que aparezca otro, este
+      // modelo fecharia el silencio de otro firmware y la cuenta derivada aprobaria un ambar
+      // de mas sin decir nada. Se recuenta sobre el fuente sin comentarios.
       //
-      // SE ESPERAN CUATRO, NO TRES, Y ESO LO CORRIGIO EL INSTRUMENTO (CLAUDE.md 7): el
-      // cuarto es la DECLARACION -"static unsigned long tUltimoComando = millis()"-, que
-      // casa el mismo patron y no es un refresco. Se cuenta el total en vez de filtrarla
-      // porque std::regex no tiene lookbehind y un patron mas fino se rompe con el primer
-      // salto de linea que alguien meta; lo que importa es que la cuenta NO SE MUEVA.
+      // SE ESPERAN CINCO, Y EL QUINTO LO CORRIGIO EL INSTRUMENTO (CLAUDE.md 7): es la
+      // DECLARACION -"static unsigned long tUltimoComando = millis()"-, que casa el mismo
+      // patron y no es un refresco. Se cuenta el total (std::regex no tiene lookbehind): lo
+      // que importa es que la cuenta NO SE MUEVA sin que se mueva el modelo de unTick().
       unsigned long refrescosTUC = 0;
       {
         const std::string mainE =
@@ -3153,14 +3154,14 @@ int main() {
         for (std::sregex_iterator it(mainE.begin(), mainE.end(), reTUC), fin; it != fin; ++it)
           refrescosTUC++;
       }
-      comprobar(g11Ejercido && g11ConMaestroVerde == g11Cortes && refrescosTUC == 4 &&
+      comprobar(g11Ejercido && g11ConMaestroVerde == g11Cortes && refrescosTUC == 5 &&
                 g11MaxSilE > SIL - TOUT && g11MaxSilE < SIL + LATIDO_MS_V + TOUT,
                 "G11 (control): los " + std::to_string(g11Cortes) + " cortes cayeron TODOS con "
                 "el Maestro en VERDE, el silencio del Esclavo llego a " +
                 std::to_string(g11MaxSilE) + " ms -pasado el punto donde el margen muerde (" +
                 std::to_string(SIL - TOUT) + " ms) y sin desbordar la fase del latido- y "
                 "main.cpp del Esclavo sigue refrescando tUltimoComando en " +
-                std::to_string(refrescosTUC) + " sitios (su declaracion + PING, GO_RED y "
+                std::to_string(refrescosTUC) + " sitios (su declaracion + PING, GO_RED, GO_NOCHE y "
                 "el GO_GREEN que arranca la transicion -D-34: la repeticion ya no-), que es lo "
                 "unico sobre lo que este modelo fecha el silencio. Trafico de servicio "
                 "entregado y correctamente NO contado: " +
@@ -3988,13 +3989,11 @@ int main() {
               "acuse de un ambar que ya no existe y no avisaria de nada");
   }
 
-  // reportar(): no cuenta. Es lo que la excepcion de A9 dejo pasar en los bloques A a F, que
-  // no se diseniaron para esto. MEDIDO el 11/09 con una copia instrumentada: la racha larga
-  // es del bloque D -D5/D6-, el Esclavo dando verde POR RELOJ en su Modo Degradado con el
-  // Maestro en S_FALLO. El Degradado del Maestro no se compila en este arnes (ver
-  // adaptador_maestro.cpp), asi que esa racha no dice que pasa en campo: dice que A9 la
-  // perdona sin mirarla. Si orquestador_degradado -que si compila los dos Degradados- mide
-  // un verde frente a S_FALLO, NO se comprobo al escribir esto.
+  bloqueNoche();   // N-179 (D-106..D-111)
+  // reportar(): no cuenta. Lo que la excepcion de A9 dejo pasar en los bloques A a F. MEDIDO
+  // el 11/09: la racha larga es del bloque D -D5/D6-, el Esclavo dando verde POR RELOJ en su
+  // Degradado con el Maestro en S_FALLO (el Degradado del Maestro no se compila aqui): A9 la
+  // perdona sin mirarla. Que orquestador_degradado mida un verde frente a S_FALLO, NO se comprobo.
   std::printf("   [NOTA]  la excepcion de A9 (S_FALLO por nombre) perdono %lu instantes en los "
               "bloques A a F, racha mas larga %lu ms (bloque D: verde por reloj del Degradado "
               "del Esclavo frente al S_FALLO de un Maestro sin Degradado compilado). No cuenta.\n",

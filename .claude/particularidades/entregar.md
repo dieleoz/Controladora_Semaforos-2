@@ -8,7 +8,7 @@ Va, y solo esto:
   -- sin `Simulaciones/`, sin `Validacion_*`, sin el `README.md` de cada carpeta.
 - **La APK** compilada (ver seccion 3).
 - **La guia/formulario `.html` de pruebas vigente** de `05_Funcional/` -- el que Diego este usando
-  en la sesion en curso, el que genera un PDF al rellenarlo (hoy: `Pruebas_Funcional_2026-10-15.html`;
+  en la sesion en curso, el que genera un PDF al rellenarlo (hoy: `Pruebas_Funcional_2026-10-16.html`;
   el nombre lleva fecha y caduca solo -- si hay mas de uno con fecha reciente, se confirma con Diego
   cual toca antes de mandarlo. `historico/Guia_Cableado_y_Pruebas_Banco.html` es de banco, no de campo: no se
   manda salvo que se pida). Su marcador `XXXXXXX` lo sustituye el empaquetador por el hash del commit que
@@ -112,8 +112,8 @@ zip por pasada; la corre quien lo toca, con el arbol como este). Vista en rojo e
 `19976b5`, con `www/` en disco distinto de `HEAD` por otra tarea:
 
 ```bash
-python herramientas/entrega/empaquetar_funcional.py 2026-10-14 05_Funcional/Pruebas_Funcional_2026-10-14.html \
-  evidencia/2026-10-14_compuerta.txt b220f4d
+python herramientas/entrega/empaquetar_funcional.py 2026-10-14 \
+  05_Funcional/historico/Pruebas_Funcional_2026-10-14.html evidencia/2026-10-14_compuerta.txt b220f4d
 ```
 
 - Rojo de hoy: con cuatro argumentos imprime el uso; sin el cuarto, `ABORTA: el disco no es HEAD en

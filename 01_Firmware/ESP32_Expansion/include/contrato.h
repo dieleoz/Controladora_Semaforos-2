@@ -68,8 +68,8 @@
 // la linea sobra y se cuenta (P-3), no se recorta en silencio como hace el STM32.
 #define BUF_ENTRADA_APP       (TRAMA_MAX_UTIL + 2)
 
-// La trama mas larga que el STM32 puede poner en el cable son 132 B: payload[128] de
-// $STATUS -127 utiles- mas "*XX\r\n". Se deja holgura porque una trama truncada por
+// La trama mas larga que el STM32 puede poner en el cable son 136 B: los 131 de la
+// respuesta a CONSULTA_NOCHE (D-110; el $STATUS, 127) mas "*XX\r\n". Se deja holgura porque una trama truncada por
 // nuestro lado seria ruido fabricado por el puente, que es peor que el ruido de cable.
 #define BUF_ENTRADA_STM32     160
 

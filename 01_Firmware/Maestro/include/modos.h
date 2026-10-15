@@ -26,7 +26,8 @@ enum ModoSistema {
   // Es el destino de SET_MODO:AMBAR (app), del ambar de arranque (D-40) y el estado al que cae
   // solo el Modo Degradado al agotarse el limite de 48 h. No aparece en el menu: no
   // es un modo que se "elija" desde la pantalla, es una salida de emergencia.
-  MODO_AMBAR
+  MODO_AMBAR,
+  MODO_NOCHE   // D-106..D-111: destello por franja horaria (modo_noche.cpp, SPEC_0 5.10)
 };
 
 ModoSistema modoActual_get();

@@ -91,6 +91,13 @@ SIN_SET_MODO_A_PROPOSITO = {
         "en el Maestro). Se SALE como antes: SET_MODO:MENU en el Poste 1 (todo-rojo) y "
         "AMBAR_EMERGENCIA en el Poste 2. La telemetria lo sigue emitiendo porque el modo "
         "existe y gobierna la luz: lo que cambio es la puerta, no el estado.",
+    # N-179: el modo noche, solo en el Maestro.
+    "NOCHE":
+        "D-110/D-111 (SPEC_0 5.10 (e), (f)): se entra por el FLANCO de una franja guardada "
+        "(modoNoche_vigilar() en modo_noche.cpp, desde AUTO o INTELIGENTE y con hora fiable), "
+        "nunca por orden: no hay SET_MODO:NOCHE. Se SALE con SET_MODO:AUTO/INTELIGENTE/MANUAL "
+        "(todo-rojo de tr, SALIENDO_TODO_ROJO) o SET_MODO:MENU/ALCANCE y FORZAR_ROJO (rojo "
+        "inmediato), que atiende modoNoche_orden(). Las franjas se programan con SET_NOCHE.",
 }
 
 # El rotulo del `default:` del switch no es un modo: es lo que la telemetria dice

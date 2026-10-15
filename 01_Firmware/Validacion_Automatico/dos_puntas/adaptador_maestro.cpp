@@ -105,7 +105,7 @@ void bluetooth_reportarAlarma(const char* evento, const char* causa, const char*
   snprintf(g_ultimaAlarmaEvento, sizeof(g_ultimaAlarmaEvento), "%s", evento);
   g_alarmasEmitidas++;
 }
-void bluetooth_reportarEvento(const char*, const char*) {}
+#include "adaptador_maestro_noche.inc"   // N-179: eventos, reloj con fecha, flash y ordenes de la noche
 
 void menu_setup() {}
 
@@ -238,6 +238,7 @@ static unsigned long g_entradasAmbar = 0;
 
 static void pasoPrincipal() {
   semaforo_actualizar();
+  modoNoche_vigilar();   // N-179: como main.cpp, antes de leer el modo de la vuelta
 
   ModoSistema modo = modoActual_get();
   if (modo == MODO_AMBAR) {
@@ -250,6 +251,11 @@ static void pasoPrincipal() {
   }
 
   if (modo != modoAnterior) {
+    if (modoAnterior == MODO_NOCHE) {   // N-179: lo de main.cpp; AUTO es el unico destino que corre aqui
+      modoNoche_alSalir();
+      if (modo == MODO_AUTOMATICO) modoAutomatico_setup();
+    }
+    if (modo == MODO_NOCHE) modoNoche_setup();
     if (modo == MODO_AMBAR) { modo_ambar_setup(); g_entradasAmbar++; }
     modoAnterior = modo;
   }
@@ -257,6 +263,7 @@ static void pasoPrincipal() {
   switch (modo) {
     case MODO_AUTOMATICO: modoAutomatico_loop(); break;
     case MODO_AMBAR:      modo_ambar_loop();     break;
+    case MODO_NOCHE:      coordinador_actualizar_background(); modoNoche_loop(); break;   // N-179
     default: break;   // los demas modos no se compilan en esta DLL (ver cabecera)
   }
 
@@ -280,6 +287,7 @@ PUNTA_API void punta_arrancar(void) {
   semaforo_setup();
   protocolo_setup();
   semaforo_forzarRojo();
+  modoNoche_cargar();   // N-179: como el setup() de main.cpp
 }
 
 PUNTA_API void punta_tick(unsigned long ms) {
@@ -358,6 +366,7 @@ PUNTA_API long punta_mando(const char* que, long arg) {
   // bajando delante de quien pidio el ambar.
   if (!strcmp(que, "entradas_ambar"))     return (long)g_entradasAmbar;
   if (!strcmp(que, "ambar_es_del_esclavo")) return modo_ambar_origenEsclavo() ? 1 : 0;
+  { const long r = mandoNoche(que, arg); if (r != PUNTA_DESCONOCIDO) return r; }   // N-179
   return PUNTA_DESCONOCIDO;
 }
 

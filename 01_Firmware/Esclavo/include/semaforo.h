@@ -4,7 +4,8 @@
 
 // D-53 (05/10): S_ROJO_AMARILLO, rojo y amarillo a la vez ROJO_AMARILLO_SEG antes de cada
 // verde (Manual de Senalizacion Vial 4.4.2). Va al final: no renumera los otros.
-enum EstadoSemaforo { S_ROJO, S_VERDE, S_AMARILLO, S_FALLO, S_ROJO_AMARILLO };
+// D-110 (SPEC_0 5.10 (g)): S_AMBAR_INT y S_ROJO_INT, los destellos del modo noche; al final.
+enum EstadoSemaforo { S_ROJO, S_VERDE, S_AMARILLO, S_FALLO, S_ROJO_AMARILLO, S_AMBAR_INT, S_ROJO_INT };
 
 void semaforo_setup();
 void semaforo_apagarTodo();
@@ -15,6 +16,9 @@ void semaforo_apagarTodo();
 void semaforo_forzarRojo();
 void semaforo_forzarVerde();
 void semaforo_iniciarFallo();
+// D-107/D-110: destello del modo noche, ambar o (rojo == true) rojo. Solo desde rojo, fallo u
+// otro destello (sobre verde, amarillo o R+A no: D-45); devuelve si quedo puesto.
+bool semaforo_iniciarNoche(bool rojo);
 void semaforo_actualizar();
 bool semaforo_estable();
 

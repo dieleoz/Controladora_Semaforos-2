@@ -77,7 +77,7 @@ Una flecha es dependencia de codigo o de dato, no prueba de que funcione en la t
 | `README.md:410`, `roadmap.md:38`, `CLAUDE.md:38,155,192`, `05_Funcional/README.md:315` | generica, sin `§` | vigente |
 | `HISTORIA.md` (varias) | cronica | historica |
 
-Quien cita `ARQUITECTURA_hist.map`: solo el propio `HISTORIA.md`. Queda sin enlace vivo (§8).
+Quien cita `ARQUITECTURA_hist.map`: `README.md` (desde el 15/10) y la cronica de `HISTORIA.md`.
 
 ### 2.2 Jerarquia de documentos
 
@@ -105,12 +105,12 @@ Quien cita `ARQUITECTURA_hist.map`: solo el propio `HISTORIA.md`. Queda sin enla
 | horario nocturno (`SFTY-20`) | `Maestro/src/reloj.cpp:508` `reloj_esHorarioNocturno()` | [CONTRADICCION] `SPEC_1:455` dice "andamio `SFTY-20` en `reloj.*`": el ID no aparece en ningun `.cpp`/`.h` |
 
 Censo de IDs (`grep -ohE 'SFTY-[0-9]+'`): la SPEC cita 15 IDs; 14 aparecen en firmware (falta `SFTY-20`).
-El firmware cita 24 IDs; 10 no aparecen en ninguna SPEC (`SFTY-5,8,10,11,14,16,18,19,22,27`).
+El firmware cita 24 IDs; 10 no aparecian en ninguna SPEC (`SFTY-5,8,10,11,14,16,18,19,22,27`): su SPEC va desde el
+15/10 en la segunda columna de `OPTIMIZACIONES.md`; `SFTY-8` y `SFTY-10` no tienen ninguna (hueco).
 `SFTY-20,24,25,26,29` aparecen en `OPTIMIZACIONES.md` sin codigo que las cite.
 
-[CONTRADICCION] `SPEC_1_Ciclo_y_Luces.md:509-519` numera las filas de la compuerta como si hubiera 20 (`fila 14`, `18`,
-`19`, `20`);
-la acta vigente tiene 19 (§5). `SPEC_4_App_y_Bluetooth.md:582` cita `fila 20`. No se corrige desde aqui.
+[CONTRADICCION] `SPEC_2`, `SPEC_3` y `SPEC_4` numeran las filas de la compuerta como si hubiera 20 (`fila 18`, `19`,
+`20`); la acta vigente tiene 19 (§5). `SPEC_1` las cita por nombre desde el 15/10. No se corrige desde aqui.
 
 ### 2.4 De donde sale cada cifra
 
@@ -141,8 +141,7 @@ Quien cita la transcripcion: `SPEC_1_Ciclo_y_Luces.md:109` (§2 y §5), `SPEC_1:
   NO vigila: contenido mudado de fichero, documentos, la app, ni un rol nuevo.
 - [CADUCO] `compuerta.py:802` describe el STM32 con `mando.cpp` compilado; `mando.cpp` salio con D-30 (`ba6faab`,
   14/09). Solo es comentario.
-- Desaparecidos sin paso por `historico/` (medido): `maestro_06_fuentes_pantalla`, `maestro_07_menu_opciones`,
-  `esclavo_02_inhibicion_menu`, `maestro_01_mando`. Si el sujeto ya no existe, el pack se borra; si no, se archiva.
+- Los cuatro packs borrados sin paso por `historico/` (sujeto retirado) estan anotados en `banco/historico/LEEME.txt`.
 
 ---
 
@@ -237,11 +236,8 @@ En campo manda lo CARGADO (`SPEC_5` §3). Pines libres y censo: `historico/ARQUI
 
 ## 8. MARCAS ABIERTAS (no se corrigen aqui)
 
-1. [CONTRADICCION] Numeracion de filas: `SPEC_1:509-519` y `SPEC_4:582` frente a la acta (§2.3, §5).
+1. [CONTRADICCION] Numeracion de filas: `SPEC_2`, `SPEC_3` y `SPEC_4` frente a la acta (§2.3, §5).
 2. [CONTRADICCION] `SFTY-20`: `SPEC_1:455` lo sitúa en `reloj.*`; no aparece en codigo (§2.3).
 3. [CADUCO] `SPEC_4:582` cita `ARQUITECTURA.map §3.7`; no existe.
 4. [CADUCO] `compuerta.py:802` cita `mando.cpp` como compilado.
-5. [HUERFANO] `ARQUITECTURA_hist.map`: solo lo cita `HISTORIA.md`.
-6. [HUERFANO] `SPEC_0_El_Sistema.md` y `SPEC_7_Modo_Sin_Reloj.md`: ningun documento los enlaza por nombre.
-7. [SIN-VERSIONAR] copia 3 de la app (§6).
-8. Packs desaparecidos sin `historico/` (§3).
+5. [SIN-VERSIONAR] copia 3 de la app (§6).

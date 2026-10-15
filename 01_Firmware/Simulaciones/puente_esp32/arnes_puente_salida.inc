@@ -6,6 +6,7 @@
 // Ordenes (solo Maestro; en el Esclavo, n/a: ahi modo_degradado.cpp es el REAL):
 //   FZR <codigo> [<pedirSalida 0/1>]   REV <0/1> (revocarEsperaSiembra)
 //   SAL <motivo programar> <motivo cancelar> <salidaS> <respaldada 0/1>   (MotivoSalida = indice del enum de la SPEC)
+//   MODOSET <n>: modoActual_set() con el enum de modos.h, sin setup(); P5 pone MODO_NOCHE y mira el despacho.
 // ARNES_D52 (lo pone compilar.ps1 cuando modo_degradado.h declara ResultadoRojoTotal): las firmas de la SPEC (g).
 // Sin el, solo el sustituto de hoy (uint8_t) y las pruebas P de D-52 salen en rojo por ausencia.
 // Incluido desde arnes_puente.cpp.
@@ -42,9 +43,14 @@ uint8_t modo_degradado_forzarRojo() {
 #endif
 static bool salida_orden(const char* linea) {
   const bool fzr = strncmp(linea, "FZR ", 4) == 0, rev = strncmp(linea, "REV ", 4) == 0,
-             sal = strncmp(linea, "SAL ", 4) == 0;
-  if (!fzr && !rev && !sal) return false;
+             sal = strncmp(linea, "SAL ", 4) == 0, mset = strncmp(linea, "MODOSET ", 8) == 0;
+  if (!fzr && !rev && !sal && !mset) return false;
 #if defined(PUNTA_MAESTRO)
+  if (mset) {
+    modoActual_set((ModoSistema)atoi(linea + 8));
+    printf("OK modo=%d\n", (int)modoActual_get());
+    return true;
+  }
   int c = -1, s = 1;
   if (fzr) { sscanf(linea + 4, "%d %d", &c, &s); fzr_codigo = c; fzr_salida = (s != 0); }
 #if defined(ARNES_D52)

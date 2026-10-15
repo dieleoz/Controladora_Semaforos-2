@@ -177,22 +177,106 @@ configuracion** (`SPEC_6` HUECO 3), y si no se hizo el sintoma no dira «radio m
    muerta desde la instalacion no la avisa nadie** (`SPEC_8` §4).
 9. ⚠️ **Y lo que no se puede afirmar de nada de esto: NO HA VISTO UNA TARJETA.** Ninguna camara se ha conectado nunca a este
    equipo, y que firmware corre en cada poste **lo dice `ESTADO.md`, no este fichero** (`CLAUDE.md` §0.2).
-10. **NO TIENE MODO NOCHE: DECIDIDO, SIN CONSTRUIR (`D-103`, 15/10, version siguiente `N-179`).** Lo que DEBE hacer,
-   no lo que hace: hoy el andamio de `reloj.*` (`reloj_esHorarioNocturno()`) sigue sin llamador y lo vigila
-   `costura_10_funciones_muertas`. No va en el paquete de Marco. Decidido por el responsable, que mide el sitio asi:
-   las dos puntas se ven y pasan 20-30 vehiculos entre 00:00 y 04:00.
-   - **Que hace.** En los dias de la semana y la franja programados (ej. lun, mar, vie 00:00-04:00) las dos puntas
-     destellan: **ambar intermitente en los dos postes por defecto**; elegido en la app, Poste 1 ambar y Poste 2 rojo
-     intermitente (norma 4.4.3). **Pluma arriba en los dos postes** durante la franja (decidido por el responsable,
-     15/10). Entra y sale por el despeje todo-rojo, y fuera de la franja vuelve al modo que tenia.
-   - **Riesgo aceptado por el responsable:** con ambar en los dos, dos vehiculos pueden encontrarse de frente.
-   - **Que guarda.** Dias, inicio y fin de la franja y la opcion de color, en el equipo, y sobreviven al corte.
-   - **Que publica.** Que esta en modo noche (estado propio: no se reporta como `S_FALLO` ni como el ambar de averia
-     de §1) y la franja programada, para que la app la lea de vuelta.
-   - **Que pide la app.** Una orden con clave y PIN que fija dias, franja y color, molde `SET_TIEMPOS` (`CLAUDE.md`
-     §2): `RESULT:OK` solo si lo releido es lo pedido, un `$ERR` por motivo; y una pantalla que muestre lo guardado.
-   - **Huecos que la construccion resuelve antes del codigo.** (1) Fecha en el Esclavo: hoy solo la tiene por radio
-     (`CMD_HORA_D`, `D-26`); decidir si sigue al Maestro por radio o decide con su reloj, y que hace sin hora
-     (SFTY-18: sin hora en hora no entra). (2) Donde se guarda la franja: los `BKP->DR1..DR10` estan repartidos
-     (`respaldo.cpp`) y hoy la franja vive en RAM y revierte a 22-05 tras un corte. (3) Que hace si un poste entra
-     y el otro no confirma. (4) Como se publica sin pasar el margen del `$STATUS` (`D-60`).
+10. **MODO NOCHE: CONSTRUIDO EN `N-179`, SIN BANCO NI TARJETA (`D-103`, `D-106`..`D-111`, `D-115`).** Lo que HACE
+   el fuente (`modo_noche.cpp`, `noche_flash.cpp`), medido en el arnes de dos puntas (bloque N); la escritura en la
+   flash real, la luz y la pluma solo se cierran en la tarjeta. No va en el paquete `5288c3d` de Marco.
+   El sitio, medido por el responsable:
+   las dos puntas se ven y pasan 20-30 vehiculos entre 00:00 y 04:00. **Riesgo aceptado por el responsable:** con
+   ambar en los dos, dos vehiculos pueden encontrarse de frente.
+   - **(a) Que hace.** En los dias y franjas programados las dos puntas destellan: **ambar intermitente en los dos por
+     defecto** o, elegido en la app, Poste 1 ambar y Poste 2 rojo intermitente (norma 4.4.3). **Pluma ARRIBA en los
+     dos** durante la franja: la condicion de pluma de `escribirPines()` incluye los dos estados nuevos, como ya
+     incluye `S_FALLO`. Es un modo del Maestro, `MODO_NOCHE`, que recuerda el modo del que vino; el Esclavo no tiene
+     modo: obedece la orden de radio de (e).
+   - **(b) Quien manda y quien guarda (`D-107`).** El Maestro guarda las franjas y decide entrada y salida con SU hora;
+     el Esclavo no guarda nada de la franja: recibe `CMD_GO_NOCHE` con el color. Motivo: por radio el Esclavo solo
+     tiene el dia del mes (`CMD_HORA_D`, `D-26`), sin dia de la semana, y dos horarios serian dos copias (`D-59`).
+     **Sin radio el Esclavo hace lo de siempre:** `S_FALLO` a los `SFTY6_SILENCIO_MS` y su Degradado si lo dejaron
+     activado (`A-15`); el Maestro en noche deja entrar al Degradado automatico igual que desde `AUTO`. Con rojo
+     intermitente elegido, perder la radio lo vuelve ambar (el por defecto aceptado) y la app lo dice.
+   - **(c) Franjas y donde caben (`D-108`).** Hasta `NOCHE_FRANJAS` = 4, cada una con mascara de 7 dias, inicio y fin
+     en minutos del dia (cruza medianoche si fin <= inicio; `inicio == fin` = apagada), color, y comun a todas el
+     todo-rojo `tr` de (d). En una pagina de flash PROPIA, `NOCHE_FLASH_DIR` = `0x0800F800` (la anterior a la del
+     testigo), con `board_upload.maximum_size` = 63488 en los dos `platformio.ini`; molde `testigo_flash` (firma,
+     version, suma, relectura; `-e all` la borra al cargar: tras una carga no hay franjas). Medido en `respaldo.cpp`:
+     `BKP->DR1..DR10` estan todos ocupados (firma; DR2/DR3 con `ANTES`/`REIN` en el byte alto; DR4 con 9 bits de
+     banderas; DR5-DR8; DR9/DR10 el ciclo automatico), y una franja son ~40 bits. Se escribe solo al cambiarla.
+   - **(d) El todo-rojo (`D-106`, `D-109`).** Un solo parametro `tr`, de fabrica `NOCHE_TR_FABRICA_S` = 180 s, que el
+     firmware admite entre `DESPEJE_SEG_MIN` (10 s: el mismo suelo y el mismo significado fisico que el despeje del
+     ciclo, lo que tarda el tramo en vaciarse) y `NOCHE_TR_MAX_S` = 900 s (la fase mas larga del equipo,
+     `VERDE_MIN_MAX`). El firmware no conoce la distancia: la app se la pide al administrador y propone
+     `tr` = max(180 s, distancia / (20 km/h) redondeado ARRIBA a 10 s) (`D-116`); no deja guardar menos de esa
+     propuesta ni menos de 180 s, y el administrador solo puede subirlo. Si la propuesta pasa de los 900 s del
+     firmware la app NO la recorta: se niega a guardar y dice por que, sin jerga. No se quema un unico valor: lo que
+     obligo a cambiar firmware y app fue el verde fijo de `D-35` (`D-59`).
+   - **(e) Entrada (`D-111`).** Por FLANCO: en el minuto de inicio de una franja, con hora fiable (SFTY-18: sin hora no
+     entra) y el Maestro en `MODO_AUTOMATICO` o `MODO_INTELIGENTE`; en cualquier otro modo (una persona en `MANUAL`,
+     fuera de servicio, Degradado, ambar de emergencia, y la propia noche: una franja que empieza cuando otra acaba o
+     dentro de ella) esa franja se salta y se anota `FRANJA_SALTADA` (`D-115`). Un corte dentro de la franja
+     no reanuda: el flanco ya paso y el equipo arranca como siempre (`D-40`, `D-29`). La transicion es la de
+     `SET_MODO:MANUAL`: `coordinador_forzarRojoTotal()` (amarillo 3 s si habia verde, `D-45`; `GO_RED`), espera el
+     `ACK_RED` del Esclavo (`coordinador_rojoEsclavoConfirmado()`), rojo fijo en los dos durante `tr`, y entonces
+     `CMD_GO_NOCHE` (param: bit0 = Poste 2 rojo intermitente) y la luz propia. Sin `ACK_RED` no entra: manda SFTY-6
+     como hoy. El Maestro reenvia `CMD_GO_NOCHE` cada `NOCHE_REENVIO_MS` = 10 s mientras dure; para el Esclavo es
+     orden de gobierno (renueva el silencio como `GO_RED`) e idempotente: tras un `S_FALLO` por radio perdida, la
+     siguiente lo devuelve a su luz de noche.
+   - **(f) Salida (`D-106`, `D-111`, `D-115`).** Por hora: en el primer minuto con hora fiable FUERA de la franja en
+     curso, `[inicio, fin)` contado en minutos desde 2000 al entrar; asi la saca tambien un reloj que salta el minuto
+     de fin (re-siembra, `SET_RTC`), que retrocede antes del inicio o que vuelve fiable pasado el fin. O desde la
+     app. SIEMPRE por el todo-rojo: rojo
+     fijo en los dos (desde el destello el rojo es directo: no hubo verde, SPEC 1 §3.3 (3)), `ACK_RED`, `tr` segundos,
+     y despues el destino. Por hora, el modo del que vino (`modoActual_set()` y su `setup()`, con el todo-rojo de
+     entrada que ya tiene: se acepta el doble rojo). Desde la app, a `AUTO`, `INTELIGENTE` o `MANUAL` (con PIN, como
+     hoy): `RESULT:SALIENDO_TODO_ROJO` y el cambio de modo al cumplirse `tr`; una segunda orden mientras tanto,
+     `$ERR ... DESC:SALIDA_EN_CURSO`. A `MENU`, `ALCANCE` y `FORZAR_ROJO` (sin PIN, como hoy: solo ponen rojo) el rojo
+     y el cambio de modo son inmediatos y contestan como fuera de la noche: el todo-rojo protege el PRIMER VERDE y
+     esos destinos no dan ninguno. `SET_MODO:DEG_T` y `SET_MODO:AMBAR` (con PIN) no son salidas de la noche: entrarian
+     con su propio rojo y sin `tr`, y se rechazan sin tocar luces, `$ERR,CMD:<orden>,DESC:EN_NOCHE_SALGA_PRIMERO`.
+     Una salida por la app vale hasta el fin de esa franja (el flanco de inicio ya paso).
+     Si la hora deja de ser fiable DENTRO de la noche, se queda (la luz no depende del reloj) y publica
+     `$ALARM,NODE:MAESTRO,EVENTO:NOCHE,CAUSA:HORA_NO_FIABLE,<enlace>,ACCION:SALGA_POR_APP,HORA:..`
+     cada `AVISO_ROJO_SIN_HORA_MS` (molde `D-67`); al volver la hora, si el minuto ya
+     esta fuera de la franja, sale por hora.
+   - **(g) Que publica (`D-110`).** `$STATUS` con `MODO:NOCHE` y `ESTADO:AMBAR_INT` o `ESTADO:ROJO_INT`: estados
+     nuevos `S_AMBAR_INT` (las dos puntas) y `S_ROJO_INT` (Esclavo), con la cadencia de `S_FALLO`; `FALLO COM` sigue
+     siendo solo la averia de radio. Caben en las cotas de hoy, `modoStr` 11 y `estadoStr` 9, sin campo nuevo: el
+     peor `$STATUS` del Maestro cabe con 3 B de margen (`esp32_07`, 15/10) y no se toca. Eventos `NOCHE`: `ENTRADA`,
+     `SALIDA_HORA`, `SALIDA_APP`, `FRANJA_SALTADA`. Las franjas se leen con `CONSULTA_NOCHE`, nunca en el `$STATUS`.
+     Sin radio dentro de la noche el Maestro publica una vez
+     `$ALARM,...,EVENTO:FALLO_RF,CAUSA:SILENCIO_EN_NOCHE,...,ACCION:SIGUE_EN_NOCHE` y sigue destellando (b).
+   - **(h) Las ordenes (`D-110`), molde `SET_TIEMPOS`: la pregunta DENTRO del `if`, un `$ERR` por motivo, `RESULT:OK`
+     solo si lo releido de la flash es lo pedido.** `SET_NOCHE:<n>,<dias>,<HHMM>,<HHMM>,<A|R>` (n = 1..4; dias = siete
+     letras `LMXJVSD`, `-` en su sitio para apagar el dia; A = ambar en los dos, R = Poste 2 rojo) y
+     `SET_NOCHE:<n>,OFF`; `SET_NOCHE_TR:<s>`; las dos con PIN. `$ERR` por `FORMATO_INVALIDO` (el `%c` centinela),
+     `RANGO`, `EN_NOCHE_SALGA_PRIMERO` (no se cambia la franja en curso) y `FLASH_NO_RELEE`. `CONSULTA_NOCHE` sin PIN:
+     `$ACK,CMD:NOCHE,RESULT:OK,TR:<s>,F1:<dias>-<HHMM>-<HHMM>-<A|R|OFF>,...,F4:...` (131 caracteres como mucho, 136
+     con `*CRC` y CRLF: cabe en `payload[155]` y en los 160 del puente). Solo el Maestro las tiene; el Esclavo
+     contesta `COMANDO_NO_SOPORTADO_EN_ESCLAVO` con PIN y `AUTH_FAILED`/`PIN_INVALIDO` sin el (SPEC 4 §3.2). La
+     mas larga mide 31 caracteres y cabe en `btBufIn[64]` detras de `CMD:PIN:1234:`.
+   - **(i) La app (`D-110`).** Zona de administrador (`admin-only`, PIN): distancia entre postes, `tr` propuesto y
+     editable solo hacia arriba, cuatro franjas con dias, horas y color, y lo guardado releido con `CONSULTA_NOCHE` al
+     conectar; cabecera `MODO:NOCHE` con texto y color propios (`MODOS` de `app.js`), `AMBAR_INT`/`ROJO_INT` en las
+     tablas de estado, y un aviso al entrar y al salir. Copias de `app.js` y `js/`: SPEC 4 §9.8 (8).
+   - **(j) Quien lo ejerce (simulador congelado, `CLAUDE.md` §4: se amplian los existentes), cada uno visto en rojo
+     antes del codigo (`CLAUDE.md` §9).** `Validacion_Automatico` (`arnes_automatico.cpp` compila el coordinador
+     real): entrada por flanco con `ACK_RED`, `tr` contado, salida por hora y por la app, un `$ERR` por motivo;
+     `costura_10`: `reloj_esHorarioNocturno()` deja de ser huerfana (sale de la lista o falla); `esp32_07`: cotas con
+     `NOCHE`/`AMBAR_INT`; `barrera_01`: los estados nuevos escriben pines solo por `escribirPines()`; `app_02`/`app_04`:
+     modos simetricos y valores de `$STATUS`; `tests/dom_*`: la pantalla y la cabecera.
+11. **EL SELLO DE FIRMWARE PERDIA EL CERO INICIAL DE UN HASH QUE ES SOLO CIFRAS (medido el 15/10; `D-113`,
+   construido en `N-179`: `strings` del `firmware.bin` del Maestro y del Esclavo da `FW:6115e59+SUCIO`).**
+   El paquete `0479942` contesto `FW:479942`: el hash viaja como token sin comillas (`version_fw.h`
+   explica por que no las lleva: el escape se rompe en silencio entre el shell y SCons) y platformio convierte a
+   entero todo valor de `-D` que sea solo cifras (`piobuild.py:209`, `int(value)`; con un punto, `float`). Ningun
+   instrumento lo veia: `version_01_sello_de_firmware` mide la linea del `.ini` y los literales, no un hash concreto.
+   - **Lo que hace:** el one-liner de los tres `platformio.ini` imprime el hash como siete tokens de UN caracter
+     separados por coma en una sola macro,
+     `-DFW_HASH=0,4,7,9,9,4,2` (un caracter solo no pierde nada al pasar por `int()`), y
+     `version_fw.h` los une al stringificar (`FW_UNIR(...)` llama a `FW_UNIR7(a,b,c,d,e,f,g) #a #b #c #d #e #f #g`: el
+     nivel intermedio de siempre). `FW_HASH.txt` del empaquetador sigue siendo `<7 hex>`; la trama `FW:<7 hex>`, app y
+     `FW_SUCIO` no cambian. La linea sigue IDENTICA en las tres puntas (A-3).
+   - **Quien lo ejerce:** `version_01` gana el caso A-9: ejecuta el one-liner real leido del `.ini` con un
+     `FW_HASH.txt` = `0479942` en un directorio temporal y sin `git` en el `PATH`, y exige que ningun valor de `-D`
+     tenga mas de un caracter entre comas y que la union de los siete sea `0479942`; y, con `g++` a mano, `-E` sobre
+     `version_fw.h` con esas macros da el literal `"0479942"`. Visto en rojo antes de tocar el `.ini`. La medida que
+     cierra es `strings` sobre el `.elf` de un commit cuyo hash empiece por `0`, en el acta.

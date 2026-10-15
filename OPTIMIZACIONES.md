@@ -78,29 +78,29 @@ que no la comprueba es **peor** que una fila vacía, porque la vacía al menos n
 | SFTY-2 | `Maestro/src/semaforo.cpp` · `Esclavo/src/semaforo.cpp` | ✅ `barrera_01_pines_de_luz` · `barrera_02_dos_puntas` · `esclavo_06_no_abre_paso` · `maestro_09_test_leds` |
 | SFTY-3 | `*/src/protocolo.cpp` · `Repetidor/src/main.cpp` | — |
 | SFTY-4 | `Maestro/src/coordinador.cpp` · `Maestro/src/modo_automatico.cpp` | — |
-| SFTY-5 | `Maestro/src/semaforo.cpp` · `Esclavo/src/semaforo.cpp` | ✅ `Validacion_Automatico/arnes_automatico.cpp` — **arnés C++, invisible para el censo de packs**, ver abajo |
+| SFTY-5 | `Maestro/src/semaforo.cpp` · `Esclavo/src/semaforo.cpp` · SPEC: `SPEC_1` §3.2-§3.3 (`D-45`, `D-53`); el texto de la regla (verde a rojo directo) esta superado | ✅ `Validacion_Automatico/arnes_automatico.cpp` — **arnés C++, invisible para el censo de packs**, ver abajo |
 | **SFTY-6** | `*/include/protocolo.h` *(el umbral)* · `Maestro/src/coordinador.cpp` · `Esclavo/src/main.cpp` | ✅ `costura_08_silencio` · `costura_09_presupuesto_radio` · `costura_13_ambar_ordenado` · `maestro_04_sync_horaria` |
 | SFTY-7 | `Maestro/include/coordinador.h` · `Maestro/src/coordinador.cpp` | — |
-| SFTY-8 | `*/src/protocolo.cpp` | — |
+| SFTY-8 | `*/src/protocolo.cpp` · sin SPEC: ninguna describe la espera del bit de STOP (hueco) | — |
 | SFTY-9 | `Maestro/src/coordinador.cpp` · `Maestro/src/main.cpp` | — |
-| SFTY-10 | `*/src/protocolo.cpp` | — |
-| SFTY-11 | `*/include/protocolo.h` · `*/src/protocolo.cpp` | — |
+| SFTY-10 | `*/src/protocolo.cpp` · sin SPEC: ninguna describe la ventana deslizante (hueco) | — |
+| SFTY-11 | `*/include/protocolo.h` · `*/src/protocolo.cpp` · SPEC: `SPEC_2` §1 y §3 | — |
 | SFTY-12 | `Maestro/src/coordinador.cpp` · `Maestro/src/modo_manual.cpp` | — |
 | SFTY-13 | `Maestro/src/coordinador.cpp` | — |
-| SFTY-14 | `Maestro/src/coordinador.cpp` | — |
+| SFTY-14 | `Maestro/src/coordinador.cpp` · SPEC: `SPEC_4` §5 (`RF`/`RTT` del `$STATUS`) y §9.11 | — |
 | SFTY-15 | `*/src/protocolo.cpp` (D-63: PRUEBA ALCANCE ya no los pone a cero) | — |
-| SFTY-16 | `Repetidor/src/main.cpp` | — |
+| SFTY-16 | `Repetidor/src/main.cpp` · SPEC: `SPEC_2` §1 (puente con validacion de CRC) | — |
 | SFTY-17 | `Esclavo/src/main.cpp` | — |
-| **SFTY-18** | `Maestro/src/reloj.cpp` · `Maestro/include/reloj.h` · `ESP32_Expansion` *(el reloj del puente)* | ✅ `esp32_04_osf` · ✅ `esp32_11_bien_formada_no_es_cierta` |
-| **SFTY-19** | **— solo diseño, ver abajo.** La única mención en el código es una advertencia en `reloj.h` aclarando que este modo **no** se apoya en el RTC | — |
+| **SFTY-18** | `Maestro/src/reloj.cpp` · `Maestro/include/reloj.h` · `ESP32_Expansion` *(el reloj del puente)* · SPEC: `SPEC_3` §1, §4 y §5 (la hora la siembra el ESP32, `D-20`) | ✅ `esp32_04_osf` · ✅ `esp32_11_bien_formada_no_es_cierta` |
+| **SFTY-19** | **— solo diseño, ver abajo.** La única mención en el código es una advertencia en `reloj.h` aclarando que este modo **no** se apoya en el RTC · SPEC: la sustituye `SFTY-21` (`SPEC_2` §7); la entrada automatica volvio en §7.ter (`A-15`) | — |
 | SFTY-20 | `Maestro/src/reloj.cpp` · `Maestro/include/reloj.h` (`reloj_esHorarioNocturno`, `reloj_ajustarFranjaNocturna`, `reloj_inicioNoche`, `reloj_finNoche`, sin llamador) · `ESP32_Expansion/include/reloj_ds3231.h` *(diseño, no implementado: el andamio; ~~`modo_hora.h`~~ borrado con `D-44`; se construye en `N-179`, `D-103`)* | — |
 | **SFTY-21** | `*/src/modo_degradado.cpp` · ~~`*/src/mando.cpp`~~ *(retirado el 14/09)* · `*/include/ciclo_degradado.h` | ✅ `esclavo_01_latch_ambar` · `esclavo_07_ambar_emergencia` · `esclavo_08_ambar_en_degradado` · `maestro_05_ciclo_sin_radio` · `costura_02_fase_ciclo` · `costura_06_reanudacion` · `costura_12_margen_deriva` · `costura_13_ambar_ordenado` · `costura_14_cancela_ambar` · `camara_02_j16` — *14/09: maestro_01_mando se borro con el mando y sale de esta fila; su unica propiedad viva se mudo a maestro_09_test_leds, que NO declara esta regla y por eso tampoco se cita (§13: una regla cubierta por una prueba que no la ejerce es peor que una fila vacia)* |
-| SFTY-22 | **la app, no una pantalla** (`D-91`): `Maestro/src/bluetooth.cpp` (` AMBAR:` del periodico `ENLACE_RF`, `D-92`) · `App_Semaforo/js/diagnostico_enlace.js` (`D-93`) | `tests/dom_cabecera_fase.js` (4) — rojo hasta construir |
+| SFTY-22 | **la app, no una pantalla** (`D-91`): `Maestro/src/bluetooth.cpp` (` AMBAR:` del periodico `ENLACE_RF`, `D-92`) · `App_Semaforo/js/diagnostico_enlace.js` (`D-93`) · SPEC: `SPEC_4` §9.11 | `tests/dom_cabecera_fase.js` (4) — rojo hasta construir |
 | **SFTY-23** | `Maestro/src/coordinador.cpp` · `Esclavo/src/config_ciclo.cpp` *(Fase 2)* · `*/src/reloj.cpp` | ✅ `esclavo_03_par_config` · `esclavo_04_desfase` · `esclavo_05_hora_atomica` · `maestro_04_sync_horaria` |
 | SFTY-24 | **— solo diseño.** Cero etiquetas en el firmware | — |
 | SFTY-25 | **— solo diseño.** Cero etiquetas en el firmware | — |
 | SFTY-26 | **— solo diseño.** Cero etiquetas en el firmware | — |
-| **SFTY-27** | 🔴 **DOS REGLAS CON EL MISMO NÚMERO — ver el aviso justo debajo.** Este documento lo define como *«matrícula de pareja»*, sin implementar; las **8 etiquetas del firmware** dicen otra cosa | — |
+| **SFTY-27** | 🔴 **DOS REGLAS CON EL MISMO NÚMERO — ver el aviso justo debajo.** Este documento lo define como *«matrícula de pareja»*, sin implementar; las **8 etiquetas del firmware** dicen otra cosa · SPEC: el sentido del firmware (el Esclavo pide, el Maestro decide), `SPEC_2` §1; la matricula, ninguna | — |
 | **SFTY-28** | `*/src/semaforo.cpp` *(dentro de `escribirPines()`)* · `*/include/pines.h` | ✅ `barrera_03_talanquera` · `maestro_09_test_leds` |
 | **SFTY-29** | **— solo diseño.** Presencia como veto del todo-rojo y sensor de pluma | — |
 

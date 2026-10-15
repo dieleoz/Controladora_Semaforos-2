@@ -401,4 +401,100 @@ module.exports = async function pruebaTextosSpec4(montarAppLimpia, assert) {
         `15: D-78 dialogo previo con guardado de otra SERIE (${otra}) y no con la misma y los mismos tiempos (${misma})`);
     }
   }
+
+  // 16. MODO NOCHE en la app (SPEC_0 §5.10 (d), (f), (h), (i); SPEC_4 §3.1; D-106, D-109, D-110, D-111).
+  const tick = () => new Promise(r => setTimeout(r, 5));
+  const $ = (a, id) => a.d.getElementById(id);
+  const tx = (a) => a.tramas.map(x => x.trim());
+  {
+    // (i) lo guardado se relee con CONSULTA_NOCHE (sin PIN) al conectar al POSTE 1, detras de la del automatico.
+    const a = montarAppLimpia(); a.w.clearTimeout(a.w.DegAuto._timerConsulta); a.tramas.length = 0;
+    a.entra = (c) => a.w._btSubscribeCb(`$${c}*${xor(c)}\n`);
+    a.entra('ACK,CMD:CONSULTA_DEG_AUTO,RESULT:ESTE_OFF_OTRO_OFF_APTO_NO');
+    assert(tx(a).includes('CMD:CONSULTA_NOCHE'), `16 (i): CONSULTA_NOCHE sin PIN: ${tx(a)}`);
+    a.entra('ACK,CMD:NOCHE,RESULT:OK,TR:240,F1:LMXJV---0000-0430-R,F2:--------0000-0000-OFF,' +
+            'F3:-----SD-2300-0500-A,F4:--------0000-0000-OFF');
+    await tick();
+    const dias = [0, 1, 2, 3, 4, 5, 6].map(i => $(a, `noche-f1-d${i}`).checked);
+    const v = (id) => $(a, id).value;
+    assert(String(dias) === 'true,true,true,true,true,false,false' && v('noche-f1-ini') === '00:00' &&
+           v('noche-f1-fin') === '04:30' && v('noche-f1-color') === 'R' && v('num-noche-tr') === '240',
+      `16 (i): la franja 1 y el todo-rojo guardados quedan en pantalla: ${dias} ${$(a, 'noche-f1-ini').value}-` +
+      `${$(a, 'noche-f1-fin').value} ${$(a, 'noche-f1-color').value} tr ${$(a, 'num-noche-tr').value}`);
+    assert(/240/.test($(a, 'noche-estado').textContent) && /apagada/i.test($(a, 'noche-f2-guardada').textContent) &&
+           /23:00/.test($(a, 'noche-f3-guardada').textContent), `16 (i): ${$(a, 'noche-estado').textContent}`);
+  }
+  {
+    // (d) D-116: max(180, distancia / 20 km/h arriba a 10 s); sobre 900 no recorta: no guarda y dice por que.
+    const N = montar(M, 'AUTO').w.Noche, c = montar(M, 'AUTO');
+    for (const [m, s] of [[1000, 180], [1100, 200], [30, 180], [500, 180], [5000, 900], [6000, 1080]]) {
+      assert(N.propuesta(m) === s, `16 (d): ${m} m -> ${s} s (dio ${N.propuesta(m)})`);
+    }
+    const dist = (x, m) => { $(x, 'num-noche-distancia').value = m; $(x, 'num-noche-distancia').dispatchEvent(
+      new x.w.Event('input')); };
+    c.admin(); c.tramas.length = 0; dist(c, '500'); $(c, 'num-noche-tr').value = '170'; c.pulsa('btn-noche-tr');
+    dist(c, '6000'); $(c, 'num-noche-tr').value = '900'; c.pulsa('btn-noche-tr');
+    const tc = $(c, 'noche-tr-propuesta').textContent;
+    assert(!tx(c).some(x => /SET_NOCHE_TR/.test(x)) && /1080/.test(tc) && /900/.test(tc) && !/propuesta: 900/i.test(tc),
+      `16 (d): ni 170 < 180 ni nada con 6000 m (1080 s > 900) sale, y lo dice: "${tc}" ${JSON.stringify(tx(c))}`);
+    // la app no deja bajar de la propuesta; a la propuesta o por encima sale SET_NOCHE_TR con PIN
+    const a = montar(M, 'AUTO'); a.admin(); a.tramas.length = 0; dist(a, '1100');
+    const pr = $(a, 'noche-tr-propuesta').textContent;
+    assert(/200/.test(pr), `16 (d): propone 200 s: "${pr}"`);
+    $(a, 'num-noche-tr').value = '190'; a.pulsa('btn-noche-tr');
+    assert(!tx(a).some(x => /SET_NOCHE_TR/.test(x)), `16 (d): 190 < 200 no sale: ${JSON.stringify(tx(a))}`);
+    $(a, 'num-noche-tr').value = '300'; a.pulsa('btn-noche-tr');
+    assert(tx(a).includes('CMD:PIN:1234:SET_NOCHE_TR:300'), `16 (d): 300 sale con PIN: ${JSON.stringify(tx(a))}`);
+    const ok = (a.entra('ACK,CMD:SET_NOCHE_TR,RESULT:OK'), a.ultimo());
+    assert(!GENERICO.test(ok) && /todo-rojo/i.test(ok) && tx(a).includes('CMD:CONSULTA_NOCHE'),
+      `16 (h): el OK se dice y se relee lo guardado: "${ok}"`);
+  }
+  {
+    // (h) SET_NOCHE:n,dias,HHMM,HHMM,A|R y SET_NOCHE:n,OFF, con PIN; inicio == fin no sale (seria «apagada»).
+    const a = montar(M, 'AUTO'); a.admin(); a.tramas.length = 0;
+    [0, 1, 2, 3, 4, 5, 6].forEach(i => { $(a, `noche-f2-d${i}`).checked = i !== 2; });
+    $(a, 'noche-f2-ini').value = '23:30'; $(a, 'noche-f2-fin').value = '05:00'; $(a, 'noche-f2-color').value = 'A';
+    a.pulsa('btn-noche-f2-guardar');
+    assert(tx(a).includes('CMD:PIN:1234:SET_NOCHE:2,LM-JVSD,2330,0500,A'), `16 (h): la franja 2 entera: ${tx(a)}`);
+    a.pulsa('btn-noche-f3-apagar');
+    assert(tx(a).includes('CMD:PIN:1234:SET_NOCHE:3,OFF'), `16 (h): apagar la franja 3: ${JSON.stringify(tx(a))}`);
+    a.tramas.length = 0; $(a, 'noche-f4-d0').checked = true;
+    $(a, 'noche-f4-ini').value = '01:00'; $(a, 'noche-f4-fin').value = '01:00';
+    a.pulsa('btn-noche-f4-guardar');
+    assert(!tx(a).some(x => /SET_NOCHE/.test(x)), `16 (h): inicio == fin no sale: ${JSON.stringify(tx(a))}`);
+    for (const d of ['FORMATO_INVALIDO', 'RANGO', 'EN_NOCHE_SALGA_PRIMERO', 'FLASH_NO_RELEE']) {
+      const r = dice(M, 'AUTO', `ERR,CMD:SET_NOCHE,DESC:${d}`).t;
+      assert(!GENERICO.test(r) && /no ha cambiado|no se guard/i.test(r), `16 (h): SET_NOCHE|${d}: ${r.slice(0, 120)}`);
+    }
+    const b = montar(E, 'SUBORDINADO'); b.admin(); b.tramas.length = 0; b.pulsa('btn-noche-f1-apagar');
+    assert(!tx(b).some(x => /SET_NOCHE/.test(x)) && /POSTE 1/.test($(b, 'noche-estado').textContent),
+      `16 (b): en el POSTE 2 no se programa: "${$(b, 'noche-estado').textContent}"`);
+  }
+  {
+    // (f) salida por la app a AUTO/INTELIGENTE/MANUAL con PIN, por el todo-rojo; segunda orden: SALIDA_EN_CURSO.
+    const a = montar(M, 'NOCHE'); a.admin(); await tick();
+    assert(!$(a, 'noche-salida').hidden, '16 (f): en MODO:NOCHE se ofrece la salida');
+    a.tramas.length = 0; $(a, 'btn-noche-salir-auto').click();
+    assert($(a, 'pin-modal').classList.contains('active'), '16 (f): la salida pide el PIN');
+    a.pin();
+    assert(tx(a).includes('CMD:PIN:1234:SET_MODO:AUTO'), `16 (f): SET_MODO:AUTO con PIN: ${tx(a)}`);
+    const s = dice(M, 'NOCHE', 'ACK,CMD:SET_MODO:AUTO,RESULT:SALIENDO_TODO_ROJO').t;
+    assert(!GENERICO.test(s) && /todo-rojo/i.test(s), `16 (f): SALIENDO_TODO_ROJO dicho: "${s.slice(0, 140)}"`);
+    const e = dice(M, 'NOCHE', 'ERR,CMD:SET_MODO:INTELIGENTE,DESC:SALIDA_EN_CURSO').t;
+    assert(!GENERICO.test(e) && /en curso|ya est/i.test(e), `16 (f): SALIDA_EN_CURSO dicho: "${e.slice(0, 140)}"`);
+    const g = dice(M, 'NOCHE', 'ERR,CMD:SET_MODO:DEG_T,DESC:EN_NOCHE_SALGA_PRIMERO').t;
+    assert(!GENERICO.test(g) && /noche/i.test(g) && /salga/i.test(g), `16 (f): DEG_T en noche: "${g.slice(0, 140)}"`);
+    const b = montar(M, 'AUTO'); await tick();
+    assert($(b, 'noche-salida').hidden, '16 (f) control: fuera de la noche no se ofrece la salida');
+  }
+  // (g) y (f): avisos al entrar, al salir, franja saltada y la alarma sin hora fiable, cada uno con texto propio.
+  for (const [tr, re] of [['EVENT,NODE:MAESTRO,ORIGEN:NOCHE,DETALLE:ENTRADA,HORA:00:00:00', /todo-rojo/i],
+    ['EVENT,NODE:MAESTRO,ORIGEN:NOCHE,DETALLE:SALIDA_HORA,HORA:04:30:00', /todo-rojo/i],
+    ['EVENT,NODE:MAESTRO,ORIGEN:NOCHE,DETALLE:SALIDA_APP,HORA:02:00:00', /todo-rojo|rojo/i],
+    ['EVENT,NODE:MAESTRO,ORIGEN:NOCHE,DETALLE:FRANJA_SALTADA,HORA:00:00:00', /AUTO|INTELIGENTE/],
+    ['ALARM,NODE:MAESTRO,EVENTO:NOCHE,CAUSA:HORA_NO_FIABLE,RF:97%,RTT:70ms,SINRESP:0,ACCION:SALGA_POR_APP,' +
+     'HORA:--:--:--', /app/i]]) {
+    const r = dice(M, 'NOCHE', tr).t;
+    assert(/noche/i.test(r) && re.test(r), `16 (g): ${tr.split(',').slice(2, 4)}: "${r.slice(0, 140)}"`);
+  }
 };

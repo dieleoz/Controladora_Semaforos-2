@@ -17,3 +17,10 @@ documentos_05_copias_coherentes.py - README/ESTADO/CERTIFICACION coherentes entr
 documentos_06_no_reabre_lo_cerrado.py - sujetos muertos que reaparecen en documentos vivos (CLAUDE.md 16.3). Sale: solo documento; CLAUDE.md 16.3 lo sigue nombrando.
 enlace_02_silencio_j17.py       - registro de silencio de J17. Sale: el propio pack dice que sus numeros no significan nada hasta decidir AB-1.
 maestro_05_ciclo_sin_radio.py   - barrido Python del ciclo del Maestro y desigualdad deriva/limite. Sale: su fase es una copia Python que no mira el C++; mutante "limite duro a 60 h" lo cazan costura_05 y compilar_degradado (D2).
+
+BORRADOS SIN PASAR POR ESTA CARPETA (anotado el 15/10/2026; sujeto retirado, no hay modelo que archivar):
+maestro_06_fuentes_pantalla.py - fuentes del LCD. Borrado en 17d3a1f (13/09), D-32 (1): el LCD sale del firmware.
+maestro_07_menu_opciones.py     - opciones del menu del LCD. Borrado en 17d3a1f (13/09), D-32 (1).
+esclavo_02_inhibicion_menu.py   - inhibicion del mando con el menu abierto. Borrado en 17d3a1f (13/09), D-32 (1).
+maestro_01_mando.py             - mando A/B/C/D. Borrado en f57a401 (14/09): el mando sale entero del firmware.
+Se recuperan con: git show <commit>^:01_Firmware/Simulaciones/banco/packs/<nombre>.py

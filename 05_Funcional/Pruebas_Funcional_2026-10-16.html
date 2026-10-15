@@ -1,0 +1,1556 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pruebas en banco 16/10</title>
+<style>
+:root{
+  --papel:#f6f5f2; --tarjeta:#ffffff; --tinta:#17191c; --tinta-2:#55555a;
+  --linea:#dedcd5; --acento:#c4520c; --ok:#1d7a48; --alto:#b52b26;
+  --info-bg:#e3ecf3; --campo:#fffdf8;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0; padding:12px 12px 40px; background:var(--papel); color:var(--tinta);
+  font-family:"Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+  font-size:17px; line-height:1.45;
+}
+h1{font-size:22px; margin:4px 0 12px;}
+h2{font-size:19px; margin:0 0 8px;}
+section.prueba{
+  background:var(--tarjeta); border:1px solid var(--linea); border-radius:10px;
+  padding:14px; margin-bottom:14px;
+}
+header.datos{
+  background:var(--tarjeta); border:1px solid var(--linea); border-radius:10px;
+  padding:14px; margin-bottom:16px;
+}
+label.campo{display:block; margin-bottom:10px; font-weight:600; font-size:15px;}
+input[type=text], input[type=date], textarea{
+  width:100%; font-size:16px; padding:8px; margin-top:4px;
+  border:1px solid var(--linea); border-radius:6px; background:var(--campo); color:var(--tinta);
+  font-family:inherit;
+}
+textarea{min-height:60px; resize:vertical;}
+ol{padding-left:22px; margin:8px 0;}
+li{margin-bottom:6px;}
+.espera{
+  background:var(--info-bg); border-left:4px solid var(--acento);
+  padding:8px 10px; margin:10px 0; border-radius:6px; font-size:16px;
+}
+.nota{
+  background:#fdf3e3; border-left:4px solid var(--acento);
+  padding:8px 10px; margin:10px 0; border-radius:6px; font-size:15px;
+}
+.resultado{margin:10px 0;}
+.resultado label{
+  display:block; padding:8px 6px; border:1px solid var(--linea); border-radius:6px;
+  margin-bottom:6px; font-size:16px;
+}
+.resultado input{margin-right:8px; transform:scale(1.3);}
+.porque,.debever{
+  border-left:4px solid var(--linea); background:#f1f0ec; padding:8px 10px; margin:10px 0;
+  border-radius:6px; font-size:15px;
+}
+.debever{border-left-color:var(--ok); background:#e8f3ec;}
+.porque b.t,.debever b.t{display:block; margin-bottom:4px;}
+.debever ul{margin:4px 0 0; padding-left:20px;}
+.print-only{display:none;}
+.recordatorio{
+  background:#fdf3e3; border:1px solid var(--acento); border-radius:10px;
+  padding:14px; margin-bottom:16px; font-size:16px;
+}
+.alto{
+  background:#fbe9e8; border:2px solid var(--alto); border-radius:10px;
+  padding:14px; margin-bottom:16px; font-size:16px;
+}
+.parte{
+  background:var(--info-bg); border:2px solid var(--acento); border-radius:10px;
+  padding:14px; margin:22px 0 16px; font-size:16px;
+}
+.parte h2{margin-bottom:6px;}
+.indice{font-size:15px;}
+.indice ol{margin:4px 0;}
+.horas label.campo{font-weight:400;}
+footer{position:sticky; bottom:0; background:var(--papel); padding-top:10px;}
+button#btnPdf{
+  width:100%; font-size:18px; padding:14px; border:none; border-radius:8px;
+  background:var(--acento); color:#fff; font-weight:600;
+}
+.nota-impresion{font-size:14px; color:var(--tinta-2); text-align:center; margin:8px 0;}
+#estado{font-size:13px; color:var(--tinta-2); text-align:center;}
+@media print{
+  button#btnPdf, .nota-impresion, #estado{display:none;}
+  .resultado, textarea, .horas{display:none;}
+  .print-only{display:block; border:1px solid var(--linea); border-radius:6px; padding:8px; margin-top:8px; font-size:15px; background:#fafafa;}
+  section.prueba{break-inside:avoid; page-break-inside:avoid; border:1px solid #999;}
+}
+</style>
+</head>
+<body>
+<div class="alto" id="sinbanco"><strong>SIN BANCO: no va a carretera hasta pasar banco.</strong> Esta versión solo se carga en los postes de banco.</div>
+
+<header class="datos">
+  <h1>Pruebas en banco 16/10</h1>
+  <label class="campo">Fecha
+    <input type="date" id="fecha">
+  </label>
+  <label class="campo">Nombre de quien prueba
+    <input type="text" id="nombre">
+  </label>
+  <label class="campo">Nombre del paquete (.zip)
+    <input type="text" id="paquete">
+  </label>
+  <label class="campo">Serie del Poste 1 (Maestro)
+    <input type="text" id="serieM">
+  </label>
+  <label class="campo">Serie del Poste 2 (Esclavo)
+    <input type="text" id="serieE">
+  </label>
+</header>
+
+<main>
+
+<div class="alto">
+  <strong>Si ve los dos postes en VERDE a la vez, avise de inmediato</strong> y anote la hora.
+</div>
+
+<div class="alto">
+  <strong>PRIMERO la APK nueva en TODOS los celulares, DESPUÉS el firmware en los DOS postes.</strong> La APK es la de este paquete (huella sha256 <strong>aa9dd44a912b4730933a032701c8cd61b7710a93b291e6616b44d80a22744b8a</strong>). La app nueva entiende el firmware viejo y el nuevo; la app vieja con el firmware nuevo <strong>deja de leer el diagnóstico de la radio</strong> y puede cambiar el verde con el Degradado en marcha <strong>sin el aviso de paletero</strong>. En ningún momento un celular con la app vieja frente a un poste con el firmware nuevo: en cualquier otro celular, <strong>desinstale la app vieja o no la use</strong> con estos postes.
+</div>
+
+<div class="recordatorio">
+  Esta es la <strong>única hoja</strong> (sustituye a la del 15/10: las pruebas 1 a 33 son las mismas, con el mismo número; si ya hizo alguna con aquella hoja, mande ese PDF y aquí ponga &laquo;hecha el 15/10&raquo;). Trae lo nuevo de esta versión (pruebas 1 a 14 y 34 a 41) y lo que pedían las hojas anteriores y <strong>todavía no ha llegado</strong> (pruebas 15 a 33). Lo que ya mandó no se repite. Haga primero la 1, después de la 34 a la 41 y después de la 2 a la 14. Las demás, en orden, en una o varias jornadas: la hoja guarda lo escrito en el celular. Anote la hora del celular de cada cosa que vea. Lea siempre el recuadro verde &laquo;Debe ver antes de empezar&raquo;; si lo que ve es otra cosa, <strong>no empiece</strong>: arréglelo o avise.
+</div>
+
+<div class="recordatorio indice">
+  <strong>Índice</strong>
+  <ol>
+    <li>Primero la APK, después el firmware</li>
+    <li>Degradado con testigo con verde de 4 min</li>
+    <li>Cambiar el verde a 6 min en marcha, con paletero</li>
+    <li>Corte de luz con testigo de 15 min</li>
+    <li>Exportar el registro</li>
+    <li>Reinicios: cuántos y por qué</li>
+    <li>Repetir una orden: &laquo;ya estaba&raquo;</li>
+    <li>Lo que pasó sin celular conectado</li>
+    <li>Bluetooth con la app en segundo plano</li>
+    <li>Verde fuera de rango y corte con verde de 3 min</li>
+    <li>De dónde viene el ámbar del Poste 1</li>
+    <li>Pantalla del operario: sin siglas y colores</li>
+    <li>Practicar sin poste</li>
+    <li>Opcional: alarma del límite del Degradado</li>
+    <li>Rojo y amarillo antes del verde, amarillo al cerrarlo</li>
+    <li>El verde dura lo configurado</li>
+    <li>La pluma sube con el verde</li>
+    <li>ROJO TOTAL durante el rojo y amarillo</li>
+    <li>La app muestra el rojo y amarillo</li>
+    <li>Corte de luz en Automático, solo el Poste 2</li>
+    <li>Sin radio, opción (a): ámbar y testigo</li>
+    <li>Dejar la opción (b) en los dos postes</li>
+    <li>Cortar la radio y esperar a que entren solos</li>
+    <li>Vuelve la radio: cartel fijo y volver a la (a)</li>
+    <li>ROJO TOTAL en Degradado con el Poste 1 en verde</li>
+    <li>Corte de luz de un solo poste en Degradado</li>
+    <li>ROJO TOTAL en la espera de la hora tras un corte</li>
+    <li>Salida programada: la misma hora en los dos postes</li>
+    <li>Salida programada con corte de luz</li>
+    <li>ROJO TOTAL con salida programada, consulta y corte</li>
+    <li>Salida vencida: qué texto ve</li>
+    <li>Rojo fijo cuando un poste pierde la hora</li>
+    <li>Opcional: radio cortada en un solo sentido</li>
+    <li>Modo noche: programar el todo-rojo y dos franjas</li>
+    <li>Entrar en la franja 1: todo-rojo y ámbar</li>
+    <li>Salir de la franja 1 por la hora</li>
+    <li>Franja 2: Poste 2 en rojo intermitente; salir por la app</li>
+    <li>Cortar la radio dentro de la noche</li>
+    <li>Corte de luz dentro de la noche</li>
+    <li>La cabecera del menú dice qué hacen las luces</li>
+    <li>La versión del firmware sale entera</li>
+  </ol>
+</div>
+
+<div class="nota">
+  <strong>La APK nueva trae además</strong> las preguntas en ventanas propias en español (ya no las del sistema), la clave de administración (abajo), el registro que no pierde la sesión (prueba 5), la causa de cada reinicio (prueba 6), lo que el equipo guardó sin celular (prueba 8), el origen del ámbar (prueba 11), textos sin siglas para el operario (prueba 12), la práctica sin poste (prueba 13), el <strong>modo noche</strong> (pruebas 34 a 39) y la cabecera del menú (prueba 40).
+</div>
+
+<div class="nota">
+  <strong>Cambio en la app: la clave de administración.</strong> El botón de arriba a la derecha (&laquo;Operario&raquo;) ya <strong>no pide el PIN del poste</strong>: pide la <strong>clave de administración</strong> de la app, que de fábrica es <strong>1234</strong>. Con ella aparecen las pestañas <strong>Tiempos, Técnico y Tramas</strong>. La clave solo enseña esas pestañas: <strong>cada orden sigue pidiendo el PIN del poste</strong>, aunque la clave esté puesta. La clave dura hasta cerrar la app (ya no se quita cuando caduca el PIN). ROJO TOTAL y ÁMBAR EMERGENCIA no piden ninguna. Si cambia la clave, anótela: si se olvida, solo se recupera con la clave de soporte, que tiene Diego.
+</div>
+
+<div class="parte">
+  <h2>Parte 1 (pruebas 1 a 5): carga y verde del Degradado con testigo</h2>
+  Haga primero la 1; después la Parte 6 (pruebas 34 a 41) y luego de la 2 a la 5.
+</div>
+
+<section class="prueba" id="p1">
+  <h2>1. Primero la APK en todos los celulares, después el firmware en los dos postes</h2>
+  <div class="porque"><b class="t">Por qué</b>Cambian el controlador <strong>y el puente</strong> de los <strong>dos</strong> postes, y la APK. El orden es obligatorio: la APK nueva entiende el firmware viejo y el nuevo, pero la APK vieja frente al firmware nuevo <strong>deja de leer el diagnóstico de la radio</strong> (siempre, no solo en ámbar). Por eso, primero la APK en todos los celulares y solo después el firmware. Un poste con el controlador anterior rechaza además un verde distinto de 3 min, y un puente anterior no guarda lo que pasa sin celular (prueba 8).</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Los dos postes y los dos puentes encendidos, y las dos antenas puestas.</li>
+    <li><strong>Todos</strong> los celulares que vayan a manejar el cruce a mano, y la APK de este paquete (huella sha256 <strong>aa9dd44a912b4730933a032701c8cd61b7710a93b291e6616b44d80a22744b8a</strong>).</li>
+    <li>El fuente de este paquete a mano: <strong>01_Firmware/Maestro</strong> para el controlador del Poste 1, <strong>01_Firmware/Esclavo</strong> para el del Poste 2 y <strong>01_Firmware/ESP32_Expansion</strong> para el puente de los dos.</li>
+  </ul></div>
+  <ol>
+    <li><strong>Primero:</strong> instale la APK de este paquete (huella sha256 <strong>aa9dd44a912b4730933a032701c8cd61b7710a93b291e6616b44d80a22744b8a</strong>) en <strong>todos</strong> los celulares que vayan a manejar el cruce. En los demás, desinstale la app vieja o no la use con estos postes.</li>
+    <li><strong>Después:</strong> cargue el controlador del <strong>Poste 1</strong> con <strong>01_Firmware/Maestro</strong> y el del <strong>Poste 2</strong> con <strong>01_Firmware/Esclavo</strong>, y el <strong>puente</strong> de los dos postes con <strong>01_Firmware/ESP32_Expansion</strong>, de <strong>Paquete_Semaforos_2026-10-16_XXXXXXX_SIN_BANCO.zip</strong>, como siempre. Si la carga falla, reintente.</li>
+    <li>Pulse &laquo;Operario&raquo; arriba a la derecha y ponga la clave de administración (1234).</li>
+    <li>En cada poste: pestaña Técnico &rarr; <strong>"Consultar version del firmware"</strong>.</li>
+    <li>Ponga la hora en cada poste desde la app (la ayuda de la pestaña Técnico se lo dice).</li>
+  </ol>
+  <div class="espera">Se espera: al pulsar &laquo;Operario&raquo; la app pide la <strong>clave de administración</strong>, no el PIN, y aparecen Tiempos, Técnico y Tramas. <strong>El mismo código XXXXXXX en los cuatro</strong>: controlador y puente de cada poste. Si alguno no dice XXXXXXX, no siga y avise.</div>
+  <div class="horas">
+    <label class="campo">Poste 1 - Controlador: código <input type="text" id="h1a" class="hora"></label>
+    <label class="campo">Poste 1 - Puente: código <input type="text" id="h1b" class="hora"></label>
+    <label class="campo">Poste 2 - Controlador: código <input type="text" id="h1c" class="hora"></label>
+    <label class="campo">Poste 2 - Puente: código <input type="text" id="h1d" class="hora"></label>
+    <label class="campo">¿La app pidió la clave de administración y no el PIN? (sí/no) <input type="text" id="h1e" class="hora"></label>
+    <label class="campo">Celulares con la APK nueva (cuántos) y si queda alguno con la vieja <input type="text" id="h1f" class="hora"></label>
+    <label class="campo">¿Instaló la APK en todos ANTES de cargar los postes? (sí/no) <input type="text" id="h1g" class="hora"></label>  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r1" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r1" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r1" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v1" placeholder="Lo que vio distinto"></textarea>
+  <div class="print-only" id="pr1"></div>
+</section>
+
+<section class="prueba" id="p2">
+  <h2>2. Degradado con testigo con verde de 4 min en los dos postes</h2>
+  <div class="porque"><b class="t">Por qué</b>Es el pedido del 13/10: elegir el verde del Degradado con testigo. Se elige en el Poste 1, en minutos enteros de 3 a 15, y el Poste 2 recibe el mismo con &laquo;Aplicar testigo guardado&raquo;. Se quiere ver que cada verde dura lo elegido y que nunca hay verde en los dos postes.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Prueba 1 en OK: los dos controladores con XXXXXXX y la clave de administración puesta.</li>
+    <li>Los dos postes con la opción de fábrica: la línea de la pantalla principal dice <strong>"Si se cae la radio: AMBAR, ir con testigo"</strong>.</li>
+    <li><strong>Poste 1</strong> en <strong>AUTOMÁTICO</strong>, dando ciclos con radio.</li>
+    <li>Cronómetro a mano y <strong>30 minutos</strong> libres.</li>
+  </ul></div>
+  <ol>
+    <li>Quite la antena de un poste. Espere a que los dos queden en <strong>ámbar intermitente</strong> (unos 30 s). Anote la hora.</li>
+    <li>Conectado al <strong>Poste 1</strong>: pestaña Técnico, tarjeta <strong>&laquo;Degradado con testigo&raquo;</strong>. Ponga Traslado <strong>5</strong> min, Despeje <strong>30</strong> s y Verde <strong>4</strong> min. Marque la casilla y pulse <strong>"Degradado con testigo · POSTE 1"</strong>. Ponga el PIN.</li>
+    <li>Anote la hora de inicio que dice la app. El Poste 1 queda en rojo fijo.</li>
+    <li>Antes de esa hora, conéctese al <strong>Poste 2</strong>: pestaña Técnico, <strong>"Aplicar testigo guardado"</strong>. Ponga el PIN.</li>
+    <li>A la hora de inicio empiezan a alternar. Cronometre un verde completo de cada poste (desde que enciende el verde hasta que apaga) y mire al menos un ciclo completo de los dos, mirando las luces, no la pantalla.</li>
+  </ol>
+  <div class="espera">Se espera: en la pestaña Eventos, <strong>"Testigo del POSTE 1 guardado en este telefono: inicio HH:MM:SS, verde 4 min, despeje 30 s"</strong>. Los dos en <strong>rojo fijo</strong> hasta la hora de inicio. Después, cada verde dura <strong>4 min (240 s)</strong> en los dos postes, con rojo y amarillo juntos 2 s antes de cada verde. <strong>Nunca verde en los dos a la vez.</strong></div>
+  <div class="horas">
+    <label class="campo">Hora en que quitó la antena <input type="text" id="h2a" class="hora"></label>
+    <label class="campo">Hora de inicio que dio la app <input type="text" id="h2b" class="hora"></label>
+    <label class="campo">¿Poste 2 aceptó el testigo? (sí/no, o el texto de la app) <input type="text" id="h2c" class="hora"></label>
+    <label class="campo">Hora del primer verde <input type="text" id="h2d" class="hora"></label>
+    <label class="campo">Verde medido Poste 1 (min:s) <input type="text" id="h2e" class="hora"></label>
+    <label class="campo">Verde medido Poste 2 (min:s) <input type="text" id="h2f" class="hora"></label>
+    <label class="campo">¿Algún verde contra verde? (sí/no) <input type="text" id="h2g" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r2" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r2" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r2" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v2" placeholder="Lo que vio distinto. Si un poste rechazó el testigo, copie el texto de la app"></textarea>
+  <div class="print-only" id="pr2"></div>
+</section>
+
+<section class="prueba" id="p3">
+  <h2>3. Cambiar el verde a 6 min con el Degradado en marcha, con paletero</h2>
+  <div class="porque"><b class="t">Por qué</b>Cambiar el verde con el Degradado en marcha está permitido, con un riesgo que Diego aceptó el 14/10: hasta que el Poste 2 recibe el testigo nuevo, los dos postes llevan ciclos distintos, y si el Poste 2 no lo recibe antes de la hora de inicio <strong>puede haber verde en los dos sentidos</strong>. El poste no lo impide: lo cubre el paletero, y la app lo avisa antes de enviar. Antes salían dos avisos seguidos; ahora sale <strong>uno solo</strong>, el de paleteros, con casilla. Se quiere ver ese aviso único y el aviso rojo que da la app cuando el Poste 1 acepta el cambio. En banco no hay tráfico: el paletero es usted, mirando los dos postes.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Prueba 2 hecha: los dos postes alternando con verde de 4 min, sin radio (antena todavía quitada).</li>
+    <li>Usted mirando los dos postes durante toda la prueba.</li>
+    <li>Cronómetro a mano y <strong>35 minutos</strong> libres.</li>
+  </ul></div>
+  <ol>
+    <li>Conectado al <strong>Poste 1</strong>: tarjeta &laquo;Degradado con testigo&raquo;. Deje Traslado 5 min y Despeje 30 s, y ponga Verde <strong>6</strong> min. Marque la casilla y pulse <strong>"Degradado con testigo · POSTE 1"</strong>.</li>
+    <li>Lea el aviso y anote su título. Marque <strong>"Hay paleteros en los dos extremos."</strong>, pulse <strong>"Cambiar este poste"</strong> y ponga el PIN. Si después del PIN sale otro aviso de paleteros, anótelo: no debería salir.</li>
+    <li>Anote la hora de inicio nueva y el aviso rojo que sale al aceptar. Mire qué hace el Poste 1.</li>
+    <li>Antes de esa hora, conéctese al <strong>Poste 2</strong> y pulse <strong>"Aplicar testigo guardado"</strong> (confirme el aviso de paleteros si sale) y ponga el PIN.</li>
+    <li>A la hora de inicio, cronometre un verde completo de cada poste y mire un ciclo completo de los dos.</li>
+  </ol>
+  <div class="espera">Se espera: antes del PIN, <strong>un solo aviso</strong>, <strong>"Cambio de tiempos con el Degradado en marcha"</strong>, que dice que puede haber verde en los dos sentidos y pide <strong>PALETEROS en los dos extremos</strong> antes de seguir; el botón <strong>"Cambiar este poste"</strong> no se activa sin marcar la casilla, y Cancelar no envía nada. Después del PIN, ningún aviso más. Cuando el Poste 1 acepta, la app dice en rojo <strong>"el POSTE 1 cambio de ciclo en marcha: el POSTE 2 sigue con el anterior hasta aceptar este testigo; mantenga el paletero en los dos extremos"</strong>. Al aceptar, el Poste 1 pasa a <strong>rojo fijo</strong> hasta la hora nueva de inicio; el Poste 2 sigue con su ciclo de 4 min hasta que recibe el testigo, y entonces también queda en rojo fijo. Después, cada verde dura <strong>6 min (360 s)</strong> en los dos. <strong>Nunca verde en los dos a la vez.</strong></div>
+  <div class="horas">
+    <label class="campo">Título del aviso que salió <input type="text" id="h3a" class="hora"></label>
+    <label class="campo">¿Salió un segundo aviso de paleteros? (sí/no) <input type="text" id="h3b" class="hora"></label>
+    <label class="campo">¿Salió el aviso rojo &laquo;el POSTE 1 cambio de ciclo en marcha...&raquo;? (sí/no) <input type="text" id="h3h" class="hora"></label>
+    <label class="campo">Hora de inicio nueva <input type="text" id="h3c" class="hora"></label>
+    <label class="campo">Luz del Poste 1 al enviar (verde/amarillo/rojo) y si pasó por amarillo <input type="text" id="h3d" class="hora"></label>
+    <label class="campo">Verde medido Poste 1 (min:s) <input type="text" id="h3e" class="hora"></label>
+    <label class="campo">Verde medido Poste 2 (min:s) <input type="text" id="h3f" class="hora"></label>
+    <label class="campo">¿Algún verde contra verde? (sí/no) <input type="text" id="h3g" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r3" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r3" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r3" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v3" placeholder="Lo que vio distinto (o una captura del aviso)"></textarea>
+  <div class="print-only" id="pr3"></div>
+</section>
+
+<section class="prueba" id="p4">
+  <h2>4. Corte de luz con testigo de 15 min</h2>
+  <div class="porque"><b class="t">Por qué</b>El verde nuevo del Degradado con testigo se guarda en la memoria del poste de una forma nueva, para que no se pierda si se va la luz. Eso solo se puede comprobar en la placa: hay que cortar la luz y ver que los dos postes vuelven con el verde elegido y no con el de fábrica (3 min).</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Prueba 3 hecha: los dos postes alternando con verde de 6 min, sin radio (antena todavía quitada).</li>
+    <li>Usted mirando los dos postes durante toda la prueba.</li>
+    <li>A mano cómo cortar la alimentación de los <strong>dos</strong> postes a la vez.</li>
+    <li>Cronómetro a mano y <strong>60 minutos</strong> libres.</li>
+  </ul></div>
+  <ol>
+    <li>Conectado al <strong>Poste 1</strong>: tarjeta &laquo;Degradado con testigo&raquo;. Deje Traslado 5 min y Despeje 30 s, y ponga Verde <strong>15</strong> min. Marque la casilla, pulse <strong>"Degradado con testigo · POSTE 1"</strong>, acepte el aviso de paletero y ponga el PIN. Anote la hora de inicio.</li>
+    <li>Antes de esa hora, conéctese al <strong>Poste 2</strong>, pulse <strong>"Aplicar testigo guardado"</strong> (confirme el aviso de paleteros si sale) y ponga el PIN.</li>
+    <li>Espere a que los dos estén <strong>alternando</strong> (ya pasó la hora de inicio y ha visto encender el primer verde).</li>
+    <li>Corte la alimentación de los <strong>dos postes</strong>. Anote la hora. Espere <strong>1 minuto</strong> y vuelva a dar luz a los dos. Anote la hora.</li>
+    <li>Sin tocar la app, mire qué hacen los dos postes. Cronometre un verde completo de <strong>cada</strong> poste (desde que enciende hasta que apaga), mirando las luces, no la pantalla.</li>
+  </ol>
+  <div class="espera">Se espera: al volver la luz, los dos postes <strong>siguen en el Degradado</strong> por sí solos, sin que nadie haga nada. Cada verde dura <strong>15 min (900 s)</strong> en los dos postes. <strong>Nunca verde en los dos a la vez.</strong> Si algún poste vuelve con verde de 3 min, o no vuelve al Degradado: <strong>pare la prueba</strong>, anote la hora y lo que hace cada poste, y exporte el registro de los <strong>dos</strong> postes (pestaña Tramas &rarr; "Diario de órdenes" &rarr; "Exportar todo como archivo") y envíelos con este PDF.</div>
+  <div class="horas">
+    <label class="campo">Hora de inicio que dio la app <input type="text" id="h4a" class="hora"></label>
+    <label class="campo">¿Poste 2 aceptó el testigo? (sí/no, o el texto de la app) <input type="text" id="h4b" class="hora"></label>
+    <label class="campo">Hora en que cortó la luz <input type="text" id="h4c" class="hora"></label>
+    <label class="campo">Hora en que volvió a dar luz <input type="text" id="h4d" class="hora"></label>
+    <label class="campo">¿Los dos volvieron al Degradado solos? (sí/no; si no, qué hace cada uno) <input type="text" id="h4e" class="hora"></label>
+    <label class="campo">Verde medido Poste 1 tras el corte (min:s) <input type="text" id="h4f" class="hora"></label>
+    <label class="campo">Verde medido Poste 2 tras el corte (min:s) <input type="text" id="h4g" class="hora"></label>
+    <label class="campo">¿Algún verde contra verde? (sí/no) <input type="text" id="h4h" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r4" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r4" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r4" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v4" placeholder="Lo que vio distinto. Si un poste volvió con 3 min o no reanudó, qué hacía cada uno"></textarea>
+  <div class="print-only" id="pr4"></div>
+</section>
+
+<div class="recordatorio">
+  <strong>Antes de la prueba 5, deje los postes como estaban:</strong> ponga la antena, espere a que la app diga que la radio volvió, pulse <strong>VOLVER AL MENÚ</strong> en el Poste 1 y después <strong>AUTOMÁTICO</strong>, y espere a que los dos den ciclos con radio. Si el Poste 2 sigue en Degradado, avise y anote la hora.
+</div>
+
+<section class="prueba" id="p5">
+  <h2>5. Exportar el registro: un solo archivo y una copia en el celular</h2>
+  <div class="porque"><b class="t">Por qué</b>El registro del 06/10 perdió casi una hora de la sesión: la cinta se cortaba a 300 tramas y el registro del enlace salía en un archivo aparte que en la APK no se guardaba. Ahora sale <strong>un solo archivo .txt</strong> por poste, con dos apartados nuevos, y la app guarda una copia en el celular <strong>aunque se cancele el envío</strong>.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Pruebas 1 a 4 hechas y los postes de vuelta en AUTOMÁTICO con radio.</li>
+    <li>La clave de administración puesta (pestaña Tramas a la vista).</li>
+  </ul></div>
+  <ol>
+    <li>Conectado al <strong>Poste 1</strong>: pestaña <strong>Tramas</strong> &rarr; <strong>"Diario de órdenes"</strong> &rarr; <strong>"Exportar todo como archivo"</strong>. En la hoja de compartir, pulse <strong>atrás</strong> (cancelar).</li>
+    <li>Mire la pestaña Eventos.</li>
+    <li>Exporte otra vez y ahora sí envíelo (por WhatsApp, junto con este PDF).</li>
+    <li>Haga lo mismo conectado al <strong>Poste 2</strong>.</li>
+    <li>Abra uno de los archivos y busque los apartados <strong>IOT-VIAL - CAMBIOS DE ESTADO</strong> e <strong>IOT-VIAL - REGISTRO DEL ENLACE</strong>.</li>
+    <li>Con el administrador de archivos del celular, entre en <strong>Android/data/com.iotvial.semaforos/files/</strong>. Si el celular no le deja entrar, anote &laquo;no deja entrar&raquo;: no es un fallo.</li>
+  </ol>
+  <div class="espera">Se espera: al cancelar, el aviso <strong>"Envio cancelado: IOTVIAL_... no salio"</strong> y en Eventos <strong>"Copia guardada en el telefono: ..."</strong>. Un solo archivo por poste, que empieza por IOTVIAL_ y termina en .txt; <strong>ningún archivo Enlace_ aparte</strong>. Dentro, los dos apartados de arriba. En la carpeta, los archivos IOTVIAL_ exportados (también el de la vez que canceló) y uno o más SESION_. Si en Eventos sale en rojo <strong>"COPIA en el telefono no se guardo"</strong>, copie el motivo.</div>
+  <div class="horas">
+    <label class="campo">Texto de Eventos tras cancelar <input type="text" id="h5a" class="hora"></label>
+    <label class="campo">Nombre del archivo del Poste 1 <input type="text" id="h5b" class="hora"></label>
+    <label class="campo">Nombre del archivo del Poste 2 <input type="text" id="h5c" class="hora"></label>
+    <label class="campo">¿Tiene los dos apartados? (sí/no) <input type="text" id="h5d" class="hora"></label>
+    <label class="campo">¿Qué hay en Android/data/com.iotvial.semaforos/files/? <input type="text" id="h5e" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r5" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r5" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r5" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v5" placeholder="Lo que vio distinto"></textarea>
+  <div class="print-only" id="pr5"></div>
+</section>
+
+<div class="parte">
+  <h2>Parte 2 (pruebas 6 a 14): lo nuevo de la versión del 15/10</h2>
+  Hágala después de la Parte 1. Empieza con los postes como los dejó la prueba 5: <strong>AUTOMÁTICO con radio</strong>, las dos antenas puestas. Lo que la app escribe en la pestaña <strong>Eventos</strong> se copia <strong>tal cual</strong>: es lo que sirve para el reporte.
+</div>
+
+<section class="prueba" id="p6">
+  <h2>6. Reinicios: cuántos y por qué</h2>
+  <div class="porque"><b class="t">Por qué</b>El 06/10 la app escribió &laquo;SE HA REINICIADO&raquo; sin que el poste se hubiera reiniciado. Ahora cada poste cuenta sus arranques y guarda la causa del último, y la app los pide sola al conectarse. Solo dice &laquo;SE HA REINICIADO&raquo; cuando la cuenta cambia. Se quiere ver que la cuenta sube con cada corte y que la causa es la verdadera.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Prueba 1 en OK y los postes en <strong>AUTOMÁTICO con radio</strong>.</li>
+    <li>A mano cómo cortar la luz de un poste solo, y <strong>20 minutos</strong> libres.</li>
+  </ul></div>
+  <ol>
+    <li>Conéctese al <strong>Poste 1</strong> y espere <strong>1 minuto</strong>. Mire la pestaña Eventos y copie la línea que empieza por <strong>"Reinicios del MAESTRO"</strong>.</li>
+    <li>Desconecte la app. Corte la luz del <strong>Poste 1</strong> 30 s y devuélvala. Anote la hora en que volvió la luz. Vuelva a conectarse, espere 1 minuto y copie otra vez la línea &laquo;Reinicios del MAESTRO&raquo;.</li>
+    <li>Si el controlador del Poste 1 tiene <strong>pulsador de reset</strong>: con la app <strong>conectada</strong> al Poste 1, púlselo una vez. Anote la hora. Espere 1 minuto mirando Eventos. Si no tiene pulsador, anote &laquo;sin pulsador&raquo;.</li>
+    <li>Repita los pasos 1 y 2 con el <strong>Poste 2</strong> (la línea empieza por &laquo;Reinicios del ESCLAVO&raquo;).</li>
+    <li>Para dejarlo como estaba: <strong>VOLVER AL MENÚ</strong> y <strong>AUTOMÁTICO</strong> en el Poste 1, y espere a que los dos den ciclos con radio.</li>
+  </ol>
+  <div class="espera">Se espera: una línea como <strong>"Reinicios del MAESTRO: último arranque el DD/MM a las HH:MM (hace X h Y min); causa ..., ...; la vida anterior duró ...; arranques contados: N (da la vuelta en 255)."</strong> Tras el corte, el número de <strong>arranques contados sube en 1</strong>, el último arranque es la hora en que volvió la luz y la causa es <strong>CORTE, "se fue la luz o se puso la pila"</strong>. Tras el reset a mano, en Eventos sale en rojo <strong>"ATENCIÓN: este poste SE HA REINICIADO (REIN a→b) desde la muestra anterior; se pide la causa al equipo (REINICIOS)..."</strong> y después la línea de reinicios con la causa <strong>PIN, "pata NRST: carga del firmware por SWD o reset a mano"</strong>. Al volver la luz el Poste 1 queda en ámbar intermitente: es normal (se sale con VOLVER AL MENÚ y AUTOMÁTICO). Si tras el corte la causa dice PIN u OTRA, o si sale <strong>"BAJARON SIN REINICIO"</strong>, anótelo: es justo lo que se busca.</div>
+  <div class="horas">
+    <label class="campo">Poste 1 antes del corte: arranques contados y causa <input type="text" id="h6a" class="hora"></label>
+    <label class="campo">Poste 1: hora en que volvió la luz <input type="text" id="h6b" class="hora"></label>
+    <label class="campo">Poste 1 tras el corte: arranques contados y causa <input type="text" id="h6c" class="hora"></label>
+    <label class="campo">Reset a mano: hora, ¿salió &laquo;SE HA REINICIADO&raquo;? y causa (o &laquo;sin pulsador&raquo;) <input type="text" id="h6d" class="hora"></label>
+    <label class="campo">Poste 2 antes del corte: arranques contados y causa <input type="text" id="h6e" class="hora"></label>
+    <label class="campo">Poste 2 tras el corte: arranques contados y causa <input type="text" id="h6f" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r6" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r6" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r6" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v6" placeholder="Copie aquí las líneas &laquo;Reinicios del ...&raquo; tal cual"></textarea>
+  <div class="print-only" id="pr6"></div>
+</section>
+
+<section class="prueba" id="p7">
+  <h2>7. Repetir una orden: &laquo;ya estaba&raquo;</h2>
+  <div class="porque"><b class="t">Por qué</b>Antes, pedir Modo Inteligente o Prueba de Alcance con el poste ya en ese modo contestaba &laquo;aceptado&raquo; sin hacer nada, y el operario lo repetía creyendo que no le hacían caso. Ahora dice que ya estaba y no mueve nada. Además, entrar en Prueba de Alcance ya no pone a cero los contadores de la radio: era lo que hacía salir el falso &laquo;SE HA REINICIADO&raquo; del 06/10.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Poste 1 en <strong>AUTOMÁTICO</strong> con radio, dando ciclos, y la app conectada al <strong>Poste 1</strong>.</li>
+    <li>La clave de administración puesta (pestaña Técnico a la vista) y <strong>10 minutos</strong> libres.</li>
+  </ul></div>
+  <ol>
+    <li>Pestaña Técnico: pulse <strong>"Modo Inteligente"</strong> (ponga el PIN si lo pide). Espere a ver un ciclo.</li>
+    <li>Pulse <strong>"Modo Inteligente"</strong> otra vez. Mire las luces y lea el aviso.</li>
+    <li>Pulse <strong>VOLVER AL MENÚ</strong>, y después <strong>"Prueba de Alcance"</strong>. Espere <strong>1 minuto</strong> mirando Eventos.</li>
+    <li>Pulse <strong>"Prueba de Alcance"</strong> otra vez y lea el aviso.</li>
+    <li>Para dejarlo como estaba: <strong>VOLVER AL MENÚ</strong> y <strong>AUTOMÁTICO</strong>.</li>
+  </ol>
+  <div class="espera">Se espera: la segunda vez, el aviso <strong>"Ya estaba en INTELIGENTE: nada que hacer"</strong> y en Eventos <strong>"Equipo: ya estaba en INTELIGENTE: no se movio nada. Para reiniciar el ciclo pase a MENU y vuelva a pedir INTELIGENTE."</strong>; las luces <strong>siguen su ciclo</strong>, sin pasar a todo-rojo. Con Prueba de Alcance, el poste queda en rojo fijo; en el minuto de espera, en Eventos <strong>no</strong> sale &laquo;BAJARON&raquo; ni &laquo;SE HA REINICIADO&raquo;. La segunda vez, <strong>"Ya estaba en PRUEBA DE ALCANCE: nada que hacer"</strong>.</div>
+  <div class="horas">
+    <label class="campo">Inteligente 2.ª vez: texto del aviso <input type="text" id="h7a" class="hora"></label>
+    <label class="campo">¿Las luces pasaron a todo-rojo la 2.ª vez? (sí/no) <input type="text" id="h7b" class="hora"></label>
+    <label class="campo">Alcance: ¿salió &laquo;BAJARON&raquo; o &laquo;SE HA REINICIADO&raquo;? (sí/no) <input type="text" id="h7c" class="hora"></label>
+    <label class="campo">Alcance 2.ª vez: texto del aviso <input type="text" id="h7d" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r7" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r7" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r7" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v7" placeholder="Lo que vio distinto"></textarea>
+  <div class="print-only" id="pr7"></div>
+</section>
+
+<section class="prueba" id="p8">
+  <h2>8. Lo que pasó sin celular conectado</h2>
+  <div class="porque"><b class="t">Por qué</b>Hasta ahora, lo que pasaba en un poste sin nadie conectado no lo guardaba nadie. El puente nuevo guarda en su memoria los avisos, los cambios de modo y de luz y sus arranques, con la hora, y la app los baja al conectarse. Se quiere ver que lo ocurrido sin celular aparece al volver, con su hora, sin repetirse y sin saltos.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Prueba 1 en OK: <strong>los dos puentes</strong> con el código de este paquete, y la hora puesta en los dos postes.</li>
+    <li>Poste 1 en <strong>AUTOMÁTICO</strong> con radio, dando ciclos, y <strong>15 minutos</strong> libres.</li>
+  </ul></div>
+  <ol>
+    <li>Conéctese al <strong>Poste 1</strong> y espere 1 minuto. En Eventos salen líneas grises que empiezan por <strong>"Equipo [LOG] N:"</strong>. Anote el número N de la <strong>última</strong>.</li>
+    <li><strong>Desconecte la app</strong> y anote la hora. Sin celular conectado: quite la antena de un poste, espere a que los dos queden en ámbar intermitente (unos 30 s), espere 1 minuto más y ponga la antena. Espere a que vuelvan a dar ciclos. Anote las horas.</li>
+    <li>Vuelva a conectarse al <strong>Poste 1</strong> y espere 1 minuto. Mire las líneas &laquo;Equipo [LOG]&raquo; nuevas.</li>
+    <li>Desconecte y vuelva a conectarse enseguida. Espere 1 minuto.</li>
+    <li>Exporte el registro (pestaña Tramas &rarr; "Diario de órdenes" &rarr; "Exportar todo como archivo") y envíelo. Abra el archivo y busque el apartado <strong>IOT-VIAL - REGISTRO DEL EQUIPO</strong>.</li>
+  </ol>
+  <div class="espera">Se espera: al volver a conectarse, líneas <strong>"Equipo [LOG] N:&lt;n&gt; &lt;fecha hora&gt; &lt;letra&gt;: ..."</strong> con números <strong>seguidos</strong> desde el anotado y con la <strong>hora del rato sin celular</strong>: el paso a ámbar (FALLO COM) y la vuelta. En la reconexión siguiente <strong>no se repiten</strong> los mismos números. En el archivo, el apartado REGISTRO DEL EQUIPO con esas líneas y una cabecera <strong>"Ultimo $ACK: DESDE:... CONG:... CRC:... FLASH:... MALOS:..."</strong>: copie esa línea. Si sale <strong>"el puente no encuentra su particion de registro: reportelo."</strong>, <strong>"defecto de la app"</strong> o <strong>"hueco en el registro del equipo"</strong>, cópielo. Si dice <strong>"quedan ... entradas en el equipo: reconecte"</strong>, reconecte: no es un fallo.</div>
+  <div class="horas">
+    <label class="campo">Último N antes de desconectar <input type="text" id="h8a" class="hora"></label>
+    <label class="campo">Hora en que desconectó y hora en que quitó la antena <input type="text" id="h8b" class="hora"></label>
+    <label class="campo">Hora en que puso la antena <input type="text" id="h8c" class="hora"></label>
+    <label class="campo">Primer y último N que bajaron al volver; ¿traen la hora del rato sin celular? <input type="text" id="h8d" class="hora"></label>
+    <label class="campo">¿Se repitieron números en la reconexión siguiente? (sí/no) <input type="text" id="h8e" class="hora"></label>
+    <label class="campo">Línea &laquo;Ultimo $ACK: ...&raquo; del archivo <input type="text" id="h8f" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r8" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r8" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r8" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v8" placeholder="Lo que vio distinto. Copie un par de líneas &laquo;Equipo [LOG]&raquo; del rato sin celular"></textarea>
+  <div class="print-only" id="pr8"></div>
+</section>
+
+<section class="prueba" id="p9">
+  <h2>9. Bluetooth con la app en segundo plano</h2>
+  <div class="porque"><b class="t">Por qué</b>En las cintas del 01/10 y del 05/10 el puente se reinició 28 veces por su perro guardián. Una causa posible es que el celular deje de leer y el puente se quede esperando. El puente nuevo ya no espera: lo que el celular no lee lo tira y lo cuenta. Se quiere ver que, con la app en segundo plano, el puente no se reinicia, y leer cuánto tiró.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Prueba 8 hecha (el puente guarda sus arranques). Poste 1 en <strong>AUTOMÁTICO</strong> con radio.</li>
+    <li>La app conectada al <strong>Poste 1</strong> y <strong>10 minutos</strong> libres.</li>
+  </ul></div>
+  <ol>
+    <li>En Eventos, anote el número N de la última línea &laquo;Equipo [LOG] N:&raquo;. Anote la hora. Pulse el botón de inicio del celular (la app queda en segundo plano) y apague la pantalla. <strong>No toque el celular en 5 minutos.</strong></li>
+    <li>Vuelva a la app. Anote si sigue conectada al Poste 1. Si se desconectó, vuelva a conectarse.</li>
+    <li>Desconecte y vuelva a conectarse para que baje lo último. Espere 1 minuto y mire Eventos. Exporte el registro y busque en el apartado REGISTRO DEL EQUIPO la línea <strong>"Ultimo $ACK: ..."</strong> y si, después del número anotado, hay alguna línea con la letra <strong>P</strong> antes de los dos puntos (P = arranque del puente).</li>
+  </ol>
+  <div class="espera">Se espera: el puente <strong>no se reinicia</strong> en esos 5 minutos: después del número anotado, ninguna línea P, y al reconectar <strong>no</strong> sale "El modulo ESP32 de este poste arranco: el perro guardian del ESP32 lo reinicio (se habia colgado)". El número de <strong>CONG</strong> de la línea &laquo;Ultimo $ACK&raquo; es lo que el puente tiró porque el celular no leía: cópielo, sea cero o no.</div>
+  <div class="horas">
+    <label class="campo">Hora en que dejó la app en segundo plano <input type="text" id="h9a" class="hora"></label>
+    <label class="campo">¿Seguía conectada al volver? (sí/no) <input type="text" id="h9b" class="hora"></label>
+    <label class="campo">¿Salió que el puente arrancó, o hay una línea P en esos 5 min? (sí/no, y el texto) <input type="text" id="h9c" class="hora"></label>
+    <label class="campo">Número de CONG <input type="text" id="h9d" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r9" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r9" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r9" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v9" placeholder="Lo que vio distinto, y el modelo del celular"></textarea>
+  <div class="print-only" id="pr9"></div>
+</section>
+
+<section class="prueba" id="p10">
+  <h2>10. Verde fuera de rango, y corte de luz con verde de 3 min</h2>
+  <div class="porque"><b class="t">Por qué</b>El verde del Degradado con testigo va de 3 a 15 min. La app no deja enviar otro, y el poste, al volver de un corte, solo retoma un testigo guardado con un verde dentro de ese rango. La prueba 4 hizo el corte con 15 min (el máximo); esta lo hace con <strong>3 min</strong> (el mínimo).</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Poste 1 en <strong>AUTOMÁTICO</strong> con radio y la clave de administración puesta.</li>
+    <li>A mano cómo cortar la luz de los <strong>dos</strong> postes a la vez, cronómetro y <strong>30 minutos</strong> libres.</li>
+  </ul></div>
+  <ol>
+    <li>Quite la antena de un poste y espere a que los dos queden en <strong>ámbar intermitente</strong>.</li>
+    <li>Conectado al <strong>Poste 1</strong>, tarjeta &laquo;Degradado con testigo&raquo;: Traslado 5 min, Despeje 30 s y Verde <strong>2</strong> min. Marque la casilla y pulse <strong>"Degradado con testigo · POSTE 1"</strong>. Lea el aviso. Repita con Verde <strong>16</strong> min.</li>
+    <li>Ponga Verde <strong>3</strong> min y envíelo (PIN). Antes de la hora de inicio, en el <strong>Poste 2</strong>, <strong>"Aplicar testigo guardado"</strong>.</li>
+    <li>Cuando estén alternando, corte la luz de los <strong>dos</strong> postes 1 minuto y devuélvala. Anote las horas.</li>
+    <li>Sin tocar la app, cronometre un verde completo de <strong>cada</strong> poste.</li>
+    <li>Para dejarlo como estaba: ponga la antena, <strong>VOLVER AL MENÚ</strong> en el Poste 1 y <strong>AUTOMÁTICO</strong>; espere a que los dos den ciclos con radio.</li>
+  </ol>
+  <div class="espera">Se espera: con 2 y con 16 min, el aviso <strong>"Verde invalido: minutos enteros de 3 a 15."</strong> y <strong>no se pide el PIN ni se envía nada</strong>. Con 3 min, el testigo se acepta. Tras el corte, los dos <strong>siguen en el Degradado</strong> solos y cada verde dura <strong>3 min (180 s)</strong>. <strong>Nunca verde en los dos a la vez.</strong> Si algún poste no vuelve al Degradado, pare, anote qué hace cada uno y exporte el registro de los dos.</div>
+  <div class="horas">
+    <label class="campo">Texto con Verde 2 <input type="text" id="h10a" class="hora"></label>
+    <label class="campo">Texto con Verde 16 <input type="text" id="h10b" class="hora"></label>
+    <label class="campo">¿Pidió PIN o envió algo con 2 o 16? (sí/no) <input type="text" id="h10c" class="hora"></label>
+    <label class="campo">Hora del corte y de la vuelta <input type="text" id="h10d" class="hora"></label>
+    <label class="campo">¿Los dos volvieron al Degradado solos? (sí/no) <input type="text" id="h10e" class="hora"></label>
+    <label class="campo">Verde medido Poste 1 / Poste 2 tras el corte (min:s) <input type="text" id="h10f" class="hora"></label>
+    <label class="campo">¿Algún verde contra verde? (sí/no) <input type="text" id="h10g" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r10" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r10" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r10" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v10" placeholder="Lo que vio distinto"></textarea>
+  <div class="print-only" id="pr10"></div>
+</section>
+
+<section class="prueba" id="p11">
+  <h2>11. De dónde viene el ámbar del Poste 1</h2>
+  <div class="porque"><b class="t">Por qué</b>El Poste 1 pasa a ámbar por tres caminos: lo pide el operario desde la app, lo pide el Poste 2, o arranca así tras un corte de luz. Antes la app decía siempre &laquo;ámbar pedido por el operario&raquo;, también tras un corte, y el operario leía que alguien lo había pedido. Ahora dice el origen, y si todavía no lo sabe, lo dice.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Poste 1 en <strong>AUTOMÁTICO</strong> con radio, dando ciclos.</li>
+    <li>La app en la pantalla principal (Tráfico) y <strong>15 minutos</strong> libres.</li>
+  </ul></div>
+  <ol>
+    <li>Conectado al <strong>Poste 1</strong>, pulse <strong>ÁMBAR</strong> (acepte el aviso y ponga el PIN si lo pide). Lea la línea de la pantalla principal que empieza por el nombre del poste, enseguida y otra vez al cabo de 1 minuto. Salga con <strong>VOLVER AL MENÚ</strong> y <strong>AUTOMÁTICO</strong>.</li>
+    <li>Conéctese al <strong>Poste 2</strong> y pulse <strong>ÁMBAR EMERGENCIA</strong>. Conéctese al <strong>Poste 1</strong> y lea la misma línea al cabo de 1 minuto. Salga con <strong>RETIRAR ÁMBAR</strong> en el Poste 2 y, si el Poste 1 sigue en ámbar, VOLVER AL MENÚ y AUTOMÁTICO en el Poste 1.</li>
+    <li>Corte la luz del <strong>Poste 1</strong> 30 s y devuélvala. Conéctese al Poste 1 y lea la línea al cabo de 1 minuto. Salga con VOLVER AL MENÚ y AUTOMÁTICO.</li>
+  </ol>
+  <div class="espera">Se espera, al cabo de 1 minuto: con ÁMBAR, <strong>"ámbar pedido por el operario: pasar con precaución"</strong>; con ÁMBAR EMERGENCIA del Poste 2, <strong>"ámbar pedido desde el POSTE 2: pasar con precaución"</strong>; tras el corte, <strong>"ámbar de arranque (poste reiniciado): pasar con precaución"</strong>. En los primeros segundos puede decir <strong>"ámbar en este poste (origen sin dato): pasar con precaución"</strong>: es normal, el origen llega en menos de 1 minuto. En Eventos, <strong>una sola</strong> línea &laquo;ámbar de este poste: ...&raquo; por cada caso, no una cada 30 s.</div>
+  <div class="horas">
+    <label class="campo">Con ÁMBAR: texto de la línea al cabo de 1 min <input type="text" id="h11a" class="hora"></label>
+    <label class="campo">Con ÁMBAR EMERGENCIA del Poste 2: texto <input type="text" id="h11b" class="hora"></label>
+    <label class="campo">Tras el corte: texto <input type="text" id="h11c" class="hora"></label>
+    <label class="campo">¿Se repetía en Eventos la línea &laquo;ámbar de este poste&raquo;? (sí/no) <input type="text" id="h11d" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r11" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r11" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r11" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v11" placeholder="Lo que vio distinto (o una captura de la pantalla principal)"></textarea>
+  <div class="print-only" id="pr11"></div>
+</section>
+
+<section class="prueba" id="p12">
+  <h2>12. Pantalla del operario: sin siglas, un color por estado y cabecera entera</h2>
+  <div class="porque"><b class="t">Por qué</b>La pantalla que ve el operario (Tráfico, la cabecera, los avisos cortos y las ventanas) ya no debe llevar siglas técnicas; esas quedan en Eventos y en las pestañas con clave. Cada color dice una cosa: <strong>rojo</strong> hay que actuar, <strong>ámbar</strong> mirar, <strong>verde</strong> en orden y <strong>gris</strong> sin dato. Y la cabecera debe caber en un celular estrecho: &laquo;(sin radio entre postes)&raquo; pasa a <strong>&laquo;(sin radio)&raquo;</strong>.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Poste 1 en <strong>AUTOMÁTICO</strong> con radio.</li>
+    <li>La app <strong>sin</strong> la clave de administración: ciérrela del todo y vuelva a abrirla.</li>
+  </ul></div>
+  <ol>
+    <li>Antes de conectar, mire Tráfico: los valores que dicen <strong>--</strong> o <strong>SIN DATOS</strong> y el anillo de la cuenta.</li>
+    <li>Conéctese al <strong>Poste 1</strong>. Lea la línea que empieza por el nombre del poste justo al conectar y durante un ciclo (rojo, rojo y amarillo, verde, amarillo).</li>
+    <li>Recorra Tráfico entera y la cabecera. Busque estas palabras: <strong>RSSI, RTT, MAC, NODE, $STATUS, CMD:, ESP32, STM32, J14, J15, J16, J17, OTRO_PERRO, SET_MODO</strong>. Anote cualquiera que vea y dónde.</li>
+    <li>Quite la antena de un poste. Mire el texto junto a <strong>MAESTRO (POSTE 1)</strong> en la cabecera. Ponga la antena.</li>
+    <li>Conéctese al <strong>Poste 2</strong> y mire los datos que solo tiene el Poste 1. Busque el recuadro <strong>&laquo;Últimos movimientos de este enlace&raquo;</strong>. Ponga la clave de administración y vuelva a buscarlo.</li>
+  </ol>
+  <div class="espera">Se espera: sin datos, los <strong>--</strong> y SIN DATOS en <strong>gris</strong>, ninguno en rojo, verde, ámbar ni celeste, y el anillo en gris. Al conectar, <strong>"EQUIPO SIN IDENTIFICAR - esperando su primer dato"</strong>; después <strong>"ROJO, este poste no da paso"</strong>, <strong>"Rojo y amarillo: va a abrir el verde"</strong>, <strong>"VERDE, este poste da paso"</strong> y <strong>"AMARILLO, este poste está cerrando su paso"</strong>. Ninguna de las palabras de la lista en Tráfico, la cabecera ni los avisos cortos. Sin radio, la cabecera dice <strong>"(sin radio)"</strong> y se lee entera, sin cortarse. En el Poste 2, lo que mide el Poste 1 dice <strong>"SIN DATOS · se ve desde el POSTE 1"</strong>; el recuadro &laquo;Últimos movimientos de este enlace&raquo; <strong>no aparece sin la clave</strong> y sí con ella.</div>
+  <div class="horas">
+    <label class="campo">Modelo del celular <input type="text" id="h12a" class="hora"></label>
+    <label class="campo">Sin datos: ¿algún -- o SIN DATOS en color? (sí/no; cuál) <input type="text" id="h12b" class="hora"></label>
+    <label class="campo">¿Las cinco frases de la línea del poste como arriba? (sí/no; cuál no) <input type="text" id="h12c" class="hora"></label>
+    <label class="campo">Palabras de la lista que vio, y dónde <input type="text" id="h12d" class="hora"></label>
+    <label class="campo">Sin radio: texto de la cabecera, ¿se lee entero? <input type="text" id="h12e" class="hora"></label>
+    <label class="campo">&laquo;Últimos movimientos&raquo;: ¿sale sin clave? ¿y con clave? <input type="text" id="h12f" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r12" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r12" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r12" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v12" placeholder="Lo que vio distinto (mejor con capturas de pantalla)"></textarea>
+  <div class="print-only" id="pr12"></div>
+</section>
+
+<section class="prueba" id="p13">
+  <h2>13. Practicar sin poste</h2>
+  <div class="porque"><b class="t">Por qué</b>Para enseñar la app sin un poste delante, la app repite tramas grabadas en campo como si fueran cuatro equipos. Se quiere ver que no se confunde con un poste real: franja SIMULADO siempre visible, no entra si hay un poste conectado, el archivo exportado sale marcado como simulado y al salir la app vuelve a la radio de verdad.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>La clave de administración puesta (pestaña Técnico a la vista) y la app conectada a un poste.</li>
+    <li><strong>10 minutos</strong> libres.</li>
+  </ul></div>
+  <ol>
+    <li>Conectado al poste, pestaña Técnico: pulse <strong>"Practicar sin poste"</strong> y lea el aviso.</li>
+    <li>Desconecte la app del poste. Pulse otra vez <strong>"Practicar sin poste"</strong>. Elija el primer equipo de la lista y mire la pantalla 1 minuto.</li>
+    <li>Exporte el registro (pestaña Tramas &rarr; "Diario de órdenes" &rarr; "Exportar todo como archivo"). Anote el nombre del archivo y su primera línea. <strong>No lo mande como registro de prueba.</strong></li>
+    <li>Pulse <strong>Salir</strong> en la franja. Conéctese a un poste real y compruebe que la app lo muestra normal.</li>
+  </ol>
+  <div class="espera">Se espera: conectado, <strong>"Practica sin poste NO iniciada: hay un enlace abierto con un equipo. Desconecte primero; la practica no suelta a nadie por su cuenta."</strong> Desconectado: arriba, encima de todo, una franja magenta <strong>"SIMULADO - practica sin poste: ningun equipo real"</strong> con el botón <strong>Salir</strong>; se abre la lista con <strong>4 equipos</strong>; en Eventos, <strong>"PRACTICA SIN POSTE: 4 equipos que repiten tramas de campo..."</strong>. El archivo se llama <strong>IOTVIAL_SIMULADO_...</strong> y empieza por <strong>"Simulado: SI - practica sin poste, no vale como evidencia"</strong>. Al salir, la franja desaparece y en Eventos sale <strong>"Practica sin poste terminada: la app vuelve a la radio de verdad."</strong> Los postes reales no cambian en ningún momento.</div>
+  <div class="horas">
+    <label class="campo">Texto al pulsar con un poste conectado <input type="text" id="h13a" class="hora"></label>
+    <label class="campo">¿Franja SIMULADO visible todo el rato, también sobre las ventanas? (sí/no) <input type="text" id="h13b" class="hora"></label>
+    <label class="campo">Cuántos equipos en la lista <input type="text" id="h13c" class="hora"></label>
+    <label class="campo">Nombre del archivo y primera línea <input type="text" id="h13d" class="hora"></label>
+    <label class="campo">¿Tras Salir, el poste real se ve normal? (sí/no) <input type="text" id="h13e" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r13" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r13" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r13" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v13" placeholder="Lo que vio distinto"></textarea>
+  <div class="print-only" id="pr13"></div>
+</section>
+
+<section class="prueba" id="p14">
+  <h2>14. Opcional: la alarma del límite del Degradado se repite</h2>
+  <div class="porque"><b class="t">Por qué</b>Si los postes pasan unas 48 horas en Degradado sin radio, se rinden y quedan en ámbar intermitente. Antes el aviso salía <strong>una sola vez</strong>: quien se conectaba después no lo veía. Ahora cada poste lo repite cada minuto mientras siga así, también el Poste 2. <strong>Solo si el banco puede dejar los postes 48 horas</strong> (por ejemplo, un fin de semana); si no, ponga "No se pudo probar".</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Los dos en Degradado con testigo, alternando, <strong>sin radio</strong> (antena quitada), y la pila CR2032 puesta.</li>
+    <li>Nadie toca los postes ni la antena durante unas <strong>48 horas</strong>.</li>
+  </ul></div>
+  <ol>
+    <li>Anote la hora en que deja los postes. Pasadas las 48 horas, mire las luces de los dos postes.</li>
+    <li>Conéctese al <strong>Poste 1</strong> y espere 2 minutos mirando Eventos. Haga lo mismo con el <strong>Poste 2</strong>.</li>
+    <li>Exporte el registro de los dos postes. Para dejarlo como estaba: ponga la antena, VOLVER AL MENÚ en cada poste y AUTOMÁTICO en el Poste 1.</li>
+  </ol>
+  <div class="espera">Se espera: los dos en <strong>ámbar intermitente</strong>. En cada poste, <strong>antes de 1 minuto</strong> desde que se conecta, el aviso <strong>"ESTE POSTE ... PASO A AMBAR INTERMITENTE: vencio el limite del Degradado sin sincronizar con el otro poste..."</strong>, y se repite cada minuto. En el registro del equipo (prueba 8), la primera vez que salió, con su hora.</div>
+  <div class="horas">
+    <label class="campo">Hora en que dejó los postes <input type="text" id="h14a" class="hora"></label>
+    <label class="campo">Luz de cada poste al volver <input type="text" id="h14b" class="hora"></label>
+    <label class="campo">Poste 1: hora de conexión y hora del aviso <input type="text" id="h14c" class="hora"></label>
+    <label class="campo">Poste 2: hora de conexión y hora del aviso <input type="text" id="h14d" class="hora"></label>
+    <label class="campo">Hora de la primera vez, según el registro del equipo <input type="text" id="h14e" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r14" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r14" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r14" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v14" placeholder="Copie el aviso tal cual"></textarea>
+  <div class="print-only" id="pr14"></div>
+</section>
+
+<div class="parte">
+  <h2>Parte 3 (pruebas 15 a 20): con radio, Poste 1 en AUTOMÁTICO</h2>
+  Estas venían en las hojas del 04/10, 05/10 y 09/10 y <strong>no han llegado</strong>. Empiezan con los postes como los dejó la prueba 13: <strong>AUTOMÁTICO con radio</strong>, las dos antenas puestas.
+</div>
+
+<section class="prueba" id="p15">
+  <h2>15. Rojo y amarillo 2 s antes de cada verde, y amarillo 3 s al cerrarlo</h2>
+  <div class="porque"><b class="t">Por qué</b>Antes de cada verde el semáforo pone rojo y amarillo juntos 2 segundos, para avisar al que espera. Y cada verde se cierra con amarillo 3 s antes del rojo, también al pulsar VOLVER AL MENÚ o ROJO TOTAL con un poste en verde. Si pasa de rojo a verde directo, si pone solo amarillo antes del verde, o si un verde pasa a rojo sin amarillo, el conductor no sabe qué va a pasar.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Poste 1 en <strong>AUTOMÁTICO</strong> con radio, dando ciclos. Los dos postes alternan.</li>
+    <li>Para el modo Inteligente y DAR PASO, el Poste 1 se cambia a ese modo antes de mirar (DAR PASO es el botón del modo Manual).</li>
+    <li>Cronómetro o reloj a mano y <strong>20 minutos</strong> libres.</li>
+  </ul></div>
+  <ol>
+    <li>Mire abrir y cerrar el verde en <strong>Automático</strong>, en <strong>Inteligente</strong> y con <strong>DAR PASO</strong> (Manual), en los dos postes.</li>
+    <li>Con un poste en verde, pulse <strong>VOLVER AL MENÚ</strong> en el Poste 1. Vuelva a AUTOMÁTICO.</li>
+    <li>Con un poste en verde, pulse <strong>ROJO TOTAL</strong>. Para volver: VOLVER AL MENÚ y AUTOMÁTICO.</li>
+  </ol>
+  <div class="espera">Se espera: antes de cada verde, <strong>rojo y amarillo juntos 2 s</strong>; nunca amarillo solo antes del verde. Cada verde termina en <strong>amarillo de 3 s</strong> y después rojo, también con VOLVER AL MENÚ y con ROJO TOTAL (la app dice "ROJO TOTAL aceptado. Las dos vias pasan por 3 s de amarillo y quedan en ROJO FIJO").</div>
+  <div class="horas">
+    <label class="campo">Rojo y amarillo medido (s) <input type="text" id="h15a" class="hora"></label>
+    <label class="campo">Amarillo al cerrar medido (s) <input type="text" id="h15b" class="hora"></label>
+    <label class="campo">Poste 1: rojo y amarillo en Auto / Inteligente / DAR PASO (sí/no cada uno) <input type="text" id="h15c" class="hora"></label>
+    <label class="campo">Poste 2: rojo y amarillo en Auto / Inteligente / DAR PASO (sí/no cada uno) <input type="text" id="h15d" class="hora"></label>
+    <label class="campo">Amarillo al cerrar en Auto / Manual / Inteligente / Menú / Rojo total (sí/no cada uno) <input type="text" id="h15e" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r15" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r15" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r15" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v15" placeholder="Verde sin rojo y amarillo antes, o sin amarillo al cerrar: poste, modo y hora"></textarea>
+  <div class="print-only" id="pr15"></div>
+</section>
+
+<section class="prueba" id="p16">
+  <h2>16. El verde dura lo configurado</h2>
+  <div class="porque"><b class="t">Por qué</b>Los 2 s de rojo y amarillo se agregaron al ciclo. Se quiere comprobar que no le quitaron tiempo al verde: el ciclo total crece, el verde queda igual a lo que está en Tiempos.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Poste 1 en <strong>AUTOMÁTICO</strong> con radio, dando ciclos.</li>
+    <li>Pestaña Tiempos visible (con la clave de administración). Anote el verde que dice <strong>antes</strong> de cronometrar y no lo cambie.</li>
+  </ul></div>
+  <ol>
+    <li>Anote el verde de la pestaña Tiempos.</li>
+    <li>Cronometre un verde completo de cada poste (desde que enciende el verde hasta que apaga).</li>
+  </ol>
+  <div class="espera">Se espera: el verde dura <strong>lo configurado</strong>, sin los 2 s del rojo y amarillo.</div>
+  <div class="horas">
+    <label class="campo">Verde configurado (s) <input type="text" id="h16a" class="hora"></label>
+    <label class="campo">Verde medido Poste 1 (s) <input type="text" id="h16b" class="hora"></label>
+    <label class="campo">Verde medido Poste 2 (s) <input type="text" id="h16c" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r16" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r16" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r16" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v16" placeholder="Lo que vio distinto"></textarea>
+  <div class="print-only" id="pr16"></div>
+</section>
+
+<section class="prueba" id="p17">
+  <h2>17. La pluma sube con el verde</h2>
+  <div class="porque"><b class="t">Por qué</b>La pluma no debe subir mientras hay rojo y amarillo: la subida se pediría con el otro sentido todavía despejando. La pluma de El Sisga es lenta (cerca de un minuto en subir): es normal y no es lo que se prueba.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Poste con talanquera conectada y pluma abajo.</li>
+    <li>Poste 1 en <strong>AUTOMÁTICO</strong> con radio, dando ciclos.</li>
+  </ul></div>
+  <ol>
+    <li>Mire cuándo empieza a subir la pluma de cada poste con talanquera, respecto a las luces.</li>
+  </ol>
+  <div class="espera">Se espera: en rojo y amarillo la pluma <strong>sigue abajo</strong>; empieza a subir con el <strong>verde</strong>.</div>
+  <div class="horas">
+    <label class="campo">Poste 1: ¿subió en rojo y amarillo? (sí/no) <input type="text" id="h17a" class="hora"></label>
+    <label class="campo">Poste 2: ¿subió en rojo y amarillo? (sí/no) <input type="text" id="h17b" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r17" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r17" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r17" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v17" placeholder="Lo que vio distinto"></textarea>
+  <div class="print-only" id="pr17"></div>
+</section>
+
+<section class="prueba" id="p18">
+  <h2>18. ROJO TOTAL durante el rojo y amarillo</h2>
+  <div class="porque"><b class="t">Por qué</b>Si alguien pulsa ROJO TOTAL justo cuando se está avisando que abre el verde, el semáforo debe quedarse en rojo sin dar amarillo ni verde: nunca se abrió el paso, así que no hay nada que cerrar con amarillo.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Poste 1 en <strong>AUTOMÁTICO</strong> con radio, dando ciclos (no en Degradado).</li>
+    <li>Celular conectado al Poste 1, con el botón ROJO TOTAL a la vista, y un compañero que avise cuando empiece el rojo y amarillo (dura solo 2 s).</li>
+  </ul></div>
+  <ol>
+    <li>Pulse <strong>ROJO TOTAL</strong> en el Poste 1 mientras está en rojo y amarillo. Repita hasta pillarlo.</li>
+    <li>Para volver, <strong>VOLVER AL MENÚ</strong> y luego AUTOMÁTICO.</li>
+  </ol>
+  <div class="espera">Se espera: pasa a <strong>rojo fijo</strong>, sin amarillo ni verde. El otro poste, en rojo.</div>
+  <div class="horas">
+    <label class="campo">Hora de la pulsación <input type="text" id="h18a" class="hora"></label>
+    <label class="campo">¿Pilló el rojo y amarillo? (sí/no) <input type="text" id="h18b" class="hora"></label>
+    <label class="campo">¿Hubo verde o amarillo después? (sí/no) <input type="text" id="h18c" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r18" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r18" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r18" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v18" placeholder="Lo que vio distinto"></textarea>
+  <div class="print-only" id="pr18"></div>
+</section>
+
+<section class="prueba" id="p19">
+  <h2>19. La app muestra el rojo y amarillo</h2>
+  <div class="porque"><b class="t">Por qué</b>Antes la app no conocía este estado y escribía "ESTADO NO RECONOCIDO", que el técnico leía como avería.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Poste 1 en <strong>AUTOMÁTICO</strong> con radio, dando ciclos.</li>
+    <li>Pantalla principal abierta, conectado a un poste.</li>
+  </ul></div>
+  <ol>
+    <li>Mire la pantalla principal durante el rojo y amarillo, en cada poste (conéctese a uno y luego al otro).</li>
+  </ol>
+  <div class="espera">Se espera: el texto <strong>"ROJO Y AMARILLO"</strong> y <strong>"Rojo y amarillo: va a abrir el verde"</strong>. Nunca "ESTADO NO RECONOCIDO".</div>
+  <div class="horas">
+    <label class="campo">Poste 1: ¿lo vio así? (sí/no) <input type="text" id="h19a" class="hora"></label>
+    <label class="campo">Poste 2: ¿lo vio así? (sí/no) <input type="text" id="h19b" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r19" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r19" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r19" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v19" placeholder="Lo que vio distinto (o una captura)"></textarea>
+  <div class="print-only" id="pr19"></div>
+</section>
+
+<section class="prueba" id="p20">
+  <h2>20. Corte de luz en Automático, solo el Poste 2</h2>
+  <div class="porque"><b class="t">Por qué</b>Si se va la luz de un solo poste con el cruce en Automático, al volver tiene que reengancharse con el otro sin que nadie toque nada, y sin dar verde mientras el otro está en verde.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Poste 1 en <strong>AUTOMÁTICO</strong> con radio, dando ciclos. Las dos antenas puestas.</li>
+    <li>A mano cómo cortar la alimentación del <strong>Poste 2</strong> solo.</li>
+  </ul></div>
+  <ol>
+    <li>Corte la luz solo del <strong>Poste 2</strong>. Anote la hora. Espere <strong>1 minuto</strong> y devuélvala. Anote la hora.</li>
+    <li>Sin tocar la app, mire los dos postes durante 3 minutos.</li>
+  </ol>
+  <div class="espera">Se espera: el Poste 2 arranca en rojo y el Poste 1 lo recupera solo: los dos vuelven a alternar. <strong>Nunca verde en los dos a la vez.</strong></div>
+  <div class="horas">
+    <label class="campo">Hora del corte <input type="text" id="h20a" class="hora"></label>
+    <label class="campo">Hora de la vuelta <input type="text" id="h20b" class="hora"></label>
+    <label class="campo">Luz con la que arranca el Poste 2 <input type="text" id="h20c" class="hora"></label>
+    <label class="campo">Hora en que vuelven a alternar <input type="text" id="h20d" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r20" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r20" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r20" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v20" placeholder="Color de cada poste al volver"></textarea>
+  <div class="print-only" id="pr20"></div>
+</section>
+
+<div class="parte">
+  <h2>Parte 4 (pruebas 21 a 24): si se cae la radio, opciones (a) y (b)</h2>
+  Venían en las hojas del 05/10 y 09/10. El 06/10 la (b) se activó con el Poste 1 en el menú, sin dar ciclos, y no sirvió: por eso se repite. Empiezan en <strong>AUTOMÁTICO con radio</strong> y con la opción de fábrica (a) en los dos postes.
+</div>
+
+<section class="prueba" id="p21">
+  <h2>21. Sin radio, opción (a): ámbar y testigo</h2>
+  <div class="porque"><b class="t">Por qué</b>La (a) es la de fábrica y la de carretera: si se cae la radio, los postes quedan en ámbar intermitente y <strong>no arrancan solos</strong>; alguien tiene que ir con el testigo. Se quiere ver que no arrancan solos y que la app lo dice, y que sin radio no deja cambiar la opción.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Los dos postes dando ciclos con radio, Poste 1 en AUTOMÁTICO.</li>
+    <li>La línea principal dice <strong>"Si se cae la radio: AMBAR, ir con testigo"</strong> en los dos.</li>
+    <li>Las dos antenas puestas y <strong>10 minutos</strong> libres.</li>
+  </ul></div>
+  <ol>
+    <li>Quite la antena de un poste. Anote la hora. Intente cambiar la opción en la tarjeta &laquo;Si se cae la radio entre los postes&raquo; (pestaña Técnico).</li>
+    <li>Espere <strong>6 minutos</strong> mirando los postes. Ponga la antena.</li>
+  </ol>
+  <div class="espera">Se espera: ámbar intermitente en los dos, aviso <strong>"Sin radio. Los postes quedan en AMBAR intermitente y NO arrancan solos"</strong> y <strong>"Sin radio no se puede cambiar"</strong>. A los 6 min siguen en ámbar. Al volver la radio retoman el ciclo.</div>
+  <div class="horas">
+    <label class="campo">Línea de la pantalla principal <input type="text" id="h21a" class="hora"></label>
+    <label class="campo">Hora en que quitó la antena <input type="text" id="h21b" class="hora"></label>
+    <label class="campo">Aviso de la app <input type="text" id="h21c" class="hora"></label>
+    <label class="campo">¿Arrancaron solos? (sí/no) <input type="text" id="h21d" class="hora"></label>
+    <label class="campo">¿Retomaron el ciclo al poner la antena? (sí/no) <input type="text" id="h21e" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r21" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r21" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r21" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v21" placeholder="Lo que vio distinto"></textarea>
+  <div class="print-only" id="pr21"></div>
+</section>
+
+<section class="prueba" id="p22">
+  <h2>22. Dejar activada la opción (b) en los dos postes</h2>
+  <div class="porque"><b class="t">Por qué</b>La opción (b) hace que, si se cae la radio, los dos postes se pongan solos en Degradado (rojo y luego a alternar por reloj). Solo funciona si <strong>el Poste 1 está dando ciclos con radio</strong> y si la opción está puesta en <strong>los dos</strong> postes. El 06/10 se activó con el Poste 1 en el menú, sin dar ciclos: la tarjeta decía NO, no entraron solos y la prueba no sirvió. Esta prueba comprueba que la tarjeta diga SÍ en los dos antes de cortar nada.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li><strong>Poste 1</strong> en <strong>AUTOMÁTICO</strong> (o Modo Inteligente), dando ciclos: las luces alternan entre los dos postes. No en el menú, no en Manual, no en Ámbar.</li>
+    <li><strong>Poste 2</strong> siguiendo al Poste 1 (alterna con él).</li>
+    <li>Radio buena: la pantalla no dice &laquo;Sin radio&raquo; y no hay &laquo;FALLO COM&raquo;.</li>
+    <li>Ambos postes con la opción de fábrica: la línea de la pantalla principal dice <strong>"Si se cae la radio: AMBAR, ir con testigo"</strong> y la tarjeta &laquo;Este poste&raquo; dice OFF.</li>
+  </ul></div>
+  <ol>
+    <li>Pestaña Técnico, tarjeta &laquo;Si se cae la radio entre los postes&raquo;. Conectado al <strong>Poste 1</strong>: pulse <strong>"(b) Entran solos en Degradado a los 5 min sin radio"</strong> y ponga el PIN. Espere 10 s.</li>
+    <li>Conéctese al <strong>Poste 2</strong>, pulse el mismo (b) y espere 10 s.</li>
+    <li>En cada poste, consulte la tarjeta. Lea el renglón &laquo;Que falta&raquo;. Si dice algo distinto de &laquo;nada&raquo;, haga lo que dice, consulte otra vez y anote qué dijo.</li>
+  </ol>
+  <div class="espera">Se espera, en <strong>los dos</strong> postes: Este poste <strong>ON</strong>, Otro poste <strong>ON</strong>, Listo para entrar solo <strong>SI</strong>, y &laquo;Que falta: nada: si la radio cae 5 min, entran solos&raquo;. La línea principal dice <strong>"Si se cae la radio: DEGRADADO SOLO a los 5 min"</strong>. Si algún poste dice NO, <strong>no siga a la prueba 23</strong>: anote lo que dice y avise.</div>
+  <div class="horas">
+    <label class="campo">Hora de la consulta <input type="text" id="h22a" class="hora"></label>
+    <label class="campo">Poste 1: Este / Otro / Listo <input type="text" id="h22b" class="hora"></label>
+    <label class="campo">Poste 1: texto de &laquo;Que falta&raquo; <input type="text" id="h22c" class="hora"></label>
+    <label class="campo">Poste 2: Este / Otro / Listo <input type="text" id="h22d" class="hora"></label>
+    <label class="campo">Poste 2: texto de &laquo;Que falta&raquo; <input type="text" id="h22e" class="hora"></label>
+    <label class="campo">Poste 1: ¿cicla con radio? (sí/no) <input type="text" id="h22f" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r22" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r22" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r22" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v22" placeholder="Lo que vio distinto (si algún poste dijo NO, copie el texto)"></textarea>
+  <div class="print-only" id="pr22"></div>
+</section>
+
+<section class="prueba" id="p23">
+  <h2>23. Cortar la radio y esperar a que entren solos</h2>
+  <div class="porque"><b class="t">Por qué</b>Es la prueba que no se pudo terminar el 06/10. Se quiere ver que, sin radio y sin nadie tocando, los dos postes quedan primero en ámbar, a los 5 minutos pasan a rojo fijo, esperan en rojo y después arrancan a alternar por reloj sin dar verde en los dos a la vez. <strong>Es normal que queden en rojo mucho rato</strong> (entre 7 y 12 minutos después de entrar): el rojo es la espera hasta la hora fija de arranque. No es una avería salvo que pase de 20 minutos desde que quitó la antena.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Prueba 22 en OK: los dos postes con <strong>SI</strong>.</li>
+    <li><strong>Poste 1</strong> sigue en <strong>AUTOMÁTICO</strong> (o Inteligente) dando ciclos con radio. <strong>No toque ningún modo</strong> hasta terminar: con el Poste 1 en el menú, en Manual o en Ámbar no entran solos.</li>
+    <li>El celular conectado al Poste 1 y con la pantalla principal abierta (ahí sale la cuenta).</li>
+    <li>Tiempo libre de <strong>20 minutos</strong> como mínimo y las dos antenas a mano.</li>
+  </ul></div>
+  <ol>
+    <li>Anote la hora y <strong>quite la antena de un poste</strong> (el que quiera; con eso se corta la radio de los dos). No pulse nada más.</li>
+    <li>Mire la pantalla principal y los postes. Unos 30 s después los postes pasan a ámbar intermitente: es normal.</li>
+    <li>Siga mirando. Anote la hora en que <strong>los dos</strong> quedan en rojo fijo (a los 5 min).</li>
+    <li>Espere en rojo. Anote la hora del <strong>primer verde</strong> y compruebe que alternan, uno y luego el otro.</li>
+    <li>Deje alternar al menos <strong>un ciclo completo de los dos</strong> mirando las luces, no la pantalla.</li>
+  </ol>
+  <div class="espera">Se espera: la pantalla principal dice <strong>"Sin radio. Entran SOLOS en Degradado en aprox. m:ss"</strong> y la cuenta baja desde unos 5:00. A los 5 min, <strong>los dos en rojo fijo</strong> y la app dice <strong>"En Degradado por reloj, sin radio"</strong>. Rojo fijo de 7 a 12 min (normal). Después el primer verde, en un poste y luego en el otro, con <strong>rojo y amarillo juntos 2 s</strong> antes de cada verde. Este verde es de 3 min (el del Degradado automático no se elige). Nunca verde en los dos a la vez. El primer verde llega entre 12 y 17 minutos después de quitar la antena.</div>
+  <div class="horas">
+    <label class="campo">Hora en que quitó la antena <input type="text" id="h23a" class="hora"></label>
+    <label class="campo">Cuenta que mostró la app al principio (m:ss) <input type="text" id="h23b" class="hora"></label>
+    <label class="campo">Hora en que los dos quedaron en rojo <input type="text" id="h23c" class="hora"></label>
+    <label class="campo">Texto de la app en ese momento <input type="text" id="h23d" class="hora"></label>
+    <label class="campo">Hora del primer verde <input type="text" id="h23e" class="hora"></label>
+    <label class="campo">Poste que dio ese primer verde <input type="text" id="h23f" class="hora"></label>
+    <label class="campo">¿Rojo y amarillo juntos antes de cada verde? (sí/no) <input type="text" id="h23g" class="hora"></label>
+    <label class="campo">¿Algún verde contra verde? (sí/no) <input type="text" id="h23h" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r23" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r23" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r23" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v23" placeholder="Lo que vio distinto. Si pasaron 20 min sin verde, anote la hora y qué luz tiene cada poste"></textarea>
+  <div class="print-only" id="pr23"></div>
+</section>
+
+<section class="prueba" id="p24">
+  <h2>24. Vuelve la radio: cartel fijo, y dejar la opción (a)</h2>
+  <div class="porque"><b class="t">Por qué</b>Al volver la radio los postes <strong>siguen en Degradado a propósito</strong>: nadie los saca solos. La app lo avisa con un cartel fijo, que no se va solo aunque se conecte minutos después (el 02/10 salía solo un letrero rápido). Después hay que sacarlos a mano y dejar la opción de fábrica (a), que es la que va en carretera.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Prueba 23 hecha: los dos postes alternando por reloj, sin radio.</li>
+    <li>Antena todavía quitada en un poste.</li>
+    <li>El celular conectado al <strong>Poste 1</strong>.</li>
+  </ul></div>
+  <ol>
+    <li>Ponga la antena. Anote la hora. Espere a que la app diga que la radio volvió.</li>
+    <li>Desconecte el Bluetooth y vuelva a conectarse al Poste 1 un par de minutos después. Mire si el cartel sigue. Pulse <strong>Entendido</strong>.</li>
+    <li>En el <strong>Poste 1</strong>, pulse <strong>VOLVER AL MENÚ</strong>. El Poste 2 lo sigue solo por radio.</li>
+    <li>Pulse <strong>AUTOMÁTICO</strong> en el Poste 1 y espere a que los dos den ciclos con radio.</li>
+    <li>En cada poste, pestaña Técnico: <strong>"(a) Ambar intermitente y voy con el testigo"</strong>. Consulte la tarjeta.</li>
+  </ol>
+  <div class="espera">Se espera: cartel fijo <strong>"LA RADIO VOLVIO entre los dos postes. Siguen en Degradado."</strong> con la acción &laquo;VOLVER AL MENU en el POSTE 1&raquo;; sigue ahí al reconectar y solo lo cierra <strong>Entendido</strong> (o la salida del Degradado). Después del menú y de AUTOMÁTICO, los dos dan ciclos. Al elegir (a), en los dos la tarjeta dice Este poste OFF y la línea principal "Si se cae la radio: AMBAR, ir con testigo". Si la app dice que el otro poste no acusó, no es un fallo: ponga el Poste 1 en AUTOMÁTICO con radio y repita.</div>
+  <div class="horas">
+    <label class="campo">Hora en que puso la antena <input type="text" id="h24a" class="hora"></label>
+    <label class="campo">Texto del cartel <input type="text" id="h24b" class="hora"></label>
+    <label class="campo">¿Seguía al reconectar? ¿Entendido lo cerró? (sí/no cada uno) <input type="text" id="h24c" class="hora"></label>
+    <label class="campo">¿Los dos salieron del Degradado? (sí/no) <input type="text" id="h24d" class="hora"></label>
+    <label class="campo">Poste 1: línea principal al final <input type="text" id="h24e" class="hora"></label>
+    <label class="campo">Poste 2: línea principal al final <input type="text" id="h24f" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r24" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r24" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r24" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v24" placeholder="Lo que vio distinto"></textarea>
+  <div class="print-only" id="pr24"></div>
+</section>
+
+<div class="parte">
+  <h2>Parte 5 (pruebas 25 a 33): Degradado con testigo, sin radio</h2>
+  Venían en la hoja del 04/10 y <strong>no han llegado</strong>. Todas parten de los dos postes <strong>en Degradado con testigo con verde de 3 min, alternando, sin radio</strong>. Para ponerlos así: quite la antena de un poste, espere el ámbar, y haga los pasos 2 a 4 de la prueba 2 con Traslado 5 min, Despeje 30 s y <strong>Verde 3 min</strong>; espere al primer verde. Para dejarlos al terminar una prueba: <strong>VOLVER AL MENÚ</strong> en cada poste (sin radio, cada uno por su lado). La pila CR2032 de cada tarjeta, puesta.
+</div>
+
+<section class="prueba" id="p25">
+  <h2>25. ROJO TOTAL en Degradado con el Poste 1 en verde</h2>
+  <div class="porque"><b class="t">Por qué</b>En Degradado sin radio, ROJO TOTAL deja en rojo fijo solo el poste donde se pulsa: el otro no se entera y sigue alternando por su reloj. Hay que ir al otro poste. Y VOLVER AL MENÚ con un poste en verde cierra el verde con amarillo y después todo-rojo.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Los dos en Degradado con testigo, verde 3 min, alternando, sin radio.</li>
+    <li>Celular conectado al <strong>Poste 1</strong> y <strong>15 minutos</strong> libres.</li>
+  </ul></div>
+  <ol>
+    <li>Espere a que el <strong>Poste 1</strong> esté en verde. Pulse <strong>ROJO TOTAL</strong> y lea lo que dice la app.</li>
+    <li>Pulse <strong>ROJO TOTAL</strong> otra vez.</li>
+    <li>Mire el Poste 2 durante un ciclo. Conéctese al <strong>Poste 2</strong> y, con él en verde, pulse <strong>VOLVER AL MENÚ</strong>.</li>
+    <li>Conéctese al Poste 1 y pulse <strong>VOLVER AL MENÚ</strong>.</li>
+  </ol>
+  <div class="espera">Se espera: la 1.ª vez, <strong>"Equipo: ROJO FIJO en ESTE poste. El OTRO POSTE SIGUE ALTERNANDO por su reloj: vaya a el."</strong> El Poste 1 pasa por amarillo 3 s, queda en <strong>rojo fijo</strong> y su verde no vuelve; el Poste 2 sigue con su ciclo. La 2.ª vez: <strong>"ya estaba en rojo fijo"</strong>. En el Poste 2, VOLVER AL MENÚ pasa por <strong>amarillo 3 s</strong> y luego todo-rojo, y después ámbar intermitente. <strong>Nunca verde en los dos a la vez.</strong></div>
+  <div class="horas">
+    <label class="campo">Hora de la pulsación <input type="text" id="h25a" class="hora"></label>
+    <label class="campo">Texto que dio la app la 1.ª vez <input type="text" id="h25b" class="hora"></label>
+    <label class="campo">Texto que dio la app la 2.ª vez <input type="text" id="h25c" class="hora"></label>
+    <label class="campo">¿Volvió el verde en el Poste 1? (sí/no) <input type="text" id="h25d" class="hora"></label>
+    <label class="campo">Poste 2 con VOLVER AL MENÚ: ¿amarillo y luego todo-rojo? (sí/no) <input type="text" id="h25e" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r25" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r25" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r25" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v25" placeholder="Dónde quedó cada poste al terminar"></textarea>
+  <div class="print-only" id="pr25"></div>
+</section>
+
+<section class="prueba" id="p26">
+  <h2>26. Corte de luz de un solo poste en Degradado</h2>
+  <div class="porque"><b class="t">Por qué</b>La prueba 4 corta los dos a la vez. Aquí se corta uno solo mientras el otro sigue alternando: al volver tiene que retomar el Degradado por su reloj, en fase con el otro, sin dar verde mientras el otro está en verde.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Los dos en Degradado con testigo, verde 3 min, alternando, sin radio.</li>
+    <li>Pila CR2032 puesta en cada tarjeta y <strong>25 minutos</strong> libres.</li>
+  </ul></div>
+  <ol>
+    <li>Corte la luz del <strong>Poste 1</strong> 1 minuto y devuélvala. Anote las dos horas y <strong>en qué luz arranca</strong>.</li>
+    <li><strong>No mande ninguna orden durante 2 minutos</strong> tras volver la luz. Mire los dos postes.</li>
+    <li>Repita cortando el <strong>Poste 2</strong>.</li>
+    <li>Exporte el registro de los <strong>dos postes antes de 5 minutos</strong> tras volver la luz (pestaña Tramas &rarr; "Diario de órdenes" &rarr; "Exportar todo como archivo").</li>
+  </ol>
+  <div class="espera">Se espera: cada poste vuelve solo al Degradado, en fase con el otro. Puede esperar un rato en el menú hasta su hora de reanudar (de unos segundos a un par de minutos). <strong>Nunca verde en los dos a la vez.</strong> Lo importante es anotar en qué luz arranca cada uno y tener los dos registros exportados a tiempo.</div>
+  <div class="horas">
+    <label class="campo">Poste 1: hora del corte <input type="text" id="h26a" class="hora"></label>
+    <label class="campo">Poste 1: hora de la vuelta <input type="text" id="h26b" class="hora"></label>
+    <label class="campo">Poste 1: luz con la que arranca <input type="text" id="h26c" class="hora"></label>
+    <label class="campo">Poste 2: hora del corte <input type="text" id="h26d" class="hora"></label>
+    <label class="campo">Poste 2: hora de la vuelta <input type="text" id="h26e" class="hora"></label>
+    <label class="campo">Poste 2: luz con la que arranca <input type="text" id="h26f" class="hora"></label>
+    <label class="campo">¿Pila CR2032 puesta? (sí/no) <input type="text" id="h26g" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r26" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r26" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r26" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v26" placeholder="Qué hizo cada poste al volver"></textarea>
+  <div class="print-only" id="pr26"></div>
+</section>
+
+<section class="prueba" id="p27">
+  <h2>27. ROJO TOTAL en la espera de la hora tras un corte</h2>
+  <div class="porque"><b class="t">Por qué</b>Tras un corte en Degradado, el poste espera en el menú su hora para reanudar. Si en esa espera alguien pulsa ROJO TOTAL o VOLVER AL MENÚ, el Degradado no debe reanudarse por sorpresa después.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Los dos en Degradado con testigo, verde 3 min, alternando, sin radio.</li>
+    <li>Celular listo para conectarse al <strong>Poste 1</strong> en cuanto vuelva la luz, y <strong>20 minutos</strong> libres.</li>
+  </ul></div>
+  <ol>
+    <li>Corte la luz del <strong>Poste 1</strong> y devuélvala. Al volver, el Poste 1 queda en el menú <strong>esperando la hora</strong> para reanudar.</li>
+    <li>En esa espera, conectado al Poste 1, pulse <strong>ROJO TOTAL</strong> y lea lo que dice la app.</li>
+    <li>Observe el Poste 1 durante 5 minutos como mínimo.</li>
+    <li>Pulse VOLVER AL MENÚ y ponga otra vez los dos en Degradado con testigo. Repita el corte y, en la espera, pulse en cambio <strong>VOLVER AL MENÚ</strong>. Lea lo que dice la app.</li>
+  </ol>
+  <div class="espera">Se espera: con ROJO TOTAL la app dice <strong>"Equipo: ROJO FIJO en ESTE poste. El degradado que esperaba la hora NO se reanudara. El OTRO POSTE sigue por su reloj: vaya a el."</strong> El Poste 1 queda en <strong>rojo fijo</strong>: nunca verde y nunca ámbar. Con VOLVER AL MENÚ, la app dice <strong>"Equipo: volvio al menu; el degradado que esperaba la hora NO se reanudara."</strong> y el Poste 1 se queda en el menú. Si no alcanza a pulsar a tiempo, ponga "No se pudo probar".</div>
+  <div class="horas">
+    <label class="campo">Hora de la vuelta de la luz <input type="text" id="h27a" class="hora"></label>
+    <label class="campo">Hora de ROJO TOTAL <input type="text" id="h27b" class="hora"></label>
+    <label class="campo">Texto que dio la app <input type="text" id="h27c" class="hora"></label>
+    <label class="campo">Luz del Poste 1 en los 5 minutos siguientes <input type="text" id="h27d" class="hora"></label>
+    <label class="campo">Texto de la app con VOLVER AL MENÚ (2.ª vez) <input type="text" id="h27e" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r27" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r27" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r27" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v27" placeholder="Qué luz tuvo el Poste 1 y si alguna vez dio verde o ámbar"></textarea>
+  <div class="print-only" id="pr27"></div>
+</section>
+
+<section class="prueba" id="p28">
+  <h2>28. Salida programada: la misma hora en los dos postes</h2>
+  <div class="porque"><b class="t">Por qué</b>Sin radio, para sacar los dos postes del Degradado a la vez se programa una hora de salida, igual que el testigo programa la entrada. Cada poste sale a SU hora: si solo uno la tiene, el otro sigue dando verde.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Los dos en Degradado con testigo, verde 3 min, alternando, sin radio.</li>
+    <li>Pestaña Técnico, tarjeta <strong>&laquo;Salida programada del Degradado&raquo;</strong> a la vista, y <strong>30 minutos</strong> libres.</li>
+  </ul></div>
+  <ol>
+    <li>Conectado al <strong>Poste 1</strong>, en la tarjeta deje el traslado en 20 minutos (o escriba una hora de salida) y espere a ver el Poste 1 <strong>en rojo</strong>. Pulse <strong>Programar salida del Degradado</strong>, confirme el aviso de paleteros y ponga el PIN.</li>
+    <li>Conéctese al <strong>Poste 2</strong> y, con el Poste 2 en rojo y antes de la hora de salida, pulse <strong>Aplicar salida guardada</strong>.</li>
+    <li>Anote la hora de salida. Desde 1 minuto antes y hasta 2 minutos después, mire las luces de los dos postes y anote la hora de cada cambio.</li>
+  </ol>
+  <div class="espera">Se espera: cada poste contesta <strong>"Equipo: SALIDA PROGRAMADA en ESTE poste: a esa hora sale del Degradado por rojo. Cada poste sale a SU hora..."</strong> Mientras el Poste 2 no la tenga, la app deja el cartel "Salida programada en el Maestro; FALTA el Esclavo: aplique alli la salida guardada." A la hora, los dos pasan a <strong>rojo</strong> (con 3 s de amarillo si venían en verde) y, pasado el despeje, quedan en <strong>ámbar intermitente</strong> a la vez. <strong>Nunca verde contra ámbar ni verde contra verde.</strong> Si pulsa Programar con el poste en verde, la app dice "En verde: la salida solo se guarda con el poste en rojo. Espere a verlo en rojo y repita."</div>
+  <div class="horas">
+    <label class="campo">Hora de salida programada <input type="text" id="h28a" class="hora"></label>
+    <label class="campo">Poste 1: hora en que pasó a rojo <input type="text" id="h28b" class="hora"></label>
+    <label class="campo">Poste 2: hora en que pasó a rojo <input type="text" id="h28c" class="hora"></label>
+    <label class="campo">Poste 1: hora del ámbar intermitente <input type="text" id="h28d" class="hora"></label>
+    <label class="campo">Poste 2: hora del ámbar intermitente <input type="text" id="h28e" class="hora"></label>
+    <label class="campo">¿Hubo verde contra ámbar o verde contra verde? (sí/no) <input type="text" id="h28f" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r28" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r28" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r28" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v28" placeholder="Qué luz tenía cada poste a la hora de salida y cómo terminaron"></textarea>
+  <div class="print-only" id="pr28"></div>
+</section>
+
+<section class="prueba" id="p29">
+  <h2>29. Salida programada con corte de luz, antes y después de la hora</h2>
+  <div class="porque"><b class="t">Por qué</b>La salida programada se guarda en la memoria del poste. Si se va la luz antes de la hora, el poste tiene que volver al Degradado y salir a su hora; si vuelve después de la hora, no debe volver al Degradado.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Los dos en Degradado con testigo, verde 3 min, alternando, sin radio.</li>
+    <li><strong>40 minutos</strong> libres.</li>
+  </ul></div>
+  <ol>
+    <li>Programe la salida en los dos postes como en la prueba 28, con la hora de salida a unos <strong>10 minutos</strong>.</li>
+    <li><strong>Corte A.</strong> Corte la luz del <strong>Poste 1</strong> y devuélvala <strong>antes</strong> de la hora de salida. Anote la hora del corte, la de la vuelta y la luz con que arranca. Conéctese y mire la tarjeta de salida programada.</li>
+    <li>Espere a la hora de salida y mire las dos luces.</li>
+    <li><strong>Corte B.</strong> Ponga otra vez los dos en Degradado con testigo y programe otra salida en los dos postes. Corte la luz del Poste 1 y devuélvala <strong>después</strong> de la hora de salida. Anote en qué estado queda.</li>
+  </ol>
+  <div class="espera">Se espera: <strong>Corte A</strong>: el Poste 1 vuelve solo al Degradado y la tarjeta dice "Salida programada en este poste a las HH:MM:SS, faltan N s."; a la hora sale con rojo y queda en ámbar, igual que el Poste 2 (sin verde contra ámbar). <strong>Corte B</strong>: el Poste 1 <strong>no</strong> vuelve al Degradado; arranca en ámbar intermitente. En los dos casos, el otro poste sigue su propia hora.</div>
+  <div class="horas">
+    <label class="campo">Corte A: hora del corte <input type="text" id="h29a" class="hora"></label>
+    <label class="campo">Corte A: hora de la vuelta <input type="text" id="h29b" class="hora"></label>
+    <label class="campo">Corte A: luz con la que arranca <input type="text" id="h29c" class="hora"></label>
+    <label class="campo">Corte A: ¿salió a la hora, en rojo y luego ámbar? (sí/no) <input type="text" id="h29d" class="hora"></label>
+    <label class="campo">Corte B: hora del corte <input type="text" id="h29e" class="hora"></label>
+    <label class="campo">Corte B: hora de la vuelta <input type="text" id="h29f" class="hora"></label>
+    <label class="campo">Corte B: ¿volvió al Degradado? (sí/no) y estado en que quedó <input type="text" id="h29g" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r29" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r29" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r29" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v29" placeholder="Qué hizo el Poste 1 al volver en cada corte, y qué hizo el Poste 2"></textarea>
+  <div class="print-only" id="pr29"></div>
+</section>
+
+<section class="prueba" id="p30">
+  <h2>30. ROJO TOTAL con salida programada, consulta y corte</h2>
+  <div class="porque"><b class="t">Por qué</b>Un poste en rojo fijo no guarda la salida en su memoria: un corte de luz la pierde. La app tiene que decirlo, y tras el corte el poste debe quedarse en rojo fijo.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Los dos en Degradado con testigo, verde 3 min, alternando, sin radio.</li>
+    <li>La salida programada en el Poste 1 (a unos 20 minutos), programada con el Poste 1 en rojo.</li>
+    <li><strong>15 minutos</strong> libres.</li>
+  </ul></div>
+  <ol>
+    <li>Pulse <strong>ROJO TOTAL</strong> en el Poste 1 y lea lo que dice la app. Mire el Poste 2.</li>
+    <li>Cierre la conexión y vuelva a conectarse al Poste 1 para que la app consulte la salida. Lea la tarjeta.</li>
+    <li>Corte la luz del Poste 1 un minuto y devuélvala, antes de la hora de salida. Observe 5 minutos.</li>
+  </ol>
+  <div class="espera">Se espera: la app dice <strong>"Equipo: ROJO FIJO en ESTE poste. El OTRO POSTE SIGUE ALTERNANDO por su reloj: vaya a el. Se sale con la salida programada o con el boton Volver."</strong> El Poste 1 queda en rojo fijo y el Poste 2 sigue alternando. La tarjeta dice "Salida programada en este poste a las HH:MM:SS, faltan N s <strong>(SIN respaldo: un corte de luz la pierde)</strong>." Tras el corte, el Poste 1 queda en <strong>rojo fijo</strong>: ni verde ni ámbar, y la salida programada se perdió.</div>
+  <div class="horas">
+    <label class="campo">Hora de ROJO TOTAL <input type="text" id="h30a" class="hora"></label>
+    <label class="campo">Texto que dio la app <input type="text" id="h30b" class="hora"></label>
+    <label class="campo">Texto de la tarjeta de salida (¿dice "SIN respaldo"?) <input type="text" id="h30c" class="hora"></label>
+    <label class="campo">Hora del corte <input type="text" id="h30d" class="hora"></label>
+    <label class="campo">Hora de la vuelta <input type="text" id="h30e" class="hora"></label>
+    <label class="campo">Luz del Poste 1 en los 5 minutos siguientes <input type="text" id="h30f" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r30" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r30" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r30" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v30" placeholder="Qué luz tenía cada poste y qué dijo la app"></textarea>
+  <div class="print-only" id="pr30"></div>
+</section>
+
+<section class="prueba" id="p31">
+  <h2>31. Salida vencida: qué texto ve en el teléfono</h2>
+  <div class="porque"><b class="t">Por qué</b>Una salida a más de 12 horas el poste la rechaza como vencida. La app tiene que decirlo en español y no ofrecer reintentar con la misma hora.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Los dos en Degradado con testigo, verde 3 min, alternando, sin radio.</li>
+    <li>Sabe adelantar a mano el reloj del celular.</li>
+  </ul></div>
+  <ol>
+    <li>Adelante el reloj del celular 2 segundos respecto al del poste (la app solo admite hasta 3 s de diferencia). Así el poste ve la salida un poco más lejos de 12 horas.</li>
+    <li>Conectado al <strong>Poste 1</strong>, ponga el traslado más largo (720 minutos) y pulse <strong>Programar salida del Degradado</strong> con el poste en rojo. Si el poste la rechaza, copie <strong>tal cual</strong> el texto de la app.</li>
+    <li>Si el Poste 1 la <strong>aceptó</strong>, conéctese al <strong>Poste 2</strong> y pulse <strong>Aplicar salida guardada</strong>; si ese la rechaza, copie también el texto.</li>
+    <li>Devuelva el reloj del celular a la hora correcta.</li>
+  </ol>
+  <div class="espera">Se espera: la app dice <strong>"Salida ya vencida: la hora ya paso o queda demasiado lejos. Reprograme la salida en el Maestro o cancelela."</strong> y <strong>no</strong> ofrece volver a intentar con la misma hora. No debe salir "motivo sin traducir". Si ningún poste la rechaza, ponga "No se pudo probar" y escriba que no se logró provocar.</div>
+  <div class="horas">
+    <label class="campo">Hora de la prueba <input type="text" id="h31a" class="hora"></label>
+    <label class="campo">Poste que la rechazó <input type="text" id="h31b" class="hora"></label>
+    <label class="campo">Texto exacto que dio la app <input type="text" id="h31c" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r31" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r31" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r31" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v31" placeholder="Qué dijo la app y si ofreció reintentar"></textarea>
+  <div class="print-only" id="pr31"></div>
+</section>
+
+<section class="prueba" id="p32">
+  <h2>32. Rojo fijo cuando un poste pierde la hora en Degradado</h2>
+  <div class="porque"><b class="t">Por qué</b>En Degradado cada poste alterna por su reloj. Si un poste deja de tener hora fiable, no puede seguir dando verde: tiene que quedarse en rojo fijo (nunca en ámbar), también tras un corte de luz.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Los dos en Degradado con testigo, verde 3 min, alternando, sin radio.</li>
+    <li>Sabe abrir el Poste 2 y quitar con el poste apagado el cable interno <strong>J17</strong> (controlador - módulo ESP32).</li>
+  </ul></div>
+  <ol>
+    <li>Con el Poste 2 apagado, desconecte <strong>J17</strong> y vuelva a encenderlo. Anote la hora.</li>
+    <li>Espere sin tocar nada hasta que la app de ese poste muestre la alarma de hora (anote cuántos minutos tarda).</li>
+    <li>Vuelva a conectar J17 (con el poste apagado) y encienda.</li>
+  </ol>
+  <div class="espera">Se espera: cuando caduca su hora, ese poste queda en <strong>ROJO FIJO</strong> en sus dos lámparas, nunca en ámbar, con la pluma abajo, y la app dice <strong>"ESTE POSTE ESTA EN ROJO FIJO: perdio la hora en Degradado"</strong> (se repite cada minuto). Si sale el aviso corto de abajo por la hora, dice <strong>"Este poste no tiene hora fiable: avise al tecnico (detalle en Eventos)"</strong>, sin &laquo;ESP32&raquo;, &laquo;STM32&raquo; ni &laquo;J17&raquo; (eso queda en Eventos). El otro poste sigue alternando. Para salir: VOLVER AL MENÚ en el Poste 1 y repetir el testigo, o volver a poner la antena.</div>
+  <div class="horas">
+    <label class="campo">Hora de desconexión de J17 <input type="text" id="h32a" class="hora"></label>
+    <label class="campo">Hora en que sale la alarma <input type="text" id="h32b" class="hora"></label>
+    <label class="campo">Hora en que queda en rojo fijo <input type="text" id="h32c" class="hora"></label>
+    <label class="campo">Texto del aviso corto de abajo, si salió <input type="text" id="h32d" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r32" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r32" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r32" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v32" placeholder="Qué hizo ese poste y qué dijo la app"></textarea>
+  <div class="print-only" id="pr32"></div>
+</section>
+
+<section class="prueba" id="p33">
+  <h2>33. Opcional: cortar la radio en un solo sentido</h2>
+  <div class="porque"><b class="t">Por qué</b>Si el Poste 1 deja de oír al Poste 2 pero el Poste 2 sí lo oye, el Poste 1 tiene que soltar el verde del Poste 2 antes de pasar a ámbar. <strong>Solo si sabe hacerlo</strong>; si no, ponga "No se pudo probar".</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Los dos postes en <strong>AUTOMÁTICO con radio</strong> (VOLVER AL MENÚ en cada poste, ponga la antena y pulse AUTOMÁTICO en el Poste 1).</li>
+    <li>Una forma de cortar solo el sentido Poste 2 &rarr; Poste 1 de la radio.</li>
+  </ul></div>
+  <ol>
+    <li>Con el <strong>Poste 2 en verde</strong>, corte solo el sentido <strong>Poste 2 &rarr; Poste 1</strong> de la radio. Anote la hora.</li>
+    <li>Mire los dos postes.</li>
+  </ol>
+  <div class="espera">Se espera: el Poste 2 cierra su verde (amarillo y rojo) unos 21 s después del corte, <strong>antes</strong> de que el Poste 1 pase a ámbar. Si el Poste 2 sigue en verde cuando el Poste 1 ya está en ámbar, anote la hora.</div>
+  <div class="horas">
+    <label class="campo">Hora del corte <input type="text" id="h33a" class="hora"></label>
+    <label class="campo">Hora del cierre del verde del Poste 2 <input type="text" id="h33b" class="hora"></label>
+    <label class="campo">Hora del ámbar del Poste 1 <input type="text" id="h33c" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r33" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r33" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r33" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v33" placeholder="Qué hizo cada poste"></textarea>
+  <div class="print-only" id="pr33"></div>
+</section>
+
+<div class="parte">
+  <h2>Parte 6 (pruebas 34 a 41): lo nuevo del 16/10, modo noche, menú y versión</h2>
+  Hágala justo después de la prueba 1. Las pruebas 35 a 39 necesitan las dos franjas de la prueba 34 y el Poste 1 en <strong>AUTOMÁTICO con radio</strong> al empezar cada franja: <strong>no entra si el Poste 1 está en otro modo</strong>, y entonces la franja se salta hasta el día siguiente.
+</div>
+
+<section class="prueba" id="p34">
+  <h2>34. Modo noche: programar el todo-rojo y dos franjas</h2>
+  <div class="porque"><b class="t">Por qué</b>Es el pedido del 15/10: en los días y horas programados los dos postes destellan, <strong>ámbar en los dos</strong> de fábrica o, elegido en la app, <strong>Poste 1 ámbar y Poste 2 rojo</strong>, con la pluma arriba en los dos. Se entra y se sale siempre por un <strong>todo-rojo</strong> en los dos postes, de <strong>180 s de fábrica</strong>; la app lo propone por la distancia entre postes y deja subirlo, no bajarlo. Las franjas las guarda solo el Poste 1; el Poste 2 obedece. Al cargar el firmware se borran: tras la prueba 1 no hay ninguna.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Prueba 1 en OK: los dos postes con XXXXXXX y la hora puesta, y la clave de administración puesta.</li>
+    <li>Los dos postes con radio y la línea de la pantalla principal en <strong>"Si se cae la radio: AMBAR, ir con testigo"</strong>.</li>
+    <li>La hora del celular a la vista. Anote ahora la hora (HH:MM): la llamamos <strong>T</strong>.</li>
+  </ul></div>
+  <ol>
+    <li>Conéctese al <strong>Poste 2</strong>: pestaña Tiempos, tarjeta <strong>&laquo;Modo noche (se programa en el POSTE 1)&raquo;</strong>. Lea la línea de debajo del título.</li>
+    <li>Conéctese al <strong>Poste 1</strong>, la misma tarjeta. Lea la línea de debajo del título y lo que dice cada &laquo;Franja&raquo;.</li>
+    <li>En &laquo;Distancia entre postes (m)&raquo; ponga <strong>1000</strong>. Lea el texto de debajo del todo-rojo.</li>
+    <li>Ponga <strong>170</strong> en &laquo;Todo-rojo de entrada y salida (seg)&raquo; y pulse <strong>"Guardar todo-rojo"</strong>. Después ponga <strong>180</strong> y pulse otra vez. Ponga el PIN si lo pide.</li>
+    <li><strong>Franja 1:</strong> marque solo el día de hoy (L M X J V S D), inicio <strong>T + 10 min</strong>, fin <strong>T + 25 min</strong>, color <strong>"ámbar en los dos"</strong>, y pulse <strong>"Guardar franja 1"</strong>.</li>
+    <li><strong>Franja 2:</strong> el día de hoy, inicio <strong>T + 40 min</strong>, fin <strong>T + 70 min</strong>, color <strong>"POSTE 1 ámbar, POSTE 2 rojo"</strong>, y pulse <strong>"Guardar franja 2"</strong>.</li>
+    <li>Pulse <strong>AUTOMÁTICO</strong> en el Poste 1 (si no lo está) y quédese conectado al Poste 1.</li>
+  </ol>
+  <div class="espera">Se espera: en el Poste 2, <strong>"Las franjas se programan conectado al POSTE 1 (Maestro): este poste solo obedece."</strong> En el Poste 1, <strong>"Guardado en el POSTE 1: todo-rojo 180 s."</strong> y las cuatro franjas <strong>"en el equipo: apagada"</strong>. Con 1000 m: <strong>"Propuesta: 180 s (a 20 km/h). Puede subirlo, no bajarlo."</strong> Con 170: <strong>"Todo-rojo entre 180 y 900 s: no baja de la propuesta"</strong> y no se envía nada. Con 180: <strong>"Equipo: todo-rojo de la noche (entrada y salida) guardado. Se vuelve a consultar lo guardado."</strong> Cada franja: <strong>"Equipo: franja de noche guardada y releída de su memoria. Se vuelve a consultar lo guardado."</strong>, y junto a ella, <strong>"en el equipo:"</strong> con el día, las horas y el color que puso.</div>
+  <div class="horas">
+    <label class="campo">Hora T <input type="text" id="h34a" class="hora"></label>
+    <label class="campo">Texto en el Poste 2 <input type="text" id="h34b" class="hora"></label>
+    <label class="campo">Antes de guardar: todo-rojo y franjas que decía el Poste 1 <input type="text" id="h34c" class="hora"></label>
+    <label class="campo">Con 170 s: texto de la app <input type="text" id="h34d" class="hora"></label>
+    <label class="campo">Franja 1 &laquo;en el equipo&raquo; (copie el texto) <input type="text" id="h34e" class="hora"></label>
+    <label class="campo">Franja 2 &laquo;en el equipo&raquo; (copie el texto) <input type="text" id="h34f" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r34" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r34" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r34" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v34" placeholder="Lo que vio distinto. Si el poste rechazó algo, copie el texto de la app"></textarea>
+  <div class="print-only" id="pr34"></div>
+</section>
+
+<section class="prueba" id="p35">
+  <h2>35. Entrar en la franja 1: todo-rojo, ámbar en los dos y pluma arriba</h2>
+  <div class="porque"><b class="t">Por qué</b>A la hora de inicio, con el Poste 1 en AUTOMÁTICO, el cruce cierra el verde que hubiera (amarillo 3 s), pone <strong>rojo en los dos</strong> el todo-rojo entero (180 s) para que se vacíe el tramo, y solo entonces destella. Se quiere ver ese orden en las luces, la pluma arriba en los dos y lo que dice la app.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Prueba 34 en OK. <strong>Poste 1 en AUTOMÁTICO</strong>, dando ciclos con radio, antes de la hora de inicio de la franja 1.</li>
+    <li>La app conectada al Poste 1 y cronómetro a mano.</li>
+  </ul></div>
+  <ol>
+    <li>A la hora de inicio de la franja 1, mire las luces y las plumas de los dos postes. Cronometre desde que los dos quedan en rojo hasta que empiezan a destellar.</li>
+    <li>Lea la cabecera del Poste 1 durante el rojo y durante el destello, y la pestaña Eventos.</li>
+    <li>Conéctese al <strong>Poste 2</strong> y lea su línea de luces y de pluma. Vuelva al Poste 1.</li>
+  </ol>
+  <div class="espera">Se espera: si había un verde, amarillo y después rojo; <strong>rojo fijo en los dos unos 180 s</strong>; después <strong>ámbar intermitente en los dos</strong> y <strong>la pluma arriba en los dos</strong>. <strong>Ningún verde</strong> desde la hora de inicio. Cabecera del Poste 1: <strong>"NOCHE · TODO-ROJO"</strong> y después <strong>"NOCHE · ÁMBAR INTERMITENTE"</strong>. En Eventos: <strong>"Modo noche: empieza la franja. Primero todo-rojo de 180 s en los dos postes y después destello, con la pluma arriba en los dos."</strong> En la pantalla, <strong>"noche: ámbar intermitente, pasar con precaución"</strong> y, junto a la pluma, <strong>"modo noche: arriba en los dos postes"</strong>.</div>
+  <div class="horas">
+    <label class="campo">Hora en que los dos quedaron en rojo <input type="text" id="h35a" class="hora"></label>
+    <label class="campo">Rojo en los dos medido (s) <input type="text" id="h35b" class="hora"></label>
+    <label class="campo">Hora del primer destello <input type="text" id="h35c" class="hora"></label>
+    <label class="campo">Color de cada poste y pluma de cada poste <input type="text" id="h35d" class="hora"></label>
+    <label class="campo">Cabecera del Poste 1 en rojo y en destello <input type="text" id="h35e" class="hora"></label>
+    <label class="campo">¿Algún verde tras la hora de inicio? (sí/no) <input type="text" id="h35f" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r35" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r35" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r35" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v35" placeholder="Lo que vio distinto. Si no entró, copie lo que dice Eventos"></textarea>
+  <div class="print-only" id="pr35"></div>
+</section>
+
+<section class="prueba" id="p36">
+  <h2>36. Salir de la franja 1 por la hora</h2>
+  <div class="porque"><b class="t">Por qué</b>A la hora de fin el cruce no vuelve al verde de golpe: pasa otra vez por el todo-rojo en los dos y después vuelve al modo de antes de la noche (aquí, AUTOMÁTICO).</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Prueba 35 en OK: los dos destellando en ámbar, la app conectada al Poste 1.</li>
+  </ul></div>
+  <ol>
+    <li>A la hora de fin de la franja 1, mire los dos postes y cronometre el rojo en los dos hasta el primer verde.</li>
+    <li>Lea la cabecera del Poste 1 y Eventos.</li>
+  </ol>
+  <div class="espera">Se espera: en Eventos, <strong>"Modo noche: acaba la franja. Todo-rojo de 180 s en los dos postes y después vuelve al modo de antes de la noche."</strong> Rojo fijo en los dos unos <strong>180 s</strong>, cabecera <strong>"NOCHE · TODO-ROJO"</strong>; después <strong>AUTOMÁTICO</strong>, con rojo y amarillo 2 s antes del primer verde. <strong>Nunca verde en los dos.</strong></div>
+  <div class="horas">
+    <label class="campo">Hora del fin del destello <input type="text" id="h36a" class="hora"></label>
+    <label class="campo">Rojo en los dos medido (s) <input type="text" id="h36b" class="hora"></label>
+    <label class="campo">Hora del primer verde y en qué poste <input type="text" id="h36c" class="hora"></label>
+    <label class="campo">Modo de la cabecera al acabar <input type="text" id="h36d" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r36" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r36" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r36" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v36" placeholder="Lo que vio distinto"></textarea>
+  <div class="print-only" id="pr36"></div>
+</section>
+
+<section class="prueba" id="p37">
+  <h2>37. Franja 2: Poste 2 en rojo intermitente, y salir por la app con PIN</h2>
+  <div class="porque"><b class="t">Por qué</b>La franja 2 lleva el otro color: Poste 1 ámbar y Poste 2 rojo intermitente. Además se quiere ver la salida desde la app: pide el PIN, pasa por el mismo todo-rojo y no admite una segunda salida mientras dura. Una franja en curso no se puede cambiar.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Prueba 36 en OK. <strong>Poste 1 en AUTOMÁTICO</strong> con radio antes de la hora de inicio de la franja 2.</li>
+    <li>La app conectada al Poste 1, con la clave de administración puesta.</li>
+  </ul></div>
+  <ol>
+    <li>A la hora de inicio de la franja 2, espere el todo-rojo y mire el color de cada poste y las plumas.</li>
+    <li>Conéctese al <strong>Poste 2</strong> y lea su línea de luces. Vuelva al <strong>Poste 1</strong>.</li>
+    <li>Pestaña Tiempos, tarjeta del modo noche: cambie la hora de fin de la franja 2 y pulse <strong>"Guardar franja 2"</strong>.</li>
+    <li>En la misma tarjeta, pulse <strong>"Salir a AUTOMÁTICO"</strong> y ponga el PIN. Anote la hora.</li>
+    <li>Antes de 1 minuto, pulse otra vez <strong>"Salir a AUTOMÁTICO"</strong>.</li>
+    <li>Cronometre el rojo en los dos hasta el primer verde. Espere hasta la hora de fin de la franja 2.</li>
+  </ol>
+  <div class="espera">Se espera: <strong>Poste 1 ámbar intermitente, Poste 2 rojo intermitente</strong>, pluma arriba en los dos. En el Poste 2, <strong>"noche: rojo intermitente, detenerse y pasar con precaución"</strong>. Al cambiar la franja en curso: <strong>"Modo noche: esa franja está en curso y no se cambia. Salga primero de la noche (con PIN) y repita. No ha cambiado nada."</strong> Al salir: <strong>"Saliendo del modo noche: rojo en los dos postes, todo-rojo de 180 s y después AUTOMÁTICO. No mande otra salida mientras tanto."</strong> La segunda: <strong>"Modo noche: ya hay una salida en curso (todo-rojo en los dos postes). Espere a que termine; esta segunda orden no se hace."</strong> Rojo en los dos unos <strong>180 s</strong> y después AUTOMÁTICO. <strong>No vuelve a la noche</strong> antes de la hora de fin de la franja 2.</div>
+  <div class="horas">
+    <label class="campo">Color de cada poste en la franja 2 <input type="text" id="h37a" class="hora"></label>
+    <label class="campo">Texto al cambiar la franja en curso <input type="text" id="h37b" class="hora"></label>
+    <label class="campo">Hora de la salida por la app; ¿pidió PIN? <input type="text" id="h37c" class="hora"></label>
+    <label class="campo">Texto de la segunda salida <input type="text" id="h37d" class="hora"></label>
+    <label class="campo">Rojo en los dos medido (s) y hora del primer verde <input type="text" id="h37e" class="hora"></label>
+    <label class="campo">¿Volvió a la noche antes del fin de la franja? (sí/no) <input type="text" id="h37f" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r37" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r37" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r37" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v37" placeholder="Lo que vio distinto"></textarea>
+  <div class="print-only" id="pr37"></div>
+</section>
+
+<section class="prueba" id="p38">
+  <h2>38. Cortar la radio dentro de la noche</h2>
+  <div class="porque"><b class="t">Por qué</b>Sin radio, el Poste 1 sigue en la noche (su hora es suya) y el Poste 2 hace lo de siempre: a los 28 s sin radio pasa a ámbar intermitente. Si estaba en rojo intermitente, se ve el cambio. Al volver la radio, el Poste 1 le repite la orden cada 10 s y el Poste 2 vuelve a su color de noche.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Prueba 37 en OK. Programe la franja 2 otra vez (el día de hoy, inicio dentro de 10 min, fin 30 min después, <strong>"POSTE 1 ámbar, POSTE 2 rojo"</strong>), con el Poste 1 en AUTOMÁTICO, y espere a que destelle: Poste 1 ámbar, Poste 2 rojo.</li>
+    <li>Los dos con <strong>"Si se cae la radio: AMBAR, ir con testigo"</strong>.</li>
+  </ul></div>
+  <ol>
+    <li>Quite la antena de un poste. Anote la hora y mire los dos postes 1 minuto.</li>
+    <li>Lea la cabecera y los avisos del Poste 1.</li>
+    <li>Ponga la antena. Anote la hora y mire el Poste 2.</li>
+  </ol>
+  <div class="espera">Se espera: el Poste 1 <strong>sigue en ámbar intermitente</strong>, en noche; unos 28 s después del corte el Poste 2 pasa de rojo intermitente a <strong>ámbar intermitente</strong>. Pluma arriba en los dos. El Poste 1 avisa que se perdió la radio (aviso rojo <strong>"Radio perdida - ponga la hora al Esclavo desde el telefono, en su gabinete"</strong>). Al poner la antena, el Poste 2 vuelve a <strong>rojo intermitente</strong> en unos segundos. <strong>Ningún verde.</strong></div>
+  <div class="horas">
+    <label class="campo">Hora del corte <input type="text" id="h38a" class="hora"></label>
+    <label class="campo">Hora en que el Poste 2 pasó a ámbar <input type="text" id="h38b" class="hora"></label>
+    <label class="campo">Aviso que dio el Poste 1 (copie el texto) <input type="text" id="h38c" class="hora"></label>
+    <label class="campo">Hora de la antena y hora en que el Poste 2 volvió a rojo intermitente <input type="text" id="h38d" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r38" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r38" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r38" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v38" placeholder="Qué hizo cada poste"></textarea>
+  <div class="print-only" id="pr38"></div>
+</section>
+
+<section class="prueba" id="p39">
+  <h2>39. Corte de luz dentro de la noche</h2>
+  <div class="porque"><b class="t">Por qué</b>Un corte de luz dentro de la franja no vuelve a la noche: la noche solo empieza a la hora de inicio. El Poste 2, al volver la luz, arranca en rojo y la orden del Poste 1 lo devuelve a la noche. El Poste 1, al volver la luz, arranca como tras cualquier corte, en <strong>ámbar intermitente</strong>, y sale con una orden. Las franjas siguen guardadas.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Prueba 38 en OK: los dos en noche, Poste 1 ámbar y Poste 2 rojo intermitente, con radio.</li>
+  </ul></div>
+  <ol>
+    <li>Corte la luz del <strong>Poste 2</strong> 10 s y vuelva a darla. Anote la hora y mire el Poste 2 1 minuto.</li>
+    <li>Corte la luz del <strong>Poste 1</strong> 10 s y vuelva a darla. Anote la hora y mire los dos postes 2 minutos.</li>
+    <li>Conéctese al Poste 1: lea la cabecera y, en la pestaña Tiempos, lo que dice cada franja del modo noche.</li>
+    <li>Pulse <strong>AUTOMÁTICO</strong> en el Poste 1.</li>
+  </ol>
+  <div class="espera">Se espera: el Poste 2 arranca en <strong>rojo</strong> y en unos segundos vuelve a <strong>rojo intermitente</strong>. Tras el corte del Poste 1, los dos en <strong>ámbar intermitente</strong> y cabecera <strong>"ÁMBAR PRECAUCIÓN"</strong>, no NOCHE; no vuelve a la noche aunque la franja siga. Las franjas siguen <strong>"en el equipo:"</strong> como las dejó. Con AUTOMÁTICO, ciclos normales. <strong>Ningún verde</strong> hasta pulsar AUTOMÁTICO.</div>
+  <div class="horas">
+    <label class="campo">Poste 2: hora del corte, qué hizo al volver <input type="text" id="h39a" class="hora"></label>
+    <label class="campo">Poste 1: hora del corte, qué hicieron los dos <input type="text" id="h39b" class="hora"></label>
+    <label class="campo">Cabecera del Poste 1 tras el corte <input type="text" id="h39c" class="hora"></label>
+    <label class="campo">¿Las franjas siguen guardadas? (sí/no) <input type="text" id="h39d" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r39" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r39" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r39" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v39" placeholder="Qué hizo cada poste"></textarea>
+  <div class="print-only" id="pr39"></div>
+</section>
+
+<div class="recordatorio">
+  <strong>Antes de la prueba 40, apague las franjas:</strong> conectado al Poste 1, pestaña Tiempos, pulse <strong>"Apagar"</strong> en la franja 1 y en la 2 (PIN). Debe ver <strong>"en el equipo: apagada"</strong> en las dos. Si no, los postes entrarán en noche a esa hora cada semana.
+</div>
+
+<section class="prueba" id="p40">
+  <h2>40. La cabecera del menú dice qué hacen las luces</h2>
+  <div class="porque"><b class="t">Por qué</b>En el menú la cabecera decía &laquo;EN MENÚ · SIN CICLO&raquo;, que no dice qué ve el conductor. Ahora dice lo que hacen las luces: rojo fijo en los dos con radio, ámbar intermitente sin ella.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Poste 1 en <strong>AUTOMÁTICO</strong> con radio y la app conectada al Poste 1.</li>
+  </ul></div>
+  <ol>
+    <li>Con un poste en verde, pulse <strong>VOLVER AL MENÚ</strong>. Lea la cabecera mientras cierra el verde y después.</li>
+    <li>Quite la antena de un poste. Espere 1 minuto y lea la cabecera.</li>
+    <li>Ponga la antena y pulse <strong>AUTOMÁTICO</strong>.</li>
+  </ol>
+  <div class="espera">Se espera: mientras cierra, <strong>"MENÚ · PASANDO A ROJO"</strong>; con los dos en rojo, <strong>"MENÚ · ROJO FIJO EN LOS DOS POSTES"</strong>. Sin radio, los dos en ámbar intermitente y <strong>"MENÚ · ÁMBAR INTERMITENTE, SIN RADIO"</strong>. En ningún momento &laquo;EN MENÚ · SIN CICLO&raquo;.</div>
+  <div class="horas">
+    <label class="campo">Cabecera mientras cierra el verde <input type="text" id="h40a" class="hora"></label>
+    <label class="campo">Cabecera con rojo en los dos <input type="text" id="h40b" class="hora"></label>
+    <label class="campo">Cabecera sin radio, y color de las luces <input type="text" id="h40c" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r40" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r40" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r40" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v40" placeholder="Lo que vio distinto (mejor con captura de pantalla)"></textarea>
+  <div class="print-only" id="pr40"></div>
+</section>
+
+<section class="prueba" id="p41">
+  <h2>41. La versión del firmware sale entera, con sus 7 caracteres</h2>
+  <div class="porque"><b class="t">Por qué</b>El 15/10 un código que empezaba por 0 salió sin el 0 (6 caracteres en vez de 7), y no se podía saber qué firmware había dentro. Ahora sale siempre entero, con el 0 si lo lleva.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Prueba 1 en OK.</li>
+  </ul></div>
+  <ol>
+    <li>En cada poste: pestaña Técnico &rarr; <strong>"Consultar version del firmware"</strong>. En Eventos, lea las líneas que empiezan por <strong>"Version cargada"</strong>.</li>
+    <li>Cuente los caracteres del código y compárelo con el que va en el nombre del .zip.</li>
+  </ol>
+  <div class="espera">Se espera: <strong>"Version cargada - Controlador MAESTRO: FW XXXXXXX"</strong> en el Poste 1, <strong>"Version cargada - Controlador ESCLAVO: FW XXXXXXX"</strong> en el Poste 2 y <strong>"Version cargada - Puente (ESP32): FW XXXXXXX"</strong> en los dos: <strong>7 caracteres</strong>, iguales al del nombre del .zip, y <strong>sin +SUCIO</strong> al final.</div>
+  <div class="horas">
+    <label class="campo">Poste 1: las dos líneas, copiadas <input type="text" id="h41a" class="hora"></label>
+    <label class="campo">Poste 2: las dos líneas, copiadas <input type="text" id="h41b" class="hora"></label>
+    <label class="campo">¿Algún código con menos de 7 caracteres o con +SUCIO? (sí/no) <input type="text" id="h41c" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r41" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r41" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r41" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v41" placeholder="Lo que vio distinto"></textarea>
+  <div class="print-only" id="pr41"></div>
+</section>
+
+<section class="prueba" id="pF">
+  <h2>Algo más</h2>
+  <textarea id="vF" placeholder="Otra cosa que quiera anotar"></textarea>
+  <div class="print-only" id="prF"></div>
+</section>
+
+<div class="recordatorio">
+  <strong>Al terminar cada jornada:</strong> conéctese a <strong>cada</strong> poste, exporte su registro (pestaña Tramas &rarr; "Diario de órdenes" &rarr; "Exportar todo como archivo") y envíe este PDF con <strong>todos los archivos IOTVIAL_</strong>: <strong>uno de CADA poste</strong> por jornada, más los de las pruebas 5, 8, 9, 26, 38 y 39. Los IOTVIAL_SIMULADO_ de la prueba 13 <strong>no</strong> se mandan.
+</div>
+
+</main>
+
+<footer>
+  <button id="btnPdf">Guardar en PDF</button>
+  <p class="nota-impresion">Elija "Guardar como PDF" y envíelo por WhatsApp.</p>
+  <p id="estado"></p>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+  var estado = document.getElementById('estado');
+  var camposTexto = document.querySelectorAll('input[type=text], input[type=date], textarea');
+  var camposRadio = document.querySelectorAll('input[type=radio]');
+
+  function clave(id) { return 'pf16_' + id; }
+
+  try {
+    camposTexto.forEach(function (el) {
+      var v = localStorage.getItem(clave(el.id));
+      if (v !== null) el.value = v;
+    });
+    camposRadio.forEach(function (el) {
+      var v = localStorage.getItem(clave(el.name + '_' + el.value));
+      if (v === '1') el.checked = true;
+    });
+  } catch (e) { /* sin almacenamiento: la hoja se sigue rellenando y se imprime igual */ }
+
+  function guardarTexto(el) {
+    try {
+      localStorage.setItem(clave(el.id), el.value);
+      if (estado) estado.textContent = 'guardado ' + new Date().toLocaleTimeString();
+    } catch (e) {
+      if (estado) estado.textContent = 'este teléfono no guarda: imprima antes de cerrar';
+    }
+  }
+
+  function guardarRadio(grupo) {
+    try {
+      Array.prototype.forEach.call(grupo, function (el) {
+        localStorage.setItem(clave(el.name + '_' + el.value), el.checked ? '1' : '0');
+      });
+      if (estado) estado.textContent = 'guardado ' + new Date().toLocaleTimeString();
+    } catch (e) {
+      if (estado) estado.textContent = 'este teléfono no guarda: imprima antes de cerrar';
+    }
+  }
+
+  camposTexto.forEach(function (el) {
+    el.addEventListener('input', function () { guardarTexto(el); refrescarImpresion(); });
+  });
+  camposRadio.forEach(function (el) {
+    el.addEventListener('change', function () {
+      guardarRadio(document.getElementsByName(el.name));
+      refrescarImpresion();
+    });
+  });
+
+  // Para cada prueba, arma en el recuadro de impresión el resultado elegido y lo
+  // escrito, en texto llano. Así, al imprimir, se ve la respuesta aunque el
+  // teléfono no dibuje los controles marcados. Las horas anotadas van también.
+  var ids = [];
+  for (var i = 1; i <= 41; i++) ids.push(String(i));
+  function refrescarImpresion() {
+    ids.forEach(function (n) {
+      var pr = document.getElementById('pr' + n);
+      if (!pr) return;
+      var marcado = document.querySelector('input[name=r' + n + ']:checked');
+      var resultado = marcado ? marcado.getAttribute('data-txt') : 'sin responder';
+      var texto = document.getElementById('v' + n);
+      var vio = (texto && texto.value.trim()) ? texto.value : '(sin escribir)';
+      var horas = '';
+      document.querySelectorAll('#p' + n + ' input.hora').forEach(function (h) {
+        var rot = h.parentNode.firstChild.textContent.trim();
+        horas += rot + ': ' + (h.value.trim() || '(vacío)') + '. ';
+      });
+      pr.textContent = horas + 'Resultado: ' + resultado + '. Qué vio: ' + vio;
+    });
+    var libre = document.getElementById('vF');
+    var prF = document.getElementById('prF');
+    if (prF) {
+      prF.textContent = (libre && libre.value.trim()) ? libre.value : '(sin escribir)';
+    }
+  }
+
+  window.addEventListener('beforeprint', refrescarImpresion);
+  document.getElementById('btnPdf').addEventListener('click', function () {
+    refrescarImpresion();
+    window.print();
+  });
+
+  refrescarImpresion();
+})();
+</script>
+</body>
+</html>

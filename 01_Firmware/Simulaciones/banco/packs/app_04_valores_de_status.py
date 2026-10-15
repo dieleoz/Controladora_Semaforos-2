@@ -65,7 +65,7 @@ DESCRIPCION = "los valores que el C++ puede poner en ESTADO: y MODO:, la app sab
 
 PUNTAS = ("Maestro", "Esclavo")
 
-APP_JS = ("05_Funcional", "App_Semaforo", "app.js")
+APP_JS = [("05_Funcional", "App_Semaforo") + r for r in (("js", "luces_tablas.js"), ("js", "luces.js"), ("app.js",))]
 
 # Las dos tablas de la app, por el nombre con el que estan declaradas en el fuente. No
 # es una lista de valores escrita a mano -los valores se leen de dentro-: es la
@@ -223,7 +223,7 @@ def _modos_de_la_punta(fw, punta):
 def correr(b, fw):
     b.titulo("Los VALORES de ESTADO: y MODO:, del C++ contra lo que la app sabe pintar")
 
-    js = fw.texto_repo(*APP_JS)
+    js = "\n".join(fw.texto_repo(*r) for r in APP_JS)   # tablas y pintores en js/ (SPEC_4 9.12 tanda 2)
 
     # ---- 1. El enum de ESTADO, leido de las dos puntas ----
     estados = {}

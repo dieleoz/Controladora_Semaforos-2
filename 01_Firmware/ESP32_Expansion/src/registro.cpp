@@ -157,7 +157,7 @@ void registro_volcar() {
     }
     if (teniaDatos) {
       uint32_t sig = seqEn((ranura + POR_SECTOR) % ranuras);
-      primero = vale(sig) ? sig : r->seq;
+      primero = vale(sig) ? sig : 0;   // D-114: el seq nuevo, solo tras ESP_OK (abajo)
     }
   }
   if (esp_partition_write(part, ranura * REGISTRO_REG_B, r, REGISTRO_REG_B) != ESP_OK) {

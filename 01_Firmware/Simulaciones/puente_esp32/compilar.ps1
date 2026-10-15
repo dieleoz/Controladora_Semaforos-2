@@ -67,7 +67,7 @@ function Construir($punta, $carpeta, $fuentes, $exe) {
 
 Write-Host "Compilando el bluetooth.cpp REAL de las dos puntas..." -ForegroundColor Cyan
 Construir 'MAESTRO' 'Maestro' `
-    @('bluetooth','semaforo','coordinador','modo_automatico','modos','demanda','identidad') `
+    @('bluetooth','semaforo','coordinador','modo_automatico','modos','demanda','identidad','modo_noche') `
     'arnes_maestro.exe'
 # A-11 (05/09): modo_degradado.cpp ENTRA EN LA LISTA. bluetooth.cpp del Esclavo gano
 # SET_MODO:DEGRADADO, o sea que ya no solo LEE el modo: le pide la entrada y compone un

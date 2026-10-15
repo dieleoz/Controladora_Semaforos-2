@@ -246,11 +246,11 @@ EstadoCristal reloj_estadoCristal() {
   if (!rlj_cristal) return RELOJ_CRISTAL_SIN_CRISTAL;
   return (EstadoCristal)rlj_estadoCristal;
 }
-void reloj_ajustarFranjaNocturna(uint8_t, uint8_t) {}
-uint8_t reloj_inicioNoche() { return 22; }
-uint8_t reloj_finNoche() { return 5; }
-bool reloj_esHorarioNocturno() { return false; }
-
+#if defined(PUNTA_MAESTRO)   // N-179: modo_noche.cpp real; sin fecha (testigo2.inc) no entra nunca
+#include "noche_flash.h"
+bool nocheFlash_leer(NocheConfig*) { return false; }
+bool nocheFlash_escribir(const NocheConfig*) { return true; }
+#endif
 // D-13 fase 1 (05/09): el campo CAM: del $STATUS, sustituido en las DOS puntas.
 //
 // botones.cpp NO se compila aqui -este arnes mide el contrato del puente, no el

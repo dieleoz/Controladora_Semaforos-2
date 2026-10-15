@@ -59,12 +59,6 @@ uint32_t reloj_segundosDesde2000() {
 // parecer fresca una siembra de hace mes y medio. Ver reloj.h.
 static bool siembraCaducada = false;
 
-// Franja nocturna. Todavia NO se usa para nada: la operacion intermitente por
-// horario quedo aplazada a peticion del cliente (31/07/2026), porque el horario
-// no es el mismo en todas las obras. Se deja el almacenamiento listo.
-static uint8_t nocheInicio = 22;
-static uint8_t nocheFin = 5;
-
 // Espera acotada a que arranque el oscilador del cristal Y2.
 static const uint32_t ESPERA_LSE_MS = 2000;
 
@@ -495,22 +489,3 @@ bool reloj_guardarFechaEsp32(const char* str) {
   diaAbsBase = d;
   return true;
 }
-
-// D-103: sin llamador; se construye en N-179 sobre este andamio (reloj.h).
-void reloj_ajustarFranjaNocturna(uint8_t horaInicio, uint8_t horaFin) {
-  if (horaInicio > 23 || horaFin > 23) return;
-  nocheInicio = horaInicio; nocheFin = horaFin;
-}
-
-uint8_t reloj_inicioNoche() { return nocheInicio; }
-uint8_t reloj_finNoche() { return nocheFin; }
-
-bool reloj_esHorarioNocturno() {
-  if (!horaValida) return false;  // sin hora fiable, nunca
-  uint8_t h = reloj_hora();
-  if (nocheInicio == nocheFin) return false;
-  if (nocheInicio < nocheFin) return (h >= nocheInicio && h < nocheFin);
-  return (h >= nocheInicio || h < nocheFin);  // franja que cruza medianoche
-}
-
-

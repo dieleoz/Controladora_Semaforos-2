@@ -60,6 +60,7 @@ $fuentesMaestro = @(
     (Join-Path $MAESTRO 'src\coordinador.cpp'),
     (Join-Path $MAESTRO 'src\semaforo.cpp'),
     (Join-Path $MAESTRO 'src\modo_automatico.cpp'),
+    (Join-Path $MAESTRO 'src\modo_noche.cpp'),      # N-179: el modo noche REAL
     (Join-Path $AQUI 'deg_auto_doble_maestro.cpp'),   # A-15: ver su cabecera
     (Join-Path $DP 'adaptador_maestro.cpp')
 )

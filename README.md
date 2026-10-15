@@ -51,6 +51,8 @@ entonces cada lector deriva su propia versión.
 
 | | qué contesta |
 |---|---|
+| [`SPEC_0_El_Sistema`](05_Funcional/SPEC_0_El_Sistema.md) | la vista del sistema: qué es, cómo se pone un cruce a funcionar y lo que el equipo no hace (§5) |
+| [`SPEC_7_Modo_Sin_Reloj`](05_Funcional/SPEC_7_Modo_Sin_Reloj.md) | el modo sin reloj y sin radio: el veredicto es que **no se construye** |
 | [`SPEC_1_Ciclo_y_Luces`](05_Funcional/SPEC_1_Ciclo_y_Luces.md) | qué hace **un** poste con sus tres luces y su pluma: modos, tiempos, transiciones, la barrera de salidas |
 | [`SPEC_2_Dos_Puntas_y_Radio`](05_Funcional/SPEC_2_Dos_Puntas_y_Radio.md) | 🔴 **lo único de verdad difícil: que los dos postes NUNCA den verde a la vez**, con una radio lenta que pierde tramas y sin cable entre ellos; y sin radio, el Degradado con testigo (§7.bis) y el **automatico a eleccion del tecnico** (§7.ter, 29/09) |
 | [`SPEC_3_La_Hora`](05_Funcional/SPEC_3_La_Hora.md) | de dónde sale la hora y qué pasa cuando se pierde — **es lo que autoriza el Degradado**, o sea el modo que da verdes sin confirmar con la otra punta |
@@ -101,22 +103,22 @@ publicaba 32 rutas y 86,4 % de flash cuando el acta que ella misma citaba medía
 
 | Comprobación | Estado | |
 |---|---|---|
-| guarda de rutas de los instrumentos | ✅ | 63 rutas parseadas, todas existen |
-| banco por packs *(70 packs)* | 🔴 **FALLA** | **1456/1461 comprobaciones en 70 packs** — 69 PASS, **1 FALLA**. `decisiones_01_anclas` acusa a **`D-22`** (necesita una tarjeta delante) y a **`D-94`..`D-97`** (decididas por Fable el 14/10, sin construir); no se decora (`CLAUDE.md` §1) |
-| compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **72.1 %** · 64.0 % · 20.6 % · 35.8 % — *el Maestro ocupa **46544 de 64512 B** (la ultima pagina queda para el testigo de `D-35`); el Esclavo, **41276 B**. Bajo al quitar la libreria RTC (`N-172`) y subio con la salida programada (`D-52`) y el verde del testigo (`D-59`)* |
+| guarda de rutas de los instrumentos | ✅ | 64 rutas parseadas, todas existen |
+| banco por packs *(70 packs)* | 🔴 **FALLA** | **1477/1482 comprobaciones en 70 packs** — 69 PASS, **1 FALLA**. `decisiones_01_anclas` acusa a **`D-22`** (necesita una tarjeta delante) y a **`D-94`..`D-97`** (decididas por Fable el 14/10, sin construir); no se decora (`CLAUDE.md` §1) |
+| compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **78.6 %** · 65.3 % · 20.6 % · 35.8 % — *el Maestro ocupa **49908 de 63488 B** (las dos ultimas paginas quedan para las franjas de noche, `D-108`, y el testigo de `D-35`); el Esclavo, **41468 B**. Bajo al quitar la libreria RTC (`N-172`) y subio con la salida programada (`D-52`) y el verde del testigo (`D-59`)* |
 | simulador funcional | ✅ | 9/9 — eran 20, y 11 de aquellas no medían nada: se retiraron una a una con su evidencia |
 | simulador de repetidor | ✅ | 10/10 |
-| compila ESP32 | ✅ | 35.8 % — 1126397 de 3.145.728 B |
+| compila ESP32 | ✅ | 35.8 % — 1126409 de 3.145.728 B |
 | simulador del puente ESP32 | ✅ | **156/156** — las tres puntas: `bluetooth.cpp` compilado, la app en jsdom, y solo el ESP32 modelado |
 | simulador de app y bluetooth | ✅ | **12/12** — estuvo en `ABORTADO` unas horas el 05/09: **N-149** le añadió el campo `ESC` al `$STATUS` y el instrumento no supo con qué compararlo. Se enseñó a leerlo el mismo día. Queda escrito porque **mientras duró, todo lo que vigilaba entró sin mirar** (`CLAUDE.md` §1) |
-| **app ejecutada en DOM** | ✅ | **721/721** — carga `index.html` en jsdom, más `app.js` y **los `js/*.js` que el propio HTML declara, en su orden**, y los **ejercita**: pestañas, modales, ingesta de telemetría, *fuzzing* de 200 tramas corruptas y los botones que mandan comandos. Es el único instrumento que **ejecuta** la app en vez de leerla |
+| **app ejecutada en DOM** | ✅ | **763/763** — carga `index.html` en jsdom, más `app.js` y **los `js/*.js` que el propio HTML declara, en su orden**, y los **ejercita**: pestañas, modales, ingesta de telemetría, *fuzzing* de 200 tramas corruptas y los botones que mandan comandos. Es el único instrumento que **ejecuta** la app en vez de leerla |
 | test funcional de la app | ✅ | **70/70** — decía «22/22» a mano y ejecuta 34; su prueba de Courier RTC era una tautología |
-| test unitarios TDD de la app | ✅ | **90/90** — la **segunda** suite unitaria, que hasta el 01/09 **no estaba en la compuerta**: 23 pruebas verdes que no medían nada. *(Esta fila publicó `55/55` hasta el 07/09: era la cifra del 02/09, y `documentos_01` **no la vigila** — no está en su tupla `CIFRAS`.)* |
+| test unitarios TDD de la app | ✅ | **91/91** — la **segunda** suite unitaria, que hasta el 01/09 **no estaba en la compuerta**: 23 pruebas verdes que no medían nada. *(Esta fila publicó `55/55` hasta el 07/09: era la cifra del 02/09, y `documentos_01` **no la vigila** — no está en su tupla `CIFRAS`.)* |
 | test unitarios de la app | ✅ | **67/67** — seis suites que no cargan el navegador: NMEA y *checksums*, generador de comandos y barrera de PIN, validación de `SET_TIEMPOS`, Courier RTC, gestor de cruces y escala de 20 cruces |
 | arnés del ciclo | ✅ | **78/78** — corre sobre el `ciclo_degradado.h` real compilado, sin espejo en Python |
 | arnés del respaldo | ✅ | compila el `calcularSuma()` real; identidad de `respaldo.cpp` entre puntas + prueba de vida |
 | arnés del Degradado a dos puntas | ✅ | **158/158** — las dos puntas en Degradado **cada una con su reloj**. Entrega **el número**: el cruce aguanta **29 s** de desfase contra los **20,2 s** que el equipo puede acumular en 48 h, o sea factor **1,44** — y no el 2 que afirmaban los comentarios de las dos puntas |
-| arnés de las dos puntas | ✅ | **127/127** — el C++ **real de las DOS puntas** en el mismo proceso y el mismo instante: verde simultáneo en **0** instantes. Cubre `G3`/`N-163` (suelta del verde), `D-34` (verde del Esclavo frente al ámbar del Maestro, `G12`–`G14`) y `D-53` (rojo+amarillo antes de cada verde). Sin banco |
+| arnés de las dos puntas | ✅ | **171/171** — el C++ **real de las DOS puntas** en el mismo proceso y el mismo instante: verde simultáneo en **0** instantes. Cubre `G3`/`N-163` (suelta del verde), `D-34` (verde del Esclavo frente al ámbar del Maestro, `G12`–`G14`) y `D-53` (rojo+amarillo antes de cada verde). Sin banco |
 | arnés del automático | ✅ | **88/88** — compila `coordinador.cpp` + `semaforo.cpp` + `modo_automatico.cpp` + `modo_inteligente.cpp`, `demanda.cpp` y el `botones.cpp` real, y comprueba SFTY-2 sobre las escrituras de pin. Las 16 nuevas son el **Bloque G de `D-33`**: el retardo de bajada de la pluma y el veto de la cámara, ejecutados |
 
 > 🛑 **Aquí había una fila más, `arnés de pantalla`, y NO se actualiza: se RETIRA.** Compilaba los cuatro
@@ -407,7 +409,8 @@ cerrar.)*
   packs *(cuántos, en el acta)*.
 - [`01_Firmware/Validacion_LCD/`](01_Firmware/Validacion_LCD) · `_Ciclo/` · `_Respaldo/` ·
   `_Automatico/`: los arneses que compilan C++ real. Qué compila cada uno y su punto ciego:
-  [`ARQUITECTURA.map`](ARQUITECTURA.map).
+  [`ARQUITECTURA.map`](ARQUITECTURA.map); su crónica,
+  [`ARQUITECTURA_hist.map`](05_Funcional/historico/ARQUITECTURA_hist.map).
 - [`01_Firmware/compuerta.py`](01_Firmware/compuerta.py): **la única forma correcta de
   verificar** — `18 PASS · 1 FALLA · 0 ABORTADO`, exit code 1. Las cifras están en la tabla de
   arriba, que se copia del acta; ésta es sólo la puerta. Qué se corre según lo que se toca (la

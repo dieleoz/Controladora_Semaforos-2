@@ -16,6 +16,7 @@
 #include "semaforo.h"
 #include "bluetooth.h"
 #include "deg_auto.h"   // A-15: el Degradado automatico (SPEC_2 7.ter)
+#include "modo_noche.h" // D-106..D-111: el modo noche (SPEC_0 5.10)
 #include <IWatchdog.h> // SFTY-1: Watchdog Timer
 
 // FASE 1 DEL PLAN DE ARQUITECTURA: aqui vivia el ultimo resto de la vieja maquina de
@@ -90,6 +91,7 @@ void setup() {
   // Sale por el conector J17 -p3 y p2-, que es enchufable; PA9/PA10 no llegan
   // a ninguna bornera. Ver el porque en bluetooth.cpp.
   bluetooth_setup();
+  modoNoche_cargar();   // D-108: las franjas, de su pagina de flash
 
   // N-20: la decision de reanudar se consulta AQUI, ANTES de publicar la
   // configuracion, y el orden es de fondo. modo_degradado_publicarConfig() guarda el
@@ -238,6 +240,7 @@ void loop() {
   // A-15: cuenta y entrada del Degradado automatico, y PRESENTE en Degradado. Antes de
   // leer 'modo', por lo mismo que la reanudacion de arriba.
   degAuto_loop();
+  modoNoche_vigilar();   // D-111: los flancos, antes de leer el modo de esta vuelta
 
   ModoSistema modo = modoActual_get();
   if (modo != MODO_AUTOMATICO && modo != MODO_DEGRADADO && modo != MODO_AMBAR) {
@@ -338,6 +341,7 @@ void loop() {
     if (modoAnterior == MODO_DEGRADADO) {
       respaldo_guardarDegradado(false);
     }
+    if (modoAnterior == MODO_NOCHE) modoNoche_alSalir();   // D-111: quita el veto de verde
 
     switch (modo) {
       case MODO_MANUAL:      modoManual_setup();      break;
@@ -347,6 +351,7 @@ void loop() {
       case MODO_DEGRADADO:   modo_degradado_setup();  break;
       case MODO_AMBAR:       modo_ambar_setup();      break;
       case MENU:             menu_setup();            break;
+      case MODO_NOCHE:       modoNoche_setup();       break;
     }
     modoAnterior = modo;
   }
@@ -359,6 +364,7 @@ void loop() {
     case MODO_ALCANCE:    modoAlcance_loop();     break;
     case MODO_DEGRADADO:  modo_degradado_loop();  break;
     case MODO_AMBAR:      modo_ambar_loop();      break;
+    case MODO_NOCHE:      modoNoche_loop();       break;
   }
 
 }

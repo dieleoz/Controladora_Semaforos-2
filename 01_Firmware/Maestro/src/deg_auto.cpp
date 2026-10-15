@@ -22,7 +22,8 @@ static bool salioSinIntercambio = false;   // salio del Degradado y no ha oido u
 static bool puertaAbierta() {
   const ModoSistema m = modoActual_get();
   return respaldo_degAuto() && !respaldo_rendido() && !salioSinIntercambio &&
-         (m == MODO_AUTOMATICO || m == MODO_INTELIGENTE) && modo_degradado_syncFresca();
+         (m == MODO_AUTOMATICO || m == MODO_INTELIGENTE || m == MODO_NOCHE) &&   // D-107: noche, como AUTO
+         modo_degradado_syncFresca();
 }
 
 // (a) APTO del Maestro = "mi puerta automatica me aceptaria AHORA" (responsable, 29/09, H4):

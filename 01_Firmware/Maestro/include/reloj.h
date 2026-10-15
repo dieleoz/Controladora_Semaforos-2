@@ -481,17 +481,7 @@ bool reloj_horaFiable();
 // cuando la hora deja de valer. Queda como decision abierta del responsable, con la medida
 // delante, en roadmap.md 3.10.bis.
 
-// --- Franja nocturna configurable -----------------------------------------
-//
-// Andamio SFTY-20 sin llamador. D-103 (modo noche por dias y franja): se construye en
-// N-179 sobre este andamio. Hoy la franja vive solo en RAM (revierte a 22-05 tras un
-// corte) y D-103 exige que sobreviva: SPEC_0 5.10 y OPTIMIZACIONES.md SFTY-20.
-void reloj_ajustarFranjaNocturna(uint8_t horaInicio, uint8_t horaFin);
-uint8_t reloj_inicioNoche();
-uint8_t reloj_finNoche();
-
-// True si la hora actual cae dentro de la franja nocturna.
-// Devuelve SIEMPRE false si el reloj no esta en hora (ver reloj_enHora).
-// Contempla franjas que cruzan la medianoche, p. ej. 22:00 -> 05:00.
-bool reloj_esHorarioNocturno();
+// D-103 / N-179: la franja nocturna en RAM (andamio SFTY-20, 22-05) SALIO de aqui. El modo
+// noche guarda cuatro franjas por dia de la semana en flash y decide por flanco de minuto:
+// modo_noche.cpp y noche_flash.cpp (D-108, D-111).
 

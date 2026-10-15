@@ -15,6 +15,7 @@
 #include "protocolo.h"     // D-23 gemelo: los tres contadores de linea de SFTY-15
 #include "version_fw.h"    // el sello del binario, inyectado por platformio.ini
 #include "deg_auto.h"      // A-15: SET_DEG_AUTO / CONSULTA_DEG_AUTO
+#include "modo_noche.h"    // D-110: SET_NOCHE / SET_NOCHE_TR / CONSULTA_NOCHE
 #include "respaldo.h"      // A-15: la opcion propia y el APTO oido del otro, para la consulta
 #include <string.h>
 #include <stdio.h>
@@ -569,6 +570,9 @@ static void procesarComando(const char* cmd) {
   if (strcmp(cmd, "$LATIDO") == 0) {
     return;
   }
+  // D-110/D-111: las ordenes de noche y, en la noche, las salidas; antes del rojo sin PIN, que
+  // en la noche saca del modo. Lo que no contesta aqui sigue por el despachador de siempre.
+  if (modoNoche_orden(cmd, enviarTramaConCrc)) return;
 
   // SFTY - EL ROJO DE EMERGENCIA NO PIDE PIN, Y ES DELIBERADO: "lo seguro, facil; lo peligroso, dificil". Detener el
   // trafico es la accion SEGURA y una clave solo retrasa a quien ve el incidente; el PIN guarda lo que ABRE paso. La
@@ -903,18 +907,11 @@ static void procesarComando(const char* cmd) {
     //
     // EL %c DE MAS NO SE LEE NUNCA: ESTA PARA QUE sscanf DELATE LO QUE SOBRA.
     //
-    // sscanf cuenta CAMPOS CONVERTIDOS y no exige que la cadena se acabe: se lleva sus
-    // tres numeros y se desentiende de lo que venga pegado detras. Con dos ordenes en el
-    // mismo buffer -"8,8,50CMD:FORZAR_ROJO", que es lo que queda cuando una trama entra a
-    // medias y la siguiente se le concatena- esto convertia 3 y entraba como si fuera una
-    // trama limpia: el equipo ejecutaba la VIEJA, contestaba OK con el nombre de la vieja,
-    // y la que el operario acababa de pulsar -que puede ser el rojo de emergencia- se
-    // perdia sin un solo aviso.
-    //
-    // Con el %c detras la cuenta separa los dos casos: una cadena que se acaba convierte
-    // 3 -el %c se queda sin nada que leer-, y una con basura pegada convierte 4. Se exige
-    // el 3 EXACTO, y todo lo demas se rechaza por formato: ante dos ordenes pegadas la
-    // respuesta segura es no ejecutar ninguna y decirlo, no adivinar cual era.
+    // sscanf cuenta CAMPOS CONVERTIDOS y no exige que la cadena se acabe: con dos ordenes
+    // pegadas -"8,8,50CMD:FORZAR_ROJO", una trama a medias y la siguiente detras- convertia
+    // 3, ejecutaba la VIEJA con OK y perdia la nueva (quiza el rojo de emergencia). Con el
+    // %c una cadena limpia convierte 3 y una con basura 4: se exige el 3 EXACTO y lo demas
+    // es FORMATO_INVALIDO; ante dos ordenes pegadas no se ejecuta ninguna y se dice.
     int v = 0, r = 0, d = 0;
     char sobra = 0;
     if (sscanf(accion + 12, "%d,%d,%d%c", &v, &r, &d, &sobra) != 3) {
@@ -1051,6 +1048,7 @@ static const char* obtenerNombreModo(ModoSistema m) {
     case MODO_ALCANCE: return "ALCANCE";
     case MODO_DEGRADADO: return "DEGRADADO";
     case MODO_AMBAR: return "AMBAR";
+    case MODO_NOCHE: return "NOCHE";   // D-110
     default: return "DESCONOCIDO";
   }
 }

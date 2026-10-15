@@ -22,7 +22,8 @@ enum EstadoCoord {
   C_ESPERANDO_ACK_RED,
   C_ESPERA_ESTATICO_TRAS_ESCLAVO,
   C_MASTER_A_VERDE,
-  C_FALLO
+  C_FALLO,
+  C_NOCHE   // D-107: el destello del modo noche, tras su todo-rojo (SPEC_0 5.10 (e))
 };
 
 enum QuienVerde { QV_NINGUNO, QV_MASTER, QV_ESCLAVO };
@@ -54,6 +55,11 @@ static bool rojoEsclavoConfirmado = false;
 // sin verde asignado y sin el rojo del otro lado acusado- es INDISTINGUIBLE del ROJO TOTAL
 // deliberado (coordinador_forzarRojoTotal), que debe quedarse quieto indefinidamente.
 static bool verdeSoltadoPorMargen = false;
+
+// D-111 (SPEC_0 5.10 (e), (f)): lo pone modo_noche.cpp durante la noche ENTERA -entrada,
+// destello y salida-: ningun camino de este fichero abre un verde mientras valga.
+static bool vetoVerde = false;
+static uint8_t paramNoche = 0;  static unsigned long tNocheEnviado = 0;  static bool nocheSinRadioAvisado = false;
 
 // SFTY-4 (Safety Case): Tiempo de Despeje / All-Red
 static unsigned long tiempoDespejeMs = 15000;
@@ -838,6 +844,7 @@ void coordinador_iniciarModo() {
 // contra verde. Dos formas de dar paso serian dos criterios de despeje.
 void coordinador_pedirCambio() {
   if (estadoC != C_IDLE) return;
+  if (vetoVerde) return;   // D-111: en la noche no se da paso
 
   // N-163: si alguien pide cambio, la reanudacion pendiente sobra -este cambio hace su
   // trabajo-. Y sobre todo: la marca NO puede sobrevivir a un cambio de fase. Sin esta
@@ -1107,7 +1114,12 @@ void coordinador_actualizar() {
     // en verde, el ROJO TOTAL -el de emergencia, el de entrar en Manual- no llegaba nunca
     // al otro lado mientras los PING le mantenian vivo el verde.
     const bool rojoSinConstar = (quienVerde == QV_NINGUNO && !rojoEsclavoConfirmado);
-    if (rojoSinConstar || estadoC == C_MENU_IDLE || estadoC == C_FALLO) {
+    if (estadoC == C_NOCHE) {   // D-107: PING, y CMD_GO_NOCHE en el latido que pase de 10 s
+      const bool toca = millis() - tNocheEnviado >= NOCHE_REENVIO_MS;
+      if (toca) tNocheEnviado = millis();
+      protocolo_enviarPaquete(toca ? CMD_GO_NOCHE : CMD_PING, toca ? paramNoche : 0);
+      respuestaEsperada = CMD_PONG;   // el Esclavo contesta PONG a las dos
+    } else if (rojoSinConstar || estadoC == C_MENU_IDLE || estadoC == C_FALLO) {
       protocolo_enviarPaquete(CMD_GO_RED); // Exige Rojo Fijo en Esclavo durante Menú o Fallo
       respuestaEsperada = CMD_ACK_RED;     // el Esclavo confirma el Rojo
     } else {
@@ -1190,7 +1202,10 @@ void coordinador_actualizar() {
 
     if (!tieneComunicacion) {
       if (tUltimaRespuestaEsclavo > 0 || millis() > SFTY6_SILENCIO_MS) {
-        if (estadoC != C_FALLO) {
+        if (estadoC == C_NOCHE) {   // D-107: el destello no depende de la radio; el Esclavo hace lo suyo
+          if (!nocheSinRadioAvisado) bluetooth_reportarAlarma("FALLO_RF", "SILENCIO_EN_NOCHE", "SIGUE_EN_NOCHE");
+          nocheSinRadioAvisado = true;
+        } else if (estadoC != C_FALLO) {
           // N-73: ver la nota larga en Esclavo/src/main.cpp. La Caja Negra estaba
           // declarada y sin llamar en las dos puntas. Esta es una de las DOS puertas
           // por las que el Maestro cae a ambar, y se distinguen en la causa: por aqui
@@ -1408,7 +1423,7 @@ void coordinador_actualizar() {
       // reintento ni parezca radio mala; las demas, TIMEOUT_ACK_MS como siempre (D-48).
       if (llego && pkt.command == CMD_ACK_RED) {
         tRef = millis();
-        estadoC = C_ESPERA_ESTATICO_TRAS_ESCLAVO;
+        estadoC = vetoVerde ? C_IDLE : C_ESPERA_ESTATICO_TRAS_ESCLAVO;   // D-111: rojo, sin verde
       } else if (millis() - tEsperandoAck >
                  TIMEOUT_ACK_MS + (retryCount == 0 ? AMARILLO_MS : 0UL)) {
         retryCount++;
@@ -1451,6 +1466,10 @@ void coordinador_actualizar() {
         semaforo_iniciarFallo();
       }
       break;
+    case C_NOCHE:
+      semaforo_iniciarNoche(false);   // idempotente
+      if (tieneComunicacion) nocheSinRadioAvisado = false;
+      break;
   }
 
   // SFTY-23: al final y no antes. El ciclo ya decidio si necesitaba el bus en esta
@@ -1465,7 +1484,28 @@ void coordinador_actualizar_background() {
 }
 
 bool coordinador_listoParaContar() {
-  return estadoC == C_IDLE;
+  return estadoC == C_IDLE && !vetoVerde;   // D-111
+}
+
+void coordinador_vetarVerde(bool v) {
+  vetoVerde = v;
+  if (!v && estadoC == C_NOCHE) estadoC = C_IDLE;   // el destino pone su luz en su setup()
+}
+
+bool coordinador_rojoConstaEnLosDos() {
+  return estadoC == C_IDLE && quienVerde == QV_NINGUNO && rojoEsclavoConfirmado &&
+         semaforo_estado() == S_ROJO;
+}
+
+bool coordinador_entrarNoche(bool rojoPoste2) {
+  if (!vetoVerde || !coordinador_rojoConstaEnLosDos() || !semaforo_iniciarNoche(false)) return false;
+  paramNoche = rojoPoste2 ? NOCHE_ROJO_INT : 0;
+  rojoEsclavoConfirmado = false;   // desde aqui el Esclavo destella: su rojo ya no consta
+  nocheSinRadioAvisado = false;
+  protocolo_enviarPaquete(CMD_GO_NOCHE, paramNoche);
+  tNocheEnviado = millis();
+  estadoC = C_NOCHE;
+  return true;
 }
 
 bool coordinador_comunicacionPerdida() {
@@ -1516,7 +1556,7 @@ const char* coordinador_estadoEsclavo() {
   // lee la radio -ni con enlace vivo-; el GO_RED de entrada es una orden sin acuse. Lo
   // que quedara en quienVerde es el ultimo valor, no una medida: se publica "?".
   if (modoActual_get() == MODO_DEGRADADO) return "?";
-  if (estadoC == C_FALLO) return "?";
+  if (estadoC == C_FALLO || estadoC == C_NOCHE) return "?";   // D-110: lo publica el Esclavo
   // N-162 (cinta del Sisga, 10/09, 12:20:54-12:21:10): quienVerde se queda en QV_ESCLAVO
   // hasta que el Maestro llega a VERDE, pero el Esclavo YA esta en rojo desde que llego
   // su ACK_RED. Sin esto la trama publicaba ESC:VERDE durante todo el despeje y durante
@@ -1535,59 +1575,19 @@ const char* coordinador_nombreEstadoMaster() {
 
 // --- T: del $STATUS: lo que FALTA, no lo que lleva encendido (04/09) --------
 //
-// EL CENSO, QUE ES LO QUE DECIDE ESTA FUNCION Y NO UNA PREFERENCIA. De los once
-// estados de EstadoCoord, este fichero es dueno del plazo en TRES. En los otros ocho
-// el plazo vive en otro sitio, o no existe, y por eso devuelven SIN_CUENTA_ATRAS en
-// vez de un numero que habria que inventarse:
+// EL CENSO DECIDE: este fichero es dueno del plazo en TRES estados, los del todo-rojo de
+// despeje (SFTY-4: C_INICIAL_ESPERA_ESTATICO y C_ESPERA_ESTATICO_TRAS_*), y la cuenta es LA
+// MISMA condicion que dispara la transicion en coordinador_actualizar(). Los demas devuelven
+// SIN_CUENTA_ATRAS: *_A_VERDE dura una vuelta (D-45); C_MASTER_A_ROJO lo cronometra
+// semaforo.cpp; C_ESPERANDO_ACK_* reintentan al agotarse (una cuenta que llega a cero y no
+// cambia nada ensena a no mirarla); C_IDLE es la fase larga y su plazo vive en
+// modo_automatico.cpp/modo_inteligente.cpp (coordinador_configurar() tira minRojoMs y
+// minVerdeMs: reconstruirla aqui seria una segunda copia del ciclo); C_MENU_IDLE, C_FALLO
+// (SFTY-6) y C_NOCHE (D-107) no tienen fase que termine.
 //
-//   C_INICIAL_ESPERA_ESTATICO      SI. Es el todo-rojo de despeje (SFTY-4). El plazo
-//   C_ESPERA_ESTATICO_TRAS_MASTER  es tRef + tiempoDespejeMs, y la cuenta de abajo NO
-//   C_ESPERA_ESTATICO_TRAS_ESCLAVO es una copia de nada: es LA MISMA condicion que
-//                                  dispara la transicion en el switch de
-//                                  coordinador_actualizar(). Si una cambia, la otra
-//                                  deja de compilar o deja de coincidir a la vista.
-//
-//   C_INICIAL_MASTER_A_VERDE   NO. El verde abre directo (D-45): dura una vuelta.
-//   C_MASTER_A_VERDE
-//   C_MASTER_A_ROJO            NO. El amarillo de cierre lo cronometra semaforo.cpp.
-//
-//   C_ESPERANDO_ACK_GREEN      NO. Hay plazo -TIMEOUT_ACK_MS- pero NO ES EL FIN DE LA
-//   C_ESPERANDO_ACK_RED        FASE: al agotarse se REINTENTA, hasta CICLO_MAX_REINTENTOS
-//                              veces. Una cuenta atras que llega a cero y no cambia
-//                              nada ensena a no mirarla, igual que un FALLA permanente.
-//
-//   C_IDLE                     NO, Y ES EL CASO QUE MAS DUELE, porque es la fase larga:
-//                              el verde o el rojo de 3 a 15 minutos. Su plazo NO VIVE
-//                              AQUI. Lo lleva tEstadoDesde en modo_automatico.cpp -y su
-//                              gemelo en modo_inteligente.cpp-, que es quien decide
-//                              cuando llamar a coordinador_pedirCambio(). Este fichero
-//                              recibe minRojoMs y minVerdeMs en coordinador_configurar()
-//                              y LOS TIRA: mirese la firma, los dos parametros no tienen
-//                              ni nombre. Reconstruir la cuenta aqui seria una segunda
-//                              copia del ciclo escrita a mano que nadie sincroniza -lo
-//                              que este repositorio ya pago tres veces-, y ademas
-//                              mentiria en dos de los tres modos: en Manual la fase
-//                              acaba cuando alguien pulsa, y en Inteligente cuando una
-//                              camara ve un coche, con el tiempo configurado como
-//                              MAXIMO y no como duracion. Cerrarlo pide que el modo
-//                              publique su propio plazo; no cabe dentro de este fichero.
-//
-//   C_MENU_IDLE                NO. Rojo fijo o ambar por menu: no hay fase que termine.
-//   C_FALLO                    NO. Ambar intermitente por SFTY-6; termina cuando vuelva
-//                              el enlace, y cuando eso pase no lo sabe nadie.
-//
-// Y LA GUARDA DE MODO NO ES DEFENSA POR SI ACASO: ESTA MEDIDA. En MODO_DEGRADADO y en
-// MODO_AMBAR el Maestro calla en la radio a proposito, asi que main.cpp EXCLUYE a los
-// dos de coordinador_actualizar_background() y estadoC se queda CONGELADO en el valor
-// que tuviera al entrar. Si eso fue uno de los tres despejes, la resta de abajo daria
-// 0 para siempre: "la fase se acaba ahora mismo", publicado cada 2 s durante horas.
-// El Degradado tiene su propia cuenta atras -ciclo_degradado_restante()- y no pasa por
-// aqui; mientras no la publique nadie, lo unico cierto en esos dos modos es "--".
-//
-// LA CUENTA ES PISO, NO REDONDEO. Vale exactamente N en el instante de entrar en la
-// fase y 0 durante el ultimo segundo; al cambiar la fase pasa a SIN_CUENTA_ATRAS. Asi
-// el numero que ve el operario nunca es MAYOR que lo que de verdad queda, que es la
-// direccion segura de equivocarse en un semaforo.
+// LA GUARDA DE MODO ESTA MEDIDA: en MODO_DEGRADADO y MODO_AMBAR main.cpp no llama a
+// coordinador_actualizar_background() y estadoC se CONGELA; un despeje congelado daria 0 para
+// siempre. LA CUENTA ES PISO, NO REDONDEO: nunca MAYOR que lo que queda.
 int coordinador_segundosRestantesFase() {
   const ModoSistema modo = modoActual_get();
   if (modo == MODO_DEGRADADO || modo == MODO_AMBAR) return SIN_CUENTA_ATRAS;

@@ -100,19 +100,20 @@ def _condicion_pluma(cuerpo):
     return m.group(1).strip(), m.group(2), m.group(3)
 
 
-def _evaluar_pluma(cond, bandera, verde, test, fallo, amarillo=False, ra=False):
+def _evaluar_pluma(cond, bandera, verde, test, fallo, amarillo=False, ra=False, ai=False):
     """Evalua la condicion REAL del C++ con la tabla de verdad dada.
 
     No se reescribe la logica en Python -eso seria una segunda copia que alguien
     tendria que sincronizar, que es el defecto que este banco persigue-: se traduce
     la expresion y se evalua tal cual esta escrita en el fuente."""
-    py = re.sub(r"estado\s*==\s*S_FALLO", "ES_FALLO", cond)
+    py = re.sub(r"estado\s*==\s*S_FALLO", "ES_FALLO", " ".join(cond.split()))   # N-179: dos lineas
     py = re.sub(r"estado\s*==\s*S_ROJO_AMARILLO", "ES_RA", py)    # D-53: antes que S_AMARILLO
     py = re.sub(r"estado\s*==\s*S_AMARILLO", "ES_AMARILLO", py)   # D-45: el cierre
+    py = re.sub(r"estado\s*==\s*S_(?:AMBAR|ROJO)_INT", "ES_AI", py)   # D-110: los destellos de la noche
     py = py.replace("&&", " and ").replace("||", " or ").replace("!", " not ")
     return bool(eval(py, {"__builtins__": {}},  # noqa: S307
                      {"verde": verde, bandera: test, "ES_FALLO": fallo,
-                      "ES_AMARILLO": amarillo, "ES_RA": ra}))
+                      "ES_AMARILLO": amarillo, "ES_RA": ra, "ES_AI": ai}))
 
 
 def correr(b, fw):
@@ -324,7 +325,7 @@ def correr(b, fw):
 
     desconocidos = sorted(set(_IDENT.findall(expr)) -
                           {"verde", bandera, "estado", "S_FALLO", "S_AMARILLO",
-                           "S_ROJO_AMARILLO"})   # D-53: se evalua como ES_RA
+                           "S_ROJO_AMARILLO", "S_AMBAR_INT", "S_ROJO_INT"})   # D-53: ES_RA; D-110: ES_AI
     if desconocidos:
         raise fw.Abortado(
             "la condicion de la pluma menciona %s, que este pack no sabe evaluar. Una "
@@ -382,16 +383,16 @@ def correr(b, fw):
         "la excepcion de S_FALLO se perdio: con el equipo sin enlace la barrera se "
         "quedaria ABAJO, cerrando la via por completo, que es la politica CONTRARIA a "
         "la decidida")
+    b.verificar(
+        _evaluar_pluma(expr, bandera, False, False, False, ai=True) and
+        _evaluar_pluma(expr, bandera, False, True, False, ai=True),
+        "D-110: en S_AMBAR_INT (el destello del modo noche) la pluma SUBE, como en S_FALLO",
+        "D-110: en el destello de la noche la condicion de la pluma da ABAJO; SPEC_0 5.10 (a) "
+        "la quiere ARRIBA en los dos durante la franja")
 
-    # ---- 7.bis. LA RAMA QUE D-33 CREO, Y LA UNICA PREGUNTA QUE HAY QUE HACERLE ----
-    #
-    # El retardo y el veto son EXCEPCIONES A LA BAJADA, no permisos de subida. Escritas
-    # mal serian lo segundo: bastaria que la rama de "pluma ya abajo" mirase la camara
-    # para que una deteccion LEVANTARA la barrera con la luz en rojo. Ninguna de las
-    # comprobaciones de arriba lo veria -la tabla de verdad de la apertura seguiria
-    # intacta- y el arnes tampoco, porque ahi la pluma nunca parte de abajo con una
-    # camara viendo algo. Por eso esta linea mira la FORMA: la rama de en medio cierra
-    # y no consulta nada.
+    # ---- 7.bis. LA RAMA QUE D-33 CREO: el retardo y el veto son EXCEPCIONES A LA BAJADA,
+    # no permisos de subida. Si la rama de "pluma ya abajo" mirase la camara, una deteccion
+    # LEVANTARIA la barrera en rojo y ni la tabla de arriba ni el arnes lo verian: se mira la FORMA.
     if d33 is not None:
         b.verificar(
             d33["cierra"],
@@ -403,11 +404,8 @@ def correr(b, fw):
             "rojo: la excepcion habria dejado de ser una excepcion a la bajada para "
             "ser un permiso de subida")
 
-    # ---- 8. CONTROLES NEGATIVOS ----
-    #
-    # Sin esto, el dia que un patron dejara de casar este pack aprobaria un firmware
-    # con el defecto dentro y nadie se enteraria. Cada uno ejerce el detector contra
-    # el texto DEFECTUOSO de verdad, no contra uno inventado.
+    # ---- 8. CONTROLES NEGATIVOS: sin ellos un patron que deja de casar aprobaria el defecto.
+    # Cada uno ejerce el detector contra el texto DEFECTUOSO de verdad, no uno inventado.
     b.control_negativo(
         _evaluar_pluma("(verde || ES_FALLO)".replace("ES_FALLO", "estado == S_FALLO"),
                        bandera, True, True, False),

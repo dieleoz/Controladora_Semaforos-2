@@ -144,10 +144,10 @@ seg. (velocidad 50 km/h)»*: un mínimo de amarillo en texto **NO CONSTA**. Tran
    campo `ESC:` del Poste 1 no tiene amarillo y sigue diciendo `VERDE` hasta el `CMD_ACK_RED` (SPEC 2 §2.2.bis).
 8. **La pluma sigue arriba durante el amarillo** y el retardo de bajada cuenta desde el rojo (§2, SPEC 8 §1).
 
-Lo ejercen las filas 17 (`arnes_automatico.cpp`: rojo a verde directo, cierre por amarillo con el coordinador fuera
-de reposo), 18 (dos puntas: el orden de la luz en todo el barrido y el amarillo del Poste 2) y 19 (Degradado), con
+Lo ejercen las filas «automatico» (rojo a verde directo, cierre por amarillo con el coordinador fuera de reposo),
+«dos puntas» (el orden de la luz en todo el barrido y el amarillo del Poste 2) y «Degradado» (§13), con
 las pruebas que celebraban lo contrario invertidas y vistas en rojo con el defecto inyectado (mensaje de `cda33df`).
-**Sin acta de compuerta sobre `cda33df` en `evidencia/` y sin banco ni tarjeta.** Las que aseveran «rojo a verde
+**Acta `2026-10-15` (`c354724`): las tres PASS; sin banco ni tarjeta.** Las que aseveran «rojo a verde
 directo» CELEBRAN lo que `D-53` deroga: se invierten con §3.3 (`CLAUDE.md` §9).
 
 ### 3.3 ROJO – ROJO+AMARILLO – VERDE – AMARILLO – ROJO (`D-53`, `N-176`) — CONSTRUIDO EL 05/10, SIN BANCO
@@ -206,19 +206,21 @@ el rojo-amarillo dentro del tiempo de seguridad. Transcripción: `fuentes/md/Man
 
 ## 4. Los modos que existen HOY
 
-**Poste 1 (Maestro).** Siete modos en el enum `ModoSistema` de `modos.h` (`MODO_HORA` salió con `D-44`); el
+**Poste 1 (Maestro).** Ocho modos en el enum `ModoSistema` de `modos.h` (`MODO_HORA` salió con `D-44`; el octavo,
+`MODO_NOCHE`, construido en `N-179`, sin banco: SPEC 0 §5.10); el
 estado vive fuera de la pantalla, en su propio fichero, y se lee y escribe con un par de funciones
 (`modoActual_get()` / `modoActual_set()`).
 
 | modo | qué hace con las luces | cómo se llega hoy |
 |---|---|---|
-| Menú | **rojo fijo** en las dos puntas; ámbar intermitente si no hay enlace. **Sin navegación** (`D-44`); se queda así (`D-105`): de `menu.cpp` sólo queda `menu_setup()` | `SET_MODO:MENU`; la salida de cada modo; el arranque sólo mientras espera la reanudación del Degradado (§4.1) |
+| Menú | **rojo fijo** en las dos puntas; ámbar intermitente si no hay enlace. **Sin navegación** (`D-44`); se queda así (`D-105`): de `menu.cpp` sólo queda `menu_setup()`. La cabecera de la app DEBE decir lo que hacen las luces, leído del `$STATUS` (`D-112`, construido): `ESTADO:ROJO` → «☰ MENÚ · ROJO FIJO EN LOS DOS POSTES»; `ESTADO:FALLO COM` o sin telemetría → «☰ MENÚ · ÁMBAR INTERMITENTE, SIN RADIO»; `AMARILLO`/`ROJO+AMAR` → «☰ MENÚ · PASANDO A ROJO» | `SET_MODO:MENU`; la salida de cada modo; el arranque sólo mientras espera la reanudación del Degradado (§4.1) |
 | Manual | todo-rojo al entrar y **ningún cambio programado**: la fase acaba cuando alguien pulsa | `SET_MODO:MANUAL`; también al cancelarse un ámbar del Poste 2 |
 | Automático | cicla por tiempo | `SET_MODO:AUTO` ~~; secuencia `A.A.A` del mando~~ *(salió el 14/09)* |
 | Inteligente | cicla por tiempo **con suelo y techo**, y las cámaras sólo pueden ALARGAR | `SET_MODO:INTELIGENTE` |
 | Alcance | **no arranca ciclos**: mantiene lo que haya (rojo fijo con enlace) | `SET_MODO:ALCANCE` |
 | Degradado | todo-rojo de entrada y luego verde/amarillo/rojo por reloj | `SET_MODO:DEG_T` (testigo); reanudación tras corte. ~~`SET_MODO:DEGRADADO`~~ salió (`D-46`, §12.11) |
 | Ámbar | **ámbar intermitente**, pedido o de arranque | `SET_MODO:AMBAR`; ~~`B.B.B`;~~ aviso del Poste 2; salida del Degradado; **arranque** (§4.1) |
+| Noche (`MODO_NOCHE`: `D-103`, SPEC 0 §5.10, construido en `N-179`, sin banco) | **ámbar intermitente en las dos puntas** o Poste 1 ámbar y Poste 2 rojo intermitente (`S_AMBAR_INT`/`S_ROJO_INT`, pluma arriba); entra y sale por un todo-rojo `tr` (180 s de fábrica, 10..900) | por flanco de inicio de franja desde Automático o Inteligente; sale en el primer minuto fiable fuera de la franja (`D-115`) o por la app (SPEC 0 §5.10 (e)-(f)) |
 
 **El modo Ámbar es una salida de emergencia y por eso no tiene condiciones**: funciona desde cualquier modo en
 marcha. El ámbar *dentro* del Degradado, en cambio, es un estado interno de ese modo: comparten la luz y las dos
@@ -266,7 +268,7 @@ rojo fijo gobernando la luz (en el Poste 2, sin orfandad que lo lleve a ámbar),
 salida de siempre. Si el poste estaba en verde al perder la hora, el cierre lleva su amarillo (§3.2).
 🔴 **Abierto: el arranque del Poste 1 en ese rojo no lo ejerce ningún arnés** —`Maestro/src/main.cpp` no lo compila
 ninguno, y su único llamador es ese `setup()`—; el del Poste 2 sí (fila
-19, `H10` de `orquestador_deg_auto2.inc`).
+«Degradado», `H10` de `orquestador_deg_auto2.inc`).
 
 ## 5. Los tiempos, y de dónde salen
 
@@ -435,7 +437,7 @@ Cada uno trae con qué reproducirlo.
    números:** el día que el mínimo se mueva, el verde del Degradado no le sigue, y ningún instrumento lo dirá.
    🟢 ~~**(b) Las dos puntas ABREN su verde DISTINTO**~~ → **cerrado con `D-45` en `cda33df`:** las dos abren directo
    (`semaforo_forzarVerde()`) y las dos cierran por su amarillo (SPEC 2 §8 (e.bis)). El margen de desfase que se
-   apoyaba en el ámbar con que abría el Esclavo es ahora el despeje en los dos sentidos (fila 19, `C3`/`C4`).
+   apoyaba en el ámbar con que abría el Esclavo es ahora el despeje en los dos sentidos («Degradado», `C3`/`C4`).
    `D-53` cambia la apertura de las dos a rojo+amarillo, también la misma en las dos (§3.3, HUECO).
    ⚠️ **No confundir con la asimetría de la SALIDA a ámbar, que sí está razonada.**
    `grep -n "DEG_VERDE_SEG\|forzarVerde" 01_Firmware/{Maestro,Esclavo}/src/modo_degradado.cpp`
@@ -450,15 +452,13 @@ Cada uno trae con qué reproducirlo.
 6. ⚠️ **El backstop de verde máximo está dimensionado contra un máximo que ya no existe.** Su comentario lo justifica
    *«por encima del máximo configurable (99 min)»* y el máximo real hoy es el del rango vial: protege en la dirección
    segura, pero mucho más laxo de lo que su razón pide — una razón caducada (`CLAUDE.md` §6).
-7. 🟢 **CERRADO POR `D-44` (`f9cad1f`) — ~~el Modo Hora es inalcanzable~~.** Salió entero: `modo_hora.cpp` y
-   `modo_hora.h` borrados y `MODO_HORA` fuera del enum. Nunca tuvo `SET_MODO:HORA`; su único armador era la navegación
-   del menú. El andamio de `SFTY-20` (horario nocturno) vive en `reloj.*` (`reloj_esHorarioNocturno()`).
+7. 🟢 **CERRADO POR `D-44` (`f9cad1f`) — el Modo Hora salió entero** (`modo_hora.*`, `MODO_HORA`; nunca tuvo
+   `SET_MODO:HORA`). El andamio de `SFTY-20` (`reloj_esHorarioNocturno()`) lo usa el modo noche, SPEC 0 §5.10.
 8. 🟢 **CERRADO POR `D-44` (`f9cad1f`) — ~~`semaforo_toggle()` sin llamador~~.** Salió de las dos puntas.
-9. 🟡 ~~EL ARRANQUE ENTRA EN MENÚ Y DEBE ENTRAR EN ÁMBAR (`D-40`, `N-169`)~~ → **construido en el Poste 1**
-   (§4.1), **sin banco ni tarjeta**. El Poste 2 no cambia por diseño (§4.1). ~~Riesgo abierto: un poste
-   en rojo fijo por hora perdida que sufre un corte arranca en ámbar, verde contra ámbar~~ → **cerrado por `D-47` en
-   `cda33df`, sin banco** (§4.1): vuelve al rojo fijo. 🔴 **Abierto:** el arranque del Poste 1 en ese rojo no lo
-   ejerce ningún arnés; el del Poste 2, la fila 19.
+9. 🟡 **El arranque entra en ámbar (`D-40`, `N-169`): construido en el Poste 1** (§4.1), **sin banco ni tarjeta**;
+   el Poste 2 no cambia por diseño (§4.1). Un poste en rojo fijo por hora perdida que sufre un corte vuelve al rojo
+   fijo (`D-47`, `cda33df`, sin banco, §4.1). 🔴 **Abierto:** el arranque del Poste 1 en ese rojo no lo ejerce
+   ningún arnés; el del Poste 2, la fila «Degradado».
 10. 🟡 **EL AMARILLO DE CIERRE (`D-45`, `N-174`): CONSTRUIDO EN `cda33df`, SIN BANCO NI TARJETA** *(el
    comportamiento, §3.2 y SPEC 2 §2.2.bis, §4, §7, §8 (e.bis); la pluma, SPEC 8 §1)*. Lo que hizo, por símbolo:
    - **Semáforo, las dos puntas**: sale `semaforo_iniciarTransicionAVerde()` y su literal de 4 s; entra
@@ -501,23 +501,23 @@ Cada uno trae con qué reproducirlo.
 
 > **Una spec puede describir barreras que ningún compilador ejerce, con UNA condición: que cada barrera lleve
 > escrito QUIÉN la ejerce.** El criterio es `CLAUDE.md` §6.3 — **¿algún arnés COMPILA ese `.cpp`?**; si sólo lo lee
-> por texto no ve un defecto del TIEMPO, y es *vigilada por texto*, no *ejecutada*. Filas = las de la compuerta;
-> reparto de `.cpp`, `ARQUITECTURA.map` §4-5. Medido sobre `ef3504c`.
+> por texto no ve un defecto del TIEMPO, y es *vigilada por texto*, no *ejecutada*. Filas por su NOMBRE en el acta
+> `2026-10-15` (19; cambió el número al salir la de pantalla, `D-32` (1)). Reparto: `ARQUITECTURA.map` §4-5.
 
 | barrera | quién la EJERCE hoy |
 |---|---|
-| **El enclavamiento** — nunca verde y rojo a la vez (`SFTY-2`) | 🟡 **PARTIDA. Sólo la fila 17** (`arnes_automatico.cpp`) **y sólo del Maestro.** Los cuatro packs de su fila en `OPTIMIZACIONES.md` LEEN el C++; el semáforo del Esclavo lo COMPILAN las filas 18, 19 y 20, pero ninguna afirma «nunca verde y rojo a la vez» |
-| **La pluma dentro de la puerta única** (`SFTY-28`) | ✅ **filas 17, 18 y 19** (miran la salida de motor; la 17 además el publicador de pluma arriba) · `barrera_03_talanquera` por texto |
-| **El todo-rojo de despeje** (`SFTY-4`) · **el ámbar por silencio y orfandad** (§9) | ✅ el despeje, **filas 17 y 18**, que corren el ciclo sobre el coordinador real; el silencio, **fila 18** (detalle en SPEC 2 §9) |
-| **El watchdog** (`SFTY-1`, §9) | 🟡 **PARTIDA: el reinicio no lo ejerce nadie.** El bucle del Maestro sólo lo cruza PlatformIO; la fila 18 cuenta las recargas del bucle del Esclavo contra un watchdog **simulado** |
-| **Menú en rojo fijo** (`SFTY-12`) · **el test de lámparas** (§10) | 🔴 **NADIE las dos.** El forzado de menú y el arranque del test **no aparecen en ningún arnés**; ~~el menú sólo lo compila la fila 14~~ → `menu.cpp` (desde `D-44`, sólo `menu_setup()`) no lo compila nadie: los arneses lo sustituyen por un `menu_setup()` propio, y `maestro_09_test_leds` lee texto |
-| ~~**Los destellos INTERCEPTAN** la escritura de pines (§10)~~ | ~~fila 17~~ → **sin sujeto desde el 14/09**: la interceptación salió con el mando (§10). No cuenta abajo |
-| **El backstop de verde máximo** (§9) · **el rango duro de tiempos** (`D-5`) · **no reconfigurar en marcha** (`D-11`, §5) | ✅ el backstop, **fila 18**; el rango y la reconfiguración, **fila 17**, y el rango también la 18 |
-| **`DAR PASO` en Manual** (`D-7`, §8) | 🟡 **PARTIDA:** el acuse de `MANUAL:CAMBIAR_TURNO` sí (**fila 18**), pero **el Modo Manual del Maestro no lo compila ningún arnés** — sólo PlatformIO |
-| **Los vetos del ámbar del Poste 2** (`D-8`, §4) | ✅ **fila 18**, que compila el bucle y el Bluetooth del Esclavo REALES. La cuenta, SPEC 2 §2.3 |
-| **El suelo y el techo del Inteligente** (`D-19`, §7) | ✅ **fila 17** (el factor de techo y las tres entradas de presencia) |
-| **El amarillo de cierre** (`D-45`, §3.2) | ✅ **filas 17, 18 y 19** (rojo a verde directo, cierre por amarillo, el orden de la luz en las dos puntas y la fase del Degradado), con las pruebas que exigían lo contrario invertidas en `cda33df` · fila 15, la fase pura. Sin acta de compuerta sobre `cda33df` |
-| **El rojo+amarillo antes de cada verde** (`D-53`, §3.3) | ✅ **filas 15, 17, 18 y 19 invertidas** (`N-176`), vistas en rojo; sin acta de compuerta |
+| **El enclavamiento** — nunca verde y rojo a la vez (`SFTY-2`) | 🟡 **PARTIDA. Sólo la fila «automatico»** (`arnes_automatico.cpp`) **y sólo del Maestro.** Los cuatro packs de su fila en `OPTIMIZACIONES.md` LEEN el C++; el semáforo del Esclavo lo COMPILAN «dos puntas», «Degradado» y «puente ESP32», pero ninguna afirma «nunca verde y rojo a la vez» |
+| **La pluma dentro de la puerta única** (`SFTY-28`) | ✅ **«automatico», «dos puntas» y «Degradado»** (miran la salida de motor; «automatico» además el publicador de pluma arriba) · `barrera_03_talanquera` por texto |
+| **El todo-rojo de despeje** (`SFTY-4`) · **el ámbar por silencio y orfandad** (§9) | ✅ el despeje, **«automatico» y «dos puntas»**, que corren el ciclo sobre el coordinador real; el silencio, **«dos puntas»** (detalle en SPEC 2 §9) |
+| **El watchdog** (`SFTY-1`, §9) | 🟡 **PARTIDA: el reinicio no lo ejerce nadie.** El bucle del Maestro sólo lo cruza PlatformIO; «dos puntas» cuenta las recargas del bucle del Esclavo contra un watchdog **simulado** |
+| **Menú en rojo fijo** (`SFTY-12`) · **el test de lámparas** (§10) | 🔴 **NADIE las dos.** El forzado de menú y el arranque del test **no aparecen en ningún arnés**; ~~el menú sólo lo compila la fila de pantalla~~ → `menu.cpp` (desde `D-44`, sólo `menu_setup()`) no lo compila nadie: los arneses lo sustituyen por un `menu_setup()` propio, y `maestro_09_test_leds` lee texto |
+| ~~**Los destellos INTERCEPTAN** la escritura de pines (§10)~~ | ~~«automatico»~~ → **sin sujeto desde el 14/09**: la interceptación salió con el mando (§10). No cuenta abajo |
+| **El backstop de verde máximo** (§9) · **el rango duro de tiempos** (`D-5`) · **no reconfigurar en marcha** (`D-11`, §5) | ✅ el backstop, **«dos puntas»**; el rango y la reconfiguración, **«automatico»**, y el rango también «dos puntas» |
+| **`DAR PASO` en Manual** (`D-7`, §8) | 🟡 **PARTIDA:** el acuse de `MANUAL:CAMBIAR_TURNO` sí (**«dos puntas»**), pero **el Modo Manual del Maestro no lo compila ningún arnés** — sólo PlatformIO |
+| **Los vetos del ámbar del Poste 2** (`D-8`, §4) | ✅ **«dos puntas»**, que compila el bucle y el Bluetooth del Esclavo REALES. La cuenta, SPEC 2 §2.3 |
+| **El suelo y el techo del Inteligente** (`D-19`, §7) | ✅ **«automatico»** (el factor de techo y las tres entradas de presencia) |
+| **El amarillo de cierre** (`D-45`, §3.2) | ✅ **«automatico», «dos puntas» y «Degradado»** (rojo a verde directo, cierre por amarillo, el orden de la luz en las dos puntas y la fase del Degradado), con las pruebas que exigían lo contrario invertidas en `cda33df` · «ciclo», la fase pura. Acta `2026-10-15` (`c354724`): las cuatro PASS |
+| **El rojo+amarillo antes de cada verde** (`D-53`, §3.3) | ✅ **«ciclo», «automatico», «dos puntas» y «Degradado» invertidas** (`N-176`), vistas en rojo; acta `2026-10-15`: PASS |
 
 **Cuenta: 14 barreras — 9 ejecutadas, 2 sin nadie, 3 partidas** *(05/10: entra el rojo+amarillo, construido)*.
 Los otros dos rojos **no son casillas sueltas**: el menú y

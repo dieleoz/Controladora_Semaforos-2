@@ -95,4 +95,32 @@ module.exports = async function pruebaCabeceraFase(montarAppLimpia, assert) {
     'ESC:VERDE,PLUMA:ABAJO');
   bAmbar();
   assert(/sin dato/.test(fase()), `Origen (vi): un ambar nuevo no hereda el origen del anterior, "${fase()}"`);
+
+  // (5) D-112 (SPEC_1 §4, fila Menu): la cabecera de MENU dice lo que hacen las luces, leido del ESTADO del $STATUS.
+  // Con ESTADO desconocido no afirma una luz: el texto de siempre (control).
+  const badge = () => t0('badge-modo');
+  for (const [est, rf, txt] of [['ROJO', '97', '☰ MENÚ · ROJO FIJO EN LOS DOS POSTES'],
+    ['FALLO COM', '0', '☰ MENÚ · ÁMBAR INTERMITENTE, SIN RADIO'], ['', '0', '☰ MENÚ · ÁMBAR INTERMITENTE, SIN RADIO'],
+    ['AMARILLO', '97', '☰ MENÚ · PASANDO A ROJO'], ['ROJO+AMAR', '97', '☰ MENÚ · PASANDO A ROJO']]) {
+    st('MAESTRO', 'MENU', est, rf, ',ESC:ROJO,PLUMA:ABAJO');
+    assert(badge() === txt, `D-112: MENU con ESTADO:"${est}" -> "${badge()}" (SPEC_1 §4: "${txt}")`);
+  }
+  st('MAESTRO', 'MENU', 'R1_R2', '97', ',ESC:ROJO,PLUMA:ABAJO');
+  assert(!/ROJO FIJO|ÁMBAR|PASANDO/.test(badge()) && /MENÚ/.test(badge()), `D-112 control: ESTADO raro, "${badge()}"`);
+
+  // (6) Modo noche (SPEC_0 §5.10 (a), (g), (i); D-110): cabecera MODO:NOCHE propia y AMBAR_INT/ROJO_INT con frase,
+  // pluma arriba y sin caer en «no reconocido». El Esclavo no tiene modo: publica su ESTADO con MODO:SUBORDINADO.
+  st('MAESTRO', 'NOCHE', 'AMBAR_INT', '97', ',ESC:AMBAR,PLUMA:ARRIBA');
+  assert(/NOCHE/.test(badge()) && /INTERMITENTE|DESTELLO/.test(badge()) && !/RECONOCID/.test(badge()),
+    `Noche: cabecera MODO:NOCHE con texto propio, "${badge()}"`);
+  const fn = t0('phase-desc');
+  assert(/ámbar intermitente/i.test(fn) && /precauci/.test(fn) && fn.length <= 70,
+    `Noche: AMBAR_INT con frase, "${t0('phase-desc')}"`);
+  assert(/PLUMA ARRIBA/.test(t('pluma-estado')) && /noche/i.test(t('pluma-estado')) && !/AVER/i.test(t('pluma-estado')),
+    `Noche: pluma arriba explicada (SPEC_0 §5.10 (a)), "${t('pluma-estado')}"`);
+  st('MAESTRO', 'NOCHE', 'ROJO', '97', ',ESC:ROJO,PLUMA:ABAJO');
+  assert(/NOCHE/.test(badge()) && /TODO-ROJO/.test(badge()), `Noche: el todo-rojo en la cabecera, "${badge()}"`);
+  st('ESCLAVO', 'SUBORDINADO', 'ROJO_INT', '--', ',PLUMA:ARRIBA');
+  assert(/rojo intermitente/i.test(t0('phase-desc')) && !/RECONOCID/i.test(t0('phase-desc')),
+    `Noche: ROJO_INT del POSTE 2 con frase, "${t0('phase-desc')}"`);
 };

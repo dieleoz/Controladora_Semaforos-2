@@ -91,4 +91,9 @@ for ($i = 0; $i -lt $casos.Count; $i++) {
     }
 }
 
+# D-114: respaldo_borrar() pone a 0 tambien DR9/DR10 (tiempos del ciclo, N-133). Si no, sellar()
+# mete la basura en la suma y respaldo_tiemposCiclo() la da por un ciclo configurado.
+$borrar = "BORRAR" | & $exe
+if ($borrar -ne '0 0 0') { Write-Error "BORRAR DIFIERE de D-114: DR9 DR10 hayTiempos = '$borrar', se esperaba '0 0 0'" }
+
 Write-Host "OK: $exe (CAUSA D-62 $($casos.Count)/$($casos.Count))" -ForegroundColor Green

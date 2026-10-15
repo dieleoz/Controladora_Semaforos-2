@@ -421,31 +421,25 @@ void loop() {
         protocolo_resetReplayProtection();
       }
 
+    } else if (pkt.command == CMD_GO_NOCHE) {
+      // D-107 (SPEC_0 5.10 (e)): orden de GOBIERNO -renueva el silencio como GO_RED- e
+      // idempotente: tras un S_FALLO por radio perdida, la siguiente devuelve el destello.
+      // Los vetos de GO_RED valen igual (Degradado gobernando, ambar de la app: D-8). Se
+      // contesta PONG: el Maestro la manda en el lugar de un PING de su latido.
+      tUltimoComando = millis();
+      verdeSoltadoPorMargen = false;   // D-34: una orden de luz redefine la intencion
+      if (!degradado_gobiernaLuz() && !bluetooth_ambarEmergencia()) {
+        semaforo_iniciarNoche((pkt.param & NOCHE_ROJO_INT) != 0);
+      }
+      programarRespuesta(CMD_PONG, degAuto_paramSaliente(CMD_PONG));
     } else if (pkt.command == CMD_GO_RED) {
       tUltimoComando = millis();
       verdeSoltadoPorMargen = false;   // D-34: una orden de luz redefine la intencion
-      // N-142 (04/09): EL AMBAR DE LA APP YA NO VETA LA RADIO. EL DEL MANDO SI.
-      //
-      // N-142 (04/09): LOS DOS VETOS SE QUEDAN. EL BLOQUEO SE ARREGLA POR ARRIBA.
-      //
-      // Se iba a abrir esta guarda -y luego solo esta, dejando el verde vetado- para
-      // desatascar el cruce, y el banco paro las dos versiones. Tenia razon: sin el veto
-      // aqui, el ambar que pidio el operario dura hasta el siguiente latido del Maestro,
-      // unos 3 s, y el equipo se vuelve atras solo delante de quien lo pidio.
-      //
-      // Y AL MEDIRLO APARECIO QUE EL VETO NO ERA LA CAUSA DEL BLOQUEO. La causa es que
-      // esta punta no ACUSA: el Maestro agota reintentos a ciegas, cae a C_FALLO y desde
-      // ahi rechaza todo. El silencio es deliberado y correcto -acusar un rojo que no se
-      // ha encendido dejaria al Maestro dando verde convencido de que aqui hay rojo- pero
-      // obligaba al Maestro a ADIVINAR.
-      //
-      // Con CMD_AMBAR_ESCLAVO ya no adivina: se le dice. El Maestro se va a MODO_AMBAR,
-      // deja de ciclar y DEJA DE PREGUNTAR, asi que no hay reintentos, no hay C_FALLO y
-      // no hay bloqueo. El cerrojo se queda entero -que es lo que protege a quien esta en
-      // la calzada- y lo que desaparece es la ceguera del otro extremo.
-      //
-      // Lo que quedaba del bloqueo -no poder llegar al Esclavo para cancelar- era de la
-      // app, y se cerro el mismo dia: discoverUnpaired() y la reconexion sin reiniciar.
+      // N-142 (04/09): LOS DOS VETOS SE QUEDAN; EL BLOQUEO SE ARREGLA POR ARRIBA. Sin el
+      // veto el ambar que pidio el operario duraria hasta el siguiente latido (~3 s). La
+      // causa del bloqueo era que esta punta no ACUSA (acusar un rojo no encendido dejaria
+      // al Maestro dando verde): con CMD_AMBAR_ESCLAVO ya no adivina, se va a MODO_AMBAR y
+      // deja de preguntar. El resto del bloqueo era de la app, cerrado el mismo dia.
 
       // N-83: Y CON EL PEDIDO POR BLUETOOTH, IGUAL. Esta es la guarda que revocaba el
       // ambar de la app: llega un CMD_GO_RED -o sea, cada pocos segundos- y este
