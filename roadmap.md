@@ -152,6 +152,19 @@ El paquete `5288c3d` de Marco no se toca: sale otra candidata.
 
 Sin teclado (no entra): hardware `N-108`, `N-120`, `C-6`, `N-116`, `Y2`; `D-94`..`D-97` (placa con barrera y pila).
 
+**DESPUES (15/10, orden del responsable): `N-180` via -> grupos -> pareja por MAC, y simulador con estado.** SPEC
+primero (SPEC_4 §9.14, SPEC_6 B.1 (4), `D-117`..`D-121`, commit `9b4a36f`), revision del arquitecto ANTES de construir
+(`D-120` retira la barrera «ninguna trama de un literal a mano»), prueba vista en rojo, codigo, compuerta. Sin firmware:
+el filtro de pareja en radio (SFTY-27) espera la medida con dos parejas en banco (`D-118`).
+
+| # | paso | fuente | estado |
+|---|---|---|---|
+| G0 | Arquitecto valida §9.14 y `D-117`..`D-121`; Fable ajusta la SPEC si pide condiciones | `D-120` | |
+| G1 | Grupos: `js/grupos.js`, lista de equipos por via y grupo, matricula por MAC, retirar `site_manager.js` | `D-117`..`D-119` | |
+| G2 | Simulador con estado y flota de 2 vias y 5 grupos mas un poste virgen; cintas como referencia | `D-120`, `D-121` | |
+| GF | Compuerta convergida, arquitecto y QA, condiciones, casos en la hoja, APK y paquete | runbook | |
+| G-RF | Dos parejas en banco: mismo canal y canales distintos; acta `_campo_dos_parejas` | SPEC_6 B.1 (4) | sin teclado |
+
 **Antes (05/10, el funcional espera en banco): `N-176` ROJO+AMARILLO antes del verde (`D-53`).** Coste medido
 sobre `a5db18e`: ~28 ficheros (firmware ~10, app 4, arneses 4, packs/modelos 5, SPEC 5). Riesgos que se revisan
 ANTES de construir (§11.7): (a) +2 s rompen el presupuesto de radio (`PEOR_CASO_CICLO_MS + TIMEOUT_ACK_MS` 27,3 s
