@@ -5,25 +5,25 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 
 ## Por donde se retoma, en este orden
 
-1. **Logs de Marco con `Paquete_Semaforos_2026-10-09_c695ee4_SIN_BANCO`** (`entregas/`, zip `af7ead9f...`; la APK
-   de `16c97e6`, misma sha256, mas la guia del PC; firmware igual a `d810f81`). Esperado: la (b) probada con el POSTE 1
-   en AUTO/INTELIGENTE, los dos «Listo: SI», radio cortada 5,5 min, y un `IOTVIAL_*` de CADA poste. Leerlos enteros
-   y contando (`CLAUDE.md` §7). Lo del 06/10 (`evidencia/0610*`) ya esta leido: ningun defecto de firmware; la (b)
-   se activo en MENU o sin el POSTE 1 ciclando, y la app no decia que hacer (arreglado, `16c97e6`). 15:25: «ya
-   entro, pero queda en rojo»: esperado 7-12 min (`DEG_AUTO_ROJO_MIN_S`); si sigue pasada la hora, defecto.
-2. **A campo (El Sisga) va el firmware que salga de este banco** (responsable, 06/10), solo tras el banco de Marco
+1. **Mandar a Marco `Paquete_Semaforos_2026-10-14_96c3d32_SIN_BANCO.zip`** (`entregas/`, sha256 `b4390a0d...`):
+   fuente PlatformIO de los cuatro firmwares, APK `ba1d595c...`, app web y la hoja unica del 14/10 (24 casos: lo
+   nuevo de `D-59`/`D-55` y lo no reportado desde el 04/10). Pedido de Marco del 13/10: verde del Degradado con
+   testigo de 3 a 15 min (`D-59`); firmware nuevo en los DOS postes y la APK en TODOS los telefonos del cruce.
+   Arquitecto APTO, QA APTO CON CONDICIONES (cerradas), acta `2026-10-14` convergida (solo `D-22`). APK probada en el
+   telefono del responsable (`evidencia/2026-10-14_telefono_d55.txt`). Texto para Marco: el de la sesion del 14/10.
+2. **Cuando vuelvan sus cintas** (`N-177` V10): leerlas enteras y contando (`CLAUDE.md` §7), un `IOTVIAL_*` de CADA
+   poste; si la hoja pasa, se quita `SIN_BANCO`. Si el responsable tiene el PDF de la hoja del 04/10, los casos 16-24
+   que ya se hicieron salen de la hoja.
+3. **A campo (El Sisga) va el firmware que salga de este banco** (responsable, 06/10), solo tras el banco de Marco
    (`CLAUDE.md` §0.2). Pendiente: C3 `Validacion_LCD`; C4 el grafo; `N-175`. El Degradado automatico se queda.
-3. **Pendientes de escribir** (no se pudieron leer `OPTIMIZACIONES.md` ni `roadmap.md` el 06/10: el clasificador
-   lo bloqueo): fila de version siguiente con las cuatro mejoras del registro de la app que aprobo el responsable
-   (cinta con mas tope o registro aparte de $STATUS de cambio; copia persistente fuera de CACHE para adb; el
-   registro de enlace dentro del mismo .txt; en nativo, a fichero desde el principio). Y `N-176` (cabecera).
-4. **Sin explicar:** a las 10:43:30 del 06/10 los contadores de radio del Maestro bajan de 1789 a 91 sin reinicio
-   que conste (`evidencia/061020261110`, Enlace csv). **Fase F** (partir `17_...`, `ARQUITECTURA.map`). Pregunta
-   abierta al responsable: construir los dos interruptores de SPEC_8 §6 (Marco cree que existen; no existen).
+4. **Version siguiente:** los bajos del arquitecto de `N-177` (`roadmap.md`); dos dialogos seguidos al cambiar el verde
+   en Degradado (el nuevo y el de paleteros: fusionarlos lo decide el responsable); `empaquetar_funcional.py` sella con
+   HEAD y no sirve para una candidata anterior (receta fijada en el scratchpad del 14/10). **Sin explicar:** los
+   contadores de radio del 06/10 de 1789 a 91 (`evidencia/061020261110`). **Fase F** (partir `17_...`).
 
 ## Frentes abiertos (tres como maximo)
 
-- **Banco de Marco** con el paquete `c695ee4` (APK de `16c97e6`): la (b) bien probada.
+- **Banco de Marco** con el paquete `96c3d32` (`N-177`): verde del Degradado y lo pendiente desde el 04/10.
 - **Campo** El Sisga: firmware por decidir; `N-172` sin medir en tarjeta.
 - **Orden del repo** (fase F). Fases 0-4 hechas con el arquitecto de plataforma; la 5 (`lib/`), tras banco.
 
