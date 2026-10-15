@@ -489,44 +489,27 @@ STM32 ya no ve la linea: **no hay quien lo rechace**. Esta **abierto POR DECISIO
 aceptado por el responsable— y por eso no es un defecto; se escribe aqui porque **una excepcion que nadie
 cuenta es indistinguible de un olvido** (`CLAUDE.md` §6).
 
-🟢 **3 · `D-23`: FIRMWARE Y APP CONSTRUIDOS (sin telefono ni banco).** `D-32` (2) resolvio el mecanismo: como
-el STM32 **no puede saber** que un telefono se conecto —el unico que lo ve es el ESP32— y traer ese aviso seria **la
-tercera orden que el accesorio origina hacia el micro** (`esp32_05_no_origina` la condiciona **por escrito** a una fila
-de `DECISIONES.md`), el responsable eligio **`$EVENT` periodico a cadencia baja**, que no toca ninguna barrera. En la
-app, `js/diagnostico_enlace.js` lee ese `$EVENT` y `renderDiagnosticoEnlace()` lo pinta en un recuadro de la ventana
-del Poste 2 (contadores acumulados y su diferencia con la muestra anterior), **sin semaforo de color ni veredicto**: el
-umbral que diria «esto va mal» no lo ha decidido nadie. `app.js` no nombra `ENLACE_RF`; lo nombra el modulo.
+🟢 **3 · `D-23`: construido, sin telefono ni banco.** `$EVENT` periodico a cadencia baja (`D-32` (2)); la app lo lee
+en `js/diagnostico_enlace.js` y `renderDiagnosticoEnlace()` lo pinta en la ventana del Poste 2 sin color ni veredicto.
 
-🟢 **4 · CERRADO por `D-65` (§9.5; construido, sin banco): `SET_MODO:ALCANCE` y `SET_MODO:INTELIGENTE`.** Antes
-contestaban `RESULT:OK` tras `modoActual_set()` **y nada mas**; entrar vive en `modoAlcance_setup()` y
-`modoInteligente_setup()`, que `main.cpp` llama **solo bajo `if (modo != modoAnterior)`**: repetida la orden, OK sin
-correr nada. Hoy esa repeticion contesta `RESULT:SIN_CAMBIO`. `AUTO` y `MANUAL` no tenian el defecto: llaman al
-coordinador **dentro** de la rama. El par (modo puesto, luz movida por `FORZAR_ROJO`, que no toca `modoActual`) es
-alcanzable; leido en `modo_inteligente.cpp`: con el coordinador en `C_IDLE` el modo sigue contando y pide cambio al
-cumplir el suelo, asi que no deja el cruce trabado. Lectura del fuente, sin banco ni tarjeta.
+🟢 **4 · CERRADO por `D-65` (§9.5):** `SET_MODO:ALCANCE`/`INTELIGENTE` repetidos contestan `RESULT:SIN_CAMBIO`.
 
 ⚠️ **5 · El Modo Alcance no tiene superficie.** Todo lo que ese modo produce sale por
 `lcd_dibujarAlcance()`, y **el LCD se retiro** (`D-17.bis`). Desde el telefono, `MODO:ALCANCE` ensena el mismo
 `RF:`/`RTT:` que cualquier otro modo —vienen de la ventana de latidos del coordinador, **no** de los contadores que ese
 modo pone a cero—. Es un modo de medida sin nadie que lea la medida, y es `D-16` en su forma mas simple.
 
-🟢 **6 · CERRADO POR `D-44` (`f9cad1f`) — `menu.cpp` NO ERA SOLO PANTALLA.** `menu_setup()` llama a
-`coordinador_forzarMenu()`, el todo-rojo de las dos puntas, alcanzable desde la app con `SET_MODO:MENU` (§3.1, una de
-las cuatro ordenes sin PIN del hueco 1). `D-44` saco la navegacion y **dejo `menu_setup()`** con ese nombre: la puerta
-no se movio.
+🟢 **6 · CERRADO POR `D-44` (`f9cad1f`):** `menu_setup()` sigue llamando a `coordinador_forzarMenu()` (§3.1, hueco 1).
 
 ⚠️ **7 · Una ventana de ~1 s por conexion en la que una orden de Maestro puede salir contra un Esclavo.**
-`SOLO_MAESTRO` pregunta `=== 'ESCLAVO'`, asi que con `state.node` en `null` —entre que el socket abre y
-llega el primer `$STATUS`— la orden sale. El firmware la rechaza con `$ERR,CMD:DESCONOCIDO`, **asi que no
-mueve una luz**; lo que se pierde es el aviso claro al operario. Esta **abierta a proposito**: cerrarla
-rompe el arnes del puente, que pulsa antes del primer `$STATUS`.
+`SOLO_MAESTRO` pregunta `=== 'ESCLAVO'` y con `state.node` en `null` (antes del primer `$STATUS`) la orden sale; el
+firmware la rechaza (`$ERR,CMD:DESCONOCIDO`), no mueve luz. Abierta a proposito: cerrarla rompe el arnes del puente.
 
 ⚠️ **8 · Desde el `$STATUS` la app no puede saber que reloj sello la `HORA:`.** Hoy siempre es el DS3231
 del puente, porque el otro no existe, **pero la trama no lo dice**. Residual declarado en
 `sellarHoraSiFaltaba()`; su cierre es de SPEC 3.
 
-🟢 **9 · CERRADO — construido en `f57a401`.** Ya no es cola de trabajo: lo que la app HACE con el aviso de
-barrera retenida esta descrito en §6. El numero se queda para que las citas de fuera no queden cojas.
+🟢 **9 · CERRADO — construido en `f57a401`.** Lo que la app hace con la barrera retenida esta en §6.
 
 🟡 **10 · Los dos interruptores de administrador no existen; como se publican quedo DECIDIDO el 14/10 (`D-97`).**
 *Sacar la camara del veto* y *sacar la barrera de servicio*, uno por poste, sobreviviendo a un corte de luz:
@@ -538,25 +521,16 @@ de `HORA:` se queda sin gastar. La app los pinta en ambar con su frase (`D-83`, 
 clave de administracion (`D-56`) y el PIN, locales al poste conectado (`D-94`). **Sin construir**: sin tarjeta
 con barrera y pila medidas no hay codigo (SPEC 8 §6, `N-178` M12).
 
-⚠️ **11 · Lo que 1.49 dejo a medias en esta spec** (medido sobre `622a20b`). **(a)** ~~`js/avisos_equipo.js` no
-tiene entrada para ninguna de las tres causas del limite~~ → cerrado: las traduce (`tests/dom_textos_spec4.js`, caso
-4; remedido el 14/10). Lo que faltaba era que salieran UNA sola vez: §9.6 y SPEC 6 C.1.
-**(b)** El acuse diferido de `REINICIAR_RELOJ` (§3.1) **no lo recorre ningun
-arnes en el tiempo**: el doble del arnes del puente acepta la orden que fija el veredicto del cristal, pero
-ningun guion la manda; lo que hay son packs de texto sobre la forma de la rama (`reloj_01`, `app_08`).
+⚠️ **11 · Lo que 1.49 dejo a medias** (`622a20b`). **(a)** cerrado (§9.6, SPEC 6 C.1). **(b)** El acuse diferido de
+`REINICIAR_RELOJ` (§3.1) no lo recorre ningun arnes en el tiempo: solo packs de texto (`reloj_01`, `app_08`).
 
-⚠️ **12 · «Exportar todo como archivo» en la APK: construido, SIN PROBAR EN UN TELEFONO.** Hecho: `@capacitor/android`
-6.2.1 (su WebView no registra `DownloadListener`, asi que `<a download>` no hace nada) con `@capacitor/filesystem`
-6.0.4 y `@capacitor/share` 6.0.4, versiones fijadas en `package.json`; `npx cap sync android` los da de alta en
-`capacitor.settings.gradle` y `app/capacitor.build.gradle`. Lo que se ha medido en el PC es la app contra dobles
-de los dos plugins (`tests/test_unitarios.js` §12 y `test_dom_execution.js`). **Queda sin medir:** que la APK
-compile con los dos modulos; que el puente publique los dos en `window.Capacitor.Plugins`; que el `FileProvider`
-acepte la ruta de la cache; y que WhatsApp reciba el `.txt` como adjunto y no como texto. Se cierra con la APK
-instalada: exportar, enviarlo a un chat y abrir el fichero recibido. Hasta entonces, si falla, se copia el texto.
+⚠️ **12 · «Exportar todo como archivo» en la APK: construido, SIN PROBAR EN UN TELEFONO.** `@capacitor/filesystem` y
+`@capacitor/share` 6.0.4 (el WebView de `@capacitor/android` 6.2.1 no descarga `<a download>`), medidos solo contra
+dobles (`tests/test_unitarios.js` §12, `test_dom_execution.js`). Sin medir: que la APK compile y publique los dos en
+`window.Capacitor.Plugins`, el `FileProvider` y que WhatsApp reciba el `.txt` como adjunto. Si falla, se copia el texto.
 
-🟢 **13 · 14 · 15 · CERRADOS, construidos:** el testigo (§3.ter, `D-35`; `11b57b3`), el Degradado automatico
-(§3.ter.bis, `A-15`; `a0d605b`, `1a78873`; `js/deg_auto.js`, `js/aviso_degradado.js`) y la salida programada con el
-rojo total corregido (§3.ter.ter; `7cd3042`; `js/deg_fin.js`). Sin banco ni telefono.
+🟢 **13 · 14 · 15 · CERRADOS, construidos, sin banco ni telefono:** testigo (§3.ter, `11b57b3`), Degradado automatico
+(§3.ter.bis, `js/deg_auto.js`) y salida programada con el rojo total (§3.ter.ter, `js/deg_fin.js`).
 
 ---
 
@@ -1215,25 +1189,11 @@ banco por packs con el MISMO total por pack; `documentos_03_trama_status` verde 
 de Android copiados. Una cifra que baja, un pack que cambia de total o una ruta nueva sin su tupla en el mismo commit
 (`CLAUDE.md` §5) deshacen la tanda: dos intentos y se revierte (`N-178`).
 
-**Tanda 1 (esta version): las tablas de acuse y rechazo.** `js/textos_ack.js` recibe `ACK_TEXTO` (330 lineas, cero
-nombres del cierre, cero modulos); `js/textos_err.js` recibe `ERR_TEXTO` y `ERR_MOTIVO` (unas 360, cero nombres del
-cierre) y exporta `{ ERR_TEXTO, ERR_MOTIVO }`. `_traducirRechazo(data)` se QUEDA en `app.js`: usa `state.node`,
-`DegAuto`, `DiagnosticoEnlace`, `Testigo` y `RegistroEquipo`, y es el consumidor que `app_10` mide en `app.js`
-(`const dicho = ACK_TEXTO[clave] || ...`). `index.html` carga los dos detras de `js/textos_spec4.js`. Instrumento que
-cambia de ruta en el mismo commit: `app_10_ack_con_varios_sies` lee `ACK_TEXTO` de `js/textos_ack.js` y `ERR_TEXTO`
-de `js/textos_err.js` (`_tabla()` busca `const <nombre> = {` y cuenta llaves: sirve a columna 0), y el consumidor sigue
-en `APP_JS`; mismo total de comprobaciones. Citas que cambian al construir: §3.ter.ter (dos veces «`ACK_TEXTO`
-(`app.js`)»), §9.5 punto 2, y los comentarios de `js/testigo.js` (linea 11) y `js/avisos_equipo.js` (linea 5) que
-dicen «de `app.js`».
-
-**Prueba, en `tests/test_unitarios.js` (fila «test unitarios TDD de la app»), vista en rojo antes del corte:**
-(1) `index.html` carga `js/textos_ack.js` y `js/textos_err.js` ANTES de `app.js` (molde de la linea de
-`avisos_equipo.js`); (2) `app.js` ya no declara `const ACK_TEXTO`, `const ERR_TEXTO` ni `const ERR_MOTIVO`; (3)
-`require('../js/textos_ack.js')['SET_MODO:ALCANCE|OK'].texto` es una cadena y `require('../js/textos_err.js')` trae
-las dos tablas; (4) la guarda del molde: ningun nombre declarado a dos espacios en `app.js` (`const|let|function|class`)
-aparece como identificador en un modulo partido salvo que el modulo lo declare o lo reciba como `dep.<nombre>`. Medido
-el 15/10: antes del corte 85 PASS | 5 FALLAS, despues 90 | 0; (4) en rojo con `state.node` inyectado en `ERR_MOTIVO`,
-restaurado por hash (`CLAUDE.md` §6). Lo demas, igual antes y despues: jsdom 683 | 1 (fallo previo de `D-59`).
+**Tanda 1, construida el 15/10: las tablas de acuse y rechazo.** `ACK_TEXTO` a `js/textos_ack.js`; `ERR_TEXTO` y
+`ERR_MOTIVO` a `js/textos_err.js`; `_traducirRechazo(data)` se queda en `app.js` (lo mide `app_10_ack_con_varios_sies`,
+que lee las tablas en su modulo). Prueba en `tests/test_unitarios.js`: orden de carga en `index.html`, tablas fuera de
+`app.js`, `require` de los dos modulos y la guarda del molde (ningun nombre del cierre usado en un modulo sin
+`dep.<nombre>`); 85 | 5 antes y 90 | 0 despues, la guarda vista en rojo y restaurada por hash (`CLAUDE.md` §6).
 
 **Orden de las tandas:** 2.a la pintura de luces, construida el 15/10 (`N-178` N5): tablas a `js/luces_tablas.js`,
 pintores a `js/luces.js` (`Luces.instalar(dep)`, 14 nombres del cierre; `renderLights`, `pintarPluma`, `pintarCamaras`
@@ -1251,3 +1211,43 @@ que lo manejan, y en ese orden: primero la APK (lee los dos firmwares), despues 
 celular con la APK anterior frente a un poste con la nueva. La hoja de campo lo dice en su paso 1 con la huella sha256
 de la APK. Lo ejerce `test_unitarios_app.js` suite 8 (periodico sin `REIN` y sin `AMBAR` leido por la app nueva: ya
 existe); la APK anterior no se prueba, porque no se construye contra ella.
+
+### 9.14 Grupos por via y practica con estado (`N-180`; `D-117`..`D-121`) — decidido el 15/10, NO construido
+
+Fuente: el responsable, 15/10: «una via puede tener uno o varios grupos de semaforos» y «cada controlador tiene su
+direccion MAC y ... cuando se matricula se forman las parejas y se lleva un control de lo que seria un grupo».
+**Lo que hay hoy** (medido en `9f951c7`): la matricula del MODULO (el puente aprende serie y nodo del primer `$STATUS`
+y se anuncia `SEM-<serie>-M`/`-E`, virgen `ROTULO_PROVISIONAL`; la app separa la letra, `sufijoDeRotulo`, `N-129`);
+la de PAREJA no: `SFTY-27` es diseno, ningun `$STATUS` trae la serie del otro poste (`ESC:` es su estado) y `RF_Packet`
+no lleva pareja (SPEC 6 B.1 (4)). `js/site_manager.js` guarda «cruces» de texto libre (`iot_vial_cruces_v2`, con dos
+inventados de fabrica) y solo da el rotulo `state.site`, que nombra los ficheros exportados.
+**(a) Modelo.** Via → grupos (nombre, PR) → dos huecos, `MAESTRO` y `ESCLAVO`, cada uno {MAC, serie, FW, fecha}. La
+identidad es la MAC (`address` de `bt.list()`); serie y punta salen de `SERIE:`/`NODE:` y el FW del `$ACK` de `VERSION`:
+nada de eso se teclea, solo via, grupo y PR. Un grupo con un solo poste vale; una MAC esta en un grupo como mucho.
+**(b) Matricular** (`D-118`; clave de administracion, §9.2; sin PIN: no envia nada). Enlazado y leido el primer
+`$STATUS`, la app ofrece los grupos con ese hueco libre o «Grupo nuevo»; un hueco ocupado por otra MAC no se pisa
+(«Quitar del grupo» primero); mover una MAC de grupo pide confirmar. Al enlazar un poste matriculado, `state.site`
+pasa a `<via> · <grupo>`; sin matricular, «SIN GRUPO». El grupo es el control del operador, no la radio: que los dos
+postes se hablen lo fija el canal (SPEC 6 B.2) y la app no lo ve; lo dice la ficha del grupo.
+**(c) Avisos, solo con lo que el equipo dice:** serie del `$STATUS` distinta de la guardada para esa MAC (no se
+sobrescribe sin matricular otra vez); `NODE:` distinto del hueco (rojo, la matricula no cambia); FW distinto entre
+los dos postes del grupo (ambar, con los dos sellos: `D-102`).
+**(d) Lista de equipos** agrupada por via y grupo, con sus filas `-M`/`-E` (las no vistas en gris); al final «Sin
+grupo» con las MAC vistas sin matricular y el aviso de `N-129`. La busqueda filtra por via, grupo o serie.
+**(e) Sustituye a `site_manager.js` (`D-119`):** modulo en `js/` (molde §9.12); cada cruce no de fabrica, a «Sin via».
+**(f) Practica con estado** (`D-120`; sustituye a las cintas; boton, franja y marcas de `D-86`/`D-89`; en el sitio del
+puerto falso). Cada poste es un estado (modo, fase, tiempos, PIN, franjas de noche, `tr`, Degradado, radio, FW) que
+contesta cada orden de §3.1/§3.2 con el `$ACK`/`$ERR` y los `$STATUS`/`$EVENT`/`$ALARM` que emitiria su firmware.
+Determinista, reloj inyectable, cada constante con su origen `archivo:simbolo`; el vocabulario de `MODO:`/`ESTADO:`
+es el que el C++ puede emitir (criterio de `app_04`). Flota: Via 1 · Km 20 en ciclo con PIN de fabrica; Km 80 noche
+ambar; Km 120 Maestro en `MENU` sin radio y Esclavo en Degradado. Via 2 · PR 12 noche rojo+ambar y saliendo en
+todo-rojo; PR 45 con FW distinto entre postes y una serie cambiada. Mas un poste virgen sin grupo. Sus grupos viven
+en la memoria de la practica, nunca en el almacen. Prohibidos los literales que busca `test_funcional_app.py` (§9.10).
+**(g) Las cintas `js/practica_cinta_1..4.js` son referencia** (`D-121`), fuera de `index.html`: con el simulador en el
+estado de la cinta, cada orden con respuesta grabada da los mismos campos (salvo `HORA`, `T`, `RTT` y contadores), y
+cada `$STATUS` los mismos nombres en el mismo orden. Si divergen se corrige el simulador, nunca la cinta.
+**Pruebas, vistas en rojo antes de construir:** `tests/dom_grupos.js` (matricular sin teclear serie, hueco ocupado,
+los tres avisos de (c), lista agrupada, migracion) y `tests/dom_simulador.js` (el menu entero por los botones con el
+reloj inyectado, sin desborde a 360 px; vocabulario contra el C++; las cintas de (g)); `dom_claves.js` «Practica» se
+adapta. Es PRODUCTO de la app: el simulador del repo sigue congelado (`CLAUDE.md` §4) y §8 no lo cuenta. Verde en
+practica dice que la app pinta bien, no que el equipo lo haga: no es evidencia ni entregable.

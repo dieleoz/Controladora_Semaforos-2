@@ -178,6 +178,14 @@ su cobre es SPEC 5. *(SPEC 2 §8 remitia «los parametros del modulo» a SPEC 5,
    deshabilitada mientras la recepcion sigue activa** — radios que oyen y no contestan, un dia de campo.
 3. **TODAS las radios del enlace, IGUALES.** Una punta con otra tasa o en otro canal **no enlaza**, y el sintoma no dice
    «mal configurada»: dice **«el equipo se callo»** y manda a mirar el cable.
+4. 🔴 **HUECO MEDIDO (15/10, `9f951c7`, `N-180`): una punta no distingue su pareja de otra.** `RF_Packet` es
+   `{msgID, command, param, crc}` en las dos puntas (`protocolo.h`), sin serie ni pareja, y
+   `protocolo_hayPaqueteDisponible()` solo descarta por CRC y por `msgID` repetido. Dos grupos (SPEC 4 §9.14) al
+   alcance de radio (1 a 3 km) y en el mismo canal se oirian: un Esclavo obedeceria al Maestro del otro grupo. La
+   matricula de pareja de `SFTY-27` (`OPTIMIZACIONES.md`) es diseno, sin construir. Lo que falta es MEDIR, no codigo:
+   en banco, dos parejas encendidas a la vez, en el mismo canal y despues en canales distintos, anotando que hace
+   cada Esclavo. Hasta esa acta (`evidencia/<fecha>_campo_dos_parejas.txt`) la unica separacion es el canal, que no
+   lee nadie (B.2).
 
 ## B.2 Los parametros, y cual de ellos puede este proyecto verificar
 
