@@ -102,8 +102,8 @@ publicaba 32 rutas y 86,4 % de flash cuando el acta que ella misma citaba medía
 | Comprobación | Estado | |
 |---|---|---|
 | guarda de rutas de los instrumentos | ✅ | 63 rutas parseadas, todas existen |
-| banco por packs *(70 packs)* | 🔴 **FALLA** | **1453/1458 comprobaciones en 70 packs** — 69 PASS, **1 FALLA**. `decisiones_01_anclas` acusa a **`D-22`** (necesita una tarjeta delante) y a **`D-94`..`D-97`** (decididas por Fable el 14/10, sin construir); no se decora (`CLAUDE.md` §1) |
-| compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **72.2 %** · 64.0 % · 20.6 % · 35.8 % — *el Maestro ocupa **46552 de 64512 B** (la ultima pagina queda para el testigo de `D-35`); el Esclavo, **41276 B**. Bajo al quitar la libreria RTC (`N-172`) y subio con la salida programada (`D-52`) y el verde del testigo (`D-59`)* |
+| banco por packs *(70 packs)* | 🔴 **FALLA** | **1456/1461 comprobaciones en 70 packs** — 69 PASS, **1 FALLA**. `decisiones_01_anclas` acusa a **`D-22`** (necesita una tarjeta delante) y a **`D-94`..`D-97`** (decididas por Fable el 14/10, sin construir); no se decora (`CLAUDE.md` §1) |
+| compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **72.1 %** · 64.0 % · 20.6 % · 35.8 % — *el Maestro ocupa **46544 de 64512 B** (la ultima pagina queda para el testigo de `D-35`); el Esclavo, **41276 B**. Bajo al quitar la libreria RTC (`N-172`) y subio con la salida programada (`D-52`) y el verde del testigo (`D-59`)* |
 | simulador funcional | ✅ | 9/9 — eran 20, y 11 de aquellas no medían nada: se retiraron una a una con su evidencia |
 | simulador de repetidor | ✅ | 10/10 |
 | compila ESP32 | ✅ | 35.8 % — 1126397 de 3.145.728 B |
