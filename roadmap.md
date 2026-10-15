@@ -137,6 +137,9 @@ se revierte el paso y sigue el siguiente. Simulador congelado (§4): pruebas en 
 | MF | Compuerta completa convergida, arquitecto y QA una vez sobre la candidata | runbook | acta 2026-10-15 convergida; condiciones cerradas salvo orden «APK primero» en la hoja del proximo paquete (D-102) |
 N-179 (version siguiente): modo noche `D-103` (SPEC_0 §5.10) y la cabecera de `MENU` que diga que hacen las luces
 (`D-105`); sin construir, no van en el paquete de Marco.
+Y el sello de firmware: con un hash corto que empieza por 0, SCons lo lee como numero y el binario dice `FW:479942`
+por `0479942` (medido el 15/10 con `pio run -v`); `version_01_sello_de_firmware` no lo ve. Mientras, no se empaqueta
+un commit cuyo hash empiece por cifra.
 
 **Antes (05/10, el funcional espera en banco): `N-176` ROJO+AMARILLO antes del verde (`D-53`).** Coste medido
 sobre `a5db18e`: ~28 ficheros (firmware ~10, app 4, arneses 4, packs/modelos 5, SPEC 5). Riesgos que se revisan
