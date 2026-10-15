@@ -660,6 +660,7 @@ Lo que DEBE hacer, y HACE desde este cambio (lo ejerce `tests/dom_registro_sesio
    la app a segundo plano). Un fallo de escritura para el registro y se declara en el `.txt` exportado; a los
    20 MB para y lo dice (~64 h: 1830 tramas/h de ~170 B, medidas en la misma cinta). Fuera de la APK no escribe.
 
-Queda sin medir (telefono): que `copy`, `writeFile` y `appendFile` sobre `EXTERNAL` funcionen en la APK, la ruta
-real y que `adb pull` la lea; cuanto se pierde al matar la app (hasta un lote, 5 s). Los `SESION_*` no se purgan:
-se borran a mano o por adb. El aviso EN VIVO de un fallo de escritura necesita una linea en `app.js`.
+Medido el 14/10 en el telefono (`evidencia/2026-10-14_telefono_d55.txt`): `writeFile` y `appendFile` sobre `EXTERNAL`
+funcionan, la ruta es la de arriba y adb la lee. Queda sin medir: `copy` al exportar; cuanto se pierde al matar la app
+(hasta un lote, 5 s). Los `SESION_*` no se purgan: se borran a mano o por adb. El aviso EN VIVO de un fallo de escritura
+necesita una linea en `app.js`.

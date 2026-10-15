@@ -1,0 +1,11 @@
+ACTA - APK 96c3d32 en el telefono del responsable (Honor ABR_LX3, serie A76X6R5521003398), 14/10/2026 19:21
+APK: IOT_VIAL_Semaforos_2026-10-14_96c3d32_SIN_BANCO.apk, sha256 ba1d595ce3e986a79da6382bc5ecd638bc292d0add338b44c749a3987d8b1678
+Instalada con adb install -r; medido por CDP (Runtime.evaluate). Sin equipo: no se conecto a ningun SEM-* ni salio orden.
+
+D-59: campo num-testigo-verde presente, min 3, max 15, valor 3. Testigo.componer: 6 min -> verde 360; 3 min -> 180;
+16 min -> "Verde invalido: minutos enteros de 3 a 15." Pantalla principal: SIN ENLACE (correcto sin equipo).
+D-55 (SPEC_4 9.3, lo que quedaba sin medir): Filesystem.writeFile y appendFile sobre EXTERNAL -> ok;
+uri file:///storage/emulated/0/Android/data/com.iotvial.semaforos/files/PRUEBA_D55.txt; contenido leido por la app
+y por adb shell cat = "linea1\nlinea2\n". Fichero de prueba borrado despues.
+Sin medir aun: Filesystem.copy de CACHE a EXTERNAL al exportar (abre la hoja de compartir) y lo que se pierde al
+matar la app; el SESION_*.txt real necesita un equipo que mande tramas.
