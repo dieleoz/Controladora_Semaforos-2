@@ -35,7 +35,7 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 | Maestro `179DB0` (El Sisga) | `7ff7d12` `SIN_BANCO`, probado despues `b354fe9`. Ninguno lleva el veto de camara a la pluma (`363e375`, `D-33`): `Camaras_Sisga_4x.html` se corrige en la MISMA visita en que se cargue un firmware posterior | cinta y diario en `evidencia/` |
 | Esclavo del Sisga | sin medir | su cinta no se ha traido |
 | Maestro `4D2007` y Esclavo `38EB53` (Marco, banco) | `6bd1e4f` en controlador y puente, medido: `$ACK,CMD:VERSION` el 01/10 | `evidencia/011020260934/` |
-| paquete para Marco | `Paquete_Semaforos_2026-10-14_96c3d32_SIN_BANCO` (zip sha256 `9931acef...`): firmware `D-59` (verde del Degradado 3-15 min) para los DOS postes, `.bin` sueltos al lado; APK `ba1d595c...` con `D-55`, `D-56` y `D-59`; hoja del 14/10, cinco casos. Arquitecto APTO, QA APTO CON CONDICIONES (cerradas). Los anteriores, a `entregas/RETIRADOS/` | `entregas/` |
+| paquete para Marco | `Paquete_Semaforos_2026-10-14_96c3d32_SIN_BANCO` (zip sha256 `b4390a0d...`): firmware `D-59` (verde del Degradado 3-15 min) para los DOS postes, `.bin` sueltos al lado; APK `ba1d595c...` con `D-55`, `D-56` y `D-59`; hoja unica del 14/10, 24 casos (lo nuevo y lo no reportado desde el 04/10). Arquitecto APTO, QA APTO CON CONDICIONES (cerradas). Los anteriores, a `entregas/RETIRADOS/` | `entregas/` |
 
 ## Verificacion en escritorio
 
