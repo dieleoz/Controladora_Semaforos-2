@@ -1,7 +1,7 @@
 ACTA DE VERIFICACION - Controladora de Semaforos
 ==============================================================================
 Fecha        : 2026-10-15
-HEAD         : 794ddbe   rama: main
+HEAD         : 08aea2a   rama: main
 Arbol        : LIMPIO
 Modo         : completo
 PlatformIO   : PlatformIO Core, version 6.1.19
@@ -10,8 +10,8 @@ GCC de host  : gcc.exe (MinGW-W64 x86_64-ucrt-posix-seh, built by Brecht Sanders
 RESULTADOS
 ------------------------------------------------------------------------------
   PASS      guarda de rutas                   63 rutas parseadas, todas existen
-  PASS      compila maestro                   Flash: [=======   ]  72.2% (used 46552 bytes from 64512 bytes)
-  PASS      compila esclavo                   Flash: [======    ]  64.0% (used 41276 bytes from 64512 bytes)
+  PASS      compila maestro                   Flash: [=======   ]  72.1% (used 46544 bytes from 64512 bytes)
+  PASS      compila esclavo                   Flash: [======    ]  64.0% (used 41268 bytes from 64512 bytes)
   PASS      compila repetidor                 Flash: [==        ]  20.6% (used 270497 bytes from 1310720 bytes)
   PASS      compila esp32                     Flash: [====      ]  35.8% (used 1126397 bytes from 3145728 bytes)
   PASS      simulador funcional               VEREDICTO FINAL: 9/9 PASS (SISTEMA V8.0 DEFINITIVA CERTIFICADO)
@@ -21,7 +21,7 @@ RESULTADOS
   PASS      test unitarios de la app          RESUMEN DE PRUEBAS: 67 PASS | 0 FALLAS  (Total: 67)
   PASS      test unitarios TDD de la app      RESUMEN TDD: 90 PASS | 0 FALLAS  (Total: 90)
   PASS      app ejecutada en DOM              RESULTADO JSDOM: 721 PASS | 0 FALLAS
-  FALLA     banco por packs                   RESUMEN: 1456/1461 comprobaciones  |  packs: 69 PASS, 1 FALLA, 0 ABORTADO
+  FALLA     banco por packs                   RESUMEN: 1454/1461 comprobaciones  |  packs: 68 PASS, 2 FALLA, 0 ABORTADO
   PASS      arnes del ciclo                   RESULTADO: 78/78 comprobaciones OK
   PASS      arnes del respaldo                respaldo.cpp y respaldo.h identicos entre puntas | arnes vivo (PING/PONG)
   PASS      arnes del automatico              RESULTADO: 88/88 comprobaciones OK
@@ -32,5 +32,5 @@ RESULTADOS
   RESUMEN: 18 PASS | 1 FALLA | 0 ABORTADO
 
 ABORTADO no es PASS: una comprobacion que no pudo correr no dice nada del
-firmware. Esta acta se verifica volviendo a 794ddbe y re-corriendo
+firmware. Esta acta se verifica volviendo a 08aea2a y re-corriendo
 python 01_Firmware/compuerta.py.
