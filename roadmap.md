@@ -148,7 +148,7 @@ El paquete `5288c3d` de Marco no se toca: sale otra candidata.
 | N4 | Menores de QA de `N-178`: `registro.cpp` primero inexistente tras fallo; `respaldo_borrar()` y `DR9`/`DR10`; duracion del registro en SPEC_4 | QA 15/10 | |
 | N5 | `app.js` en modulos, tanda 2 | `N-178` M13 | |
 | N6 | Lint del 14/10: SPEC_1 filas de la compuerta, SFTY sin spec, huerfanos, packs sin historico; documentos vivos al tope | cierre 14/10 | |
-| NF | Compuerta convergida, arquitecto y QA, una ronda de condiciones, hoja, APK y paquete candidato | runbook | hoja `Pruebas_Funcional_2026-10-16.html` (41 casos: los 33 del 15/10 y 8 de `N-179`; la del 15/10 a historico) y APK `aa9dd44a...` del arbol sin comitear; falta compuerta, comitear y paquete |
+| NF | Compuerta convergida, arquitecto y QA, condiciones, hoja, APK y paquete | runbook | HECHO: acta sobre `1b67107` (1480/1485, solo `D-22` y `D-94`..`D-97`); paquete `2026-10-16_ad74390` zip `c68f11f0...`, APK `a8214ed5...` |
 
 Sin teclado (no entra): hardware `N-108`, `N-120`, `C-6`, `N-116`, `Y2`; `D-94`..`D-97` (placa con barrera y pila).
 

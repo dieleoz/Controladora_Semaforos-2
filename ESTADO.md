@@ -5,11 +5,11 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 
 ## Por donde se retoma, en este orden
 
-1. **Mandar a Marco `Paquete_Semaforos_2026-10-15_5288c3d_SIN_BANCO.zip`** (`entregas/`, sha256 `f5a80b11...`):
-   fuente PlatformIO de los cuatro firmwares (sello `FW:5288c3d` medido en los `.bin`), APK `8e8ec7d7...`, app web y
-   la hoja unica del 15/10 (33 casos: los 24 de la del 14/10, nunca enviada, y 9 de `N-178`). APK primero en TODOS los
-   telefonos, despues el firmware en los DOS postes y en los DOS puentes (`D-102`). Acta `2026-10-15` convergida
-   sobre `c354724` (solo `D-22` y `D-94`..`D-97`, sin construir). El paquete del 14/10 no salio: `RETIRADOS/`.
+1. **Mandar a Marco `Paquete_Semaforos_2026-10-16_ad74390_SIN_BANCO.zip`** (`entregas/`, sha256 `c68f11f0...`):
+   `N-179` (modo noche, cabecera de MENU, sello con cero) sobre `N-178`; sello `FW:ad74390` medido en los `.bin`;
+   APK `a8214ed5...` instalada y arrancada en el telefono del responsable; hoja del 16/10, 41 casos. APK primero,
+   despues firmware en los DOS postes y los DOS puentes (`D-102`). Acta convergida sobre `1b67107` (solo `D-22`
+   y `D-94`..`D-97`). Si `5288c3d` (15/10) no salio, este lo sustituye; si salio, este va despues.
 2. **Cuando vuelvan sus cintas** (`N-177` V10): leerlas enteras y contando (`CLAUDE.md` §7), un `IOTVIAL_*` de CADA
    poste; si la hoja pasa, se quita `SIN_BANCO`. Si el responsable tiene el PDF de la hoja del 04/10, los casos 16-24
    que ya se hicieron salen de la hoja.
@@ -35,7 +35,7 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 | Maestro `179DB0` (El Sisga) | `7ff7d12` `SIN_BANCO`, probado despues `b354fe9`. Ninguno lleva el veto de camara a la pluma (`363e375`, `D-33`): `Camaras_Sisga_4x.html` se corrige en la MISMA visita en que se cargue un firmware posterior | cinta y diario en `evidencia/` |
 | Esclavo del Sisga | sin medir | su cinta no se ha traido |
 | Maestro `4D2007` y Esclavo `38EB53` (Marco, banco) | `6bd1e4f` en controlador y puente, medido: `$ACK,CMD:VERSION` el 01/10 | `evidencia/011020260934/` |
-| paquete para Marco | `Paquete_Semaforos_2026-10-15_5288c3d_SIN_BANCO` (zip `f5a80b11...`): `D-59` y `N-178` para los DOS postes y los DOS puentes, `.bin` sueltos al lado con sello `FW:5288c3d`; APK `8e8ec7d7...`; hoja del 15/10, 33 casos. Los anteriores, a `entregas/RETIRADOS/` | `entregas/` |
+| paquete para Marco | `Paquete_Semaforos_2026-10-16_ad74390_SIN_BANCO` (zip `c68f11f0...`): `N-179` y `N-178` para los DOS postes y los DOS puentes, `.bin` con sello `FW:ad74390`; APK `a8214ed5...`; hoja del 16/10, 41 casos | `entregas/` |
 
 ## Verificacion en escritorio
 
