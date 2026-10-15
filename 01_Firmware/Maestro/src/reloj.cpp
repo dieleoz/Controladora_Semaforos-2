@@ -496,7 +496,7 @@ bool reloj_guardarFechaEsp32(const char* str) {
   return true;
 }
 
-// D-90: sin llamador, no se construye; andamio que D-46 conserva (reloj.h).
+// D-103: sin llamador; se construye en N-179 sobre este andamio (reloj.h).
 void reloj_ajustarFranjaNocturna(uint8_t horaInicio, uint8_t horaFin) {
   if (horaInicio > 23 || horaFin > 23) return;
   nocheInicio = horaInicio; nocheFin = horaFin;

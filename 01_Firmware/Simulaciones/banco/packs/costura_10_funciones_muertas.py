@@ -52,7 +52,7 @@ CONOCIDAS = {
         # retirar de una sola punta.
         "respaldo_valido", "respaldo_verdeSeg", "respaldo_despejeSeg",
         # SFTY-20, franja nocturna: OPTIMIZACIONES.md la declara "DISENO, NO
-        # IMPLEMENTADO". Andamio que D-46 conserva (D-90: no se construye).
+        # IMPLEMENTADO". Andamio de D-103 (modo noche): se construye en N-179.
         "reloj_ajustarFranjaNocturna", "reloj_esHorarioNocturno",
         "reloj_inicioNoche", "reloj_finNoche",
         # D-63: PRUEBA ALCANCE ya no pone a cero los contadores; protocolo.h es gemelo.

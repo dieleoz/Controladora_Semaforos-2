@@ -483,9 +483,9 @@ bool reloj_horaFiable();
 
 // --- Franja nocturna configurable -----------------------------------------
 //
-// Andamio SFTY-20 sin llamador. D-90: el intermitente nocturno no se construye; lo
-// conserva D-46 hasta que A-16 decida reusarlo o retirarlo. La franja vive solo en RAM
-// (revierte a 22-05 tras un corte): quien la reuse lee OPTIMIZACIONES.md SFTY-20.
+// Andamio SFTY-20 sin llamador. D-103 (modo noche por dias y franja): se construye en
+// N-179 sobre este andamio. Hoy la franja vive solo en RAM (revierte a 22-05 tras un
+// corte) y D-103 exige que sobreviva: SPEC_0 5.10 y OPTIMIZACIONES.md SFTY-20.
 void reloj_ajustarFranjaNocturna(uint8_t horaInicio, uint8_t horaFin);
 uint8_t reloj_inicioNoche();
 uint8_t reloj_finNoche();

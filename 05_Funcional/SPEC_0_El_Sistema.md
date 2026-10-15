@@ -177,13 +177,22 @@ configuracion** (`SPEC_6` HUECO 3), y si no se hizo el sintoma no dira «radio m
    muerta desde la instalacion no la avisa nadie** (`SPEC_8` §4).
 9. ⚠️ **Y lo que no se puede afirmar de nada de esto: NO HA VISTO UNA TARJETA.** Ninguna camara se ha conectado nunca a este
    equipo, y que firmware corre en cada poste **lo dice `ESTADO.md`, no este fichero** (`CLAUDE.md` §0.2).
-10. **NO TIENE MODO DE BAJO TRAFICO INTERMITENTE, Y EN UN PASO ALTERNADO NO LO TENDRA (`D-90`, 14/10).** El diseno
-   SFTY-20 (Maestro ambar intermitente, Esclavo rojo intermitente, programado por dias y franja) copia 4.4.3, que
-   reparte el paso por jerarquia de VIA en una interseccion donde el que para VE a quien tiene prioridad. Aqui las dos
-   puntas son el mismo carril y el semaforo existe porque no se ven (§1): el rojo intermitente es un PARE que el
-   conductor levanta por su cuenta, el ambar no detiene a nadie, y los dos entran de frente —la exposicion que
-   `SPEC_6` D.2 llama ventana— con la pluma arriba en los dos extremos (`SPEC_8` §5). Es el ambar de averia de §1
-   convertido en horario: retira la unica barrera del producto. Lo que ejecuta hoy ese horario es NADA: el andamio
-   de `reloj.*` (`reloj_esHorarioNocturno()`, `D-46`) sigue sin llamador, lo vigila `costura_10_funciones_muertas` y
-   cita esta decision. Lo que SI conserva la alternancia —un ciclo corto por franja— esta abierto en `A-16`, sin
-   decidir: es una decision vial del responsable.
+10. **NO TIENE MODO NOCHE: DECIDIDO, SIN CONSTRUIR (`D-103`, 15/10, version siguiente `N-179`).** Lo que DEBE hacer,
+   no lo que hace: hoy el andamio de `reloj.*` (`reloj_esHorarioNocturno()`) sigue sin llamador y lo vigila
+   `costura_10_funciones_muertas`. No va en el paquete de Marco. Decidido por el responsable, que mide el sitio asi:
+   las dos puntas se ven y pasan 20-30 vehiculos entre 00:00 y 04:00.
+   - **Que hace.** En los dias de la semana y la franja programados (ej. lun, mar, vie 00:00-04:00) las dos puntas
+     destellan: **ambar intermitente en los dos postes por defecto**; elegido en la app, Poste 1 ambar y Poste 2 rojo
+     intermitente (norma 4.4.3). **Pluma arriba en los dos postes** durante la franja (decidido por el responsable,
+     15/10). Entra y sale por el despeje todo-rojo, y fuera de la franja vuelve al modo que tenia.
+   - **Riesgo aceptado por el responsable:** con ambar en los dos, dos vehiculos pueden encontrarse de frente.
+   - **Que guarda.** Dias, inicio y fin de la franja y la opcion de color, en el equipo, y sobreviven al corte.
+   - **Que publica.** Que esta en modo noche (estado propio: no se reporta como `S_FALLO` ni como el ambar de averia
+     de §1) y la franja programada, para que la app la lea de vuelta.
+   - **Que pide la app.** Una orden con clave y PIN que fija dias, franja y color, molde `SET_TIEMPOS` (`CLAUDE.md`
+     §2): `RESULT:OK` solo si lo releido es lo pedido, un `$ERR` por motivo; y una pantalla que muestre lo guardado.
+   - **Huecos que la construccion resuelve antes del codigo.** (1) Fecha en el Esclavo: hoy solo la tiene por radio
+     (`CMD_HORA_D`, `D-26`); decidir si sigue al Maestro por radio o decide con su reloj, y que hace sin hora
+     (SFTY-18: sin hora en hora no entra). (2) Donde se guarda la franja: los `BKP->DR1..DR10` estan repartidos
+     (`respaldo.cpp`) y hoy la franja vive en RAM y revierte a 22-05 tras un corte. (3) Que hace si un poste entra
+     y el otro no confirma. (4) Como se publica sin pasar el margen del `$STATUS` (`D-60`).

@@ -93,7 +93,7 @@ que no la comprueba es **peor** que una fila vacía, porque la vacía al menos n
 | SFTY-17 | `Esclavo/src/main.cpp` | — |
 | **SFTY-18** | `Maestro/src/reloj.cpp` · `Maestro/include/reloj.h` · `ESP32_Expansion` *(el reloj del puente)* | ✅ `esp32_04_osf` · ✅ `esp32_11_bien_formada_no_es_cierta` |
 | **SFTY-19** | **— solo diseño, ver abajo.** La única mención en el código es una advertencia en `reloj.h` aclarando que este modo **no** se apoya en el RTC | — |
-| SFTY-20 | `Maestro/src/reloj.cpp` · `Maestro/include/reloj.h` (`reloj_esHorarioNocturno`, `reloj_ajustarFranjaNocturna`, `reloj_inicioNoche`, `reloj_finNoche`, sin llamador) · `ESP32_Expansion/include/reloj_ds3231.h` *(diseño, no implementado: el andamio; ~~`modo_hora.h`~~ borrado con `D-44`; no se construye, `D-90`)* | — |
+| SFTY-20 | `Maestro/src/reloj.cpp` · `Maestro/include/reloj.h` (`reloj_esHorarioNocturno`, `reloj_ajustarFranjaNocturna`, `reloj_inicioNoche`, `reloj_finNoche`, sin llamador) · `ESP32_Expansion/include/reloj_ds3231.h` *(diseño, no implementado: el andamio; ~~`modo_hora.h`~~ borrado con `D-44`; se construye en `N-179`, `D-103`)* | — |
 | **SFTY-21** | `*/src/modo_degradado.cpp` · ~~`*/src/mando.cpp`~~ *(retirado el 14/09)* · `*/include/ciclo_degradado.h` | ✅ `esclavo_01_latch_ambar` · `esclavo_07_ambar_emergencia` · `esclavo_08_ambar_en_degradado` · `maestro_05_ciclo_sin_radio` · `costura_02_fase_ciclo` · `costura_06_reanudacion` · `costura_12_margen_deriva` · `costura_13_ambar_ordenado` · `costura_14_cancela_ambar` · `camara_02_j16` — *14/09: maestro_01_mando se borro con el mando y sale de esta fila; su unica propiedad viva se mudo a maestro_09_test_leds, que NO declara esta regla y por eso tampoco se cita (§13: una regla cubierta por una prueba que no la ejerce es peor que una fila vacia)* |
 | SFTY-22 | **la app, no una pantalla** (`D-91`): `Maestro/src/bluetooth.cpp` (` AMBAR:` del periodico `ENLACE_RF`, `D-92`) · `App_Semaforo/js/diagnostico_enlace.js` (`D-93`) | `tests/dom_cabecera_fase.js` (4) — rojo hasta construir |
 | **SFTY-23** | `Maestro/src/coordinador.cpp` · `Esclavo/src/config_ciclo.cpp` *(Fase 2)* · `*/src/reloj.cpp` | ✅ `esclavo_03_par_config` · `esclavo_04_desfase` · `esclavo_05_hora_atomica` · `maestro_04_sync_horaria` |
@@ -398,9 +398,10 @@ Su publico es el tecnico, no el conductor.
 
 ## 🌙 SFTY-20 — Operación intermitente nocturna (DISEÑO, **NO IMPLEMENTADO**)
 
-**Estado:** especificado el 01/08/2026 (pendiente **N-3**). 🔴 **NO SE CONSTRUYE: `D-90` (14/10, SPEC_0 §5.10)**:
-en un paso alternado de un solo carril el intermitente de 4.4.3 deja entrar a las dos puntas. Queda como diseño;
-el andamio de `reloj.*` sigue sin llamador (`D-46`). Requisito de origen: `MANUAL_USUARIO.md §2`.
+**Estado:** especificado el 01/08/2026. 🟠 **SE CONSTRUYE en `N-179` (version siguiente) como el modo noche de
+`D-103` (15/10, SPEC_0 §5.10)**: dias y franja desde la app, guardados y que sobreviven al corte; ambar en las dos
+puntas por defecto o Poste 1 ambar y Poste 2 rojo; pluma arriba. Lo que manda es SPEC_0 §5.10; este diseño es el
+antecedente. El andamio de `reloj.*` sigue sin llamador. Requisito de origen: `MANUAL_USUARIO.md §2`.
 
 **Disparo por horario**, decidido el 31/07 —el disparo por flujo real exigiría la cámara instalada—.
 La franja es **configurable**, porque el horario no es el mismo en todas las obras.

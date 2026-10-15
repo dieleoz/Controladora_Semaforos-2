@@ -101,7 +101,7 @@ cubre como el despeje (el Poste 2 recibe el guardado del Poste 1) y la renovacio
 | V5 | Arquitecto (opus) sobre la candidata | veredicto | APTO sin condiciones sobre `96c3d32` (14/10) |
 | V6 | QA sobre el binario y la APK que se entregan | veredicto | APTO CON CONDICIONES (14/10): todos los telefonos con la APK `ba1d595c`; corte de luz con verde 15 min en tarjeta; caso 12 de la app vacuo (D2) |
 | V7 | Cerrar condiciones (SPEC -> prueba en rojo -> codigo) y compuerta otra vez si cambia codigo | candidata | hecho: caso 12 visto en rojo y dos condiciones en la hoja (`a0d2121`); acta convergida sobre arbol limpio (`b4501a6`) |
-| V8 | Hoja de Marco solo con lo nuevo (verde 4-6 min en los dos postes, cambio en caliente con paletero, `.txt` de `D-55`) | `.html` | hecho: `Pruebas_Funcional_2026-10-14.html`, hoja unica de 24 casos (lo nuevo y lo no reportado) |
+| V8 | Hoja de Marco solo con lo nuevo (verde 4-6 min en los dos postes, cambio en caliente con paletero, `.txt` de `D-55`) | `.html` | hecho y sin enviar; sustituida por `Pruebas_Funcional_2026-10-15.html` (33 casos, con N-178) |
 | V9 | Paquete validado `SIN_BANCO` a `entregas/` (firmware de los dos postes, APK de `96c3d32` con `D-55`/`D-56`), `.docx` de SPEC_2 y SPEC_4, ESTADO y README | `.zip` | hecho: `Paquete_Semaforos_2026-10-14_96c3d32_SIN_BANCO.zip`, sha256 `b4390a0d...`; el del 09/10 a `RETIRADOS/` |
 | V10 | Banco de Marco con placas reales y la hoja; sus cintas se leen enteras y contando; si pasa, se quita `SIN_BANCO` | cintas | Marco, despues el orquestador |
 
@@ -130,11 +130,13 @@ se revierte el paso y sigue el siguiente. Simulador congelado (§4): pruebas en 
 | M7 | App: un color y una frase por estado, cabecera a 360 px, un solo aviso al cambiar el verde, prueba contra jerga | `ROADMAP_APP.md` 2-3 | hecho en ronda 2 (D-80..D-83, D-101) |
 | M8 | `empaquetar_funcional.py` con commit de la candidata | sesion 14/10 | hecho (D-84, D-85) |
 | M9 | Modo practica sin poste | `D-58`, `ROADMAP_APP.md` 14 | hecho (D-86..D-89) |
-| M10 | Bajo trafico por dias y franja | `N-175`, SFTY-20 | no se construye (D-90) |
+| M10 | Bajo trafico por dias y franja | `N-175`, SFTY-20 | derogado por D-103 |
 | M11 | Pantalla informativa durante el ambar | SFTY-22 | hecho (D-91..D-93) |
 | M12 | Interruptores de SPEC_8 §6: solo SPEC, sin placa no hay codigo | SPEC_8 §6 | solo SPEC (D-94..D-97), rojo honesto |
 | M13 | `app.js` en modulos y fase F | `ROADMAP_APP.md` 8 | tanda 1 y fase F hechas |
 | MF | Compuerta completa convergida, arquitecto y QA una vez sobre la candidata | runbook | acta 2026-10-15 convergida; condiciones cerradas salvo orden «APK primero» en la hoja del proximo paquete (D-102) |
+N-179 (version siguiente): modo noche `D-103` (SPEC_0 §5.10) y la cabecera de `MENU` que diga que hacen las luces
+(`D-105`); sin construir, no van en el paquete de Marco.
 
 **Antes (05/10, el funcional espera en banco): `N-176` ROJO+AMARILLO antes del verde (`D-53`).** Coste medido
 sobre `a5db18e`: ~28 ficheros (firmware ~10, app 4, arneses 4, packs/modelos 5, SPEC 5). Riesgos que se revisan
@@ -180,8 +182,8 @@ Todo cambio de firmware respeta las E/S y pines que fijan las guias de campo `.h
 **`N-175` Modo de bajo trafico (SFTY-20, diseno en `OPTIMIZACIONES.md`), optimizacion, version siguiente.**
 Responsable, 06/10: lo programa el usuario cuando quiera, por DIAS DE LA SEMANA y franja horaria (p.ej. este mes
 martes a jueves; fines de semana no, hay mas trafico). Luces del diseno: Maestro ambar intermitente, Esclavo rojo
-intermitente (norma 4.4.3). Cerrado el 14/10 por Fable (`D-90`, SPEC_0 §5.10): en un paso alterno de un carril NO
-basta, los dos entran; no se construye. Lo que conserva la alternancia (ciclo corto por franja) queda en `A-16`.
+intermitente (norma 4.4.3). Sustituido el 15/10 por el modo noche de `D-103` (SPEC_0 §5.10), decidido por el
+responsable (las puntas se ven; 20-30 vehiculos en la franja): se construye en `N-179`, version siguiente.
 
 **A. `N-173` Runbook de la candidata** (se salto para mandar a Marco; ahora entero, para dejar `main` ok). La
 candidata crecio con I (`cda33df`) y G (`f9cad1f`): un solo runbook sobre todo.

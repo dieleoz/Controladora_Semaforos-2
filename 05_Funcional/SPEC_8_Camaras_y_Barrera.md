@@ -88,6 +88,10 @@ inseguro para quien este debajo. Lo compensa el paso de instalacion del Manual 9
 > fuera funcione—; **3) EL VETO**. Una comprobacion que solo mirara el RESULTADO aprobaria este
 > firmware con las barreras en el orden equivocado (`CLAUDE.md` §9).
 
+La grabacion en la microSD de cada camara es un respaldo que no toca el equipo (`D-104`): continua, unos 5 dias,
+sobrescribiendo lo mas viejo, configurada en el menu de cada camara. El equipo no habla con las camaras por red: solo
+lee su rele de presencia.
+
 # 2. 🔴 Las DOS entradas de camara hacen EXACTAMENTE LO MISMO
 
 **MEDIDO hoy en las dos puntas:** `camaras_actualizar()` recorre `CAM_J16[2] = {CAM_C_PIN,
