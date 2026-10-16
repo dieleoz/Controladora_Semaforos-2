@@ -2,28 +2,10 @@
 #
 # NO PUEDE HABER DOS GENERADORES DE TRAMA EN EL MISMO ARBOL QUE NO COINCIDAN.
 #
-# Es N-73 -la funcion que nadie llama- con un agravante que la vuelve otra cosa: la
-# huerfana de este pack NO ESTA INERTE, ESTA CERTIFICADA. Vive en un fichero con nombre
-# de especificacion, con pruebas verdes encima, y es el primero que abrira quien tenga
-# que escribir un puente. Una funcion muerta que nadie mira es deuda; una funcion muerta
-# que un test aprueba es una ESPECIFICACION FALSA.
-#
-# LO QUE ESTE PACK MIDIO AL ESCRIBIRSE, Y POR ESO EXISTE.
-#
-#   js/nmea_parser.js  generarComando() ->  $CMD:PIN:1234:SET_MODO:AUTO*XX\r\n
-#   app.js             enviarComandoFirmware() ->  CMD:PIN:1234:SET_MODO:AUTO\r\n
-#
-# Los dos dicen componer "el comando que se le manda al equipo", y solo uno de los dos
-# entra. El despachador del firmware compara el buffer TAL CUAL llega -bluetooth_loop()
-# acumula bytes hasta el \r o el \n y llama a procesarComando(btBufIn) sin quitar nada-,
-# y su primera comparacion es strcmp(cmd, "CMD:FORZAR_ROJO") / strncmp(cmd,
-# "CMD:PIN:1234:", 13). Con el '$' delante NO CASA NINGUNA, asi que toda la trama de
-# NMEAParser cae en el $ERR,CMD:AUTH_FAILED,DESC:PIN_INVALIDO.
-#
-# Y las pruebas que lo certifican no podian verlo: tests/test_unitarios.js afirma
-#   assert(cmdAuto.includes('CMD:PIN:1234:SET_MODO:AUTO'), ...)
-# con includes(), que es cierto tambien de la trama envuelta. Una prueba de subcadena no
-# puede detectar un envoltorio: mide que el payload esta dentro, no que la trama sea esa.
+# N-73 con agravante: una huerfana CERTIFICADA por pruebas verdes es una especificacion
+# falsa. Al escribirse midio generarComando() -> $CMD:PIN:1234:X*XX\r\n frente a
+# enviarComandoFirmware() -> CMD:PIN:1234:X\r\n: el despachador compara el buffer TAL CUAL
+# (strcmp/strncmp desde el byte 0) y con el '$' delante no casa ninguna. La cronica, en git.
 #
 # COMO SE MIDE, SIN NINGUNA LISTA ESCRITA A MANO.
 #
@@ -51,13 +33,14 @@
 # como tal- asi que la lista de conocidos esta CONGELADA abajo y lo que falla es un
 # huerfano NUEVO, o uno de la lista que GANA llamador y no sale de ella.
 #
-# La diferencia con costura_10, y el motivo de que esto no sea una ampliacion suya: alli
-# el sujeto son funciones declaradas en los include/*.h de las dos puntas del firmware y
-# el censo es "declaracion contra llamadas en los .cpp". Aqui el sujeto son modulos de
-# JavaScript, el censo arranca de las etiquetas <script> de un .html, y la propiedad que
-# de verdad importa -que los generadores coincidan- no tiene nada que ver con la
-# orfandad. Meterlo dentro habria obligado a costura_10 a llevar dos parsers para dos
-# lenguajes y a que su DESCRIPCION dejara de ser cierta.
+# No es una ampliacion de costura_10: alli el sujeto son funciones de los .h del C++;
+# aqui, modulos JavaScript censados desde las etiquetas <script> de un .html.
+#
+# D-122 (15/10): las tramas de RESPUESTA que compone el simulador de la app ($ACK,,
+# $ERR,... leidos del C++) no son ordenes y se apartan antes de juzgar; lo demas, igual.
+# D-126 (15/10): tampoco se juzga un literal donde se COMPARA la orden recibida (===, !==,
+# ==, case, .startsWith(, .indexOf(..) === 0: el strcmp del C++), ni el argumento de una
+# funcion que construye una respuesta ($EVENT...). Una orden que se ENVIA, si.
 #
 # SOBRE LAS ETIQUETAS SFTY: este pack NO lleva ninguna. Vigila la forma de una trama y
 # el censo de modulos de una interfaz; no ejerce ninguna barrera del equipo. Figurar en
@@ -74,23 +57,8 @@ BT_ESCLAVO = ("Esclavo", "src", "bluetooth.cpp")
 
 # Los modulos que index.html carga y que HOY no llama nadie, con su motivo. La lista es
 # un trinquete: sobra tanto uno que aparece como uno que desaparece.
-# NMEAParser SALIO DE ESTA LISTA EL 01/09, y el motivo es la regla que la lista sirve.
-#
-# Estaba fichado como huerfano con este texto: "su generarComando() es el segundo
-# generador de trama, y su formato no entra en el firmware. Que ademas no lo llame nadie
-# es lo unico que ha impedido que rompa la app". Lo que la ficha NO decia, porque el
-# censo mira llamadores y no consecuencias, es que en el mismo modulo vivia
-# validarTrama() -el unico sitio de la app que sabe comprobar un checksum-, y que
-# mientras nadie lo llamara la app PINTABA TRAMAS CON EL CHECKSUM MALO.
-#
-# La V2 conecta validarTrama() desde parseNmeaTelemetry() (defecto B1), asi que
-# NMEAParser gana llamador y esta fila tenia que caer: el trinquete es "una nueva que
-# GANA llamador y sigue en la lista", y esta lo hizo. Se retira, no se comenta: una
-# lista que acumula nombres obsoletos deja de poder fallar.
-#
-# generarComando() sigue sin llamador, y eso ya no lo vigila esta lista sino la
-# comprobacion de gramatica de este mismo pack: si alguien lo conecta, su trama con '$'
-# y checksum delante no casa con los prefijos del despachador y falla ahi.
+# NMEAParser salio el 01/09 al ganar llamador (por que, en HISTORIA/git). generarComando()
+# sigue sin llamador: lo vigila la gramatica de este pack, no esta lista.
 HUERFANOS_CONOCIDOS = {
     # Constantes del protocolo -PIN, baudrate, limites de tiempo, UUIDs BLE-. app.js
     # lleva las suyas propias, que es la segunda copia de siempre.
@@ -152,17 +120,24 @@ def _entrega_el_buffer_tal_cual(fw, partes):
     return buf, None
 
 
+def _tipos_que_emite(fw):
+    """D-122: los tipos de trama de respuesta que el C++ de las dos puntas emite
+    ("$ACK,", "$ERR,"...), leidos de todos sus .cpp. El simulador de la app (SPEC_4
+    §9.14 (f)) los compone y no son ordenes: no se juzgan contra el despachador."""
+    return {t for p in ("Maestro", "Esclavo") for n in fw.fuentes_de(p, "src")
+            for t in re.findall(r'"(\$[A-Z]+,)', fw.codigo(p, "src", n))}
+
+
+def _es_respuesta(molde, tipos):
+    return molde.startswith("$") and any(molde.startswith(t) for t in tipos)
+
+
 # ---------------------------------------------------------------------------------
 # LOS MOLDES DE LA APP
 # ---------------------------------------------------------------------------------
 
 def _sin_comentarios(js):
-    """Un molde que casa dentro de un comentario no llega al cable.
-
-    Es la misma razon por la que fuente.codigo() existe para el C++: nmea_parser.js
-    lleva el formato defectuoso escrito TAMBIEN en su comentario de cabecera, y
-    contarlo dos veces -una real y una de prosa- inflaria el censo con un emisor que
-    no emite."""
+    """Un molde que casa dentro de un comentario no llega al cable (como fuente.codigo())."""
     js = re.sub(r"/\*.*?\*/", " ", js, flags=re.S)
     return re.sub(r"//[^\n]*", " ", js)
 
@@ -252,11 +227,7 @@ def _encadenar(js, literales):
 
 
 def _bloque(texto, i):
-    """El interior del bloque que abre en texto[i] == '{'. None si no cierra.
-
-    Traido literal de app_03_sin_ok_mudo, que ya lo tenia probado. Reescribirlo para
-    renombrar una variable es como se cuelan los errores en un cambio que no debe
-    cambiar comportamiento."""
+    """El interior del bloque que abre en texto[i] == '{'. None si no cierra (de app_03)."""
     if i < 0 or i >= len(texto) or texto[i] != "{":
         return None
     prof = 0
@@ -301,12 +272,8 @@ def _destino(js, ini, dentro):
     Hace falta para componer: sin saber que la plantilla de CMD: acaba en una variable
     llamada `payload` no se puede seguir esa variable hasta la funcion que la envuelve.
 
-    EL SEPARADOR DE SENTENCIA SE BUSCA FUERA DE LOS LITERALES, y no es un detalle: la
-    plantilla `CMD:PIN:${pin}:${comando}` lleva llaves DENTRO, asi que un rfind('}') a
-    secas se paraba en medio del literal anterior. En el ternario de generarComando()
-    eso dejaba la segunda rama sin destino, la composicion no encontraba a que hueco
-    meter el payload y el pack acusaba dos veces con un molde a medias -cierto en el
-    veredicto y falso en el detalle, que es la peor clase de mensaje-."""
+    El separador de sentencia se busca FUERA de los literales: `CMD:PIN:${pin}:${c}`
+    lleva llaves dentro."""
     corte = -1
     for j in range(ini - 1, -1, -1):
         if js[j] in ";{}\n" and not dentro[j]:
@@ -324,7 +291,32 @@ def _terminada(molde):
     return molde.endswith("\\n") or molde.endswith("\\r")
 
 
-def _emisores(js):
+def _comparado(js, ini, fin):
+    """D-126: el literal esta donde se COMPARA la orden recibida: recepcion, no envio."""
+    antes, despues = js[max(0, ini - 40):ini], js[fin:fin + 40]
+    return bool(re.search(r"(?:[=!]==?|\.startsWith\(|\bcase)\s*$", antes)
+                or re.match(r"\s*[=!]=", despues)
+                or (re.search(r"\.indexOf\(\s*$", antes)
+                    and re.match(r"\s*\)\s*[=!]==?\s*0\b", despues)))
+
+
+def _llamada(js, ini, dentro):
+    """El nombre de la funcion en cuyos parentesis esta js[ini], o None."""
+    prof = 0
+    for j in range(ini - 1, max(-1, ini - 400), -1):
+        if dentro[j]:
+            continue
+        if js[j] in ")]}":
+            prof += 1
+        elif js[j] in "([{" and prof:
+            prof -= 1
+        elif js[j] in "([{;":
+            m = js[j] == "(" and re.search(r"([A-Za-z_$][\w$]*)\s*$", js[max(0, j - 60):j])
+            return m.group(1) if m else None
+    return None
+
+
+def _emisores(js, tipos=()):
     """Los moldes de trama de comando del fichero, compuestos hasta el cable.
 
     Devuelve [(funcion, molde_final, como)] donde `como` explica el camino, para que
@@ -343,7 +335,14 @@ def _emisores(js):
     moldes = []
     for ini, fin, molde, nombres in lits:
         moldes.append({"ini": ini, "molde": molde, "nombres": nombres,
-                       "fn": _duena(funcs, ini), "dest": _destino(js, ini, dentro)})
+                       "fn": _duena(funcs, ini), "dest": _destino(js, ini, dentro),
+                       "fin": fin})
+    # D-126: constructor de respuesta = funcion que interpola un parametro suyo en una
+    # trama $ACK/$EVENT...; sus argumentos y los literales comparados no son ordenes.
+    constructores = {m["fn"] for m in moldes if m["fn"] and _es_respuesta(m["molde"], tipos)
+                     and set(m["nombres"]) & set(funcs[m["fn"]][0])}
+    moldes = [m for m in moldes if not _comparado(js, m["ini"], m["fin"])
+              and _llamada(js, m["ini"], dentro) not in constructores]
 
     # Los moldes que una funcion devuelve tal cual: son los que envuelven a otros.
     devueltos = {}
@@ -441,13 +440,8 @@ def _scripts(html):
 def _exporta(js):
     """El identificador que ese modulo PUBLICA, leido de su propio pie de fichero.
 
-    Los cinco modulos de js/ acaban en `module.exports = X;`, que es donde cada uno
-    declara como se llama. Buscar en cambio "el primer const en mayusculas" -que fue el
-    primer intento- da por modulo cualquier constante local: en app.js sacaba SIN_PIN,
-    que es una lista de literales dentro de una IIFE, y el pack acusaba a la app de
-    cargar un modulo huerfano que no existe. app.js no exporta nada porque no es un
-    modulo: es el que los consume, y asi queda fuera del censo por su propio contenido
-    y no por una excepcion escrita a mano."""
+    Los modulos de js/ acaban en `module.exports = X;`. app.js no exporta nada: es el
+    que los consume, y queda fuera del censo por su contenido, no por excepcion."""
     m = re.search(r"\bmodule\.exports\s*=\s*([A-Za-z_$][\w$]*)\s*;", js)
     return m.group(1) if m else None
 
@@ -483,16 +477,8 @@ def correr(b, fw):
                 "checksum, la trama NMEA entraria y las acusaciones de abajo serian "
                 "falsas" % (partes[0], motivo))
 
-    # AB-1 (04/09): se descuenta la linea reservada del puente antes de exigir el
-    # comienzo comun. Esta comprobacion habla de LO QUE LA APP MANDA -su titulo lo dice:
-    # "asi que la app no puede tener un solo generador"- y $LATIDO no lo manda la app: lo
-    # manda el ESP32, y el despachador lo reconoce ANTES de la guarda de PIN para
-    # devolver sin actuar y sin contestar. Meterlo en el censo del comienzo comun era
-    # acusar a la app de una trama que no compone.
-    #
-    # Se descuenta por su literal exacto, no por "lo que empiece por $": si manana entra
-    # otra linea reservada, esta comprobacion vuelve a FALLAR y alguien tiene que decidir
-    # si es legitima. Un filtro generico se las tragaria todas en silencio.
+    # AB-1 (04/09): $LATIDO lo manda el ESP32, no la app; se descuenta por su literal
+    # exacto, no por "lo que empiece por $": otra linea reservada nueva vuelve a FALLAR.
     prefijos = {x for x in prefijos if x != "$LATIDO"}
     b.verificar(
         all(p.startswith("CMD:") for p in prefijos),
@@ -515,10 +501,14 @@ def correr(b, fw):
         fuentes[src] = fw.texto_repo("05_Funcional", "App_Semaforo", *src.split("/"))
 
     # ---- 3. LA PROPIEDAD DURA: todos los emisores producen la MISMA trama ----
-    emisores = []
-    for src, js in fuentes.items():
-        for fn, molde, como in _emisores(js):
-            emisores.append((src, fn, molde, como))
+    # D-122: las respuestas que la app compone (simulador) se apartan; lo demas, igual.
+    tipos = _tipos_que_emite(fw)
+    if not {"$ACK,", "$ERR,", "$EVENT,"} <= tipos:
+        raise fw.Abortado("D-122: del C++ salen %s, sin $ACK, $ERR, y $EVENT,: el "
+                          "buscador de tipos de respuesta no lee el fuente" % sorted(tipos))
+    emisores = [(src, fn, molde, como) for src, js in fuentes.items()
+                for fn, molde, como in _emisores(js, tipos)
+                if not _es_respuesta(molde, tipos)]
 
     if not emisores:
         raise fw.Abortado(
@@ -540,16 +530,10 @@ def correr(b, fw):
 
     # ---- 3.bis Y LA PROPIEDAD QUE IMPORTA MAS QUE LA ORFANDAD ----
     #
-    # Que cada emisor por separado entre en el equipo no es lo mismo que que los
-    # emisores COINCIDAN, y esta es la que no es un trinquete: dos formatos
-    # incompatibles en el mismo arbol no tienen version legitima.
-    #
-    # "Coincidir" NO es "ser identicos". El firmware acepta a proposito dos puertas
-    # -CMD:X para las ordenes sin PIN y CMD:PIN:1234:X para las demas, y el porque
-    # esta razonado en bluetooth.cpp-, asi que la app compone las dos y hace bien. Lo
-    # que se exige es que un comienzo sea PREFIJO DEL OTRO: eso distingue dos puertas
-    # de la misma gramatica de dos gramaticas distintas, que es justo lo que separa
-    # 'CMD:' de 'CMD:PIN:' -compatibles- de '$' contra 'CMD:' -incompatibles-.
+    # No es un trinquete: dos formatos incompatibles no tienen version legitima.
+    # "Coincidir" no es "ser identicos": el firmware acepta CMD:X y CMD:PIN:1234:X a
+    # proposito (bluetooth.cpp). Se exige que un comienzo sea PREFIJO DEL OTRO: 'CMD:'
+    # y 'CMD:PIN:' son dos puertas de una gramatica; '$' contra 'CMD:', dos gramaticas.
     cabezas = sorted({m.split(HUECO)[0] for _, _, m, _ in emisores})
     renidas = sorted((a, c) for a in cabezas for c in cabezas
                      if a < c and not (a.startswith(c) or c.startswith(a)))
@@ -586,7 +570,7 @@ def correr(b, fw):
     if not any(llamadas.values()):
         raise fw.Abortado(
             "el censo no halla NI UN uso de NINGUNO de los %d modulos. Alguno se usa "
-            "-SiteManager y CourierRTC estan llamados desde app.js-: fallo el buscador"
+            "-Grupos y CourierRTC estan llamados desde app.js-: fallo el buscador"
             % len(modulos))
 
     huerfanos = {n for n, c in llamadas.items() if c == 0}
@@ -644,6 +628,17 @@ def correr(b, fw):
         "y la trama que la app manda de verdad NO se marca: el detector distingue, no "
         "acusa a todo el que compone una orden")
     b.control_negativo(
+        not _es_respuesta("$CMD:PIN:1234:SET_MODO:AUTO*7A\\r\\n", tipos)
+        and _es_respuesta("$ACK,CMD:" + HUECO + ",RESULT:OK", tipos),
+        "D-122: un $ACK, se aparta como respuesta y un $CMD:... sigue juzgandose (y en FALLA)")
+    b.control_negativo(
+        [e[1] for e in _emisores(
+            "function ev(p, o) { emitir(p, conCrc('$EVENT,O:' + o + ',F')); }\n"
+            "function f(c, tx) { if (c === 'CMD:A' || c.indexOf('CMD:B') === 0) "
+            "return ev(p, 'CMD:C'); tx('$CMD:D*00\\r\\n'); }", tipos)] == ["$CMD:D*00\\r\\n"],
+        "D-126: el literal comparado y el argumento de ev() se apartan; la orden que se "
+        "ENVIA en la misma funcion sigue juzgandose")
+    b.control_negativo(
         _emisores("function f(p){ return g(p); }\n"
                   "function g(x){ return `$${x}*00\\r\\n`; }\n"
                   "function h(){ const p = `CMD:PIN:${n}:${c}`; return f(p); }")
@@ -654,5 +649,5 @@ def correr(b, fw):
         _usos("NoExiste", "const NoExiste = {}; algo.otro();") == 0,
         "el contador de usos no encuentra un modulo que nadie toca")
     b.control_negativo(
-        _usos("SiteManager", "SiteManager.filtrarCruces(x);") == 1,
+        _usos("Grupos", "Grupos.nuevo(x);") == 1,
         "y SI cuenta un uso real, que es lo que separa un huerfano de un modulo vivo")

@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // como lo que es. Lo que no viene del equipo se queda en null.
     deviceName: null,
     deviceMac: null,
-    site: 'KM 12 · EL SISGA',
+    site: 'SIN GRUPO',   // SPEC_4 9.14 (b): lo da el grupo del poste enlazado (js/grupos.js), nunca un rotulo inventado
     node: null, // 'MAESTRO', 'ESCLAVO', 'REPETIDOR' - lo dice $STATUS
     serie: null,
     firmware: {}, // NODE -> sello FW de ESTE enlace (js/exportar.js); se olvida con el
@@ -2630,6 +2630,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const parts = veredicto.partes;
     const header = veredicto.tipo;
     const esSello = Exportar.anotarVersion(state.firmware, header, _camposNmea(parts)); if (esSello) addEvent('green', Exportar.lineaVersion(_camposNmea(parts))); // antes de la cadena
+    if (esSello && gruposVivos().anotarFw(state.deviceMac, _camposNmea(parts).NODE, _camposNmea(parts).FW)) revisarGrupo();
 
     if (header === '$STATUS') {
       const data = _camposNmea(parts);
@@ -2658,8 +2659,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       // N-62: SITE y PAIR no los emite ninguna punta (SITE es del gestor de cruces; PAIR espera a FW-PAIR).
       if (data.SERIE) {
-        state.serie = data.SERIE; RegistroEquipo.peticion(state.serie, enviarComandoFirmware);  // D-75
+        state.serie = data.SERIE; state.serieDe = state.deviceMac; RegistroEquipo.peticion(state.serie, enviarComandoFirmware);  // D-75
       }
+      revisarGrupo();   // SPEC_4 9.14 (b), (c): rotulo del grupo y avisos con lo que el equipo acaba de decir
       // Se guarda lo que VENGA, incluido el vacio. Los dos switch del firmware tienen
       // salida por abajo -semaforo_nombreEstado() devuelve "" si el estado no es
       // ninguno de los cuatro; obtenerNombreModo() devuelve "DESCONOCIDO"-, y un
@@ -3188,86 +3190,42 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // =========================================================================
-  // 5. GESTOR DE CRUCES VIALES (RENDERIZADO Y SELECCIÓN)
+  // 5. GRUPOS POR VIA Y MATRICULA POR MAC (SPEC_4 9.14; D-117..D-119, D-123; js/grupos.js)
   // =========================================================================
-  function renderSiteList(filter = '') {
-    if (!dynamicSiteListEl) return;
-    const sites = SiteManager.filtrarCruces(filter);
-    dynamicSiteListEl.innerHTML = '';
-
-    sites.forEach(site => {
-      const item = document.createElement('div');
-      item.className = 'bt-device-item site-card';
-      item.style.marginBottom = '8px';
-      item.innerHTML = `
-        <div class="bt-dev-icon">📍</div>
-        <div class="bt-dev-info">
-          <strong class="site-card-title">${site.nombre}</strong>
-          <small>${site.ubicacion}</small>
-        </div>
-        <button class="btn-top btn-edit-site" title="Renombrar" style="padding: 4px 8px; font-size: 10px;">✏️</button>
-        <button class="btn-top btn-delete-site" title="Eliminar" style="padding: 4px 8px; font-size: 10px;">🗑️</button>
-        <button class="btn-top" style="padding: 4px 10px; font-size: 10px;">Seleccionar</button>
-      `;
-
-      // Los dos mandos de la tarjeta paran la propagacion: pulsar la papelera no
-      // puede ademas seleccionar el cruce que se esta borrando.
-      item.querySelector('.btn-edit-site').addEventListener('click', (ev) => {
-        ev.stopPropagation();
-        Dialogo.pedirTexto({ titulo: 'Renombrar el cruce', texto: 'Nombre nuevo:', valor: site.nombre }, (nombre) => {
-          SiteManager.actualizarCruce(site.id, nombre, site.ubicacion, site.p1, site.p2);
-          // Si el cruce editado es el activo, la cabecera cambia con el: un rotulo viejo es un cruce mal identificado.
-          if (currentSiteNameEl && state.site && site.nombre.includes(state.site)) {
-            state.site = nombre.replace('📍', '').trim();
-            currentSiteNameEl.textContent = '📍 ' + state.site;
-          }
-          renderSiteList(siteSearchInput ? siteSearchInput.value : '');
-          addEvent('cyan', 'Cruce renombrado a ' + nombre);
-        });
-      });
-
-      item.querySelector('.btn-delete-site').addEventListener('click', (ev) => {
-        ev.stopPropagation();
-        // SiteManager se niega a dejar la lista vacia: un gestor sin ningun cruce
-        // deja la app sin identidad de sitio.
-        SiteManager.eliminarCruce(site.id);
-        renderSiteList(siteSearchInput ? siteSearchInput.value : '');
-      });
-
-      item.addEventListener('click', () => {
-        state.site = site.nombre.replace('📍', '').trim();
-        if (currentSiteNameEl) currentSiteNameEl.textContent = `📍 ${state.site}`;
-        closeModal(siteModal);
-        showToast(`📍 Cruce seleccionado: ${state.site}`);
-        addEvent('cyan', `Cruce seleccionado: ${state.site}`);
-      });
-      dynamicSiteListEl.appendChild(item);
+  // El rotulo de la cabecera (state.site) lo da el grupo del poste enlazado, no una eleccion a mano: «SIN GRUPO»
+  // hasta matricularlo. Matricular no envia nada al equipo. La practica usa un almacen en memoria, nunca el real.
+  const gruposReales = Grupos.nuevo({ leer: () => localStorage.getItem(Grupos.CLAVE),
+                                      escribir: (t) => localStorage.setItem(Grupos.CLAVE, t) },
+                                    localStorage.getItem(Grupos.CLAVE_VIEJA));
+  let gruposPractica = null, avisosDe = null, avisosDados = new Set();
+  function gruposVivos() {
+    if (typeof Practica === 'undefined' || !Practica.activa()) { gruposPractica = null; return gruposReales; }
+    if (!gruposPractica) gruposPractica = Grupos.nuevo(Practica.almacen());   // en memoria, con la flota (D-120)
+    return gruposPractica;
+  }
+  // La serie solo vale si la dijo ESTE enlace: state.serie no se olvida al cambiar de poste y matricularia la del anterior.
+  const posteEnlazado = () => (state.deviceMac ? { mac: state.deviceMac, serie: state.serieDe === state.deviceMac ? state.serie : null, node: state.node,
+                                                    fw: state.node ? state.firmware[state.node] : undefined } : null);
+  // Cada $STATUS y cada sello de VERSION: rotulo al dia y los avisos de (c), una vez por aviso y por enlace.
+  // Sin enlace no hay poste: «SIN GRUPO» al soltarlo, al elegir otro y al Salir de la practica (lo exportado lo lleva).
+  function revisarGrupo() {
+    state.site = state.connected ? gruposVivos().rotulo(state.deviceMac) : 'SIN GRUPO';
+    if (currentSiteNameEl) currentSiteNameEl.textContent = '📍 ' + state.site;
+    if (!state.connected) return;
+    if (avisosDe !== state.deviceMac) { avisosDe = state.deviceMac; avisosDados = new Set(); }
+    gruposVivos().avisos(posteEnlazado()).forEach(a => {
+      if (!avisosDados.has(a.texto)) { avisosDados.add(a.texto); showToast(a.texto); addEvent(a.color, a.texto); }
     });
   }
-
-  if (siteSearchInput) {
-    siteSearchInput.addEventListener('input', (e) => {
-      renderSiteList(e.target.value);
-    });
-  }
-
-  if (btnOpenAddSite) {
-    btnOpenAddSite.addEventListener('click', () => {
-      // Campos VACIOS (SPEC_4 9.1). Se activa en el acto: el rotulo de la cabecera es lo unico que le dice al
-      // tecnico sobre que cruce manda ordenes, y quedarse en el anterior pide un paso que nadie recuerda.
-      Dialogo.pedirTexto({ titulo: 'Nuevo cruce', texto: 'Nombre del cruce:' }, (nombre) => {
-        const guardar = (ubicacion) => {
-          const nuevo = SiteManager.agregarCruce(nombre, ubicacion);
-          state.site = nuevo.nombre.replace('📍', '').trim();
-          if (currentSiteNameEl) currentSiteNameEl.textContent = '📍 ' + state.site;
-          renderSiteList();
-          showToast(`✓ Cruce "${nuevo.nombre}" guardado.`);
-        };
-        Dialogo.pedirTexto({ titulo: 'Nuevo cruce', texto: 'Ubicación o PR (opcional):', opcional: true },
-                           guardar, () => guardar(''));
-      });
-    });
-  }
+  const ctxGrupos = () => ({ poste: posteEnlazado(), admin: state.role === 'TECNICO',
+                             avisar: (t, m) => { showToast(m); addEvent(t, m); },
+                             alCambiar: () => { revisarGrupo(); renderSiteList(siteSearchInput ? siteSearchInput.value : '');
+                                                repintarEquipos(); } });
+  function renderSiteList(filtro = '') { Grupos.pintar(dynamicSiteListEl, gruposVivos(), filtro, ctxGrupos()); }
+  if (siteSearchInput) siteSearchInput.addEventListener('input', (e) => renderSiteList(e.target.value));
+  if (btnOpenAddSite) btnOpenAddSite.addEventListener('click', () => Grupos.preguntarNuevo(gruposVivos(), ctxGrupos()));
+  const btFiltroEl = document.getElementById('bt-filtro-equipos');   // (d): la lista filtra por via, grupo o serie
+  if (btFiltroEl) btFiltroEl.addEventListener('input', () => repintarEquipos());
 
   // =========================================================================
   // 6. GESTIÓN BLUETOOTH Y DISPOSITIVOS
@@ -3318,7 +3276,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // en estados distintos (un boton que dice enlazado sin estarlo). D-86: js/practica.js pregunta y avisa por estas dos.
   window.appEnlazada = () => state.connected === true; window.appAvisar = (t, m) => { showToast(m); addEvent(t, m); };
   function olvidarEnlace() {
-    state.connected = false;
+    state.connected = false; revisarGrupo();
     state.node = null;
     state.firmware = {}; renderLights();   // sin enlace: «SIN ENLACE», no la frase del equipo de antes
     // D-23: los contadores de radio son de UN poste y arrancan con su micro. Si no se
@@ -3412,6 +3370,7 @@ document.addEventListener('DOMContentLoaded', () => {
       mac,
       () => {
         state.connected = true; renderLights();   // D-80: «esperando su primer dato» hasta el primer $STATUS
+        revisarGrupo();   // 9.14 (b): el grupo de ESTA MAC desde el enlace
         if (btnDevice) btnDevice.className = 'btn-top btn-device connected';
         actualizarBotonDesconectar();
         showToast(`🔗 Enlazado a: ${name}`);
@@ -3567,7 +3526,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // un socket. Lo pone a true unicamente el callback de exito de connect(), abajo.
       state.connected = false;
       state.deviceName = name;
-      state.deviceMac = mac;
+      state.deviceMac = mac; revisarGrupo();
 
       // N-124: LA PUNTA NO SE ADIVINA. Aqui se leia un data-node de la fila, y las dos
       // filas venian escritas a mano en el HTML: la app afirmaba tener un MAESTRO
@@ -3694,7 +3653,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // (corte del 28/09, sin cambio de comportamiento). Este envoltorio les pasa lo
   // que vive aqui: el contenedor del modal, lo visto en esta busqueda y la nota.
   function repintarEquipos() {
-    return ListaEquipos.repintarEquipos(btDeviceListContainer, equiposVistos, notaLista);
+    return ListaEquipos.repintarEquipos(btDeviceListContainer, equiposVistos, notaLista,
+      { grupos: gruposVivos().todos(), filtro: btFiltroEl ? btFiltroEl.value : '' });   // SPEC_4 9.14 (d)
   }
 
   // porPeticion = lo pulso el tecnico. Al abrir el modal se llama con false: si hay

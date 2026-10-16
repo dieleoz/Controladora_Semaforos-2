@@ -126,11 +126,11 @@ def main():
     else:
         test_failed("Navegacion entre Pestañas", "Falta el evento conmutador de pestañas en app.js")
 
-    # 2.2 CRUD de Cruces Viales
-    if "guardarCruces" in js_content and "localStorage" in js_content and "renderSiteList" in js_content:
-        test_passed("Gestor Dinámico de Cruces (CRUD)", "Persistencia en localStorage y render dinamico")
+    # 2.2 Grupos por via (SPEC_4 9.14, D-119: sustituye al gestor de cruces); la conducta la mide tests/dom_grupos.js
+    if "Grupos.nuevo(" in js_content and "Grupos.CLAVE" in js_content and "renderSiteList" in js_content:
+        test_passed("Grupos por via", "almacen inyectado desde app.js y render de las fichas")
     else:
-        test_failed("CRUD de Cruces", "Faltan funciones de gestion de cruces")
+        test_failed("Grupos por via", "Falta Grupos.nuevo() con su almacen o el render de las fichas")
 
     # 2.3 Validacion de PIN de Seguridad
     #
@@ -223,10 +223,10 @@ def main():
                         f"lineas y se monta con el texto de al lado")
 
     # Y ningun nombre de fabrica puede pasarse del tope que la propia app aplica.
-    ruta_sm = os.path.join(os.path.dirname(os.path.abspath(__file__)), "js", "site_manager.js")
+    ruta_sm = os.path.join(os.path.dirname(os.path.abspath(__file__)), "js", "grupos.js")  # D-119
     with io.open(ruta_sm, encoding="utf-8", errors="replace") as f:
         sm = f.read()
-    m_tope = re.search(r"MAX_NOMBRE:\s*(\d+)", sm)
+    m_tope = re.search(r"MAX_NOMBRE\s*=\s*(\d+)", sm)
     if m_tope:
         tope = int(m_tope.group(1))
         largos = [n for n in re.findall(r"nombre:\s*'([^']+)'", sm) if len(n) > tope]
@@ -238,7 +238,7 @@ def main():
                         f"la app trae de fabrica nombres de mas de {tope}: {largos}. "
                         f"No los escribio el funcional: los enviamos nosotros")
     else:
-        test_failed("Tope de nombre", "no se hallo MAX_NOMBRE en site_manager.js")
+        test_failed("Tope de nombre", "no se hallo MAX_NOMBRE en grupos.js")
 
     # 2.7 CONTRASTE DE LA PALETA, MEDIDO — NO ELEGIDO
     #
@@ -312,7 +312,7 @@ def main():
 
     # 2.8 NADA PINTA UN CRUCE QUE NO EXISTE
     #
-    # El build de campo no lleva simulador. Habia dos cosas de la misma familia:
+    # D-120: la practica (SIMULADO, tras clave, sin enlace) si va; esto no. Dos cosas:
     #   - el panel "SIMULADOR DE PRUEBAS", ocho botones que escribian en state y
     #     repintaban los MISMOS semaforos que la telemetria real, avisando con un
     #     toast que se va solo;

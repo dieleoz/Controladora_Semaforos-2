@@ -185,7 +185,7 @@ su cobre es SPEC 5. *(SPEC 2 §8 remitia «los parametros del modulo» a SPEC 5,
    `Esclavo/src/main.cpp`: un `CMD_GO_GREEN` ajeno lo pone en verde (**dos verdes en el carril**); un `CMD_PING` ajeno
    renueva `tUltimoComando` y **tapa la orfandad** (SFTY-6) aunque su Maestro haya muerto; PING, GO_RED o GO_GREEN
    ajenos lo sacan del Degradado. El Maestro acepta igual los `ACK_*` y `PONG` del Esclavo ajeno (`coordinador.cpp`).
-   **Barrera vigente (`D-122`): un canal por pareja, distinto del de todo otro grupo de la obra** (dos con repetidor,
+   **Barrera vigente (`D-124`): un canal por pareja, distinto del de todo otro grupo de la obra** (dos con repetidor,
    B.4), comprobado con las casillas y la prueba de puesta en marcha de B.3. El filtro de pareja en la trama es
    **mejora sin desarrollar** y **riesgo de seguridad abierto**, no comodidad: cuesta regrabar a la vez Maestro,
    Esclavo y Repetidor (`TAM_TRAMA = 4` en el Repetidor) y la matricula de `SFTY-27`, que es diseno. Falta MEDIR:
@@ -220,9 +220,9 @@ su cobre es SPEC 5. *(SPEC 2 §8 remitia «los parametros del modulo» a SPEC 5,
 
 **Casillas antes de cerrar los gabinetes:** ⬜ misma Air Data Rate en las dos ⬜ mismo canal ⬜ `M0`/`M1` en `OFF` en
 las dos ⬜ antena conectada en las dos ⬜ apuntado en el parte **que radio quedo con que canal**, leido con `Read
-Option` ⬜ **ese canal no lo usa ningun otro grupo de la obra** (`D-122`; dos canales por grupo con repetidor).
+Option` ⬜ **ese canal no lo usa ningun otro grupo de la obra** (`D-124`; dos canales por grupo con repetidor).
 
-**Prueba de puesta en marcha (`D-122`), con los demas grupos de la obra ENCENDIDOS:** se apaga el Maestro propio y el
+**Prueba de puesta en marcha (`D-124`), con los demas grupos de la obra ENCENDIDOS:** se apaga el Maestro propio y el
 Esclavo tiene que pasar a ambar intermitente antes de ~30 s (SFTY-6); despues al reves, apagando el Esclavo. **Si no cae
 a ambar, comparte canal con otro grupo**: se para y se cambia el canal. Es lo unico que lo detecta hoy (B.1 (4)); se
 repite cada vez que se cambia un modulo de radio.
@@ -237,7 +237,7 @@ agnosticas a la topologia y **lo unico que cambia es el CANAL**.
 > canal del Maestro deja las dos puntas en frecuencias distintas**: no se comunican y **las dos caen a ambar
 > intermitente** al vencer el silencio de radio. Parece radio rota.
 
-**Varios grupos en la misma obra (`D-122`):** un grupo con repetidor ocupa **dos** canales, y el repetidor reenvia toda
+**Varios grupos en la misma obra (`D-124`):** un grupo con repetidor ocupa **dos** canales, y el repetidor reenvia toda
 trama valida que oiga, sin filtro: ninguno de sus dos canales lo usa otro grupo. El canal que sugiere el texto de
 arranque del Repetidor es un ejemplo, no una asignacion: copiarlo en todos los montajes los pone a todos en el mismo.
 **Sin medir:** cuanta separacion entre canales hace falta (rechazo de canal adyacente) y cuantos canales caben dentro
@@ -450,7 +450,7 @@ cargarlo** ni que fije cual plazo es el bueno. Se nombra como hueco; esta spec n
 puntas, `11b57b3` en la app; `SET_MODO:DEG_T` en los dos `bluetooth.cpp`) y probado en banco por el funcional
 (`4a2c73c`). Sin vencimiento desde el 29/09 (SPEC 2 §7.ter (d)). Sin acta de campo que lo declare.
 
-**11. 🔴 Una punta no distingue su pareja de otra (B.1 (4)).** Barrera de montaje (`D-122`); el filtro de pareja en
+**11. 🔴 Una punta no distingue su pareja de otra (B.1 (4)).** Barrera de montaje (`D-124`); el filtro de pareja en
 la trama queda como mejora, sin desarrollar, y el riesgo sigue abierto mientras dependa de un canal que nadie lee.
 
 *Las decisiones vigentes que esta spec recoge van citadas donde aplican; nombradas como hueco, la pieza del aviso de

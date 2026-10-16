@@ -126,8 +126,8 @@ module.exports = async function pruebaClaves(montarAppLimpia, assert) {
     }
   }
 
-  // 5. Practica sin poste (SPEC_4 9.10, D-86..D-89): solo con la clave, nunca con enlace abierto, y por el MISMO cable
-  // que un equipo: nada llega al puerto real y todo lo que entra lo emitio un firmware (cintas de evidencia/).
+  // 5. Practica sin poste (SPEC_4 9.10 y 9.14 (f); D-86, D-89, D-120): solo con la clave, nunca con enlace abierto, y
+  // por el MISMO cable que un equipo: nada llega al puerto real y lo que entra lo compone el simulador (js/simulador.js).
   {
     const eventos = (a) => Array.from(a.d.querySelectorAll('#event-feed .event-item'))
                                 .map(n => n.textContent.replace(/\s+/g, ' ')).join(' || ');
@@ -154,17 +154,22 @@ module.exports = async function pruebaClaves(montarAppLimpia, assert) {
       `Practica: desconectado y con clave, franja SIMULADO y la flota en el modal de equipos (${filas.length} filas)`);
     const fila1 = filas.find(f => !!P(a).FLOTA[0] && f.getAttribute('data-mac') === P(a).FLOTA[0].direccion);  // la lista ordena
     if (fila1) fila1.click();
+    const oidas = [], Pp = a.w.PuertoPractica;
+    if (Pp && Pp._cb) { const cb = Pp._cb; Pp._cb = (t) => { oidas.push(String(t).trim()); cb(t); }; }
     P(a)._tick();
     assert(!!fila1 && /^MAESTRO/.test(a.txt('node-name')) && a.tramas.length === 0,
       `Practica: la fila del Maestro habla como un Maestro y el puerto real no recibe nada: "${a.txt('node-name')}" ${a.tramas.join(' | ')}`);
-    await new Promise(r => setTimeout(r, 5400));   // TIMEOUT_ENLACE_MS de app.js: la VERSION se pide sola tras 5 s
-    const ack = '$ACK,CMD:VERSION,RESULT:OK,NODE:MAESTRO,FW:d810f81*24';
-    assert(!!P(a).FLOTA[0] && P(a).FLOTA[0].respuestas.includes(ack) && /d810f81/.test(eventos(a)) && a.tramas.length === 0,
-      `Practica: la VERSION que la app pide al enlazar recibe el $ACK literal de la cinta (FW d810f81)`);
+    const ack = '$ACK,CMD:VERSION,RESULT:OK,NODE:MAESTRO,FW:d810f81*24';   // el de la cinta del 06/10, con su *XX
+    // TIMEOUT_ENLACE_MS de app.js: la VERSION se pide sola tras 5 s; se espera hasta 9 s a que llegue (con carga, el
+    // temporizador de 5 s se retrasa y una espera fija de 5,4 s fallaba sin que nada estuviera mal).
+    for (let i = 0; i < 90 && !oidas.includes(ack); i++) await new Promise(r => setTimeout(r, 100));
+    assert(oidas.includes(ack) && /d810f81/.test(eventos(a)) && a.tramas.length === 0,
+      `Practica: la VERSION que la app pide al enlazar la contesta el simulador con el $ACK de la cinta (FW d810f81): ` +
+      `${oidas.filter(t => /VERSION/.test(t)).join(' | ') || 'ninguna'}`);
     a.pulsa('btn-franja-salir');
     assert(a.w.bluetoothSerial === real && oculta(a) && !a.d.body.classList.contains('simulado'),
       'Practica: Salir devuelve el puerto real y quita la franja y la clase');
-    // Campo nuevo: cada CAMPO: del $STATUS que compone el firmware esta en las cintas de su NODE.
+    // Campo nuevo: cada CAMPO: del $STATUS que compone el firmware esta en el $STATUS que compone el simulador.
     const fs = require('fs');
     const path = require('path');
     ['MAESTRO', 'ESCLAVO'].forEach(nodo => {
@@ -172,10 +177,11 @@ module.exports = async function pruebaClaves(montarAppLimpia, assert) {
                             'src', 'bluetooth.cpp');
       const lit = (fs.readFileSync(cpp, 'utf8').match(new RegExp('"\\$STATUS,NODE:' + nodo + ',[^"]*"')) || [''])[0];
       const campos = lit.replace(/"/g, '').split(',').slice(1).map(c => c.split(':')[0]);
-      const st = P(a).FLOTA.filter(c => c.nodo === nodo).flatMap(c => c.tramas).filter(t => /^\$STATUS,/.test(t));
+      const sim = a.w.Simulador ? a.w.Simulador.crear({ postes: JSON.parse(JSON.stringify(P(a).FLOTA)) }) : null;
+      const st = sim ? sim.postes.filter(c => c.nodo === nodo).map(c => sim.status(c)) : [];
       const faltan = campos.filter(c => !st.some(t => t.includes(',' + c + ':')));
       assert(campos.length >= 10 && st.length > 0 && faltan.length === 0,
-        `Practica: los ${campos.length} campos del $STATUS del ${nodo} estan en sus cintas; faltan: ${faltan.join(',') || '-'}`);
+        `Practica: los ${campos.length} campos del $STATUS del ${nodo} estan en el del simulador; faltan: ${faltan.join(',') || '-'}`);
     });
   }
 };

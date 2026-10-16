@@ -41,10 +41,39 @@ const ListaEquipos = (() => {
   const esAnonimo = (eq) => eq.nombre === eq.mac;   // sin nombre: pintarEquipos() pone el MAC
   let plegadoElegido = null;
 
-  function repintarEquipos(btDeviceListContainer, equiposVistos, notaLista) {
+  // SPEC_4 9.14 (d): con `opc.grupos` (js/grupos.js) la lista va por via y grupo, con las filas -M/-E de cada
+  // grupo (las no vistas en esta busqueda, en gris y sin pulsar) y al final «Sin grupo» con lo demas. `opc.filtro`
+  // filtra por via, grupo o serie. Sin grupos la lista sale como antes.
+  function repintarEquipos(btDeviceListContainer, equiposVistosTodos, notaLista, opc) {
     if (!btDeviceListContainer) return 0;
     btDeviceListContainer.innerHTML = '';
     let pintados = 0;
+    const q = String((opc && opc.filtro) || '').toLowerCase().trim();
+    const casa = (...t) => !q || t.some(x => String(x || '').toLowerCase().includes(q));
+    const todos = (opc && opc.grupos) || [];
+    const grupos = todos.filter(g => casa(g.via, g.nombre, g.pr, g.MAESTRO && g.MAESTRO.serie, g.ESCLAVO && g.ESCLAVO.serie));
+    const enGrupo = new Set();
+    todos.forEach(g => PUNTAS.forEach(p => { if (g[p]) enGrupo.add(g[p].mac); }));
+    const equiposVistos = new Map(Array.from(equiposVistosTodos.entries())
+      .filter(([mac, eq]) => !enGrupo.has(mac) && casa(eq.nombre, mac)));
+    let via = null;
+    grupos.sort((a, b) => a.via.localeCompare(b.via) || a.nombre.localeCompare(b.nombre)).forEach(g => {
+      if (g.via !== via) { via = g.via; btDeviceListContainer.appendChild(rotulo('p', 'modal-desc bt-via', '🛣️ ' + via)); }
+      btDeviceListContainer.appendChild(rotulo('p', 'modal-desc bt-grupo', g.nombre + (g.pr ? ' · ' + g.pr : '')));
+      PUNTAS.forEach(p => {
+        const h = g[p];
+        if (!h) return;
+        const eq = equiposVistosTodos.get(h.mac);
+        if (eq) { btDeviceListContainer.appendChild(fila(eq)); pintados += 1; return; }
+        const gris = rotulo('div', 'bt-no-visto', p + ' · ' + h.serie + ' · Dirección ' + h.mac +
+                            ' · no visto en esta búsqueda');
+        gris.style.opacity = '0.5';
+        btDeviceListContainer.appendChild(gris);
+      });
+    });
+    if (enGrupo.size && equiposVistos.size) {
+      btDeviceListContainer.appendChild(rotulo('p', 'modal-desc bt-via', 'Sin grupo'));
+    }
     // Los emparejados arriba: son los que conectan de un toque. Dentro de cada grupo, por
     // nombre, para que dos modulos hermanos caigan juntos y la letra final quede una
     // debajo de otra, que es donde se ve la diferencia. Los anonimos, al final de todo.
@@ -72,6 +101,29 @@ const ListaEquipos = (() => {
       destinoOtros = plegado;
     }
     sem.concat(otros).forEach(eq => {
+      (esSem(eq) ? btDeviceListContainer : destinoOtros).appendChild(fila(eq));
+      pintados += 1;
+    });
+    if (destinoOtros !== btDeviceListContainer) btDeviceListContainer.appendChild(destinoOtros);
+    if (notaLista) {
+      const p = document.createElement('p');
+      p.className = 'modal-desc';
+      p.textContent = notaLista;
+      btDeviceListContainer.appendChild(p);
+    }
+    return pintados;
+  }
+
+  const PUNTAS = ['MAESTRO', 'ESCLAVO'];
+  function rotulo(tag, clase, texto) {
+    const e = document.createElement(tag);
+    e.className = clase;
+    e.textContent = texto;
+    return e;
+  }
+
+  // La fila de un equipo visto. Sale del bucle de arriba (N-180) sin cambio: la usan tambien los grupos.
+  function fila(eq) {
       const item = document.createElement('div');
       item.className = 'bt-device-item' + (eq.emparejado ? '' : ' sin-emparejar');
       item.setAttribute('data-name', eq.nombre);
@@ -129,17 +181,7 @@ const ListaEquipos = (() => {
       item.appendChild(icono);
       item.appendChild(info);
       item.appendChild(etiqueta);
-      (esSem(eq) ? btDeviceListContainer : destinoOtros).appendChild(item);
-      pintados += 1;
-    });
-    if (destinoOtros !== btDeviceListContainer) btDeviceListContainer.appendChild(destinoOtros);
-    if (notaLista) {
-      const p = document.createElement('p');
-      p.className = 'modal-desc';
-      p.textContent = notaLista;
-      btDeviceListContainer.appendChild(p);
-    }
-    return pintados;
+      return item;
   }
 
   return { sufijoDeRotulo, repintarEquipos };

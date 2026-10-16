@@ -56,41 +56,43 @@ module.exports = async function pruebaDialogos(montarAppLimpia, assert) {
   if (abierto()) el('dialogo-modal').dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
   assert(!abierto() && w.DiarioOrdenes.todas().length === 1, 'Dialogos: tocar fuera cierra sin borrar');
 
-  // 3. Crear un cruce: dos preguntas; cancelar la primera o un nombre vacio no crea; cancelar la segunda guarda.
-  const nCruces = () => w.SiteManager.obtenerCruces().length;
-  const n0 = nCruces();
+  // 3. Crear un grupo (SPEC_4 9.14; SE REPARTE de «crear cruce», CLAUDE.md 9): via opcional, nombre y PR opcional,
+  // los tres en campos VACIOS; cancelar o un nombre vacio no crea; via vacia es «Sin via»; cancelar el PR guarda.
+  const grupos = () => JSON.parse(w.localStorage.getItem('iot_vial_grupos_v1') || '{"grupos":[]}').grupos;
+  const n0 = grupos().length;
   el('btn-open-add-site').click();
-  assert(abierto() && /nombre/i.test(texto()) && !!el('dialogo-entrada') && !el('dialogo-entrada').hidden &&
+  assert(abierto() && /v[ií]a/i.test(texto()) && !!el('dialogo-entrada') && !el('dialogo-entrada').hidden &&
          el('dialogo-entrada').value === '',
-    `Dialogos: crear cruce pide el nombre en un campo VACIO, sin nombre inventado: "${texto().slice(0, 60)}"`);
+    `Dialogos: crear grupo pide la via en un campo VACIO, sin via inventada: "${texto().slice(0, 60)}"`);
   cancelar();
-  el('btn-open-add-site').click(); aceptar('   '); cancelar();
-  assert(nCruces() === n0, `Dialogos: cancelar o un nombre vacio no crea cruce (${n0} -> ${nCruces()})`);
-  el('btn-open-add-site').click(); aceptar('Cruce Dialogo Km 7');
-  assert(abierto() && /ubicaci[oó]n/i.test(texto()) && el('dialogo-entrada').value === '',
-    `Dialogos: tras el nombre pide la ubicacion, en un campo vacio: "${texto().slice(0, 60)}"`);
+  el('btn-open-add-site').click(); aceptar('Via 9'); aceptar('   '); cancelar();
+  assert(grupos().length === n0, `Dialogos: cancelar o un nombre vacio no crea grupo (${n0} -> ${grupos().length})`);
+  el('btn-open-add-site').click(); aceptar('Via 9');
+  assert(abierto() && /nombre/i.test(texto()) && el('dialogo-entrada').value === '',
+    `Dialogos: tras la via pide el nombre del grupo, en un campo vacio: "${texto().slice(0, 60)}"`);
+  aceptar('Grupo Dialogo Km 7');
+  assert(abierto() && /PR/.test(texto()) && el('dialogo-entrada').value === '',
+    `Dialogos: tras el nombre pide el PR, en un campo vacio: "${texto().slice(0, 60)}"`);
   aceptar('PR 7+000');
-  const creado = w.SiteManager.obtenerCruces().find(s => /Cruce Dialogo Km 7/.test(s.nombre)) || {};
-  assert(nCruces() === n0 + 1 && creado.ubicacion === 'PR 7+000' &&
-         /Cruce Dialogo Km 7/.test(el('current-site-name').textContent),
-    `Dialogos: nombre y ubicacion guardan el cruce y lo activan (${creado.nombre} / ${creado.ubicacion})`);
-  el('btn-open-add-site').click(); aceptar('Cruce Sin PR'); cancelar();
-  const sinPr = w.SiteManager.obtenerCruces().find(s => /Cruce Sin PR/.test(s.nombre));
-  assert(!!sinPr && /no especificada/i.test(sinPr.ubicacion),  // el rotulo de SiteManager.agregarCruce para ''
-    `Dialogos: cancelar la ubicacion guarda el cruce sin ella (${sinPr ? sinPr.ubicacion : 'no creado'})`);
+  const creado = grupos().find(g => g.nombre === 'Grupo Dialogo Km 7') || {};
+  assert(grupos().length === n0 + 1 && creado.pr === 'PR 7+000' && creado.via === 'Via 9',
+    `Dialogos: via, nombre y PR guardan el grupo (${creado.via} / ${creado.nombre} / ${creado.pr})`);
+  el('btn-open-add-site').click(); aceptar(''); aceptar('Grupo Sin PR'); cancelar();
+  const sinPr = grupos().find(g => g.nombre === 'Grupo Sin PR');
+  assert(!!sinPr && sinPr.pr === '' && sinPr.via === 'Sin via',
+    `Dialogos: via vacia va a «Sin via» y cancelar el PR guarda sin el (${sinPr ? sinPr.via + '/' + sinPr.pr : 'no creado'})`);
 
-  // 4. Renombrar: el campo trae el nombre actual; vacio no renombra; Guardar renombra.
+  // 4. Renombrar un grupo: el campo trae el nombre actual; vacio no renombra; Guardar renombra.
   el('btn-select-site').click();
-  const tarjeta = Array.from(d.querySelectorAll('.site-card')).find(c => /Cruce Dialogo Km 7/.test(c.textContent));
+  const tarjeta = Array.from(d.querySelectorAll('.site-card')).find(c => /Grupo Dialogo Km 7/.test(c.textContent));
   if (tarjeta) tarjeta.querySelector('.btn-edit-site').click();
-  assert(abierto() && /Cruce Dialogo Km 7/.test(el('dialogo-entrada').value),
+  assert(abierto() && /Grupo Dialogo Km 7/.test(el('dialogo-entrada').value),
     `Dialogos: renombrar trae el nombre actual en el campo: "${abierto() ? el('dialogo-entrada').value : ''}"`);
   aceptar('');
-  const tarj2 = Array.from(d.querySelectorAll('.site-card')).find(c => /Cruce Dialogo Km 7/.test(c.textContent));
+  const tarj2 = Array.from(d.querySelectorAll('.site-card')).find(c => /Grupo Dialogo Km 7/.test(c.textContent));
   if (tarj2) tarj2.querySelector('.btn-edit-site').click();
-  aceptar('Cruce Dialogo Renombrado');
-  assert(w.SiteManager.obtenerCruces().some(s => /Cruce Dialogo Renombrado/.test(s.nombre)) &&
-         !w.SiteManager.obtenerCruces().some(s => /Cruce Dialogo Km 7/.test(s.nombre)),
+  aceptar('Grupo Dialogo Renombrado');
+  assert(grupos().some(g => g.nombre === 'Grupo Dialogo Renombrado') && !grupos().some(g => g.nombre === 'Grupo Dialogo Km 7'),
     'Dialogos: vacio no renombra; Guardar si');
 
   assert(nativos.length === 0, `Dialogos: ningun prompt/confirm/alert del navegador (${nativos.join(', ') || 'ninguno'})`);

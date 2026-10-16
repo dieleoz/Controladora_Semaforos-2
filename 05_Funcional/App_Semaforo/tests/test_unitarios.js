@@ -3,7 +3,6 @@
 
 const IOT_CONFIG = require('../js/config.js');
 const NMEAParser = require('../js/nmea_parser.js');
-const SiteManager = require('../js/site_manager.js');
 const CourierRTC = require('../js/courier_rtc.js');
 const RegistroCrudo = require('../js/depuracion.js');
 
@@ -152,26 +151,8 @@ const comp = CourierRTC.calcularCompensacion(snap, snap.timestampCaptura + 12000
 assert(comp.elapsedSeg === 120, 'Cálculo exacto de 120 segundos de traslado');
 assert(comp.horaCompensada === '18:27:00', 'Compensación horaria exacta (18:25:00 + 2m = 18:27:00)');
 
-// 6. Gestor de Cruces Viales (CRUD LocalStorage)
-console.log('\n--- 6. Gestor de Cruces Viales (CRUD LocalStorage) ---');
-global.localStorage = {
-  store: {},
-  getItem(k) { return this.store[k] || null; },
-  setItem(k, v) { this.store[k] = String(v); },
-  removeItem(k) { delete this.store[k]; }
-};
-
-const cruces = SiteManager.obtenerCruces();
-assert(Array.isArray(cruces) && cruces.length >= 2, 'Carga de cruces viales por defecto');
-
-const nuevoCruce = SiteManager.agregarCruce('Obra Túnel 5', 'PR 50+000');
-assert(nuevoCruce && nuevoCruce.nombre === 'Obra Túnel 5', 'Creación de nuevo cruce vial');
-
-const filtro = SiteManager.filtrarCruces('Túnel');
-assert(filtro.length >= 1, 'Búsqueda y filtrado en tiempo real de cruces');
-
-const eliminado = SiteManager.eliminarCruce(nuevoCruce.id);
-assert(eliminado === true, 'Eliminación correcta de cruce vial');
+// 6. (Gestor de Cruces: BORRADO con js/site_manager.js, SPEC_4 9.14 (e) y D-119; la migracion la mide
+//    tests/dom_grupos.js.)
 
 // 7. Roles Operario vs Técnico (TDD)
 console.log('\n--- 7. Lógica de Roles y Seguridad de Acceso (TDD) ---');

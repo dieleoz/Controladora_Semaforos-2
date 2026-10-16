@@ -160,10 +160,20 @@ el filtro de pareja en radio (SFTY-27) espera la medida con dos parejas en banco
 | # | paso | fuente | estado |
 |---|---|---|---|
 | G0 | Arquitecto valida §9.14 y `D-117`..`D-121`; Fable ajusta la SPEC si pide condiciones | `D-120` | |
-| G1 | Grupos: `js/grupos.js`, lista de equipos por via y grupo, matricula por MAC, retirar `site_manager.js` | `D-117`..`D-119` | |
-| G2 | Simulador con estado y flota de 2 vias y 5 grupos mas un poste virgen; cintas como referencia | `D-120`, `D-121` | |
-| GF | Compuerta convergida, arquitecto y QA, condiciones, casos en la hoja, APK y paquete | runbook | |
+| G1 | Grupos: `js/grupos.js`, lista de equipos por via y grupo, matricula por MAC, retirar `site_manager.js` | `D-117`..`D-119` | construido, sin comitear |
+| G2 | Simulador con estado y flota de 2 vias y 5 grupos mas un poste virgen; cintas como referencia | `D-120`, `D-121` | construido, sin comitear |
+| GF | Compuerta convergida, arquitecto y QA, condiciones, casos en la hoja, APK y paquete | runbook | en curso: cerrados la condicion 2 del arquitecto y D2, D3, D5 de QA; casos 42-45 en la hoja; `--rapido` con el banco en FALLA (`app_07`, `decisiones_01_anclas`), sin acta; faltan compuerta completa, APK y paquete |
 | G-RF | Dos parejas en banco: mismo canal y canales distintos; acta `_campo_dos_parejas` | SPEC_6 B.1 (4) | sin teclado |
+
+Version siguiente de `N-180` (revision del 15/10, no bloquea; no se hace ahora): MAC en minusculas cuenta como otro
+poste; `grupos:[null]` en el almacen rompe `rotulo()`/`filtrar()`; grupos ordenados como texto (Km 120 antes que Km
+20); `index.html` «Equipos de cintas de campo»; «Quitar del grupo» sin confirmar; un `NODE:` distinto en el mismo
+grupo cambia de hueco sin confirmar; ACK diferido que llega a una sesion nueva del mismo poste antes de 2 s; PR sin
+tope de longitud; avisos deduplicados por MAC que no se repiten al reenlazar; `anotarFw` reescribe el FW aunque
+cambie la serie; `preguntarNuevo` calla un rechazo; buscador cortado a 360 px; mutantes vivos de QA: `SET_TIEMPOS`
+sin rango y `parar()` vacio; la espera real de 9 s de `dom_claves.js` «Practica» (4) falla con carga (reloj
+inyectable). Fuera de `N-180`, firmware: `SET_TIEMPOS:259,3,10` entra como 3 por el `(uint8_t)` de `bluetooth.cpp` y
+el simulador da RANGO.
 
 **Antes (05/10, el funcional espera en banco): `N-176` ROJO+AMARILLO antes del verde (`D-53`).** Coste medido
 sobre `a5db18e`: ~28 ficheros (firmware ~10, app 4, arneses 4, packs/modelos 5, SPEC 5). Riesgos que se revisan

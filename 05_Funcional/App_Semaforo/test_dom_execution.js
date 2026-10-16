@@ -180,134 +180,62 @@ assert(batVoltageEl.textContent.includes('12.8'), `Telemetría actualiza voltaje
 // comprobacion de que NO se trunca por el split(':') la hace tests/test_unitarios.js.
 assert(rfRttElDom.textContent === '75', `Telemetría actualiza el RTT del enlace: ${rfRttElDom.textContent}`);
 
-// 4.1 Probar Gestor de Cruces (CRUD y Selección de Sitio)
+// 4.1 Vias y grupos (SPEC_4 9.14; sustituye al gestor de cruces, D-119). La conducta -matricular, avisos, lista
+// agrupada, migracion- la mide tests/dom_grupos.js; aqui, que el modal crea, renombra, filtra y borra sobre muchas
+// fichas sin romper el DOM, y que crear un grupo NO cambia el rotulo: lo da el poste enlazado al matricularlo.
 const btnSelectSite = document.getElementById('btn-select-site');
 btnSelectSite.click();
 const siteModal = document.getElementById('site-modal');
-assert(siteModal.classList.contains('active'), 'Al pulsar el selector de sitio se abre el modal de cruces');
+assert(siteModal.classList.contains('active'), 'Al pulsar el selector de sitio se abre el modal de grupos');
 
-// A. Crear un cruce nuevo
-//
-// La app pide nombre y ubicacion por su dialogo propio (js/dialogo.js, SPEC_4 9.1), que se mide en
-// tests/dom_dialogos.js. Aqui se contesta en orden -true acepta sin escribir; sin respuesta, Cancelar- y lo que
-// se mide es que el cruce quede guardado, se active y aparezca en la lista.
+// La app pregunta por su dialogo propio (js/dialogo.js, SPEC_4 9.1), que se mide en tests/dom_dialogos.js. Aqui se
+// contesta en orden -true acepta sin escribir; sin respuesta, Cancelar-.
 const contestar = (cola) => { const m = document.getElementById('dialogo-modal'); while (m.classList.contains('active')) {
   const v = cola.length ? cola.shift() : null; if (v === null) { document.getElementById('btn-dialogo-cancelar').click(); break; }
   if (v !== true) document.getElementById('dialogo-entrada').value = v; document.getElementById('btn-dialogo-aceptar').click(); } };
 
 const btnOpenAddSite = document.getElementById('btn-open-add-site');
-assert(!!btnOpenAddSite, 'Boton de crear cruce presente en el modal de cruces');
-
-btnOpenAddSite.click();
-contestar(['Obra Variante Km 45', 'PR 45+200 Calzada Derecha']);
-
+assert(!!btnOpenAddSite, 'Boton de grupo nuevo presente en el modal de grupos');
 const currentSiteEl = document.getElementById('current-site-name');
-assert(currentSiteEl.textContent.includes('Obra Variante Km 45'),
-  `El nuevo cruce se activó en la cabecera: ${currentSiteEl.textContent}`);
-
-// Y sobrevive a un re-render: si no persistiera, la lista lo perderia al reabrir.
-btnSelectSite.click();
 const listaEl = document.getElementById('dynamic-site-list');
-assert(listaEl.textContent.includes('Obra Variante Km 45'),
-  'El cruce creado persiste y vuelve a salir al reabrir el gestor');
+const fichaDe = (t) => Array.from(listaEl.querySelectorAll('.site-card')).find(c => c.textContent.includes(t));
+btnOpenAddSite.click();
+contestar(['Via al Llano', 'Obra Variante Km 45', 'PR 45+200']);
+assert(!!fichaDe('Obra Variante Km 45') && /SIN GRUPO/.test(currentSiteEl.textContent),
+  `El grupo nuevo sale en la lista y la cabecera sigue «SIN GRUPO» sin matricular: ${currentSiteEl.textContent}`);
 
-// B. Editar y C. eliminar: la tarjeta vuelve a tener sus dos mandos, y llaman a las
-// funciones de js/site_manager.js que se habian quedado sin llamador.
-assert(!!document.querySelector('.btn-edit-site') && !!document.querySelector('.btn-delete-site'),
-  'Las tarjetas de cruce exponen renombrar y eliminar');
+// Renombrar desde la ficha, y el tope: un nombre que desbordaria la cabecera se recorta a 32 (js/grupos.js).
+fichaDe('Obra Variante Km 45').querySelector('.btn-edit-site').click();
+contestar(['Tramo Obra Kilometro 45 Variante Via al Llano Sector Norte']);
+const recortado = (fichaDe('Tramo Obra') || { textContent: '' }).querySelector('.site-card-title').textContent.split(' · ')[0];
+assert(recortado.length > 0 && recortado.length <= 32 && !fichaDe('Obra Variante Km 45'),
+  `El renombrado se ve al momento y un nombre de 57 caracteres se recorta a ${recortado.length}: "${recortado}"`);
 
-document.querySelectorAll('.site-card').forEach(c => {
-  if (c.textContent.includes('Obra Variante Km 45')) c.querySelector('.btn-edit-site').click();
-}); contestar(['Obra Variante Km 45 [EDITADO]']);
-btnSelectSite.click();
-assert(listaEl.textContent.includes('[EDITADO]'),
-  'El renombrado se ve en la lista sin recargar');
-
-// D. Estres de escala: 20 cruces en el DOM
+// Estres de escala: 20 grupos, el filtro en vivo, y 17 borrados por la papelera de la ficha.
 for (let i = 1; i <= 20; i++) {
-  const pad = String(i).padStart(2, '0');
   btnOpenAddSite.click();
-  contestar([`Cruce Corredor Km ${pad}`, `PR ${pad}+000 Doble Calzada`]);
+  contestar(['Via Corredor', `Grupo Km ${String(i).padStart(2, '0')}`, null]);
 }
-
-btnSelectSite.click();
-const totalRenderedCards = listaEl.children.length;
-assert(totalRenderedCards >= 20,
-  `El DOM renderiza holgadamente los 20 cruces (total tarjetas: ${totalRenderedCards})`);
-
-// Filtrado en vivo
+const totalFichas = listaEl.querySelectorAll('.site-card').length;
+assert(totalFichas === 21, `El DOM pinta las 21 fichas de grupo (total: ${totalFichas})`);
 const siteSearchInput = document.getElementById('site-search-input');
 siteSearchInput.value = 'Km 15';
 siteSearchInput.dispatchEvent(new window.Event('input', { bubbles: true }));
-const filteredCards = listaEl.children.length;
-assert(filteredCards === 1,
-  `El buscador interactivo filtra instantáneamente entre los 20 cruces (encontrados: ${filteredCards})`);
-
-// El poste (Maestro/Esclavo) ya no se elige en la tarjeta del cruce sino en el modal
-// Bluetooth, donde cada modulo declara su data-node. La tarjeta selecciona el CRUCE.
-const filteredEsclavoBtn = listaEl.querySelector('.site-card');
-assert(!!filteredEsclavoBtn, 'El cruce filtrado se puede seleccionar desde su tarjeta');
-if (filteredEsclavoBtn) filteredEsclavoBtn.click();
-assert(currentSiteEl.textContent.includes('Km 15'), `Al seleccionar cruce filtrado, la app conmuta a Km 15: ${currentSiteEl.textContent}`);
-
-// E. Probar Eliminación Masiva de 17 Cruces a través de los botones 🗑️ del DOM
-btnSelectSite.click();
-// Limpiar filtro de búsqueda
+const filtradas = listaEl.querySelectorAll('.site-card').length;
+assert(filtradas === 1 && !!fichaDe('Grupo Km 15'), `El buscador filtra al momento entre los 21 grupos (encontrados: ${filtradas})`);
 siteSearchInput.value = '';
 siteSearchInput.dispatchEvent(new window.Event('input', { bubbles: true }));
-
-const countBeforeDelete = document.querySelectorAll('.site-card').length;
 for (let i = 0; i < 17; i++) {
-  const delBtn = document.querySelector('.btn-delete-site');
-  if (delBtn) delBtn.click();
+  const papelera = document.querySelector('.btn-delete-site');
+  if (papelera) papelera.click();
 }
-const countAfterDelete = document.querySelectorAll('.site-card').length;
-assert(countAfterDelete === countBeforeDelete - 17, `Eliminación de 17 cruces completada en el DOM (${countBeforeDelete} -> ${countAfterDelete})`);
+const tras = listaEl.querySelectorAll('.site-card').length;
+assert(tras === totalFichas - 17, `Borrado de 17 grupos sin postes desde la ficha (${totalFichas} -> ${tras})`);
 
-// F. Agregar 4 nuevos cruces viales en el DOM
-const nuevos4 = [
-  { name: 'Cruce Túnel La Línea', loc: 'PR 50+100', p1: '👑 Maestro (Entrada)', p2: '📡 Esclavo (Salida)' },
-  { name: 'Cruce Variante Guaduas', loc: 'PR 62+300', p1: '👑 Maestro (Norte)', p2: '📡 Esclavo (Sur)' },
-  { name: 'Cruce Paso Urbano Villeta', loc: 'PR 75+800', p1: '👑 Maestro (P1)', p2: '📡 Esclavo (P2)' },
-  { name: 'Cruce Puente Cundinamarca', loc: 'PR 88+000', p1: '👑 Maestro (P1)', p2: '📡 Esclavo (P2)' }
-];
-
-nuevos4.forEach(n => {
-  btnOpenAddSite.click();
-  contestar([n.name, n.loc]);
-});
-
-btnSelectSite.click();
-const finalCards = document.querySelectorAll('.site-card');
-assert(finalCards.length === countAfterDelete + 4, `El DOM renderiza exactamente los ${countAfterDelete + 4} cruces finales`);
-
-// G. Renombrar interactivamente todos los cruces en el DOM a través del botón ✏️
-const editButtons = document.querySelectorAll('.btn-edit-site');
-assert(editButtons.length === countAfterDelete + 4, `Todos los cruces poseen botón de edición ✏️ (${editButtons.length})`);
-
-// Editar el primer cruce en el DOM
-// N-75: el nombre de prueba baja de 41 a 30 caracteres. Lo que esta comprobacion mide
-// es que el renombrado se vea al momento, no que quepan 41: SiteManager recorta a 32
-// para que un nombre largo no parta la cabecera en dos lineas.
-editButtons[0].click();
-contestar(['Cruce Cundinamarca [RENOVADO]']);
-
-btnSelectSite.click();
-const updatedFirstCardTitle = document.querySelector('.site-card .site-card-title').textContent;
-assert(updatedFirstCardTitle.includes('[RENOVADO]'), `La tarjeta del DOM cambió su nombre inmediatamente: ${updatedFirstCardTitle}`);
-
-// Y el tope se aplica de verdad: un nombre que desbordaria la cabecera se recorta.
-editButtons[0].click();
-contestar(['Tramo Obra Kilometro 45 Variante Via al Llano Sector Norte']);
-btnSelectSite.click();
-const recortado = document.querySelector('.site-card .site-card-title').textContent;
-assert(recortado.length <= 32,
-  `Un nombre de 57 caracteres se recorta a ${recortado.length}: "${recortado}"`);
-
-// H. Cerrar modal de cruces
+// Cerrar el modal de grupos
 const modalSiteClose = document.getElementById('modal-site-close');
 modalSiteClose.click();
-assert(!siteModal.classList.contains('active'), 'Modal de cruces se cierra con el botón ✕');
+assert(!siteModal.classList.contains('active'), 'El modal de grupos se cierra con el botón ✕');
 
 // 5. Inyectar Fuzzing de tramas corruptas
 let fuzzError = null;
@@ -737,7 +665,7 @@ assert(!pinModal.classList.contains('active'),
 // sesion sin autorizar hace falta un navegador nuevo, que en la calle significa cerrar
 // la app. Cuanto tiene que durar esa autorizacion lo decide el responsable; lo que el
 // arnes deja escrito es que hoy dura lo que dure el proceso.
-function montarAppLimpia() {
+function montarAppLimpia(precarga) {   // precarga: claves de localStorage que ya estaban al abrir la app
   const dom2 = new JSDOM(htmlContent, { runScripts: 'dangerously', resources: 'usable', url: 'http://localhost/' });
   const w = dom2.window;
   const almacen = {};
@@ -747,7 +675,7 @@ function montarAppLimpia() {
     removeItem: (k) => { delete almacen[k]; },
     clear: () => { Object.keys(almacen).forEach(k => delete almacen[k]); }
   };
-  w.navigator.vibrate = () => true;
+  w.navigator.vibrate = () => true; Object.keys(precarga || {}).forEach(k => w.localStorage.setItem(k, precarga[k]));  // jsdom ignora el w.localStorage de arriba
   const tramas = [];
   w.bluetoothSerial = {
     isEnabled: (ok) => ok(),
@@ -2204,7 +2132,7 @@ assert(/ESCRITA SIN ENLACE/.test(diarioMudo),
 sinE.w.Date.now = relojReal;
 
 // APP-1 y cinta sin enlace: tests/dom_usabilidad.js; exportar en la APK: tests/dom_exportar.js.
-require('./tests/dom_usabilidad.js')(montarAppLimpia, assert).then(() => require('./tests/dom_exportar.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_version.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_acuse_con_argumentos.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_deg_auto.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_aviso_degradado.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_aviso_corte.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_aviso_radio_deg.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_deg_fin.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_textos_spec4.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_rojo_amar.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_deg_eleccion.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_cabecera_fase.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_dialogos.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_claves.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_registro_sesion.js')(montarAppLimpia, assert))
+require('./tests/dom_usabilidad.js')(montarAppLimpia, assert).then(() => require('./tests/dom_exportar.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_version.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_acuse_con_argumentos.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_deg_auto.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_aviso_degradado.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_aviso_corte.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_aviso_radio_deg.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_deg_fin.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_textos_spec4.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_rojo_amar.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_deg_eleccion.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_cabecera_fase.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_dialogos.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_claves.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_registro_sesion.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_grupos.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_simulador.js')(montarAppLimpia, assert))
   .catch(e => assert(false, 'pruebaExportarApk lanzo: ' + e)).then(() => {
     console.log('='.repeat(80));
     console.log(` RESULTADO JSDOM: ${testsPassed} PASS | ${testsFailed} FALLAS`);

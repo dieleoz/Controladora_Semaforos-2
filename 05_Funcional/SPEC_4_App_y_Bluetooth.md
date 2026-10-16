@@ -1224,30 +1224,69 @@ inventados de fabrica) y solo da el rotulo `state.site`, que nombra los ficheros
 **(a) Modelo.** Via → grupos (nombre, PR) → dos huecos, `MAESTRO` y `ESCLAVO`, cada uno {MAC, serie, FW, fecha}. La
 identidad es la MAC (`address` de `bt.list()`); serie y punta salen de `SERIE:`/`NODE:` y el FW del `$ACK` de `VERSION`:
 nada de eso se teclea, solo via, grupo y PR. Un grupo con un solo poste vale; una MAC esta en un grupo como mucho.
-**(b) Matricular** (`D-118`; clave de administracion, §9.2; sin PIN: no envia nada). Enlazado y leido el primer
-`$STATUS`, la app ofrece los grupos con ese hueco libre o «Grupo nuevo»; un hueco ocupado por otra MAC no se pisa
-(«Quitar del grupo» primero); mover una MAC de grupo pide confirmar. Al enlazar un poste matriculado, `state.site`
-pasa a `<via> · <grupo>`; sin matricular, «SIN GRUPO». El grupo es el control del operador, no la radio: que los dos
-postes se hablen lo fija el canal (SPEC 6 B.2) y la app no lo ve; lo dice la ficha del grupo.
+El FW del hueco es el campo `FW:` de la respuesta a `VERSION`, tambien la de `$ERR,...,DESC:SIN_SELLAR` (se guarda
+tal cual); sin respuesta, «sin leer», y ese hueco no entra en el aviso de FW de (c). Un transporte que solo da `id` y
+no `address` (Web Bluetooth, Web Serial) no matricula (`D-123`): el poste sale «SIN GRUPO» y la ficha dice por que.
+**(b) Matricular** (`D-118`; clave de administracion, §9.2, que lo muestra por `D-123`; sin PIN: no envia nada).
+Enlazado y leido el primer `$STATUS`, la app ofrece los grupos con ese hueco libre o «Grupo nuevo»; un hueco ocupado
+por otra MAC no se pisa («Quitar del grupo» primero, que deja el hueco libre); mover una MAC de grupo pide confirmar.
+Al enlazar un poste matriculado, `state.site` pasa a `<via> · <grupo>`; sin matricular, «SIN GRUPO». El grupo es el
+control del operador, no la radio: que los dos postes se hablen lo fija el canal (SPEC 6 B.2) y la app no lo ve; lo
+dice la ficha del grupo.
 **(c) Avisos, solo con lo que el equipo dice:** serie del `$STATUS` distinta de la guardada para esa MAC (no se
 sobrescribe sin matricular otra vez); `NODE:` distinto del hueco (rojo, la matricula no cambia); FW distinto entre
-los dos postes del grupo (ambar, con los dos sellos: `D-102`).
+los dos postes del grupo (ambar, con los dos sellos: `D-102`); y una serie ya matriculada que llega por otra MAC
+(ambar, «¿modulo Bluetooth cambiado?», `D-123`): la MAC nueva queda «Sin grupo» hasta matricularla.
 **(d) Lista de equipos** agrupada por via y grupo, con sus filas `-M`/`-E` (las no vistas en gris); al final «Sin
 grupo» con las MAC vistas sin matricular y el aviso de `N-129`. La busqueda filtra por via, grupo o serie.
-**(e) Sustituye a `site_manager.js` (`D-119`):** modulo en `js/` (molde §9.12); cada cruce no de fabrica, a «Sin via».
+**(e) Sustituye a `site_manager.js` (`D-119`):** modulo en `js/` (molde §9.12). Migracion, una vez: un cruce de
+`iot_vial_cruces_v2` es de fabrica solo si su `id`, `nombre` y `ubicacion` son los de `CRUCES_DEFAULT` sin tocar
+(`D-123`); los demas, renombrados incluidos, pasan a un grupo sin postes en «Sin via». La clave vieja no se borra.
 **(f) Practica con estado** (`D-120`; sustituye a las cintas; boton, franja y marcas de `D-86`/`D-89`; en el sitio del
 puerto falso). Cada poste es un estado (modo, fase, tiempos, PIN, franjas de noche, `tr`, Degradado, radio, FW) que
 contesta cada orden de §3.1/§3.2 con el `$ACK`/`$ERR` y los `$STATUS`/`$EVENT`/`$ALARM` que emitiria su firmware.
-Determinista, reloj inyectable, cada constante con su origen `archivo:simbolo`; el vocabulario de `MODO:`/`ESTADO:`
-es el que el C++ puede emitir (criterio de `app_04`). Flota: Via 1 · Km 20 en ciclo con PIN de fabrica; Km 80 noche
-ambar; Km 120 Maestro en `MENU` sin radio y Esclavo en Degradado. Via 2 · PR 12 noche rojo+ambar y saliendo en
-todo-rojo; PR 45 con FW distinto entre postes y una serie cambiada. Mas un poste virgen sin grupo. Sus grupos viven
-en la memoria de la practica, nunca en el almacen. Prohibidos los literales que busca `test_funcional_app.py` (§9.10).
+Determinista, reloj inyectable, cada constante con su origen `archivo:simbolo`. **Vocabulario atado al C++, entero:**
+cada cabeza que el simulador puede emitir (tipo, `CMD:`, `RESULT:`/`DESC:` y la secuencia de nombres de campo) existe
+en el `.cpp` de su punta, y cada orden que acepta el `procesarComando()` de esa punta tiene respuesta en el simulador;
+se lee del C++ en cada corrida, con suelo (menos cabezas que el suelo es `ABORTADO`). Flota: Via 1 · Km 20 en ciclo
+con PIN de fabrica; Km 80 noche ambar; Km 120 Maestro en `MENU` sin radio y Esclavo en Degradado. Via 2 · PR 12, dos
+postes en noche rojo+ambar saliendo por el todo-rojo; PR 45 con FW distinto entre postes y una serie cambiada. Mas un
+poste virgen sin grupo. **Nada de la practica llega a lo real:** sus grupos viven en un almacen en memoria, nunca en
+el de la app (matricular en practica deja el almacen real igual byte a byte); Salir cancela todo temporizador de la
+practica, y una respuesta pendiente no se entrega a otra sesion de practica ni al puerto real. Prohibidos los
+literales que busca `test_funcional_app.py` (§9.10). Sus respuestas `$ACK,CMD:...` las separa `app_07` de las ordenes
+por la cabeza (`D-122`); no se parten literales para esquivarlo (`CLAUDE.md` §1).
 **(g) Las cintas `js/practica_cinta_1..4.js` son referencia** (`D-121`), fuera de `index.html`: con el simulador en el
 estado de la cinta, cada orden con respuesta grabada da los mismos campos (salvo `HORA`, `T`, `RTT` y contadores), y
-cada `$STATUS` los mismos nombres en el mismo orden. Si divergen se corrige el simulador, nunca la cinta.
-**Pruebas, vistas en rojo antes de construir:** `tests/dom_grupos.js` (matricular sin teclear serie, hueco ocupado,
-los tres avisos de (c), lista agrupada, migracion) y `tests/dom_simulador.js` (el menu entero por los botones con el
-reloj inyectado, sin desborde a 360 px; vocabulario contra el C++; las cintas de (g)); `dom_claves.js` «Practica» se
-adapta. Es PRODUCTO de la app: el simulador del repo sigue congelado (`CLAUDE.md` §4) y §8 no lo cuenta. Verde en
-practica dice que la app pinta bien, no que el equipo lo haga: no es evidencia ni entregable.
+cada `$STATUS` los mismos nombres en el mismo orden; si el contenido coincide entero, tambien el `*XX`. Si divergen
+se corrige el simulador, nunca la cinta.
+**Ficheros e interfaces.** Dos lotes EN SERIE, nunca a la vez; S parte del arbol con G integrado.
+- **G (grupos):** `js/grupos.js` (nuevo, exporta `Grupos`), `js/lista_equipos.js`, `app.js` (sale el gestor de
+  cruces y `state.site` lo da `Grupos`), baja de `js/site_manager.js`, `index.html`, `tests/dom_grupos.js` (nuevo),
+  `tests/test_unitarios.js`, `tests/dom_dialogos.js`, `test_dom_execution.js`.
+- **S (simulador):** `js/practica*.js` (las cintas salen de `index.html`, no del arbol), `index.html`,
+  `tests/dom_simulador.js` (nuevo), `tests/dom_claves.js`, `test_dom_execution.js`, el pack `app_07` (`D-122`) y el
+  comentario de `test_funcional_app.py` 2.8 («el build de campo no lleva simulador»), que se corrige hacia `D-120`.
+- **Almacen inyectable:** `Grupos.nuevo(almacen)` con `almacen = { leer(): string|null, escribir(texto) }`; la app le
+  da uno sobre `localStorage` (clave `iot_vial_grupos_v1`) y la practica uno en memoria. Nada de `Grupos` toca
+  `localStorage` por su cuenta.
+- **No crecen en neto** contra HEAD: `app.js`, `index.html`, `test_dom_execution.js` y `js/depuracion.js`; un modulo
+  nuevo, 500 lineas como mucho. Copias identicas (`cmp`) en `js/`, `www/` y `android/app/src/main/assets/public/`; la
+  razon instrumentos/producto del trinquete (`.githooks/trinquete.sh`) no pasa de su techo.
+**Pruebas, vistas en rojo antes de construir, cada una con su nombre:** `tests/dom_grupos.js`: matricular sin
+teclear serie, sin la clave no se ofrece y no envia ninguna trama; hueco ocupado no se pisa; una MAC en un solo
+grupo; mover pide confirmar; Quitar libera el hueco; los cuatro avisos de (c); transporte sin `address` no
+matricula; `state.site` es `<via> · <grupo>` o «SIN GRUPO»; la ficha dice que la radio no la ve; lista agrupada,
+filas no vistas en gris y busqueda; migracion con un cruce de fabrica, uno renombrado y uno nuevo.
+`tests/dom_simulador.js`: el menu entero por los botones, reloj inyectado (360 px: telefono, `D-125`); cabezas
+contra el C++ en los dos sentidos (rojo inyectando un `DESC:` que el C++ no tiene); cada constante con origen
+`archivo:simbolo` que existe; las cintas de (g); en practica matricular deja el almacen real igual; tras Salir, el
+reloj avanzado no entrega ninguna trama, tampoco entrando y saliendo dentro de `RESPUESTA_MS`. `app_07`: verde con
+el simulador dentro y control negativo (`$CMD:...` sigue en `FALLA`).
+**Pruebas que celebran lo derogado (`CLAUDE.md` §9), una a una:** `test_unitarios.js` suite de `SiteManager` (exige
+dos cruces de fabrica): se BORRA con el modulo y su migracion la cubre `dom_grupos.js`; `dom_dialogos.js` crear y
+renombrar cruce: se REPARTE a crear y renombrar grupo; `dom_claves.js` «Practica» (4), `$ACK` de `VERSION` literal
+de la cinta: se CONSERVA la cifra (FW `d810f81`) y la da el simulador; (6), campos del `$STATUS` leidos de
+`FLOTA[].tramas`: se lee el `$STATUS` del simulador.
+Es PRODUCTO de la app: el simulador del repo sigue congelado (`CLAUDE.md` §4) y §8 no lo cuenta. Verde en practica
+dice que la app pinta bien, no que el equipo lo haga: no es evidencia ni entregable.
