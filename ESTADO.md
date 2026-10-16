@@ -5,19 +5,22 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 
 ## Por donde se retoma, en este orden
 
-1. **Cerrar el paquete de `N-180`** (grupos via -> grupo -> pareja por MAC y simulador con estado, `D-117`..`D-126`;
-   app en `ac844b9`, sin firmware: `D-118`). Falta, en orden: converger la compuerta (acta `2026-10-16`, se espera
-   solo `D-22` y `D-94`..`D-97`); compilar la APK (`.claude/particularidades/entregar.md` §3) y poner su huella en
-   `Pruebas_Funcional_2026-10-16.html`, que ya trae los casos 42-45 SIN comitear (lleva la huella vieja
-   `a8214ed5...`); `.bin` con sello por `strings`; recorrer el menu en practica en el telefono del responsable a
-   360 px (`D-125`); empaquetar con `herramientas/entrega/empaquetar_funcional.py`. Abierto, no bloquea: version
-   siguiente de N-180 en `roadmap.md` (mutantes S3 y S4 de QA, `SET_TIEMPOS:259` aceptado por el `(uint8_t)`).
-2. **Mandar a Marco** el paquete de `N-180`; sustituye a `ad74390` (16/10, `c68f11f0...`) si ese no salio. APK
-   primero, despues firmware en los DOS postes y los DOS puentes (`D-102`).
-3. **Radio con varios grupos (`D-124`, responsable):** un canal por pareja que no usa ningun otro grupo, prueba de
-   puesta en marcha apagando cada punta (SPEC_6 B.3). El filtro de pareja en la trama queda como mejora: riesgo
-   abierto. Falta el acta de banco con dos parejas (mismo canal, contiguos, separados) y cuantos canales caben en la
-   banda de la antena (170/172 MHz).
+1. **UN SOLO paquete que no deje nada de teclado pendiente (orden del responsable, 16/10).** El de `0fe782f`
+   (`entregas/Paquete_Semaforos_2026-10-16_0fe782f_SIN_BANCO.zip`, `b5018718...`, APK `df02795d...`) esta hecho y
+   verificado pero RETENIDO: no se manda. Antes, en una tanda (agentes en worktree, ficheros disjuntos, `CLAUDE.md`
+   §11) se cierra TODO lo que solo pide teclado: (a) la version siguiente de `N-180` entera de `roadmap.md` (MAC en
+   minusculas, `grupos:[null]`, orden numerico de grupos, «Quitar del grupo» y cambio de hueco sin confirmar, ACK
+   diferido entre sesiones, PR sin tope, avisos por MAC al reenlazar, `anotarFw`, `preguntarNuevo`, mutantes de QA
+   `SET_TIEMPOS` sin rango y `parar()` vacio, reloj inyectable en `dom_claves.js` «Practica» (4)); (b) la maquetacion
+   medida a 320 px CSS en su telefono (franja sobre el modal, «emparejado», «(radio N %)» bajo 🛡️, «MANDOS DE CAMPO»,
+   `.card-sub` sin regla, buscador cortado); (c) firmware `SET_TIEMPOS:259` aceptado como 3 por el `(uint8_t)`.
+   Despues: compuerta completa, QA una vez, APK, `.bin` con sello, telefono (CDP 9333 + capturas) y UN paquete.
+2. **Lo que no cierra el teclado va en la MISMA visita de Marco, pedido en la hoja de ese paquete** (que mida, no
+   que pruebe otra version): `D-94`..`D-97` (veto de camara y barrera fuera de servicio) piden tarjeta con barrera y
+   pila medidas antes de construir; `D-22` una tarjeta delante; `D-124` el acta con dos parejas. Si el responsable
+   quiere `D-94`..`D-97` dentro del paquete unico, hay que medir primero: es la unica forma de no deber nada.
+3. **Radio con varios grupos (`D-124`):** un canal por pareja (SPEC_6 B.3); falta el acta con dos parejas (mismo
+   canal, contiguos, separados) y cuantos canales caben en 170/172 MHz. Filtro de pareja en la trama: riesgo abierto.
 4. **Cuando vuelvan sus cintas** (`N-177` V10): leerlas enteras y contando (`CLAUDE.md` §7), un `IOTVIAL_*` de CADA
    poste; si la hoja pasa, se quita `SIN_BANCO`. **A campo (El Sisga)** va lo que salga de ese banco; pendiente C3
    `Validacion_LCD`, C4 el grafo, `N-175`. **Sin explicar:** contadores de radio del 06/10 (`evidencia/061020261110`).
@@ -36,7 +39,7 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 | Maestro `179DB0` (El Sisga) | `7ff7d12` `SIN_BANCO`, probado despues `b354fe9`. Ninguno lleva el veto de camara a la pluma (`363e375`, `D-33`): `Camaras_Sisga_4x.html` se corrige en la MISMA visita en que se cargue un firmware posterior | cinta y diario en `evidencia/` |
 | Esclavo del Sisga | sin medir | su cinta no se ha traido |
 | Maestro `4D2007` y Esclavo `38EB53` (Marco, banco) | `6bd1e4f` en controlador y puente, medido: `$ACK,CMD:VERSION` el 01/10 | `evidencia/011020260934/` |
-| paquete para Marco | `Paquete_Semaforos_2026-10-16_ad74390_SIN_BANCO` (zip `c68f11f0...`): `N-179` y `N-178` para los DOS postes y los DOS puentes, `.bin` con sello `FW:ad74390`; APK `a8214ed5...`; hoja del 16/10, 41 casos | `entregas/` |
+| paquete para Marco | RETENIDO: `Paquete_Semaforos_2026-10-16_0fe782f_SIN_BANCO` (zip `b5018718...`, APK `df02795d...`, `.bin` con `FW:0fe782f`, hoja de 45 casos); el de `ad74390` (`c68f11f0...`) queda sustituido. Sale uno solo, tras el punto 1 | `entregas/` |
 
 ## Verificacion en escritorio
 
@@ -49,7 +52,6 @@ cabecera con que HEAD y que arbol se midio; las comprueba `documentos_01` en cad
 | Banco por packs | **1492/1497 comprobaciones** en **70 packs**, 1 FALLA: `D-22` pide una tarjeta delante; `D-94`..`D-97` sin construir (`CLAUDE.md` §1) |
 | Arneses de C++ real | 88/88 automatico · 78/78 ciclo · 175/175 dos puntas · 158/158 Degradado a dos puntas |
 | App y puente | **802/802** jsdom · **70/70** funcional · **67/67** unitarios · 87/87 TDD · puente 159/159 |
-
 ## BLOQUEANTES: lo que no se cierra con teclado (roadmap §1 y §4)
 
 | bloqueo | referencia |
