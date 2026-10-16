@@ -165,38 +165,28 @@ el filtro de pareja en radio (SFTY-27) espera la medida con dos parejas en banco
 | GF | Compuerta convergida, arquitecto y QA, condiciones, casos en la hoja, APK y paquete | runbook | en curso: condiciones de arquitecto y QA cerradas (`D-122`, `D-126`); acta `2026-10-16` convergida (solo `D-22`, `D-94`..`D-97`); casos 42-45 en la hoja sin comitear; faltan APK, telefono y paquete |
 | G-RF | Dos parejas en banco: mismo canal y canales distintos; acta `_campo_dos_parejas` | SPEC_6 B.1 (4) | sin teclado |
 
-Version siguiente de `N-180` (revision del 15/10, no bloquea; no se hace ahora): MAC en minusculas cuenta como otro
-poste; `grupos:[null]` en el almacen rompe `rotulo()`/`filtrar()`; grupos ordenados como texto (Km 120 antes que Km
-20); `index.html` «Equipos de cintas de campo»; «Quitar del grupo» sin confirmar; un `NODE:` distinto en el mismo
-grupo cambia de hueco sin confirmar; ACK diferido que llega a una sesion nueva del mismo poste antes de 2 s; PR sin
-tope de longitud; avisos deduplicados por MAC que no se repiten al reenlazar; `anotarFw` reescribe el FW aunque
-cambie la serie; `preguntarNuevo` calla un rechazo; buscador cortado a 360 px; mutantes vivos de QA: `SET_TIEMPOS`
-sin rango y `parar()` vacio; la espera real de 9 s de `dom_claves.js` «Practica» (4) falla con carga (reloj
-inyectable; o la doble arrancada de `app.js` en jsdom, corregida en `montarAppLimpia` el 16/10). Del recorrido en el
-telefono a 320 px CSS (16/10): la franja SIMULADO tapa la cabecera del modal de equipos; «emparejado» se sale de la
-tarjeta; «(radio N %)» queda debajo del boton 🛡️; «MANDOS DE CAMPO» cortado; `.card-sub` sin regla en `style.css`
-(texto a 18 px, letra de titulo). Fuera de `N-180`, firmware: `SET_TIEMPOS:259,3,10` entra como 3 por el
-`(uint8_t)` de `bluetooth.cpp` y el simulador da RANGO.
+**AHORA (16/10, orden del responsable): `N-181` UN SOLO paquete que no deba nada de teclado.** Vacia la version
+siguiente de `N-180` (revision del 15/10 y telefono a 320 px CSS) y el rango de `SET_TIEMPOS`. Un workflow con los
+constructores en paralelo, cada uno en su worktree y con ficheros disjuntos (`CLAUDE.md` §11); el orquestador integra
+por el diff y corre en el arbol principal compuerta, APK, telefono y paquete. Numeros reservados: `D-127`..`D-140`.
+Lo ya definido no se pregunta (SPEC_4 §9.14 (c): un `NODE:` distinto da aviso rojo y NO cambia la matricula).
 
-**Antes (05/10, el funcional espera en banco): `N-176` ROJO+AMARILLO antes del verde (`D-53`).** Coste medido
-sobre `a5db18e`: ~28 ficheros (firmware ~10, app 4, arneses 4, packs/modelos 5, SPEC 5). Riesgos que se revisan
-ANTES de construir (§11.7): (a) +2 s rompen el presupuesto de radio (`PEOR_CASO_CICLO_MS + TIMEOUT_ACK_MS` 27,3 s
-contra `SFTY6_SILENCIO_MS` 28 s, `D-48`): sube el silencio y se recalcula `D-50`; (b) el Esclavo no acusa
-`ACK_GREEN` hasta el verde real (patron de `S_AMARILLO`); (c) Degradado a 8 fases: firmware nuevo en los DOS postes
-a la vez; (d) `ESTADO:` nuevo de <= 9 caracteres y su fila en la app (si no, «ESTADO NO RECONOCIDO»).
+| # | quien | ficheros (solo esos) | que | estado |
+|---|---|---|---|---|
+| S | 1 agente, antes que nadie | SPEC_4, SPEC_2, `DECISIONES.md` | Lo no escrito, con valor por defecto y fila `D-127`..: tope del PR, confirmar «Quitar del grupo», avisos una vez por conexion, rango 3..15 min con `$ERR` | |
+| A | worktree | `js/grupos.js` y sus pruebas | MAC en minusculas; `grupos:[null]`; orden numerico; «Quitar del grupo»; `NODE:` distinto hacia §9.14 (c); `anotarFw`; `preguntarNuevo` | |
+| B | worktree | `app.js` (las dos copias) y sus pruebas | ACK diferido entre sesiones; PR con tope; avisos por MAC al reenlazar | |
+| C | worktree | `style.css`, `index.html` | 320 px: franja sobre el modal, «emparejado», «(radio N %)», «MANDOS DE CAMPO», `.card-sub`, buscador; rotulo «Equipos de cintas» | |
+| D | worktree | `bluetooth.cpp` de Maestro y Esclavo, arnes de `SET_TIEMPOS` | `SET_TIEMPOS:259` rechazado con `$ERR` antes del `(uint8_t)`; mutantes vivos `SET_TIEMPOS` sin rango y `parar()` vacio | |
+| E | worktree | `tests/dom_claves.js` | reloj inyectable en «Practica» (4) | |
+| X | opcional | SPEC_8 §6, `respaldo.cpp`, despachador, app | `D-94`..`D-97` si el responsable dice si: arquitecto ANTES (§11.7), en cadena tras D (comparten despachador) | decide el responsable |
+| F | orquestador | arbol principal | integrar por el diff; compuerta completa hasta dos pasadas iguales; cifras a ESTADO | |
+| Q | 2 agentes a la vez | solo lectura | arquitecto (opus) y QA una vez sobre la candidata; condiciones por SPEC -> rojo -> codigo | |
+| P | orquestador | `entregas/`, telefono | APK y CRC; telefono CDP 9333 a 320 px; `.bin` con sello limpio; hoja con lo nuevo y lo que mide Marco (`D-22`, `D-124`, pila de `D-94`..`D-97`); UN paquete; `0fe782f` a `RETIRADOS/` | |
 
-Diseno comun de los agentes: `D-53` y SPEC_1 §3.2 (al cerrar R1). Con Marco esperando, R1, R3 y R4 corren en
-paralelo con ficheros disjuntos contra el mismo diseno; el arquitecto revisa SPEC y diff juntos antes de la compuerta.
-
-| # | paso | estado |
-|---|---|---|
-| R1-R4 | SPEC, pruebas invertidas, firmware, app y `.html` | hecho (`264b98d`, `f608bf8`, `668c2be`) |
-| R2 | Arquitecto (opus), dos pasadas | APTO CON CONDICIONES, cerradas (`5f13011`, `5f1d37f`); `SFTY6` sigue en 28 s |
-| R5 | Compuerta y QA | acta `2026-10-05` sobre `5f1d37f` (solo `D-22`); QA APTO CON CONDICIONES |
-| R6 | Paquete | `Paquete_Semaforos_2026-10-06_42e7746_SIN_BANCO` (app con cabecera y frase corregidas en el telefono) |
-
-**El `.html` de R6 pide SOLO lo nuevo**: el rojo+amarillo (`D-53`), la eleccion del Degradado automatico y la carga
-de los dos postes a la vez. Lo que Marco ya probo con `22fd0d8` no se le vuelve a pedir.
+Cada constructor: prueba vista en rojo antes del codigo, duda del encargo, no comitea. Dos correcciones fallidas en un
+punto: se revierte ese punto y sigue el resto (`CLAUDE.md` §11). Tiempo estimado: S 45 min; A-E en paralelo 2-2,5 h;
+F 1-1,5 h; Q y condiciones 1-1,5 h; P 1-1,5 h. Total 6-7 h sin X; con X, 8-10 h (firmware de seguridad en cadena).
 
 **Version siguiente (06/10, visto en el telefono):** la cabecera recorta el rotulo del enlace hasta no leerse
 («(sin ...») en cuanto deja de pisar los iconos: dos intentos de CSS fallidos, congelado en `42e7746`, donde el

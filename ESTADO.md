@@ -7,8 +7,8 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 
 1. **UN SOLO paquete que no deje nada de teclado pendiente (orden del responsable, 16/10).** El de `0fe782f`
    (`entregas/Paquete_Semaforos_2026-10-16_0fe782f_SIN_BANCO.zip`, `b5018718...`, APK `df02795d...`) esta hecho y
-   verificado pero RETENIDO: no se manda. Antes, en una tanda (agentes en worktree, ficheros disjuntos, `CLAUDE.md`
-   §11) se cierra TODO lo que solo pide teclado: (a) la version siguiente de `N-180` entera de `roadmap.md` (MAC en
+   verificado pero RETENIDO: no se manda. Antes, en una tanda (`N-181` de `roadmap.md`: agentes, ficheros y
+   tiempos) se cierra TODO lo que solo pide teclado: (a) la version siguiente de `N-180` entera de `roadmap.md` (MAC en
    minusculas, `grupos:[null]`, orden numerico de grupos, «Quitar del grupo» y cambio de hueco sin confirmar, ACK
    diferido entre sesiones, PR sin tope, avisos por MAC al reenlazar, `anotarFw`, `preguntarNuevo`, mutantes de QA
    `SET_TIEMPOS` sin rango y `parar()` vacio, reloj inyectable en `dom_claves.js` «Practica» (4)); (b) la maquetacion
