@@ -222,12 +222,16 @@ button#btnPdf{
     <li>Para configurar: radio sin energía, M0 en ON y M1 en OFF. Con el programa de la radio, lea primero lo que tiene.</li>
     <li>Air Data Rate: <strong>2.4 kbps</strong>. Potencia: la máxima. FEC: activado. Modo: Transparent. UART: 9600 8N1.</li>
     <li>El <strong>mismo canal</strong> en las dos radios. Anote cuál.</li>
+    <li><strong>Ese canal no lo puede usar ningún otro grupo de semáforos de la obra.</strong> Con repetidor, el grupo usa dos canales y ninguno puede repetirse. No copie el canal de otro montaje ni el del ejemplo.</li>
+    <li>Con los demás grupos de la obra encendidos, apague el Maestro: el Esclavo debe pasar a <strong>ámbar intermitente antes de 30 s</strong>. Después, al revés. Si no pasa a ámbar, comparte canal con otro grupo: cambie el canal antes de seguir. Repítalo cada vez que cambie una radio.</li>
     <li>Al terminar: radio sin energía, <strong>M0 y M1 los dos en OFF</strong>. Repita en el otro poste.</li>
   </ol>
   <div class="espera">Se espera: las dos radios iguales, M0 y M1 en OFF, antena puesta. En la app, el enlace de radio entre postes en verde.</div>
   <div class="horas">
     <label class="campo">Canal de las dos radios <input type="text" id="h4a" class="hora"></label>
     <label class="campo">M0 y M1 en OFF en las dos (sí/no) <input type="text" id="h4b" class="hora"></label>
+    <label class="campo">Canales de los demás grupos de la obra <input type="text" id="h4c" class="hora"></label>
+    <label class="campo">Con el Maestro apagado, el Esclavo pasó a ámbar (sí/no, segundos) <input type="text" id="h4d" class="hora"></label>
   </div>
   <div class="resultado">
     <label><input type="radio" name="r4" value="Funcionó" data-txt="Funcionó"> Funcionó</label>
