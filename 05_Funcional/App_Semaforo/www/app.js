@@ -3267,10 +3267,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Es la familia de N-122 al reves -- alli la app se pintaba enlazada sin haber abierto
   // socket; aqui se quedaria creyendose enlazada despues de que se lo cerraran.
   //
-  // LO QUE ESTA APP NO PUEDE SABER, y va escrito para que nadie lo de por cubierto: por
-  // que se cayo. El plugin entrega un texto fijo, no un motivo. Si el socket lo cerro el
-  // sistema para dejar sitio a otra aplicacion, el aviso llega igual y no lo dice. La
-  // causa no se inventa.
+  // LO QUE ESTA APP NO PUEDE SABER, y va escrito para que nadie lo de por cubierto: por que se cayo. El plugin entrega
+  // un texto fijo, no un motivo. Si el socket lo cerro el sistema para dejar sitio a otra aplicacion, el aviso llega
+  // igual y no lo dice. La causa no se inventa.
 
   // El estado del enlace se apaga SIEMPRE por aqui: "he desconectado" y "me han desconectado" no dejan la pantalla
   // en estados distintos (un boton que dice enlazado sin estarlo). D-86: js/practica.js pregunta y avisa por estas dos.
@@ -3320,6 +3319,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function desconectarEquipo(alTerminar) {
     const bt = (typeof window !== 'undefined') ? window.bluetoothSerial : null;
     const quien = state.deviceName || state.deviceMac || 'el equipo';
+    state.telemetriaViva = false; state.ultimoStatusMs = null;   // soltar a proposito no es caida (SPEC_4 9.9 (d))
     if (!bt || typeof bt.disconnect !== 'function') {
       // No se promete lo que no se puede hacer. El estado interno si se limpia -- la app
       // deja de mandar ordenes por un enlace del que ya no se fia --, pero se DICE que el

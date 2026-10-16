@@ -172,8 +172,11 @@ grupo cambia de hueco sin confirmar; ACK diferido que llega a una sesion nueva d
 tope de longitud; avisos deduplicados por MAC que no se repiten al reenlazar; `anotarFw` reescribe el FW aunque
 cambie la serie; `preguntarNuevo` calla un rechazo; buscador cortado a 360 px; mutantes vivos de QA: `SET_TIEMPOS`
 sin rango y `parar()` vacio; la espera real de 9 s de `dom_claves.js` «Practica» (4) falla con carga (reloj
-inyectable). Fuera de `N-180`, firmware: `SET_TIEMPOS:259,3,10` entra como 3 por el `(uint8_t)` de `bluetooth.cpp` y
-el simulador da RANGO.
+inyectable; o la doble arrancada de `app.js` en jsdom, corregida en `montarAppLimpia` el 16/10). Del recorrido en el
+telefono a 320 px CSS (16/10): la franja SIMULADO tapa la cabecera del modal de equipos; «emparejado» se sale de la
+tarjeta; «(radio N %)» queda debajo del boton 🛡️; «MANDOS DE CAMPO» cortado; `.card-sub` sin regla en `style.css`
+(texto a 18 px, letra de titulo). Fuera de `N-180`, firmware: `SET_TIEMPOS:259,3,10` entra como 3 por el
+`(uint8_t)` de `bluetooth.cpp` y el simulador da RANGO.
 
 **Antes (05/10, el funcional espera en banco): `N-176` ROJO+AMARILLO antes del verde (`D-53`).** Coste medido
 sobre `a5db18e`: ~28 ficheros (firmware ~10, app 4, arneses 4, packs/modelos 5, SPEC 5). Riesgos que se revisan

@@ -989,7 +989,10 @@ simulado (`ROADMAP_APP.md` 3): no se toca el reparto de `style.css` (N-75, §4.t
 <= 400 px. Lo que si se acota, y se puede medir en jsdom: `#rssi-text` nunca pasa de 16 caracteres, para que quepa
 junto a «MAESTRO (POSTE 1)» (17) con la fuente mono de reserva, sin red. «(sin radio entre postes)» (24) pasa a
 «(sin radio)»; «(radio N %)», «(enlazado)» y «(sin enlace)» se quedan. Vocabulario fijo: «sin enlace» = el telefono
-no oye al poste; «sin radio» = los postes no se oyen entre si (§6).
+no oye al poste; «sin radio» = los postes no se oyen entre si (§6). «Enlace perdido» solo se deduce sobre un enlace
+ABIERTO: desconectar a proposito o cambiar de poste apaga la telemetria viva y el reloj del ultimo `$STATUS`, asi que
+no sale la alarma, no se anota CAIDA y el vigilante no corta el enlace nuevo (`desconectarEquipo()`; medido 16/10 en el
+telefono: alarma a los 3,5 s de desconectar, y el enlace con el Poste 2 cortado a 1 s de abrirlo).
 
 **(e) Un solo aviso al cambiar el verde con el Degradado en marcha (`D-81`), SIN retirar la barrera.** Hoy son dos:
 `Testigo._pulsar()` abre `Dialogo.confirmar(...)` («Paletero puesto: enviar», un toque) y despues, al enviar,

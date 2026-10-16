@@ -659,15 +659,15 @@ assert(!pinModal.classList.contains('active'),
 // se cobro quitandole capacidad de detectar a otra prueba.
 //
 // ESTE BLOQUE MONTA UNA APP NUEVA, Y ESA NECESIDAD ES EL SEGUNDO HALLAZGO. La sesion
-// de arriba ya tiene el PIN verificado y NO HAY FORMA DE VOLVER ATRAS: pinVerificado
-// se pone a true en una sola linea y no se apaga en ninguna -ni al cerrar el teclado,
-// ni al cambiar de punta, ni al caerse el enlace, ni con el tiempo-. Para medir una
-// sesion sin autorizar hace falta un navegador nuevo, que en la calle significa cerrar
-// la app. Cuanto tiene que durar esa autorizacion lo decide el responsable; lo que el
-// arnes deja escrito es que hoy dura lo que dure el proceso.
+// de arriba ya tiene el PIN verificado y NO HAY FORMA DE VOLVER ATRAS: pinVerificado se pone a true en una sola linea y
+// no se apaga en ninguna -ni al cerrar el teclado, ni al cambiar de punta, ni al caerse el enlace, ni con el tiempo-.
+// Para medir una sesion sin autorizar hace falta un navegador nuevo, que en la calle significa cerrar la app. Cuanto
+// tiene que durar esa autorizacion lo decide el responsable; lo que el arnes deja escrito es que hoy dura lo que dure
+// el proceso.
 function montarAppLimpia(precarga) {   // precarga: claves de localStorage que ya estaban al abrir la app
   const dom2 = new JSDOM(htmlContent, { runScripts: 'dangerously', resources: 'usable', url: 'http://localhost/' });
-  const w = dom2.window;
+  // Una sola app por ventana (16/10): el DOMContentLoaded real de jsdom (isTrusted, ~200 ms tarde) la arrancaba otra vez.
+  const w = dom2.window; w.addEventListener('DOMContentLoaded', e => e.isTrusted && e.stopImmediatePropagation(), true);
   const almacen = {};
   w.localStorage = {
     getItem: (k) => almacen[k] || null,
@@ -2132,7 +2132,7 @@ assert(/ESCRITA SIN ENLACE/.test(diarioMudo),
 sinE.w.Date.now = relojReal;
 
 // APP-1 y cinta sin enlace: tests/dom_usabilidad.js; exportar en la APK: tests/dom_exportar.js.
-require('./tests/dom_usabilidad.js')(montarAppLimpia, assert).then(() => require('./tests/dom_exportar.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_version.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_acuse_con_argumentos.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_deg_auto.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_aviso_degradado.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_aviso_corte.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_aviso_radio_deg.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_deg_fin.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_textos_spec4.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_rojo_amar.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_deg_eleccion.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_cabecera_fase.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_dialogos.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_claves.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_registro_sesion.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_grupos.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_simulador.js')(montarAppLimpia, assert))
+require('./tests/dom_usabilidad.js')(montarAppLimpia, assert).then(() => require('./tests/dom_exportar.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_version.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_acuse_con_argumentos.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_deg_auto.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_aviso_degradado.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_aviso_corte.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_aviso_radio_deg.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_deg_fin.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_textos_spec4.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_rojo_amar.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_deg_eleccion.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_cabecera_fase.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_dialogos.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_claves.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_registro_sesion.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_grupos.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_simulador.js')(montarAppLimpia, assert)).then(() => require('./tests/dom_enlace_voluntario.js')(montarAppLimpia, assert))
   .catch(e => assert(false, 'pruebaExportarApk lanzo: ' + e)).then(() => {
     console.log('='.repeat(80));
     console.log(` RESULTADO JSDOM: ${testsPassed} PASS | ${testsFailed} FALLAS`);
