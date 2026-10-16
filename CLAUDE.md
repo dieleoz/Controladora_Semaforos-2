@@ -1,4 +1,4 @@
-Orquestador: 53e912d · Metodo: 026dd8f
+Orquestador: 53e912d · Metodo: 62e69c3
 # CLAUDE.md — reglas permanentes del repositorio
 
 Aqui vive solo lo que sigue siendo cierto con el firmware cambiado entero, en linea imperativa y con su mecanica. Cobre

@@ -154,4 +154,4 @@ sin su visto bueno.
   numero en una SPEC; hubo que renumerar en el commit siguiente.
 - **Leccion:** al lanzar agentes que pueden abrir decisiones se les reserva un rango, o el orquestador no numera
   hasta que acaben.
-- **Destino:** SUBE (vale para todo proyecto con indice de decisiones y agentes en paralelo).
+- **Destino:** SUBIDA al metodo 0.1.13 (`62e69c3`), regla de «dos subagentes».
