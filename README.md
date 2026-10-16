@@ -94,7 +94,7 @@ entonces cada lector deriva su propia versión.
 > tabla. Mismo cobre, distinto `pinMode`, distinta tensión. Ver `05_Funcional/historico/DECISIONES_hist.md`, cerradas.)*
 
 **Verificación actual** — cifras **copiadas del acta**
-[`evidencia/2026-10-15_compuerta.txt`](evidencia/2026-10-15_compuerta.txt), que genera
+[`evidencia/2026-10-16_compuerta.txt`](evidencia/2026-10-16_compuerta.txt), que genera
 `python 01_Firmware/compuerta.py` en una sola corrida. No se escriben a mano — y desde **N-62**
 eso ya no es una promesa: el pack `documentos_01_cifras_del_acta` compara esta tabla contra la
 última acta en cada corrida del banco. Cuando se escribió por primera vez, **falló**: esta tabla
@@ -104,16 +104,16 @@ publicaba 32 rutas y 86,4 % de flash cuando el acta que ella misma citaba medía
 | Comprobación | Estado | |
 |---|---|---|
 | guarda de rutas de los instrumentos | ✅ | 64 rutas parseadas, todas existen |
-| banco por packs *(70 packs)* | 🔴 **FALLA** | **1480/1485 comprobaciones en 70 packs** — 69 PASS, **1 FALLA**. `decisiones_01_anclas` acusa a **`D-22`** (necesita una tarjeta delante) y a **`D-94`..`D-97`** (decididas por Fable el 14/10, sin construir); no se decora (`CLAUDE.md` §1) |
+| banco por packs *(70 packs)* | 🔴 **FALLA** | **1492/1497 comprobaciones en 70 packs** — 69 PASS, **1 FALLA**. `decisiones_01_anclas` acusa a **`D-22`** (necesita una tarjeta delante) y a **`D-94`..`D-97`** (decididas por Fable el 14/10, sin construir); no se decora (`CLAUDE.md` §1) |
 | compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **78.8 %** · 65.3 % · 20.6 % · 35.8 % — *el Maestro ocupa **50012 de 63488 B** (las dos ultimas paginas quedan para las franjas de noche, `D-108`, y el testigo de `D-35`); el Esclavo, **41468 B**. Bajo al quitar la libreria RTC (`N-172`) y subio con la salida programada (`D-52`) y el verde del testigo (`D-59`)* |
 | simulador funcional | ✅ | 9/9 — eran 20, y 11 de aquellas no medían nada: se retiraron una a una con su evidencia |
 | simulador de repetidor | ✅ | 10/10 |
 | compila ESP32 | ✅ | 35.8 % — 1126409 de 3.145.728 B |
 | simulador del puente ESP32 | ✅ | **159/159** — las tres puntas: `bluetooth.cpp` compilado, la app en jsdom, y solo el ESP32 modelado |
 | simulador de app y bluetooth | ✅ | **12/12** — estuvo en `ABORTADO` unas horas el 05/09: **N-149** le añadió el campo `ESC` al `$STATUS` y el instrumento no supo con qué compararlo. Se enseñó a leerlo el mismo día. Queda escrito porque **mientras duró, todo lo que vigilaba entró sin mirar** (`CLAUDE.md` §1) |
-| **app ejecutada en DOM** | ✅ | **766/766** — carga `index.html` en jsdom, más `app.js` y **los `js/*.js` que el propio HTML declara, en su orden**, y los **ejercita**: pestañas, modales, ingesta de telemetría, *fuzzing* de 200 tramas corruptas y los botones que mandan comandos. Es el único instrumento que **ejecuta** la app en vez de leerla |
+| **app ejecutada en DOM** | ✅ | **802/802** — carga `index.html` en jsdom, más `app.js` y **los `js/*.js` que el propio HTML declara, en su orden**, y los **ejercita**: pestañas, modales, ingesta de telemetría, *fuzzing* de 200 tramas corruptas y los botones que mandan comandos. Es el único instrumento que **ejecuta** la app en vez de leerla |
 | test funcional de la app | ✅ | **70/70** — decía «22/22» a mano y ejecuta 34; su prueba de Courier RTC era una tautología |
-| test unitarios TDD de la app | ✅ | **91/91** — la **segunda** suite unitaria, que hasta el 01/09 **no estaba en la compuerta**: 23 pruebas verdes que no medían nada. *(Esta fila publicó `55/55` hasta el 07/09: era la cifra del 02/09, y `documentos_01` **no la vigila** — no está en su tupla `CIFRAS`.)* |
+| test unitarios TDD de la app | ✅ | **87/87** — la **segunda** suite unitaria, que hasta el 01/09 **no estaba en la compuerta**: 23 pruebas verdes que no medían nada. *(Esta fila publicó `55/55` hasta el 07/09: era la cifra del 02/09, y `documentos_01` **no la vigila** — no está en su tupla `CIFRAS`.)* |
 | test unitarios de la app | ✅ | **67/67** — seis suites que no cargan el navegador: NMEA y *checksums*, generador de comandos y barrera de PIN, validación de `SET_TIEMPOS`, Courier RTC, gestor de cruces y escala de 20 cruces |
 | arnés del ciclo | ✅ | **78/78** — corre sobre el `ciclo_degradado.h` real compilado, sin espejo en Python |
 | arnés del respaldo | ✅ | compila el `calcularSuma()` real; identidad de `respaldo.cpp` entre puntas + prueba de vida |

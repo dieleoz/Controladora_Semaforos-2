@@ -5,21 +5,22 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 
 ## Por donde se retoma, en este orden
 
-1. **Mandar a Marco `Paquete_Semaforos_2026-10-16_ad74390_SIN_BANCO.zip`** (`entregas/`, sha256 `c68f11f0...`):
-   `N-179` (modo noche, cabecera de MENU, sello con cero) sobre `N-178`; sello `FW:ad74390` medido en los `.bin`;
-   APK `a8214ed5...` instalada y arrancada en el telefono del responsable; hoja del 16/10, 41 casos. APK primero,
-   despues firmware en los DOS postes y los DOS puentes (`D-102`). Acta convergida sobre `1b67107` (solo `D-22`
-   y `D-94`..`D-97`). Si `5288c3d` (15/10) no salio, este lo sustituye; si salio, este va despues.
-2. **Cuando vuelvan sus cintas** (`N-177` V10): leerlas enteras y contando (`CLAUDE.md` §7), un `IOTVIAL_*` de CADA
-   poste; si la hoja pasa, se quita `SIN_BANCO`. Si el responsable tiene el PDF de la hoja del 04/10, los casos 16-24
-   que ya se hicieron salen de la hoja.
-3. **A campo (El Sisga) va el firmware que salga de este banco** (responsable, 06/10), solo tras el banco de Marco
-   (`CLAUDE.md` §0.2). Pendiente: C3 `Validacion_LCD`; C4 el grafo; `N-175`. El Degradado automatico se queda.
-4. **`N-178` comiteado, sin banco**: M1-M13 y ronda 2, `D-60`..`D-102`
-   (lo abierto lo decidio Fable). Acta `2026-10-15` convergida, 1 FALLA: `D-22` y `D-94`..`D-97` sin construir (M12,
-   solo SPEC): piden placa, como `D-22`. Arquitecto y QA: condiciones cerradas. Parches en el scratchpad
-   `n178`/`n178r2`. La hoja del proximo paquete dice «APK primero, luego firmware» (`D-102`). **Sin explicar:** los
-   contadores de radio del 06/10 de 1789 a 91 (`evidencia/061020261110`).
+1. **Cerrar el paquete de `N-180`** (grupos via -> grupo -> pareja por MAC y simulador con estado, `D-117`..`D-126`;
+   app en `ac844b9`, sin firmware: `D-118`). Falta, en orden: converger la compuerta (acta `2026-10-16`, se espera
+   solo `D-22` y `D-94`..`D-97`); compilar la APK (`.claude/particularidades/entregar.md` §3) y poner su huella en
+   `Pruebas_Funcional_2026-10-16.html`, que ya trae los casos 42-45 SIN comitear (lleva la huella vieja
+   `a8214ed5...`); `.bin` con sello por `strings`; recorrer el menu en practica en el telefono del responsable a
+   360 px (`D-125`); empaquetar con `herramientas/entrega/empaquetar_funcional.py`. Abierto, no bloquea: version
+   siguiente de N-180 en `roadmap.md` (mutantes S3 y S4 de QA, `SET_TIEMPOS:259` aceptado por el `(uint8_t)`).
+2. **Mandar a Marco** el paquete de `N-180`; sustituye a `ad74390` (16/10, `c68f11f0...`) si ese no salio. APK
+   primero, despues firmware en los DOS postes y los DOS puentes (`D-102`).
+3. **Radio con varios grupos (`D-124`, responsable):** un canal por pareja que no usa ningun otro grupo, prueba de
+   puesta en marcha apagando cada punta (SPEC_6 B.3). El filtro de pareja en la trama queda como mejora: riesgo
+   abierto. Falta el acta de banco con dos parejas (mismo canal, contiguos, separados) y cuantos canales caben en la
+   banda de la antena (170/172 MHz).
+4. **Cuando vuelvan sus cintas** (`N-177` V10): leerlas enteras y contando (`CLAUDE.md` §7), un `IOTVIAL_*` de CADA
+   poste; si la hoja pasa, se quita `SIN_BANCO`. **A campo (El Sisga)** va lo que salga de ese banco; pendiente C3
+   `Validacion_LCD`, C4 el grafo, `N-175`. **Sin explicar:** contadores de radio del 06/10 (`evidencia/061020261110`).
 
 ## Frentes abiertos (tres como maximo)
 
@@ -39,15 +40,15 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 
 ## Verificacion en escritorio
 
-Cifras copiadas del acta [`evidencia/2026-10-15_compuerta.txt`](evidencia/2026-10-15_compuerta.txt), que dice en su
+Cifras copiadas del acta [`evidencia/2026-10-16_compuerta.txt`](evidencia/2026-10-16_compuerta.txt), que dice en su
 cabecera con que HEAD y que arbol se midio; las comprueba `documentos_01` en cada corrida.
 
 | | |
 |---|---|
 | Flash | Maestro **78.8 %** · Esclavo **65.3 %** · Repetidor **20.6 %** · ESP32 **35.8 %** |
-| Banco por packs | **1480/1485 comprobaciones** en **70 packs**, 1 FALLA: `D-22` pide una tarjeta delante; `D-94`..`D-97` sin construir (`CLAUDE.md` §1) |
+| Banco por packs | **1492/1497 comprobaciones** en **70 packs**, 1 FALLA: `D-22` pide una tarjeta delante; `D-94`..`D-97` sin construir (`CLAUDE.md` §1) |
 | Arneses de C++ real | 88/88 automatico · 78/78 ciclo · 175/175 dos puntas · 158/158 Degradado a dos puntas |
-| App y puente | **766/766** jsdom · **70/70** funcional · **67/67** unitarios · 91/91 TDD · puente 159/159 |
+| App y puente | **802/802** jsdom · **70/70** funcional · **67/67** unitarios · 87/87 TDD · puente 159/159 |
 
 ## BLOQUEANTES: lo que no se cierra con teclado (roadmap §1 y §4)
 

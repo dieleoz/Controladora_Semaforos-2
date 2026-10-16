@@ -1265,7 +1265,7 @@ se corrige el simulador, nunca la cinta.
   cruces y `state.site` lo da `Grupos`), baja de `js/site_manager.js`, `index.html`, `tests/dom_grupos.js` (nuevo),
   `tests/test_unitarios.js`, `tests/dom_dialogos.js`, `test_dom_execution.js`.
 - **S (simulador):** `js/practica*.js` (las cintas salen de `index.html`, no del arbol), `index.html`,
-  `tests/dom_simulador.js` (nuevo), `tests/dom_claves.js`, `test_dom_execution.js`, el pack `app_07` (`D-122`) y el
+  `tests/dom_simulador.js`, `tests/dom_claves.js`, `test_dom_execution.js`, el pack `app_07` (`D-122`, `D-126`) y el
   comentario de `test_funcional_app.py` 2.8 («el build de campo no lleva simulador»), que se corrige hacia `D-120`.
 - **Almacen inyectable:** `Grupos.nuevo(almacen)` con `almacen = { leer(): string|null, escribir(texto) }`; la app le
   da uno sobre `localStorage` (clave `iot_vial_grupos_v1`) y la practica uno en memoria. Nada de `Grupos` toca
