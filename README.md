@@ -105,7 +105,7 @@ publicaba 32 rutas y 86,4 % de flash cuando el acta que ella misma citaba medía
 |---|---|---|
 | guarda de rutas de los instrumentos | ✅ | 64 rutas parseadas, todas existen |
 | banco por packs *(70 packs)* | 🔴 **FALLA** | **1492/1497 comprobaciones en 70 packs** — 69 PASS, **1 FALLA**. `decisiones_01_anclas` acusa a **`D-22`** (necesita una tarjeta delante) y a **`D-94`..`D-97`** (decididas por Fable el 14/10, sin construir); no se decora (`CLAUDE.md` §1) |
-| compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **78.8 %** · 65.3 % · 20.6 % · 35.8 % — *el Maestro ocupa **50012 de 63488 B** (las dos ultimas paginas quedan para las franjas de noche, `D-108`, y el testigo de `D-35`); el Esclavo, **41468 B**. Bajo al quitar la libreria RTC (`N-172`) y subio con la salida programada (`D-52`) y el verde del testigo (`D-59`)* |
+| compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **78.8 %** · 65.3 % · 20.6 % · 35.8 % — *el Maestro ocupa **50020 de 63488 B** (las dos ultimas paginas quedan para las franjas de noche, `D-108`, y el testigo de `D-35`); el Esclavo, **41468 B**. Bajo al quitar la libreria RTC (`N-172`) y subio con la salida programada (`D-52`) y el verde del testigo (`D-59`)* |
 | simulador funcional | ✅ | 9/9 — eran 20, y 11 de aquellas no medían nada: se retiraron una a una con su evidencia |
 | simulador de repetidor | ✅ | 10/10 |
 | compila ESP32 | ✅ | 35.8 % — 1126409 de 3.145.728 B |
@@ -128,20 +128,16 @@ publicaba 32 rutas y 86,4 % de flash cuando el acta que ella misma citaba medía
 > tabla **sólo caben filas con una medida detrás** — una fila sin medida se lee como medida.
 
 
-**19 PASS · 1 FALLA · 0 ABORTADO, de 19 comprobaciones — la compuerta sale con código `1`.**
+**18 PASS · 1 FALLA · 0 ABORTADO, de 19 comprobaciones — la compuerta sale con código `1`.**
 
-> 🔴 **El `1` es el hallazgo, no una regresión.** Lo acusa `decisiones_01_anclas`: **`D-14`, `D-22` y
-> `D-23` están vigentes en `DECISIONES.md` sin una línea que las construya.** `D-14` —*el controlador
-> cierra un contacto y la cámara graba*— fue **el argumento de una compra**; `D-22` es poner `Y1`, y
-> `D-23` es la pantalla propia del poste 2, **que es de la app y la app no se ha tocado**.
+> 🔴 **El `1` es el hallazgo, no una regresión.** Lo acusa `decisiones_01_anclas`: **`D-22` y `D-94`..`D-97`
+> están vigentes en `DECISIONES.md` sin una línea que las construya.** `D-22` es poner `Y1` y espera **una tarjeta
+> delante**: si `Y1` no oscila, el `_Error_Handler` es `noreturn` y la tarjeta queda a oscuras; `D-94`..`D-97` son
+> SPEC sin construir que también piden placa.
 >
-> 🛑 **Y ninguna de las tres se apaga poniéndole un ancla:** `D-23` se apaga **construyéndola**
-> —un `$EVENT` nuevo en el Esclavo y su pantalla en la app—; `D-14` espera **una decisión del
-> responsable** —qué canal de `J9`/`J11`/`J13` se gasta, para siempre—; y `D-22` espera **una
-> tarjeta delante**, porque si `Y1` no oscila el `_Error_Handler` es `noreturn` y la tarjeta queda
-> a oscuras. **El 07/09 se intentó cerrarlas poniéndoles el ancla en un comentario y la compuerta se
-> puso en `20/20` sin que se construyera nada** *(`roadmap.md` §3.10)*. Las tres anclas están
-> revertidas y el rojo volvió, que es donde tiene que estar.
+> 🛑 **Ninguna se apaga poniéndole un ancla:** se construye o se deja rojo. **El 07/09 se intentó cerrar las de
+> entonces poniéndoles el ancla en un comentario y la compuerta se puso en `20/20` sin que se construyera nada**
+> *(`roadmap.md` §3.10)*; las anclas se revirtieron y el rojo volvió, que es donde tiene que estar.
 
 > 🟢 **Y cuando vuelva a `0`, ese verde será más peligroso que el rojo, no menos.** Mientras la
 > compuerta sale con `1` nadie la confunde con un permiso; un `0` sí se confunde. Lo que dice es

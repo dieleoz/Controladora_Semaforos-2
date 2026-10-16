@@ -148,3 +148,10 @@ sin su visto bueno.
 - **Leccion:** una constante que hoy iguala a dos equipos es una barrera; antes de volverla variable, se mide su caso
   malo en un arnes que ejecute las dos puntas, y la pregunta al responsable va con un caso de campo y sus pasos.
 - **Destino:** SE QUEDA.
+
+## L-18 — Con agentes abriendo decisiones, el siguiente numero libre no es estable (15/10)
+- **Paso:** un workflow abrio `D-122` en `DECISIONES.md` mientras el orquestador comiteaba otra decision con el mismo
+  numero en una SPEC; hubo que renumerar en el commit siguiente.
+- **Leccion:** al lanzar agentes que pueden abrir decisiones se les reserva un rango, o el orquestador no numera
+  hasta que acaben.
+- **Destino:** SUBE (vale para todo proyecto con indice de decisiones y agentes en paralelo).

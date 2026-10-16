@@ -159,10 +159,10 @@ el filtro de pareja en radio (SFTY-27) espera la medida con dos parejas en banco
 
 | # | paso | fuente | estado |
 |---|---|---|---|
-| G0 | Arquitecto valida §9.14 y `D-117`..`D-121`; Fable ajusta la SPEC si pide condiciones | `D-120` | |
-| G1 | Grupos: `js/grupos.js`, lista de equipos por via y grupo, matricula por MAC, retirar `site_manager.js` | `D-117`..`D-119` | construido, sin comitear |
-| G2 | Simulador con estado y flota de 2 vias y 5 grupos mas un poste virgen; cintas como referencia | `D-120`, `D-121` | construido, sin comitear |
-| GF | Compuerta convergida, arquitecto y QA, condiciones, casos en la hoja, APK y paquete | runbook | en curso: cerrados la condicion 2 del arquitecto y D2, D3, D5 de QA; casos 42-45 en la hoja; `--rapido` con el banco en FALLA (`app_07`, `decisiones_01_anclas`), sin acta; faltan compuerta completa, APK y paquete |
+| G0 | Arquitecto valida §9.14 y `D-117`..`D-121`; Fable ajusta la SPEC si pide condiciones | `D-120` | hecho: NO APTO con 5 condiciones, cerradas en §9.14 |
+| G1 | Grupos: `js/grupos.js`, lista de equipos por via y grupo, matricula por MAC, retirar `site_manager.js` | `D-117`..`D-119` | hecho, `ac844b9` |
+| G2 | Simulador con estado y flota de 2 vias y 5 grupos mas un poste virgen; cintas como referencia | `D-120`, `D-121` | hecho, `ac844b9` |
+| GF | Compuerta convergida, arquitecto y QA, condiciones, casos en la hoja, APK y paquete | runbook | en curso: condiciones de arquitecto y QA cerradas (`D-122`, `D-126`); acta `2026-10-16` convergida (solo `D-22`, `D-94`..`D-97`); casos 42-45 en la hoja sin comitear; faltan APK, telefono y paquete |
 | G-RF | Dos parejas en banco: mismo canal y canales distintos; acta `_campo_dos_parejas` | SPEC_6 B.1 (4) | sin teclado |
 
 Version siguiente de `N-180` (revision del 15/10, no bloquea; no se hace ahora): MAC en minusculas cuenta como otro

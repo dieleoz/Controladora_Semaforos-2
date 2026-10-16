@@ -3212,3 +3212,17 @@ es lo mismo que "3.7 existe".
   firmware de `e831249`); el de `e831249` a RETIRADOS.
 - **Lo que se concluyo mal (tarde):** que la app podia deducir el testigo por las horas del `$EVENT`; que el Esclavo
   avisaba con alarma al rendirse (es muda); que un revisor sin informe habia perdido el trabajo (estaba en otra rama).
+
+## 13. Sesion del 15-16/10/2026: N-179 entregado, N-180 grupos por MAC y simulador con estado, canal por grupo
+
+- **N-179** (modo noche, cabecera de MENU, sello con cero) construido, convergido en `ad74390` y empaquetado
+  (`c68f11f0...`); APK probada en el telefono del responsable (propuesta del todo-rojo por distancia, `D-116`).
+- **N-180:** SPEC primero (`9b4a36f`, `D-117`..`D-121`), arquitecto NO APTO para construir con cinco condiciones que
+  Fable cerro en SPEC_4 §9.14; grupos via -> grupo -> pareja por MAC (`js/grupos.js`, sustituye a `site_manager.js`)
+  y simulador con estado (`js/simulador.js`, flota de 2 vias y 5 grupos). Arquitecto y QA NO APTO por `app_07` en
+  rojo y la cabecera arrastrada; cerrado con `D-122`, `D-126` y prueba en rojo. Commit `ac844b9`; acta convergida
+  `75cc89a` (1492/1497, DOM 802/802). Sin firmware (`D-118`).
+- **Radio con varios grupos:** medido que una trama ajena en el mismo canal pone verde a un Esclavo y tapa su orfandad.
+  El responsable decidio canal por pareja con prueba de puesta en marcha (`D-124`) y el filtro de pareja a mejoras.
+- **Lo que se concluyo mal:** numere `D-122` a mano mientras el decisor del workflow abria el mismo numero (renumerado
+  a `D-124`); y escribi una superficie «hoja de montaje» que el indice no admite (ABORTADO de `decisiones_01`).
