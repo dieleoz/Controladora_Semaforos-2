@@ -110,10 +110,16 @@ prometia rojo y hacia ambar con la talanquera arriba. Lo rechaza **nombrando el 
 | `CONSULTA_DEG_FIN` | no (es una consulta) | Construido el 04/10, sin banco. `RESULT:NINGUNA` o `RESULT:SALE_HHMMSS_FALTAN_<s>S_<RESPALDADA/SIN_RESPALDO>` (`_SIN_RESPALDO` tambien tras `FORZAR_ROJO` o hora perdida). Molde `CONSULTA_DEG_AUTO`; el contador no cabe en `$STATUS` (SPEC 2 §7.quater (c)). Igual en el Esclavo |
 | `MANUAL:CAMBIAR_TURNO` | si | **tres, y el ORDEN importa** (`N-151`): `$ERR ... MODO_SIN_CICLO_SALGA_PRIMERO` si `modoMueveElCoordinador()` es falso; si no, `RESULT:OK` cuando `pedirCambioVerificado()` devuelve true, y `$ERR ... EN_TRANSICION_REINTENTE` cuando no |
 | `TEST_LEDS` | si | Solo fuera de servicio (`N-82.bis`): `testLedsAdmitido()` exige modo `MENU` o `ALCANCE`, luz en `S_ROJO` y `ACK_RED` del Esclavo (`coordinador_rojoEsclavoConfirmado()`). `RESULT:STARTING_6S` si quedo armado; `$ERR` `SIN_ENLACE_AMBAR_NO_SE_PRUEBA` en `S_FALLO`, `ESPERANDO_ROJO_DEL_ESCLAVO` sin acuse, `EN_SERVICIO_PASE_A_MENU` en el resto |
-| `SET_TIEMPOS:v,r,d` | si | **EL MOLDE. Cuatro respuestas, una por motivo:** `$ERR ... FORMATO_INVALIDO` si el `sscanf` con el `%c` centinela no convierte 3 exactos —dos ordenes pegadas convierten 4—; `$ERR ... EN_MARCHA_PARE_EL_MODO` si `modoAutomatico_enMarcha()`; `$ERR ... RANGO` si `modoAutomatico_fijarTiempos()` devuelve false; `RESULT:OK` **solo** si devolvio true; la app, en DEGRADADO, dice solo «guardados» y que sigue en Degradado (con rojo fijo no da verdes) |
+| `SET_TIEMPOS:v,r,d` | si | **EL MOLDE. Cuatro respuestas, una por motivo:** `$ERR ... FORMATO_INVALIDO` si el `sscanf` con el `%c` centinela no convierte 3 exactos —dos ordenes pegadas convierten 4—; `$ERR ... EN_MARCHA_PARE_EL_MODO` si `modoAutomatico_enMarcha()`; `$ERR ... RANGO` si `modoAutomatico_fijarTiempos()` devuelve false; `RESULT:OK` **solo** si devolvio true; la app, en DEGRADADO, dice solo «guardados» y que sigue en Degradado (con rojo fijo no da verdes); rango, bajo la tabla (`D-131`) |
 | `REINICIAR_RELOJ` | si | **cuatro, y el `$ACK` NO sale en la rama** (1.49 (a), `622a20b`). ~~depende del bool de `reloj_reiniciarDominioRespaldo()`: `RESULT:CRISTAL_OK_PONGA_LA_HORA` o ...~~ → el bool solo decide si hay algo que verificar. `$ERR ... REPITA_EN_UNOS_SEGUNDOS` si ya hay una orden esperando veredicto —sin tocar nada: reiniciar otra vez abriria otra ventana y dejaria dos ordenes para un veredicto—; `$ERR ... SIGUE_PARADO_VEA_CONSULTA_RELOJ` si el oscilador no arranca, con el `$EVENT` `ORIGEN:RELOJ` de `reportarBitsDelReloj()`; y si arranca, **no contesta todavia**: publica `$EVENT ... ORIGEN:APP_BLUETOOTH, DETALLE:RELOJ_REINICIADO_VERIFICANDO` y deja la orden pendiente. **El veredicto sale despues, una sola vez**, desde `bluetooth_loop()` cuando `reloj_estadoCristal()` deja de decir VIGILANDO: `RESULT:CRISTAL_OK_PONGA_LA_HORA` **solo** con CUENTA, o `$ERR ... ARRANCA_Y_NO_CUENTA_VEA_CONSULTA_RELOJ` con CONGELADO, otra vez con los bits. **Llega unos segundos despues de pulsar**: el plazo es la ventana de vigilancia del cristal y no se copia aqui. La app traduce los tres `DESC` |
 | `DEMANDA` | si | **tres**: `$ERR ... SOLO_EN_MODO_INTELIGENTE` fuera del modo —registrar una peticion que ningun ciclo va a mirar es fingirla—; `RESULT:REGISTRADA` si `demanda_solicitar()` devuelve true; `$ERR ... REPITA_EN_UNOS_SEGUNDOS` si devuelve false |
 | `REINICIOS` | no (es una consulta) | `D-60`, §9.4 (construido, sin banco): `RESULT:OK` con `REIN`, `CAUSA`, `UP` y `ANTES` |
+
+**Rango de `SET_TIEMPOS` (`D-131`; HUECO hasta `N-181` D).** Verde y rojo 3..15 min, despeje 10..90 s, con una sola
+copia en `limites_ciclo.h` (`VERDE_MIN_MIN/MAX`, `ROJO_MIN_MIN/MAX`, `DESPEJE_SEG_MIN/MAX`). Se juzga el numero que
+llego, sin truncar: `SET_TIEMPOS:259,3,10` y `-253,3,10` son `$ERR ... RANGO`, no 3 (hoy el `(uint8_t)` del
+despachador los acepta como 3). Por defecto `modoAutomatico_fijarTiempos()` recibe `int` y el despachador sigue sin
+rangos propios; los tres `$ERR` siguen siendo uno por motivo y no nace ningun `DESC:` nuevo.
 
 ### 3.2 Esclavo (poste 2) — `Esclavo/src/bluetooth.cpp`, `procesarComando()`
 
@@ -261,6 +267,11 @@ funcional: lo intento sin radio y no entendio el rechazo `SIN_ENLACE_CON_EL_OTRO
   60 s sin `MODO:DEGRADADO` ni `AUTO_ENTRADA_INICIO` (cubre el ECO, que la app no ve): «No entraron solos: quedan en
   AMBAR. Hay que ir con el testigo», con boton al testigo.
 - Mientras espera el `$ACK` diferido (hasta `DEG_AUTO_ACUSE_MS`) queda «esperando al otro poste», no el valor pedido.
+- **La espera es de la conexion que envio la orden (`D-130`, HUECO hasta `N-181` B).** Al caer el enlace o enlazar
+  otra MAC se cancela sin pintar «no contesto» en la sesion nueva; queda en el registro «SET_DEG_AUTO:<v> enviada a
+  <MAC>: sin acuse en esa conexion, mire la consulta». Un `$ACK` de `SET_DEG_AUTO` que llega sin espera en ESTA
+  conexion se pinta como lo que dice el equipo, no como respuesta a un boton, y dispara `CONSULTA_DEG_AUTO`. Hoy
+  `_espera` sobrevive al cambio de enlace y `DegAuto.alStatus()` solo limpia con otro `NODE:`.
 
 **Eventos y alarmas que traduce, a texto de operario:**
 - `DEGRADADO` / `AUTO_ENTRADA_INICIO_HH:MM:SS` — «Sin radio 5 min: modo degradado automatico, rojo hasta HH:MM».
@@ -1227,12 +1238,18 @@ inventados de fabrica) y solo da el rotulo `state.site`, que nombra los ficheros
 **(a) Modelo.** Via → grupos (nombre, PR) → dos huecos, `MAESTRO` y `ESCLAVO`, cada uno {MAC, serie, FW, fecha}. La
 identidad es la MAC (`address` de `bt.list()`); serie y punta salen de `SERIE:`/`NODE:` y el FW del `$ACK` de `VERSION`:
 nada de eso se teclea, solo via, grupo y PR. Un grupo con un solo poste vale; una MAC esta en un grupo como mucho.
+Via, nombre y PR se recortan a 32 caracteres (`MAX_NOMBRE` de `js/grupos.js`), tambien en la migracion de (e); el PR
+puede quedar vacio (`D-127`; hoy el PR no tiene tope).
 El FW del hueco es el campo `FW:` de la respuesta a `VERSION`, tambien la de `$ERR,...,DESC:SIN_SELLAR` (se guarda
 tal cual); sin respuesta, «sin leer», y ese hueco no entra en el aviso de FW de (c). Un transporte que solo da `id` y
 no `address` (Web Bluetooth, Web Serial) no matricula (`D-123`): el poste sale «SIN GRUPO» y la ficha dice por que.
 **(b) Matricular** (`D-118`; clave de administracion, §9.2, que lo muestra por `D-123`; sin PIN: no envia nada).
 Enlazado y leido el primer `$STATUS`, la app ofrece los grupos con ese hueco libre o «Grupo nuevo»; un hueco ocupado
 por otra MAC no se pisa («Quitar del grupo» primero, que deja el hueco libre); mover una MAC de grupo pide confirmar.
+Tambien piden confirmar, con `Dialogo.confirmar` y el mismo molde (`D-128`; hoy ninguno de los dos pregunta):
+«Quitar del grupo», «¿Quitar <PUNTA> <serie> de <via> · <grupo>? El hueco queda libre; no se envia nada al equipo»,
+y el cambio de hueco dentro del mismo grupo (la MAC matriculada en una punta se matricula en la otra porque su
+`NODE:` cambio), que nombra las dos puntas. Cancelar deja el almacen igual byte a byte.
 Al enlazar un poste matriculado, `state.site` pasa a `<via> · <grupo>`; sin matricular, «SIN GRUPO». El grupo es el
 control del operador, no la radio: que los dos postes se hablen lo fija el canal (SPEC 6 B.2) y la app no lo ve; lo
 dice la ficha del grupo.
@@ -1240,6 +1257,9 @@ dice la ficha del grupo.
 sobrescribe sin matricular otra vez); `NODE:` distinto del hueco (rojo, la matricula no cambia); FW distinto entre
 los dos postes del grupo (ambar, con los dos sellos: `D-102`); y una serie ya matriculada que llega por otra MAC
 (ambar, «¿modulo Bluetooth cambiado?», `D-123`): la MAC nueva queda «Sin grupo» hasta matricularla.
+Cada aviso sale una vez por CONEXION (`D-129`): la cuenta se vacia en cada enlace nuevo, tambien al reenlazar la
+misma MAC tras soltarla, y dentro del enlace un texto ya dado no se repite. Hoy la cuenta solo se vacia al cambiar
+de MAC, y quien suelta y reenlaza el mismo poste no vuelve a ver el aviso rojo.
 **(d) Lista de equipos** agrupada por via y grupo, con sus filas `-M`/`-E` (las no vistas en gris); al final «Sin
 grupo» con las MAC vistas sin matricular y el aviso de `N-129`. La busqueda filtra por via, grupo o serie.
 **(e) Sustituye a `site_manager.js` (`D-119`):** modulo en `js/` (molde §9.12). Migracion, una vez: un cruce de
@@ -1279,7 +1299,9 @@ se corrige el simulador, nunca la cinta.
 **Pruebas, vistas en rojo antes de construir, cada una con su nombre:** `tests/dom_grupos.js`: matricular sin
 teclear serie, sin la clave no se ofrece y no envia ninguna trama; hueco ocupado no se pisa; una MAC en un solo
 grupo; mover pide confirmar; Quitar libera el hueco; los cuatro avisos de (c); transporte sin `address` no
-matricula; `state.site` es `<via> · <grupo>` o «SIN GRUPO»; la ficha dice que la radio no la ve; lista agrupada,
+matricula; PR de 40 caracteres guardado en 32 (`D-127`); Quitar y cambio de hueco cancelados dejan el almacen
+igual (`D-128`); soltar y reenlazar la misma MAC repite el aviso rojo de `NODE:` (`D-129`); `state.site` es
+`<via> · <grupo>` o «SIN GRUPO»; la ficha dice que la radio no la ve; lista agrupada,
 filas no vistas en gris y busqueda; migracion con un cruce de fabrica, uno renombrado y uno nuevo.
 `tests/dom_simulador.js`: el menu entero por los botones, reloj inyectado (360 px: telefono, `D-125`); cabezas
 contra el C++ en los dos sentidos (rojo inyectando un `DESC:` que el C++ no tiene); cada constante con origen
