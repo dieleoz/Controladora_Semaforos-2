@@ -179,10 +179,25 @@ Lo ya definido no se pregunta (SPEC_4 §9.14 (c): un `NODE:` distinto da aviso r
 | C | worktree | `style.css`, `index.html` y sus copias de `www/` | 320 px: franja sobre el modal, «emparejado», «(radio N %)», «MANDOS DE CAMPO», `.card-sub`, buscador; rotulo «Equipos de cintas» | |
 | D | worktree | `bluetooth.cpp` de Maestro y Esclavo, arnes de `SET_TIEMPOS` | `SET_TIEMPOS:259` rechazado con `$ERR` antes del `(uint8_t)`; mutantes vivos `SET_TIEMPOS` sin rango y `parar()` vacio | |
 | E | worktree | `tests/dom_claves.js` | reloj inyectable en «Practica» (4) | |
+| U | tras integrar A-E | ver bloque U debajo | Simplificar la app, en el mismo paquete | |
 | X | worktree, tras D | SPEC_8 §6, `respaldo.cpp`, despachador, app | `D-94`..`D-97`: arquitecto ANTES (§11.7), en cadena tras D (comparten despachador) | SI del responsable, 27/10 |
 | F | orquestador | arbol principal | integrar por el diff; compuerta completa hasta dos pasadas iguales; cifras a ESTADO | |
 | Q | 2 agentes a la vez | solo lectura | arquitecto (opus) y QA una vez sobre la candidata; condiciones por SPEC -> rojo -> codigo | |
 | P | orquestador | `entregas/`, telefono | APK y CRC; telefono CDP 9333 a 320 px; `.bin` con sello limpio; hoja con lo nuevo y lo que mide Marco (`D-22`, `D-124`, pila de `D-94`..`D-97`); UN paquete; `0fe782f` a `RETIRADOS/` | |
+
+**Bloque U (27/10, orden del responsable: «no es usable, tantas funciones que no se entienden»).** Va despues de
+integrar A-E (toca los mismos ficheros que B y C) y antes de Q, que revisa una sola vez todo. Lo de Pasos Peatonales
+(su sesion, 27/10): ocultar tras la clave NO basto alli (queja de Marco abierta en su V6); la regla es «antes de un
+texto, aviso o modo: ¿lo necesita para operar? Si no, plegado o fuera». Ya decidido aqui y sin construir: dos zonas y
+`JERGA` (`D-80`, `D-83`, SPEC_4 §9.9). Numeros reservados: `D-141`..`D-147`.
+
+| # | quien | ficheros (solo esos) | que | estado |
+|---|---|---|---|---|
+| U-S | 1 agente, arbol principal | SPEC_4 §9.9 y §9.2, `DECISIONES.md` | Inventario de lo visible hoy en cada pantalla sin clave; por cada elemento: queda, plegado (`<details>`), tras la clave (`D-56`) o fuera, con el criterio de arriba. Principal sin scroll a 360x640 y sin scroll lateral a 320; un nombre llano y una frase de ayuda por ajuste; la franja: sintoma y que hacer en una frase; `SIN_PAREJA` ofrece emparejar ahi mismo; rotulos «Operario»/«Tecnico» | |
+| U-B | 1 agente, arbol principal, tras U-S | `app.js`, `index.html`, `style.css` y sus copias de `www/` (md5 iguales), `tests/dom_usabilidad.js` | Construir U-S: prueba en rojo primero (lo visible sin clave y con ella, `JERGA`, cuenta de botones y palabras de la principal contra la cifra de U-S) | |
+
+Lo que no mide jsdom (scroll, toques de 48 px, 320 px) lo mide P en el telefono por CDP. Tiempo: U-S 45 min, U-B
+1,5-2 h.
 
 Cada constructor: prueba vista en rojo antes del codigo, duda del encargo, no comitea. Dos correcciones fallidas en un
 punto: se revierte ese punto y sigue el resto (`CLAUDE.md` §11). Tiempo estimado: S 45 min; A-E en paralelo 2-2,5 h;

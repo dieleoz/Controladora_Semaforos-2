@@ -13,12 +13,12 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
    diferido entre sesiones, PR sin tope, avisos por MAC al reenlazar, `anotarFw`, `preguntarNuevo`, mutantes de QA
    `SET_TIEMPOS` sin rango y `parar()` vacio, reloj inyectable en `dom_claves.js` «Practica» (4)); (b) la maquetacion
    medida a 320 px CSS en su telefono (franja sobre el modal, «emparejado», «(radio N %)» bajo 🛡️, «MANDOS DE CAMPO»,
-   `.card-sub` sin regla, buscador cortado); (c) firmware `SET_TIEMPOS:259` aceptado como 3 por el `(uint8_t)`.
-   Despues: compuerta completa, QA una vez, APK, `.bin` con sello, telefono (CDP 9333 + capturas) y UN paquete.
+   `.card-sub` sin regla, buscador cortado); (c) firmware `SET_TIEMPOS:259` aceptado como 3 por el `(uint8_t)`;
+   (d) simplificar la app (27/10, bloque U de `N-181`). Despues: compuerta completa, arquitecto y QA una vez, APK,
+   `.bin` con sello, telefono (CDP 9333 + capturas) y UN paquete.
 2. **Lo que no cierra el teclado va en la MISMA visita de Marco, pedido en la hoja de ese paquete** (que mida, no
    que pruebe otra version): `D-94`..`D-97` (veto de camara y barrera fuera de servicio) piden tarjeta con barrera y
-   pila medidas; `D-22` una tarjeta delante; `D-124` el acta con dos parejas. El responsable dijo SI a
-   `D-94`..`D-97` el 27/10 (fila X de `N-181`): se construyen en la tanda; sin pila valida el equipo rechaza la orden.
+   pila medidas (SI del responsable el 27/10: se construyen en la tanda); `D-22` una tarjeta; `D-124` dos parejas.
 3. **Radio con varios grupos (`D-124`):** un canal por pareja (SPEC_6 B.3); falta el acta con dos parejas (mismo
    canal, contiguos, separados) y cuantos canales caben en 170/172 MHz. Filtro de pareja en la trama: riesgo abierto.
 4. **Cuando vuelvan sus cintas** (`N-177` V10): leerlas enteras y contando (`CLAUDE.md` §7), un `IOTVIAL_*` de CADA
