@@ -2198,4 +2198,39 @@ body:not(.admin) .solo-admin { display: none !important; }
 /* SPEC_4 9.10 (D-86): la franja de la practica sin poste, encima de modales (999) y toast (1000); magenta, fuera de D-83. */
 #franja-simulado { position: fixed; top: 0; left: 0; right: 0; z-index: 2000; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 12px; background: #c2009a; color: #fff; font: 700 12px/1.3 var(--font-mono, monospace); }
 #franja-simulado[hidden] { display: none; } #franja-simulado button { background: #fff; color: #c2009a; border: 0; border-radius: 6px; padding: 6px 12px; font-weight: 700; }
-body.simulado { padding-top: 40px; }
+body.simulado { padding-top: var(--franja-alto); }
+
+/* N-181 C: lo medido a 320 px CSS en el telefono (revision del 15/10). Se reprodujo en Chrome a 320 px
+   con fuentes anchas (Verdana / Courier New en lugar de Outfit / JetBrains Mono, que la APK no trae):
+   con las de Windows no salia. */
+/* La franja con alto fijo: los modales (999) y la cabecera sticky empiezan debajo, no bajo ella. */
+:root { --franja-alto: 48px; }
+#franja-simulado { box-sizing: border-box; height: var(--franja-alto); overflow: hidden; padding: 4px 12px; font-size: 11px; line-height: 1.2; }
+body.simulado .modal-overlay { top: var(--franja-alto); }
+body.simulado .status-bar { top: var(--franja-alto); }
+/* "emparejado" / "sin emparejar" no se parte ni se encoge: cede la columna del nombre. */
+.bt-dev-badge { white-space: nowrap; flex: 0 0 auto; }
+.bt-dev-info { min-width: 0; }
+.bt-dev-info strong, .bt-dev-info small { overflow-wrap: anywhere; }
+/* "(radio N %)" se salia de su columna y quedaba debajo de la pastilla del escudo. La columna
+   encoge y, si no cabe junto al poste, el rotulo baja a su propia linea entero (roadmap, 06/10). */
+.node-info { min-width: 0; }
+.node-role-row { flex-wrap: wrap; row-gap: 0; line-height: 1.25; }
+#node-name, .rssi-text { max-width: 100%; }
+/* "MANDOS DE CAMPO" junto a "Poste sin identificar": se estrecha la letra, no se parte el titulo
+   (partirlo baja los mandos 16 px, ver .pad-poste-sindato). */
+@media (max-width: 400px) {
+  .pad-header h3 { font-size: 12px; letter-spacing: 0; }
+}
+/* Texto de ayuda de una tarjeta: no tenia regla y salia a 16 px en blanco. */
+.card-sub { font-size: 11px; line-height: 1.4; color: var(--text-secondary); margin: 4px 0 8px; overflow-wrap: break-word; }
+/* El buscador de equipos y de grupos: no tenia regla y el texto guia se cortaba. A lo ancho de la
+   hoja; "Grupo nuevo" baja debajo si no cabe al lado. */
+.site-manager-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.site-search-input {
+  flex: 1 1 200px; min-width: 0; width: 100%; box-sizing: border-box; min-height: 44px; padding: 8px 10px;
+  font: 13px var(--font-sans); color: var(--text-primary); background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle); border-radius: var(--radius-md); margin-bottom: 10px;
+}
+.site-manager-bar .site-search-input { margin-bottom: 0; }
+.site-search-input::placeholder { color: var(--text-muted); }
