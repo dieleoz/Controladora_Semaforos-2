@@ -12,7 +12,8 @@ const Grupos = (() => {
   const SIN_VIA = 'Sin via';
   const SIN_GRUPO = 'SIN GRUPO';
   const PUNTAS = ['MAESTRO', 'ESCLAVO'];
-  // Tope de cortesia del nombre; la garantia de que la cabecera no se parte es el truncado de .site-name en el CSS.
+  // Tope de via, nombre y PR (D-127), tambien al migrar; la garantia de que la cabecera no se parte es el truncado
+  // de .site-name en el CSS.
   const MAX_NOMBRE = 32;
   // Los dos CRUCES_DEFAULT de site_manager.js, solo para reconocerlos al migrar: un cruce es de fabrica si id,
   // nombre y ubicacion son estos sin tocar (D-123). En listas y no en objetos: la app ya no trae grupos de fabrica.
@@ -25,6 +26,10 @@ const Grupos = (() => {
   // Solo una direccion con forma de MAC matricula. Web Bluetooth da un `id` opaco y el puerto serie del PC un
   // rotulo fijo (js/serial_pc.js): con eso no hay identidad del poste (D-123).
   const esMac = (m) => /^([0-9A-F]{2}:){5}[0-9A-F]{2}$/i.test(String(m || ''));
+  // Una MAC es la misma en minusculas: se guarda y se compara en mayusculas, como la da Android.
+  const deMac = (m) => String(m || '').trim().toUpperCase();
+  // Orden de via y grupo: numerico (Km 3, Km 20, Km 120), no de texto.
+  const comparar = (x, y) => String(x || '').localeCompare(String(y || ''), undefined, { numeric: true });
   const recortar = (t) => { const n = String(t || '').trim(); return n.length > MAX_NOMBRE ? n.slice(0, MAX_NOMBRE).trim() : n; };
   const otra = (p) => (p === 'MAESTRO' ? 'ESCLAVO' : 'MAESTRO');
   let seq = 0;
@@ -36,7 +41,7 @@ const Grupos = (() => {
     return cruces.filter(c => c && !DE_FABRICA.some(f => f[0] === c.id && f[1] === c.nombre && f[2] === c.ubicacion))
       .map((c, i) => ({ id: 'g-migrado-' + i, via: SIN_VIA,
                         nombre: recortar(String(c.nombre || '').replace('📍', '')) || 'Cruce sin nombre',
-                        pr: String(c.ubicacion || '').trim(), MAESTRO: null, ESCLAVO: null }));
+                        pr: recortar(c.ubicacion), MAESTRO: null, ESCLAVO: null }));
   }
 
   // Una instancia por almacen. `textoViejo`: lo que habia en CLAVE_VIEJA; solo se usa si el almacen esta vacio.
@@ -54,6 +59,8 @@ const Grupos = (() => {
       }
       try { datos = JSON.parse(t); } catch (e) { datos = null; }
       if (!datos || !Array.isArray(datos.grupos)) datos = { v: 1, grupos: [] };   // ilegible: no se pisa hasta un cambio
+      // Una entrada que no es un grupo (null, un numero) se ignora en memoria; el almacen no se toca al leer.
+      datos.grupos = datos.grupos.filter(g => g && typeof g === 'object' && !Array.isArray(g));
       return datos;
     }
     const copia = (x) => JSON.parse(JSON.stringify(x));
@@ -61,9 +68,10 @@ const Grupos = (() => {
     const rotuloDe = (g) => g.via + ' · ' + g.nombre;
 
     function dondeEsta(mac) {
-      if (!mac) return null;
+      const m = deMac(mac);
+      if (!m) return null;
       for (const g of cargar().grupos) {
-        for (const p of PUNTAS) if (g[p] && g[p].mac === mac) return { grupo: g, punta: p };
+        for (const p of PUNTAS) if (g[p] && deMac(g[p].mac) === m) return { grupo: g, punta: p };
       }
       return null;
     }
@@ -72,7 +80,7 @@ const Grupos = (() => {
       const n = recortar(nombre);
       if (!n) return null;
       const g = { id: 'g-' + Date.now() + '-' + (++seq), via: recortar(via) || SIN_VIA, nombre: n,
-                  pr: String(pr || '').trim(), MAESTRO: null, ESCLAVO: null };
+                  pr: recortar(pr), MAESTRO: null, ESCLAVO: null };
       cargar().grupos.push(g);
       guardar();
       return copia(g);
@@ -96,18 +104,23 @@ const Grupos = (() => {
     }
 
     // poste = { mac, serie, node, fw }. La punta es la del NODE: del $STATUS. `mover` = el operador ya confirmo.
-    // Devuelve { ok } o { ok:false, motivo, grupo? }; ningun rechazo cambia el almacen.
+    // Devuelve { ok } o { ok:false, motivo, grupo?, desde? }; ningun rechazo cambia el almacen. CAMBIO_HUECO: la MAC
+    // ya esta en la otra punta de este grupo (su NODE: cambio); sin `mover` no se cambia (D-128).
     function matricular(id, poste, mover) {
       const p = poste || {};
       if (!esMac(p.mac)) return { ok: false, motivo: 'SIN_DIRECCION' };
       if (!p.serie || PUNTAS.indexOf(p.node) < 0) return { ok: false, motivo: 'SIN_STATUS' };
       const g = buscar(id);
       if (!g) return { ok: false, motivo: 'SIN_GRUPO' };
-      if (g[p.node] && g[p.node].mac !== p.mac) return { ok: false, motivo: 'OCUPADO' };
-      const antes = dondeEsta(p.mac);
+      const mac = deMac(p.mac);
+      if (g[p.node] && deMac(g[p.node].mac) !== mac) return { ok: false, motivo: 'OCUPADO' };
+      const antes = dondeEsta(mac);
       if (antes && antes.grupo !== g && !mover) return { ok: false, motivo: 'EN_OTRO_GRUPO', grupo: copia(antes.grupo) };
+      if (antes && antes.grupo === g && antes.punta !== p.node && !mover) {
+        return { ok: false, motivo: 'CAMBIO_HUECO', desde: antes.punta };
+      }
       if (antes) antes.grupo[antes.punta] = null;
-      g[p.node] = { mac: p.mac, serie: p.serie, fw: p.fw || null, fecha: new Date().toISOString().slice(0, 10) };
+      g[p.node] = { mac, serie: p.serie, fw: p.fw || null, fecha: new Date().toISOString().slice(0, 10) };
       guardar();
       return { ok: true };
     }
@@ -121,9 +134,12 @@ const Grupos = (() => {
     }
 
     // El sello del hueco es el `FW:` que conteste el propio poste a VERSION, tambien SIN_SELLAR, tal cual (D-123).
-    function anotarFw(mac, node, fw) {
+    // `serie`, la del $STATUS de este enlace: si no es la matriculada no se anota (9.14 (c): sin matricular otra vez
+    // no se sobrescribe). Sin serie conocida se anota como antes.
+    function anotarFw(mac, node, fw, serie) {
       const d = dondeEsta(mac);
       if (!d || d.punta !== node || fw === undefined || d.grupo[d.punta].fw === fw) return false;
+      if (serie && d.grupo[d.punta].serie !== serie) return false;
       d.grupo[d.punta].fw = fw;
       guardar();
       return true;
@@ -153,7 +169,7 @@ const Grupos = (() => {
       } else if (p.serie) {
         for (const g of cargar().grupos) {
           for (const q of PUNTAS) {
-            if (g[q] && g[q].serie === p.serie && g[q].mac !== p.mac) {
+            if (g[q] && g[q].serie === p.serie && deMac(g[q].mac) !== deMac(p.mac)) {
               out.push({ color: 'amber', texto: 'La serie ' + p.serie + ' ya está matriculada en ' + rotuloDe(g) +
                          ' con la dirección ' + g[q].mac + ': ¿módulo Bluetooth cambiado? Esta dirección queda ' +
                          '«Sin grupo» hasta matricularla.' });
@@ -213,6 +229,15 @@ const Grupos = (() => {
     const r = gr.matricular(g.id, ctx.poste, false);
     if (r.ok) { ctx.avisar('cyan', 'Poste ' + ctx.poste.serie + ' matriculado como ' + ctx.poste.node + ' de ' +
                            g.via + ' · ' + g.nombre + '. No se ha enviado nada al equipo.'); ctx.alCambiar(); return; }
+    if (r.motivo === 'CAMBIO_HUECO') {   // D-128: el mismo poste dice ahora la otra punta; se nombran las dos
+      Dialogo.confirmar('Cambiar de hueco', 'Este poste está matriculado como ' + r.desde + ' de ' + g.via + ' · ' +
+                        g.nombre + ' y ahora dice NODE:' + ctx.poste.node + '. ¿Pasarlo de ' + r.desde + ' a ' +
+                        ctx.poste.node + '? El hueco ' + r.desde + ' queda libre; no se envía nada al equipo.',
+                        'Cambiar', () => {
+        if (gr.matricular(g.id, ctx.poste, true).ok) ctx.alCambiar();
+      });
+      return;
+    }
     if (r.motivo !== 'EN_OTRO_GRUPO') { ctx.avisar('red', 'No se matricula (' + r.motivo + ').'); return; }
     Dialogo.confirmar('Mover el poste', 'Este poste está matriculado en ' + r.grupo.via + ' · ' + r.grupo.nombre +
                       '. Una MAC va en un solo grupo: ¿moverlo a ' + g.via + ' · ' + g.nombre + '?', 'Mover', () => {
@@ -232,7 +257,10 @@ const Grupos = (() => {
         : p + ': libre');
       info.appendChild(linea);
       if (h && ctx.admin) info.appendChild(boton('btn-quitar-hueco', 'Quitar del grupo', () => {
-        if (gr.quitar(h.mac)) { ctx.avisar('cyan', p + ' ' + h.serie + ' quitado de ' + g.via + ' · ' + g.nombre + '.'); ctx.alCambiar(); }
+        Dialogo.confirmar('Quitar del grupo', '¿Quitar ' + p + ' ' + h.serie + ' de ' + g.via + ' · ' + g.nombre +
+                          '? El hueco queda libre; no se envía nada al equipo.', 'Quitar', () => {   // D-128
+          if (gr.quitar(h.mac)) { ctx.avisar('cyan', p + ' ' + h.serie + ' quitado de ' + g.via + ' · ' + g.nombre + '.'); ctx.alCambiar(); }
+        });
       }));
     });
     info.appendChild(el('small', 'ficha-radio', RADIO));
@@ -255,7 +283,7 @@ const Grupos = (() => {
     cont.innerHTML = '';
     const nota = notaDelPoste(gr, ctx);
     if (nota) cont.appendChild(el('p', 'modal-desc nota-poste', nota));
-    const lista = gr.filtrar(filtro).sort((a, b) => a.via.localeCompare(b.via) || a.nombre.localeCompare(b.nombre));
+    const lista = gr.filtrar(filtro).sort((a, b) => comparar(a.via, b.via) || comparar(a.nombre, b.nombre));
     let via = null;
     lista.forEach(g => {
       if (g.via !== via) { via = g.via; cont.appendChild(el('p', 'modal-desc grupo-via', '🛣️ ' + via)); }
@@ -273,8 +301,9 @@ const Grupos = (() => {
           const g = gr.crear(via, nombre, pr);
           if (!g) return;
           const p = ctx.poste;
-          if (ctx.admin && p && esMac(p.mac) && !gr.dondeEsta(p.mac)) gr.matricular(g.id, p, false);
+          const r = (ctx.admin && p && esMac(p.mac) && !gr.dondeEsta(p.mac)) ? gr.matricular(g.id, p, false) : null;
           ctx.avisar('cyan', 'Grupo ' + g.via + ' · ' + g.nombre + ' guardado.');
+          if (r && !r.ok) ctx.avisar('red', 'No se matricula el poste enlazado en ' + g.via + ' · ' + g.nombre + ' (' + r.motivo + ').');
           ctx.alCambiar();
         };
         Dialogo.pedirTexto({ titulo: 'Grupo nuevo', texto: 'PR (opcional):', opcional: true }, fin, () => fin(''));

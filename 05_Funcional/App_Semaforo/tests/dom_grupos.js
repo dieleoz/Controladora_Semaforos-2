@@ -113,9 +113,10 @@ module.exports = async function pruebaGrupos(montarAppLimpia, assert) {
     assert(veces === 1 && (a.de('Km 80').MAESTRO || {}).mac === MAC1 && !a.de('Km 20').MAESTRO,
       `Grupos: una MAC esta en un grupo como mucho; mover la saca del anterior (${veces} huecos con MAC1)`);
 
-    // 5. Quitar del grupo libera el hueco.
+    // 5. Quitar del grupo libera el hueco (tras confirmar, D-128: la prueba 13 mide el Cancelar).
     const q = a.boton('Km 80', '.btn-quitar-hueco');
     if (q) q.click();
+    a.contestar([true]);
     assert(!!q && !a.de('Km 80').MAESTRO && /SIN GRUPO/.test(a.sitio()),
       `Grupos: «Quitar del grupo» deja el hueco libre y el poste «SIN GRUPO»: "${a.sitio()}"`);
   }
@@ -241,5 +242,110 @@ module.exports = async function pruebaGrupos(montarAppLimpia, assert) {
     const s3 = a.sitio();
     assert(/Via 1 · Km 20/.test(s1) && /SIN GRUPO/.test(s2) && /SIN GRUPO/.test(s3),
       `Grupos: state.site vuelve a «SIN GRUPO» al desconectar ("${s2}") y al elegir otro poste ("${s3}"); antes "${s1}"`);
+  }
+
+  // 12. Via, nombre y PR se recortan a 32 (D-127), tambien en la migracion; y los grupos van en orden numerico.
+  {
+    const largo = 'PR 45+100 Frente al tunel dos norte';   // 35 caracteres
+    const a = montar({ iot_vial_cruces_v2: JSON.stringify([{ id: 'c-9', nombre: 'Obra', ubicacion: largo + 'xxxxx' }]) });
+    const migrado = (a.de('Obra').pr || '');
+    a.crear('Via 1', 'Km 120', largo + 'xxxxx');
+    a.crear('Via 1', 'Km 20', '');
+    a.crear('Via 1', 'Km 3', '');
+    const pr = a.de('Km 120').pr || '';
+    assert(pr.length === 32 && largo.startsWith(pr) && migrado.length === 32 && largo.startsWith(migrado),
+      `Grupos: D-127 un PR de 40 caracteres se guarda en 32, al crear (${pr.length}) y al migrar (${migrado.length})`);
+    const orden = a.fichas().map(c => c.querySelector('.site-card-title').textContent)
+      .filter(t => /^Km (3|20|120)\b/.test(t)).map(t => t.split(' · ')[0]);
+    assert(orden.join() === 'Km 3,Km 20,Km 120',
+      `Grupos: los grupos de una via van en orden numerico, Km 3 antes que Km 20 y Km 120 (${orden.join()})`);
+  }
+
+  // 13. D-128: «Quitar del grupo» y el cambio de hueco por un NODE: distinto piden confirmar; Cancelar no toca el almacen.
+  {
+    const a = montar();
+    a.crear('Via 1', 'Km 20', '');
+    a.clave();
+    const b = a.boton('Km 20', '.btn-matricular');
+    if (b) b.click();
+    const antes = a.w.localStorage.getItem('iot_vial_grupos_v1');
+    const q = a.boton('Km 20', '.btn-quitar-hueco');
+    if (q) q.click();
+    const pq = a.abierto() ? a.el('dialogo-modal').textContent.replace(/\s+/g, ' ') : '';
+    a.contestar([null]);
+    assert(!!q && /Quitar MAESTRO SEM-M-01 de Via 1 · Km 20\?/.test(pq) && /no se env[ií]a nada al equipo/i.test(pq) &&
+           a.w.localStorage.getItem('iot_vial_grupos_v1') === antes,
+      `Grupos: D-128 «Quitar del grupo» pide confirmar y Cancelar deja el almacen igual byte a byte: "${pq.slice(0, 140)}"`);
+    a.status('ESCLAVO', 'SEM-M-01');   // el mismo poste dice ahora ESCLAVO: el hueco ESCLAVO de Km 20 esta libre
+    const c = a.boton('Km 20', '.btn-matricular');
+    if (c) c.click();
+    const pc = a.abierto() ? a.el('dialogo-modal').textContent.replace(/\s+/g, ' ') : '';
+    a.contestar([null]);
+    const tras = a.w.localStorage.getItem('iot_vial_grupos_v1');
+    assert(!!c && /MAESTRO/.test(pc) && /ESCLAVO/.test(pc) && tras === antes,
+      `Grupos: D-128 el cambio de hueco en el mismo grupo pide confirmar con las dos puntas y Cancelar no lo cambia: "${pc.slice(0, 140)}"`);
+    const c2 = a.boton('Km 20', '.btn-matricular');
+    if (c2) c2.click();
+    a.contestar([true]);
+    assert((a.de('Km 20').ESCLAVO || {}).mac === MAC1 && !a.de('Km 20').MAESTRO,
+      `Grupos: D-128 aceptado el cambio de hueco, la MAC pasa a ESCLAVO y deja MAESTRO libre (${JSON.stringify(a.de('Km 20'))})`);
+  }
+
+  // 14. D-129: el aviso rojo de NODE: sale otra vez al soltar y reenlazar la misma MAC (una vez por CONEXION).
+  {
+    const a = montar();
+    a.crear('Via 1', 'Km 20', '');
+    a.clave();
+    const b = a.boton('Km 20', '.btn-matricular');
+    if (b) b.click();
+    const rojos = () => Array.from(a.d.querySelectorAll('#event-feed .event-item'))
+      .filter(e => /NODE:ESCLAVO y está matriculado como MAESTRO/.test(e.textContent)).length;
+    a.status('ESCLAVO', 'SEM-M-01');
+    a.status('ESCLAVO', 'SEM-M-01');
+    const n1 = rojos();
+    a.el('btn-bt-disconnect').click();
+    a.enlazar({ name: 'SEM-M-01-M', id: MAC1, address: MAC1 }, 'ESCLAVO', 'SEM-M-01');
+    const n2 = rojos();
+    assert(n1 === 1 && n2 === 2,
+      `Grupos: D-129 el aviso de NODE: sale una vez dentro del enlace (${n1}) y otra al reenlazar la misma MAC (${n2 - n1})`);
+  }
+
+  // 15. «Grupo nuevo» con un poste enlazado que no se puede matricular dice por que, no calla el rechazo.
+  {
+    const a = montar();
+    a.clave();
+    a.enlazar({ name: 'SEM-E-05-E', id: MAC2, address: MAC2 });
+    a.trama('STATUS,NODE:ESCLAVO,MODO:AUTO,ESTADO:V1_R2,T:30,RF:97,RTT:70,BAT:12.9,HORA:14:31:00');
+    a.crear('Via 1', 'Km 33', '');
+    assert(!!a.de('Km 33').id && !a.de('Km 33').ESCLAVO && /No se matricula[^|]*SIN_STATUS/.test(a.eventos()),
+      `Grupos: «Grupo nuevo» que no puede matricular el poste enlazado lo dice con el motivo (${a.eventos().slice(-200)})`);
+  }
+
+  // 16. Modelo: la MAC no distingue mayusculas; grupos:[null] no rompe; anotarFw no pisa el FW si la serie cambio.
+  {
+    const G = require('../js/grupos.js');
+    let t = null;
+    const gr = G.nuevo({ leer: () => t, escribir: (x) => { t = x; } });
+    const g1 = gr.crear('V', 'A', ''), g2 = gr.crear('V', 'B', '');
+    gr.matricular(g1.id, { mac: MAC2, serie: 'S2', node: 'MAESTRO', fw: 'aaa1111' });
+    const min = MAC2.toLowerCase();
+    const r = [gr.matricular(g2.id, { mac: min, serie: 'S2', node: 'MAESTRO' }).motivo || 'ok',
+               gr.matricular(g1.id, { mac: min, serie: 'S2', node: 'MAESTRO', fw: 'aaa1111' }).motivo || 'ok', gr.rotulo(min)];
+    const veces = gr.todos().reduce((n, g) => n + G.PUNTAS.filter(p => g[p] && g[p].mac.toUpperCase() === MAC2).length, 0);
+    assert(r.join() === 'EN_OTRO_GRUPO,ok,V · A' && veces === 1,
+      `Grupos: la MAC en minusculas es el mismo poste: no entra en otro grupo ni ocupa otro hueco (${r.join()}, ${veces} huecos)`);
+    const fw = [gr.anotarFw(min, 'MAESTRO', 'bbb2222', 'S9'), gr.todos()[0].MAESTRO.fw,
+                gr.anotarFw(min, 'MAESTRO', 'ccc3333', 'S2'), gr.todos()[0].MAESTRO.fw];
+    assert(fw.join() === 'false,aaa1111,true,ccc3333',
+      `Grupos: anotarFw no reescribe el FW del hueco si el poste dice otra serie (9.14 (c)); con la suya, si (${fw.join()})`);
+    let t2 = JSON.stringify({ v: 1, grupos: [null, 7, { id: 'x', via: 'V', nombre: 'A', pr: '',
+      MAESTRO: { mac: MAC1, serie: 'S1', fw: null, fecha: '2026-10-27' }, ESCLAVO: null }] });
+    const crudo = t2;
+    const gn = G.nuevo({ leer: () => t2, escribir: (x) => { t2 = x; } });
+    let res = '';
+    try { res = [gn.rotulo(MAC1), gn.filtrar('').length, gn.filtrar('a').length, gn.avisos({ mac: MAC3, serie: 'S1' }).length].join(); }
+    catch (e) { res = 'lanzo: ' + e.message; }
+    assert(res === 'V · A,1,1,1' && t2 === crudo,
+      `Grupos: un almacen con grupos:[null, 7] no rompe rotulo, filtrar ni avisos, y no se reescribe al leer (${res})`);
   }
 };
