@@ -24,8 +24,9 @@ int modoAutomatico_segundosRestantesFase();
 // garantia es que el C++ rechace lo que no cabe, porque la app se puede reemplazar por
 // otra, por una vieja o por alguien mandando tramas a mano.
 //
-// Devuelve false y NO cambia nada si algun valor esta fuera de rango.
-bool modoAutomatico_fijarTiempos(uint8_t verdeMin, uint8_t rojoMin, uint8_t despejeSeg);
+// Devuelve false y NO cambia nada si algun valor esta fuera de rango. Recibe int (D-131):
+// se juzga el numero que llego; un (uint8_t) antes convertia 259 en 3 y lo aceptaba.
+bool modoAutomatico_fijarTiempos(int verdeMin, int rojoMin, int despejeSeg);
 
 // A-12: los tiempos de ciclo CONFIGURADOS, para el modo que no los decide pero los
 // necesita. Los tres punteros son obligatorios y se escriben siempre.

@@ -920,7 +920,7 @@ static void procesarComando(const char* cmd) {
       // Con el ciclo corriendo no se tocan: bajar un tiempo a mitad de fase acortaria
       // la fase EN CURSO, y una de esas fases es el todo-rojo de despeje.
       enviarTramaConCrc("$ERR,CMD:SET_TIEMPOS,DESC:EN_MARCHA_PARE_EL_MODO");
-    } else if (!modoAutomatico_fijarTiempos((uint8_t)v, (uint8_t)r, (uint8_t)d)) {
+    } else if (!modoAutomatico_fijarTiempos(v, r, d)) {   // D-131: sin (uint8_t), 259 no es 3
       enviarTramaConCrc("$ERR,CMD:SET_TIEMPOS,DESC:RANGO");
     } else {
       enviarTramaConCrc("$ACK,CMD:SET_TIEMPOS,RESULT:OK");

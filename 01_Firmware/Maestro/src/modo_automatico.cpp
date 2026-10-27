@@ -173,7 +173,7 @@ void modoAutomatico_tiemposCiclo(uint8_t* verdeMin, uint8_t* rojoMin,
 // despejada, asi que el aviso y el boton de arrancar se quedan del lado de quien esta
 // mirando el cruce. Del lado del firmware la propiedad es esta: de aqui no sale nadie
 // ciclando.
-bool modoAutomatico_fijarTiempos(uint8_t verdeMin, uint8_t rojoMin, uint8_t despejeSeg) {
+bool modoAutomatico_fijarTiempos(int verdeMin, int rojoMin, int despejeSeg) {
   if (verdeMin  < VERDE_MIN_MIN   || verdeMin  > VERDE_MIN_MAX)   return false;
   if (rojoMin   < ROJO_MIN_MIN    || rojoMin   > ROJO_MIN_MAX)    return false;
   if (despejeSeg < DESPEJE_SEG_MIN || despejeSeg > DESPEJE_SEG_MAX) return false;
@@ -195,7 +195,7 @@ bool modoAutomatico_fijarTiempos(uint8_t verdeMin, uint8_t rojoMin, uint8_t desp
   //
   // Se escribe AQUI y no en cada vuelta del ciclo: los BKP son memoria de respaldo, no
   // un sitio donde repicar cada segundo. Solo cuando alguien los cambia de verdad.
-  respaldo_guardarTiemposCiclo(rojoMin, verdeMin, despejeSeg);
+  respaldo_guardarTiemposCiclo((uint8_t)rojoMin, (uint8_t)verdeMin, (uint8_t)despejeSeg);   // ya en rango
   return true;
 }
 

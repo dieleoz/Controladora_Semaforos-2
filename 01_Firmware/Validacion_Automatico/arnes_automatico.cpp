@@ -530,8 +530,7 @@ static long bombearInteligente(unsigned long pasoMs, unsigned long presupuestoMs
 // $ERR,CMD:SET_TIEMPOS,DESC:EN_MARCHA_PARE_EL_MODO-.
 static bool configurarTiempos(int verdeMin, int rojoMin, int despejeSeg) {
   g_modoActual = MENU;
-  return modoAutomatico_fijarTiempos((uint8_t)verdeMin, (uint8_t)rojoMin,
-                                     (uint8_t)despejeSeg);
+  return modoAutomatico_fijarTiempos(verdeMin, rojoMin, despejeSeg);   // D-131: int
 }
 
 static void arrancarInteligente() {
@@ -1195,6 +1194,7 @@ int main() {
     g_modoEsclavo = ESC_CORRECTO;
     g_latenciaEsclavoMs = 50;
 
+#include "e0_rango_tiempos.inc"   // E0: el rango de SET_TIEMPOS (D-131)
     comprobar(configurarTiempos(V_CFG, R_CFG, D_CFG),
               "E1: SET_TIEMPOS acepta 6 min de verde, 5 de rojo y 10 s de despeje con el "
               "equipo parado -es la misma guarda del firmware, no una puerta del arnes-");
