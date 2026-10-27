@@ -2919,7 +2919,9 @@ document.addEventListener('DOMContentLoaded', () => {
       // y state.hora es la hora del CONTROLADOR, la del $STATUS. Pintar una con la otra
       // tapaba justo lo que hay que ver: un STM32 que no recibio la hora.
       Testigo.anotarAcuse(data, state.node); Noche.anotarAcuse(data);   // D-110: su consulta va tras la del automatico
+      const degAutoSinEspera = cual === DegAuto.ORDEN && !DegAuto._espera;   // D-130: dato del equipo, no respuesta
       const degAuto = DegAuto.acuse(data) || Noche.acuse(data) || DiagnosticoEnlace.acuseReinicios(data);  // A-15, D-64
+      if (degAutoSinEspera) DegAuto._consultar();   // SPEC_4 3.ter.bis: se confirma con la consulta
       const dicho = ACK_TEXTO[clave] || degAuto || TextosSpec4.ACK[clave] || TextosSpec4.tiempos(clave, state.modo);
       if (dicho) {
         addEvent(dicho.tono, dicho.texto);
@@ -3206,12 +3208,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // La serie solo vale si la dijo ESTE enlace: state.serie no se olvida al cambiar de poste y matricularia la del anterior.
   const posteEnlazado = () => (state.deviceMac ? { mac: state.deviceMac, serie: state.serieDe === state.deviceMac ? state.serie : null, node: state.node,
                                                     fw: state.node ? state.firmware[state.node] : undefined } : null);
-  // Cada $STATUS y cada sello de VERSION: rotulo al dia y los avisos de (c), una vez por aviso y por enlace.
+  // Cada $STATUS y cada sello de VERSION: rotulo al dia y los avisos de (c), una vez por CONEXION (D-129).
   // Sin enlace no hay poste: «SIN GRUPO» al soltarlo, al elegir otro y al Salir de la practica (lo exportado lo lleva).
   function revisarGrupo() {
     state.site = state.connected ? gruposVivos().rotulo(state.deviceMac) : 'SIN GRUPO';
     if (currentSiteNameEl) currentSiteNameEl.textContent = '📍 ' + state.site;
-    if (!state.connected) return;
+    if (!state.connected) { avisosDe = null; return; }
     if (avisosDe !== state.deviceMac) { avisosDe = state.deviceMac; avisosDados = new Set(); }
     gruposVivos().avisos(posteEnlazado()).forEach(a => {
       if (!avisosDados.has(a.texto)) { avisosDados.add(a.texto); showToast(a.texto); addEvent(a.color, a.texto); }
@@ -3274,29 +3276,27 @@ document.addEventListener('DOMContentLoaded', () => {
   // El estado del enlace se apaga SIEMPRE por aqui: "he desconectado" y "me han desconectado" no dejan la pantalla
   // en estados distintos (un boton que dice enlazado sin estarlo). D-86: js/practica.js pregunta y avisa por estas dos.
   window.appEnlazada = () => state.connected === true; window.appAvisar = (t, m) => { showToast(m); addEvent(t, m); };
+  // D-130: la espera de SET_DEG_AUTO es de la conexion que la envio (deviceMac aun suyo): sin "no contesto" en otra.
+  function soltarEsperaDegAuto() {
+    const e = DegAuto._espera; if (!e) return;
+    clearTimeout(e.timer); DegAuto._espera = null; DegAuto.render(); addEvent('cyan', 'SET_DEG_AUTO:' + e.valor +
+      ' enviada a ' + state.deviceMac + ': sin acuse en esa conexion, mire la consulta');
+  }
   function olvidarEnlace() {
-    state.connected = false; revisarGrupo();
-    state.node = null;
-    state.firmware = {}; renderLights();   // sin enlace: «SIN ENLACE», no la frase del equipo de antes
+    state.connected = false; soltarEsperaDegAuto(); revisarGrupo();
+    state.node = null; state.firmware = {}; renderLights();   // sin enlace: «SIN ENLACE», no la frase de antes
     // D-23: los contadores de radio son de UN poste y arrancan con su micro. Si no se
     // olvidan al soltar el enlace, la primera muestra del SIGUIENTE poste se resta contra
     // la ultima del anterior y sale un delta inventado -y casi siempre negativo, que
     // ademas se leeria como "este poste se ha reiniciado"-. Es la misma cautela que A-9
     // sobre el reloj: una lectura atribuida al poste equivocado fabrica una averia.
-    if (typeof DiagnosticoEnlace !== 'undefined') {
-      DiagnosticoEnlace.olvidar();
-      renderDiagnosticoEnlace();
-    }
+    if (typeof DiagnosticoEnlace !== 'undefined') { DiagnosticoEnlace.olvidar(); renderDiagnosticoEnlace(); }
     // Y por lo mismo el cartel de la barrera retenida: es de UN poste. Colgado sobre el
     // siguiente mandaria a mirar debajo del brazo que no es, y ademas dice "no va a
     // bajar sola" de una barrera que nadie ha vuelto a mirar.
-    if (typeof AvisoCamaraPluma !== 'undefined') {
-      AvisoCamaraPluma.olvidar();
-      renderAvisoCamaraPluma();
-    }
+    if (typeof AvisoCamaraPluma !== 'undefined') { AvisoCamaraPluma.olvidar(); renderAvisoCamaraPluma(); }
     if (typeof AvisoCorte !== 'undefined') { AvisoCorte.olvidar(); renderAvisoCorte(); } CartelesEquipo.olvidar(); renderCarteles();
-    if (btnDevice) btnDevice.className = 'btn-top btn-device';
-    if (btStatusDot) btStatusDot.className = 'status-dot';
+    if (btnDevice) btnDevice.className = 'btn-top btn-device'; if (btStatusDot) btStatusDot.className = 'status-dot';
     // "Sin equipo" y "Sin enlace" NO son lo mismo, y la diferencia es la que decide si
     // hay algo que reintentar. Se acaba de soltar un socket: si quedaba un equipo
     // elegido, lo que hay es un enlace caido -y un boton de RECONECTAR debajo-, no una
@@ -3524,7 +3524,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // N-122: state.connected NO se pone aqui. Pulsar una fila elige un equipo; no abre
       // un socket. Lo pone a true unicamente el callback de exito de connect(), abajo.
-      state.connected = false;
+      state.connected = false; soltarEsperaDegAuto();   // D-130: antes de que deviceMac pase al poste nuevo
       state.deviceName = name;
       state.deviceMac = mac; revisarGrupo();
 

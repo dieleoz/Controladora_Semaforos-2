@@ -901,7 +901,6 @@ runTest('Camara-pluma', 'ningun texto FIJO recita una cifra de tiempo del firmwa
   assert.ok(CIFRA_DE_TIEMPO.test('pasados 90 s'), 'el detector de cifras no distingue');
   assert.deepStrictEqual(fijos.filter(t => CIFRA_DE_TIEMPO.test(t || '')), []);
 });
-
 runTest('Camara-pluma', 'al soltar el enlace se olvida: el cartel es de UN poste', () => {
   AvisoCamaraPluma.olvidar();
   AvisoCamaraPluma.ver(eventoCamara('VETO_SOSTENIDO_S:150', 'ESCLAVO'));
@@ -926,6 +925,7 @@ runTest('Camara-pluma', 'index.html carga js/aviso_camara_pluma.js ANTES de app.
   assert.ok(iMod < iApp, 'se carga despues de app.js: en el telefono no existiria al arrancar');
 });
 
+require('./tests/unidad_enlace.js')(runTest, calcularChecksumNmea);   // N-181 B: D-129 y D-130
 // =============================================================================
 // RESUMEN FINAL
 // =============================================================================
