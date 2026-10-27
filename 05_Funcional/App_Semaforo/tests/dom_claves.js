@@ -4,6 +4,36 @@
 // La clave de soporte NO esta aqui: si existe la variable de entorno CLAVE_SOPORTE se prueba que entra; si no,
 // solo que una erronea no entra y que la huella guardada tiene la forma de una FNV-1a de 32 bits.
 // Lo que no mide: la caducidad del PIN con el rol puesto (SPEC_4 4), ni el telefono.
+// Un reloj que solo avanza cuando la prueba lo pide (la interfaz { ahora, programar, cancelar } de js/simulador.js).
+// Sus asas empiezan en 1e6 para no confundirse con las de los temporizadores reales de jsdom.
+function relojManual(inicioMs) {
+  let t = inicioMs, seq = 1e6;
+  const cola = [];
+  return {
+    ahora: () => t,
+    programar(fn, ms) { const h = ++seq; cola.push({ h, en: t + Math.max(0, +ms || 0), fn }); return h; },
+    cancelar(h) { const i = cola.findIndex(x => x.h === h); if (i >= 0) { cola.splice(i, 1); return true; } return false; },
+    avanzar(ms) {
+      const fin = t + ms;
+      for (;;) {
+        cola.sort((x, y) => x.en - y.en || x.h - y.h);
+        if (!cola.length || cola[0].en > fin) break;
+        const x = cola.shift();
+        t = x.en;
+        x.fn();
+      }
+      t = fin;
+    }
+  };
+}
+// La app usa setTimeout y Date.now de su ventana: se le dan los del reloj inyectado. Un clearTimeout de un asa real
+// (programada antes de inyectar) sigue yendo al real.
+function inyectarReloj(w, R) {
+  const clearReal = w.clearTimeout.bind(w);
+  w.setTimeout = (fn, ms, ...args) => R.programar(() => fn(...args), ms);
+  w.clearTimeout = (h) => { if (!R.cancelar(h)) clearReal(h); };
+  w.Date.now = () => R.ahora();
+}
 module.exports = async function pruebaClaves(montarAppLimpia, assert) {
   const montar = () => {
     const a = montarAppLimpia();
@@ -134,6 +164,11 @@ module.exports = async function pruebaClaves(montarAppLimpia, assert) {
     const oculta = (a) => !!a.el('franja-simulado') && a.el('franja-simulado').hidden;
     const P = (a) => a.w.Practica || { entrar() {}, salir() {}, _tick() {}, FLOTA: [] };  // ausente: rojo
     const a = montar();
+    // (4) con el reloj INYECTADO (N-181 E): el simulador (Practica.reloj), los setTimeout de la app y su Date.now van
+    // por un reloj que solo avanza cuando la prueba lo pide. Antes se esperaban hasta 9 s reales y el resultado
+    // dependia de la carga del PC. Arranca a las 23:59:58 a proposito: la espera cruza la medianoche.
+    const R = relojManual(new Date(2026, 9, 15, 23, 59, 58).getTime());
+    if (a.w.Practica) a.w.Practica.reloj = R;
     const real = a.w.bluetoothSerial;
     const boton = a.el('btn-practica');
     P(a).entrar();
@@ -153,6 +188,7 @@ module.exports = async function pruebaClaves(montarAppLimpia, assert) {
            filas.length >= 4 && rotulos.length >= 4 && filas.every(f => rotulos.includes(f.getAttribute('data-name'))),
       `Practica: desconectado y con clave, franja SIMULADO y la flota en el modal de equipos (${filas.length} filas)`);
     const fila1 = filas.find(f => !!P(a).FLOTA[0] && f.getAttribute('data-mac') === P(a).FLOTA[0].direccion);  // la lista ordena
+    inyectarReloj(a.w, R);   // antes de enlazar: ahi programa la app la VERSION (pedirVersionAlConectar)
     if (fila1) fila1.click();
     const oidas = [], Pp = a.w.PuertoPractica;
     if (Pp && Pp._cb) { const cb = Pp._cb; Pp._cb = (t) => { oidas.push(String(t).trim()); cb(t); }; }
@@ -160,18 +196,30 @@ module.exports = async function pruebaClaves(montarAppLimpia, assert) {
     assert(!!fila1 && /^MAESTRO/.test(a.txt('node-name')) && a.tramas.length === 0,
       `Practica: la fila del Maestro habla como un Maestro y el puerto real no recibe nada: "${a.txt('node-name')}" ${a.tramas.join(' | ')}`);
     const ack = '$ACK,CMD:VERSION,RESULT:OK,NODE:MAESTRO,FW:d810f81*24';   // el de la cinta del 06/10, con su *XX
-    // TIMEOUT_ENLACE_MS de app.js: la VERSION se pide sola tras 5 s; se espera hasta 9 s a que llegue (con carga, el
-    // temporizador de 5 s se retrasa y una espera fija de 5,4 s fallaba sin que nada estuviera mal).
-    for (let i = 0; i < 90 && !oidas.includes(ack); i++) await new Promise(r => setTimeout(r, 100));
-    assert(oidas.includes(ack) && /d810f81/.test(eventos(a)) && a.tramas.length === 0,
-      `Practica: la VERSION que la app pide al enlazar la contesta el simulador con el $ACK de la cinta (FW d810f81): ` +
-      `${oidas.filter(t => /VERSION/.test(t)).join(' | ') || 'ninguna'}`);
+    // TIMEOUT_ENLACE_MS de app.js (leido del fuente): la VERSION se pide sola pasado ese plazo, y el $ACK llega a los
+    // RESPUESTA_MS de practica.js. Se avanza el reloj inyectado de 100 en 100 ms; ni un milisegundo de espera real.
+    const fs = require('fs');
+    const path = require('path');
+    const ms = +((fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8')
+                   .match(/const TIMEOUT_ENLACE_MS = (\d+);/) || [])[1] || 0);
+    const pedida = () => oidas.some(t => /VERSION/.test(t));
+    // El borde se juzga en tiempo INYECTADO, no en el real (con el arnes entero cargado, 70 pasos tardan ~7 s reales).
+    let antes = null, llego = -1;
+    for (let tf = 0; tf < ms + 2000 && llego < 0; tf += 100) {
+      if (tf === ms - 100) antes = pedida();
+      R.avanzar(100);
+      await new Promise(r => setImmediate(r));
+      if (oidas.includes(ack)) llego = tf + 100;
+    }
+    assert(ms === 5000 && antes === false,
+      `Practica: con el reloj inyectado la VERSION no sale antes de TIMEOUT_ENLACE_MS (${ms} ms en app.js)`);
+    assert(llego >= ms && llego <= ms + 500 && /d810f81/.test(eventos(a)) && a.tramas.length === 0,
+      `Practica: la VERSION que la app pide al enlazar la contesta el simulador con el $ACK de la cinta (FW d810f81), ` +
+      `a los ${llego} ms del reloj inyectado: ${oidas.filter(t => /VERSION/.test(t)).join(' | ') || 'ninguna'}`);
     a.pulsa('btn-franja-salir');
     assert(a.w.bluetoothSerial === real && oculta(a) && !a.d.body.classList.contains('simulado'),
       'Practica: Salir devuelve el puerto real y quita la franja y la clase');
     // Campo nuevo: cada CAMPO: del $STATUS que compone el firmware esta en el $STATUS que compone el simulador.
-    const fs = require('fs');
-    const path = require('path');
     ['MAESTRO', 'ESCLAVO'].forEach(nodo => {
       const cpp = path.join(__dirname, '..', '..', '..', '01_Firmware', nodo === 'MAESTRO' ? 'Maestro' : 'Esclavo',
                             'src', 'bluetooth.cpp');
