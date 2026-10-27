@@ -174,12 +174,12 @@ Lo ya definido no se pregunta (SPEC_4 §9.14 (c): un `NODE:` distinto da aviso r
 | # | quien | ficheros (solo esos) | que | estado |
 |---|---|---|---|---|
 | S | 1 agente, antes que nadie | SPEC_4, SPEC_2, `DECISIONES.md` | Lo no escrito, con valor por defecto y fila `D-127`..: tope del PR, confirmar «Quitar del grupo», avisos una vez por conexion, rango 3..15 min con `$ERR` | |
-| A | worktree | `js/grupos.js` y sus pruebas | MAC en minusculas; `grupos:[null]`; orden numerico; «Quitar del grupo»; `NODE:` distinto hacia §9.14 (c); `anotarFw`; `preguntarNuevo` | |
+| A | worktree | `js/grupos.js` y `www/js/grupos.js`, y sus pruebas | MAC en minusculas; `grupos:[null]`; orden numerico; «Quitar del grupo»; `NODE:` distinto hacia §9.14 (c); `anotarFw`; `preguntarNuevo` | |
 | B | worktree | `app.js` (las dos copias) y sus pruebas | ACK diferido entre sesiones; PR con tope; avisos por MAC al reenlazar | |
-| C | worktree | `style.css`, `index.html` | 320 px: franja sobre el modal, «emparejado», «(radio N %)», «MANDOS DE CAMPO», `.card-sub`, buscador; rotulo «Equipos de cintas» | |
+| C | worktree | `style.css`, `index.html` y sus copias de `www/` | 320 px: franja sobre el modal, «emparejado», «(radio N %)», «MANDOS DE CAMPO», `.card-sub`, buscador; rotulo «Equipos de cintas» | |
 | D | worktree | `bluetooth.cpp` de Maestro y Esclavo, arnes de `SET_TIEMPOS` | `SET_TIEMPOS:259` rechazado con `$ERR` antes del `(uint8_t)`; mutantes vivos `SET_TIEMPOS` sin rango y `parar()` vacio | |
 | E | worktree | `tests/dom_claves.js` | reloj inyectable en «Practica» (4) | |
-| X | opcional | SPEC_8 §6, `respaldo.cpp`, despachador, app | `D-94`..`D-97` si el responsable dice si: arquitecto ANTES (§11.7), en cadena tras D (comparten despachador) | decide el responsable |
+| X | worktree, tras D | SPEC_8 §6, `respaldo.cpp`, despachador, app | `D-94`..`D-97`: arquitecto ANTES (§11.7), en cadena tras D (comparten despachador) | SI del responsable, 27/10 |
 | F | orquestador | arbol principal | integrar por el diff; compuerta completa hasta dos pasadas iguales; cifras a ESTADO | |
 | Q | 2 agentes a la vez | solo lectura | arquitecto (opus) y QA una vez sobre la candidata; condiciones por SPEC -> rojo -> codigo | |
 | P | orquestador | `entregas/`, telefono | APK y CRC; telefono CDP 9333 a 320 px; `.bin` con sello limpio; hoja con lo nuevo y lo que mide Marco (`D-22`, `D-124`, pila de `D-94`..`D-97`); UN paquete; `0fe782f` a `RETIRADOS/` | |

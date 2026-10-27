@@ -17,8 +17,8 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
    Despues: compuerta completa, QA una vez, APK, `.bin` con sello, telefono (CDP 9333 + capturas) y UN paquete.
 2. **Lo que no cierra el teclado va en la MISMA visita de Marco, pedido en la hoja de ese paquete** (que mida, no
    que pruebe otra version): `D-94`..`D-97` (veto de camara y barrera fuera de servicio) piden tarjeta con barrera y
-   pila medidas; `D-22` una tarjeta delante; `D-124` el acta con dos parejas. PENDIENTE el si/no del responsable a
-   `D-94`..`D-97` (fila X de `N-181`): recomendado construirlos ya; sin pila valida el equipo rechaza la orden.
+   pila medidas; `D-22` una tarjeta delante; `D-124` el acta con dos parejas. El responsable dijo SI a
+   `D-94`..`D-97` el 27/10 (fila X de `N-181`): se construyen en la tanda; sin pila valida el equipo rechaza la orden.
 3. **Radio con varios grupos (`D-124`):** un canal por pareja (SPEC_6 B.3); falta el acta con dos parejas (mismo
    canal, contiguos, separados) y cuantos canales caben en 170/172 MHz. Filtro de pareja en la trama: riesgo abierto.
 4. **Cuando vuelvan sus cintas** (`N-177` V10): leerlas enteras y contando (`CLAUDE.md` §7), un `IOTVIAL_*` de CADA
