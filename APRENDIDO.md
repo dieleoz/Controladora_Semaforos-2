@@ -18,7 +18,7 @@ sin su visto bueno.
   medida en el pre-commit (`.githooks/trinquete.sh`, `RAZON_TECHO=1.665` en `.topes`) para un commit en seco.
 - **Leccion:** un techo medido que solo baja, contado sobre el indice y sin `historico/`, es una puerta; la frase no.
 - **Que hacer en el siguiente:** traer el trinquete con el esqueleto del proyecto y fijar su techo en la primera poda.
-- **Destino:** SUBE a metodo (hook de `iniciar-proyecto`) — propuesto.
+- **Destino:** SUBE a metodo (hook de `iniciar-proyecto`) — propuesto. · recogido en MEJORAS fila A
 
 ## L-03 — Que archivar se decide con un grafo de referencias reales, no leyendo (28/09)
 - **Paso:** el grafo (`D:\@Proyect\Entregas_Semaforos\grafo\grafo.py`, `REPO.map`) separo lo que se LEE, se COMPILA o
@@ -28,7 +28,7 @@ sin su visto bueno.
   escrito; lo que nadie lee ni cita se archiva, lo que se lee exige mover la ruta en el mismo commit.
 - **Que hacer en el siguiente:** `grafo.py` como herramienta del metodo, y decidir si `docs_total()` excluye
   `historico/`.
-- **Destino:** SUBE a metodo (skill `cerrar-sesion` o una nueva de archivado) — propuesto.
+- **Destino:** SUBE a metodo (skill `cerrar-sesion` o una nueva de archivado) — propuesto. · recogido en MEJORAS fila A
 
 ## L-04 — Al funcional se le manda el paquete sin manuales (28/09)
 - **Paso:** los `.docx` viejos de `05_Funcional/` describian un sistema que ya no es; Diego los quito del paquete
@@ -86,7 +86,7 @@ sin su visto bueno.
 - **Leccion:** que un permiso impida retirar una barrera es informacion: se reporta y decide el responsable.
 - **Que hacer en el siguiente:** todo encargo dice "si el permiso lo impide, para y reporta".
 - **Destino:** SUBE a metodo (regla de encargos a subagentes). Aprobado 30/09: el responsable delega en el
-  arquitecto del orquestador, que la propuso.
+  arquitecto del orquestador, que la propuso. · recogido en MEJORAS fila B
 
 ## L-11 — Lo que enlaza un arnes se actualiza en el mismo commit (30/09)
 - **Paso:** el simulador del puente aborto dos veces: faltaban dobles de funciones nuevas (`49580cf`) y el aviso de
@@ -104,7 +104,7 @@ sin su visto bueno.
   arreglo que no cambia el resultado de campo se marca REFUTADO, no "insuficiente".
 - **Que hacer en el siguiente:** antes de compartir registros o memoria con una libreria, grep de TODAS sus
   escrituras en `.pio/libdeps`, no solo de la llamada que se ve.
-- **Destino:** SUBE a metodo (perifericos compartidos con librerias).
+- **Destino:** SUBE a metodo (perifericos compartidos con librerias). · recogido en MEJORAS fila D
 
 ## L-13 — Una inversion de prueba se hace en TODOS los detectores, no en el que fallo (02/10)
 - **Paso:** con `D-45` el amarillo paso a ser paso abierto; se invirtieron los contadores de despeje pero no el
