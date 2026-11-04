@@ -44,7 +44,8 @@ sin su visto bueno.
   commit (`e15388d`). Con `generar_entrega_v9_0.py` si sirvio: el corte lo dejo bajo 500.
 - **Leccion:** el hook compara contra HEAD; el mensaje prometia un camino que no existe.
 - **Que hacer en el siguiente:** todo encargo sobre un fichero grande lleva escrito «neto <= 0 en este commit».
-- **Destino:** SUBE a metodo — atendido: mensaje nuevo en metodo `4e8e898` («No crece: saca en este commit lo que
+- **Destino:**
+ SUBE (recogido, fila B) a metodo — atendido: mensaje nuevo en metodo `4e8e898` («No crece: saca en este commit lo que
   anades»).
 
 ## L-06 — La APK se prueba en un telefono por adb y CDP, y el telefono es de alguien (28/09)
@@ -85,7 +86,8 @@ sin su visto bueno.
   y se devolvio al responsable (la retirada la confirmo el; el control negativo de `app_01`/`app_08` sigue pendiente).
 - **Leccion:** que un permiso impida retirar una barrera es informacion: se reporta y decide el responsable.
 - **Que hacer en el siguiente:** todo encargo dice "si el permiso lo impide, para y reporta".
-- **Destino:** SUBE a metodo (regla de encargos a subagentes). Aprobado 30/09: el responsable delega en el
+- **Destino:**
+ SUBE (recogido, fila B) a metodo (regla de encargos a subagentes). Aprobado 30/09: el responsable delega en el
   arquitecto del orquestador, que la propuso. · recogido en MEJORAS fila B
 
 ## L-11 — Lo que enlaza un arnes se actualiza en el mismo commit (30/09)
