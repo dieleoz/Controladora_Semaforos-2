@@ -5,20 +5,14 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 
 ## Por donde se retoma, en este orden
 
-1. **UN SOLO paquete que no deje nada de teclado pendiente (orden del responsable, 16/10).** El de `0fe782f`
-   (`entregas/Paquete_Semaforos_2026-10-16_0fe782f_SIN_BANCO.zip`, `b5018718...`, APK `df02795d...`) esta hecho y
-   verificado pero RETENIDO: no se manda. Antes, en una tanda (`N-181` de `roadmap.md`: agentes, ficheros y
-   tiempos) se cierra TODO lo que solo pide teclado: (a) la version siguiente de `N-180` entera de `roadmap.md` (MAC en
-   minusculas, `grupos:[null]`, orden numerico de grupos, «Quitar del grupo» y cambio de hueco sin confirmar, ACK
-   diferido entre sesiones, PR sin tope, avisos por MAC al reenlazar, `anotarFw`, `preguntarNuevo`, mutantes de QA
-   `SET_TIEMPOS` sin rango y `parar()` vacio, reloj inyectable en `dom_claves.js` «Practica» (4)); (b) la maquetacion
-   medida a 320 px CSS en su telefono (franja sobre el modal, «emparejado», «(radio N %)» bajo 🛡️, «MANDOS DE CAMPO»,
-   `.card-sub` sin regla, buscador cortado); (c) firmware `SET_TIEMPOS:259` aceptado como 3 por el `(uint8_t)`;
-   (d) simplificar la app (27/10, bloque U de `N-181`). Despues: compuerta completa, arquitecto y QA una vez, APK,
-   `.bin` con sello, telefono (CDP 9333 + capturas) y UN paquete.
-2. **Lo que no cierra el teclado va en la MISMA visita de Marco, pedido en la hoja de ese paquete** (que mida, no
-   que pruebe otra version): `D-94`..`D-97` (veto de camara y barrera fuera de servicio) piden tarjeta con barrera y
-   pila medidas (SI del responsable el 27/10: se construyen en la tanda); `D-22` una tarjeta; `D-124` dos parejas.
+1. **Paquete para Marco (`N-182`, 09/11):** firmware con los interruptores de camara y barrera (`D-94`..`D-97`,
+   `D-148`..`D-152`), app simplificada (bloque U, `D-141`..`D-145`), textos llanos de `N-183` y simulador de Practica
+   con los interruptores; hoja de 24 pruebas (barrera con puente H, 4 camaras, interruptores, radios, El Sisga y calle
+   con mensula). El vigente esta en `entregas/` y en la fila de abajo; los anteriores, en `RETIRADOS/`. Sin banco.
+2. **Lo que mide Marco en esa visita:** recorrido real de la pluma (dice ~60 s con final de carrera) y si la camara
+   frena una bajada ya ordenada (hoy no, C5: decision del responsable tras medir); banderas tras un corte con pila;
+   `D-22` una tarjeta; `D-124` dos parejas. El Sisga: `VERSION` de cada poste y cinta de viernes a lunes (hipotesis
+   no medida: tope de 48 h sin sincronizar del firmware anterior al 29/09).
 3. **Radio con varios grupos (`D-124`):** un canal por pareja (SPEC_6 B.3); falta el acta con dos parejas (mismo
    canal, contiguos, separados) y cuantos canales caben en 170/172 MHz. Filtro de pareja en la trama: riesgo abierto.
 4. **Cuando vuelvan sus cintas** (`N-177` V10): leerlas enteras y contando (`CLAUDE.md` §7), un `IOTVIAL_*` de CADA
@@ -27,7 +21,7 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 
 ## Frentes abiertos (tres como maximo)
 
-- **Banco de Marco** con el paquete `96c3d32` (`N-177`): verde del Degradado y lo pendiente desde el 04/10.
+- **Banco de Marco** con el paquete de `N-182` (punto 1): barrera, camaras, interruptores y radios.
 - **Campo** El Sisga: firmware por decidir; `N-172` sin medir en tarjeta.
 - **Orden del repo** (fase F). Fases 0-4 hechas con el arquitecto de plataforma; la 5 (`lib/`), tras banco.
 
@@ -49,9 +43,9 @@ cabecera con que HEAD y que arbol se midio; las comprueba `documentos_01` en cad
 | | |
 |---|---|
 | Flash | Maestro **80.2 %** · Esclavo **66.8 %** · Repetidor **20.6 %** · ESP32 **35.8 %** |
-| Banco por packs | **1518/1519 comprobaciones** en **70 packs**, 1 FALLA: `D-22` pide una tarjeta delante (`CLAUDE.md` §1) |
+| Banco por packs | **1519/1520 comprobaciones** en **70 packs**, 1 FALLA: `D-22` pide una tarjeta delante (`CLAUDE.md` §1) |
 | Arneses de C++ real | 99/99 automatico · 78/78 ciclo · 184/184 dos puntas · 158/158 Degradado a dos puntas |
-| App y puente | **912/912** jsdom · **71/71** funcional · **70/70** unitarios · 89/89 TDD · puente 159/159 |
+| App y puente | **922/922** jsdom · **71/71** funcional · **70/70** unitarios · 89/89 TDD · puente 159/159 |
 ## BLOQUEANTES: lo que no se cierra con teclado (roadmap §1 y §4)
 
 | bloqueo | referencia |
