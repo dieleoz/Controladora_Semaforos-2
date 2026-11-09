@@ -17,6 +17,7 @@
 #include "bluetooth.h"
 #include "deg_auto.h"   // A-15: el Degradado automatico (SPEC_2 7.ter)
 #include "modo_noche.h" // D-106..D-111: el modo noche (SPEC_0 5.10)
+#include "interruptores.h" // D-152: el aviso de arranque de los dos interruptores
 #include <IWatchdog.h> // SFTY-1: Watchdog Timer
 
 // FASE 1 DEL PLAN DE ARQUITECTURA: aqui vivia el ultimo resto de la vieja maquina de
@@ -91,6 +92,7 @@ void setup() {
   // Sale por el conector J17 -p3 y p2-, que es enchufable; PA9/PA10 no llegan
   // a ninguna bornera. Ver el porque en bluetooth.cpp.
   bluetooth_setup();
+  interruptores_avisoArranque();   // D-152: con el respaldo ya leido y el bluetooth arriba
   modoNoche_cargar();   // D-108: las franjas, de su pagina de flash
 
   // N-20: la decision de reanudar se consulta AQUI, ANTES de publicar la

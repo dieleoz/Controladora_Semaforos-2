@@ -102,8 +102,17 @@ static const uint16_t FLAG_APTO_DADO = 0x0080;
 // respaldo_guardarDegradado() y respaldo_guardarTestigo(): toda entrada y toda salida del
 // Degradado, sin que cada camino tenga que saber que existe.
 static const uint16_t FLAG_ROJO_SIN_HORA = 0x0100;
+// D-95 (SPEC_8 6.2): los dos interruptores de administrador. Mismo molde: bits libres de DR4,
+// dentro de la suma y sin tocar la firma. Los baja su orden inversa o respaldo_borrar() -los
+// dos vuelven a ON, el lado seguro-; guardarDegradado()/guardarTestigo() NO: un Degradado no
+// repara una barrera.
+static const uint16_t FLAG_VETO_CAMARA_OFF = 0x0200;
+static const uint16_t FLAG_BARRERA_FUERA   = 0x0400;
 
 static bool contenidoValido = false;
+// D-148: "este arranque encontro el respaldo invalido y lo borro". No es respaldo_valido():
+// sellar() la pone a true tambien tras borrar. Se fija en respaldo_setup(), antes de borrar.
+static bool perdidoAlArrancar = false;
 
 // D-61 (N-178 M1): REIN en el byte ALTO de DR3 y ANTES en el byte alto de DR2. Los dos
 // registros guardan un uint8 en el byte bajo; el alto estaba libre y ya entra en la suma,
@@ -216,6 +225,7 @@ void respaldo_setup() {
   const uint32_t sumaGuardada = ((uint32_t)leerReg(REG_SUMA_ALTA) << 16) |
                                 (uint32_t)leerReg(REG_SUMA_BAJA);
   contenidoValido = (leerReg(REG_FIRMA) == FIRMA) && (sumaGuardada == calcularSuma());
+  perdidoAlArrancar = !contenidoValido;   // D-148: ANTES de respaldo_borrar()
 
   if (!contenidoValido) {
     // Equipo nuevo, pila agotada o contenido corrupto. Se deja limpio en vez de
@@ -435,3 +445,17 @@ void respaldo_guardarRojoSinHora() { ponerFlag(FLAG_ROJO_SIN_HORA, true); }
 bool respaldo_rojoSinHora() {
   return contenidoValido && (leerReg(REG_FLAGS) & FLAG_ROJO_SIN_HORA) != 0;
 }
+
+// --- D-95: los dos interruptores de SPEC_8 6 ---------------------------------
+// D-149: el getter lee DR4 por contenidoValido, sin copia en RAM; lo leen la orden y
+// escribirPines(). Antes de respaldo_setup() -en el Esclavo semaforo_setup() va antes- vale
+// false, que es ON.
+void respaldo_guardarVetoCamaraOff(bool off) { ponerFlag(FLAG_VETO_CAMARA_OFF, off); }
+bool respaldo_vetoCamaraOff() {
+  return contenidoValido && (leerReg(REG_FLAGS) & FLAG_VETO_CAMARA_OFF) != 0;
+}
+void respaldo_guardarBarreraFuera(bool fuera) { ponerFlag(FLAG_BARRERA_FUERA, fuera); }
+bool respaldo_barreraFuera() {
+  return contenidoValido && (leerReg(REG_FLAGS) & FLAG_BARRERA_FUERA) != 0;
+}
+bool respaldo_perdidoAlArrancar() { return perdidoAlArrancar; }

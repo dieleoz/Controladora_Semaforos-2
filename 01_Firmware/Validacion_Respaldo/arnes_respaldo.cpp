@@ -181,6 +181,37 @@ int main(void) {
       printf("%u %u %d\n", (unsigned)leerReg(REG_CICLO_RV), (unsigned)leerReg(REG_CICLO_DESPEJE),
              respaldo_tiemposCiclo(&ro, &ve, &de) ? 1 : 0);
 
+    } else if (strncmp(linea, "BANDERAS", 8) == 0) {
+      // D-95/D-148 (SPEC_8 6.1-6.2): una linea de nueve cifras con lo que respaldo.cpp REAL
+      // contesta en cada paso; compilar.ps1 la compara con la que dictan las decisiones.
+      //  1 antes de respaldo_setup(), con los bits puestos en DR4: getter (D-149: falso)
+      //  2-3 setup sobre basura: perdidoAlArrancar y la barrera tras intentar ponerla
+      //  4 los dos puestos y un Degradado entrado y salido, y un testigo: siguen (D-95)
+      //  5-6 reinicio simulado con respaldo valido: perdido baja, la barrera sigue
+      //  7 el ON la baja; 8 respaldo_borrar() baja el veto; 9 bit 9 = 0x0200 en DR4
+      contenidoValido = false;
+      escribirReg(REG_FLAGS, 0x0600U);
+      const int a = respaldo_barreraFuera() ? 1 : 0;
+      for (uint8_t r = 1; r <= 10; r++) escribirReg(r, 0x0A0AU);
+      respaldo_setup();
+      const int b = respaldo_perdidoAlArrancar() ? 1 : 0;
+      respaldo_guardarBarreraFuera(true);
+      respaldo_guardarVetoCamaraOff(true);
+      const int c = respaldo_barreraFuera() ? 1 : 0;
+      respaldo_guardarDegradado(true);
+      respaldo_guardarTestigo();
+      respaldo_guardarDegradado(false);
+      const int d = (respaldo_barreraFuera() && respaldo_vetoCamaraOff()) ? 1 : 0;
+      respaldo_setup();
+      const int e = respaldo_perdidoAlArrancar() ? 1 : 0;
+      const int f = (respaldo_barreraFuera() && respaldo_vetoCamaraOff()) ? 1 : 0;
+      respaldo_guardarBarreraFuera(false);
+      const int g = (respaldo_barreraFuera() ? 2 : 0) + (respaldo_vetoCamaraOff() ? 1 : 0);
+      const int dr4 = leerReg(REG_FLAGS) & 0x0600U;
+      respaldo_borrar();
+      const int h = respaldo_vetoCamaraOff() ? 1 : 0;
+      printf("%d %d %d %d %d %d %d %d %04X\n", a, b, c, d, e, f, g, h, (unsigned)dr4);
+
     } else if (strncmp(linea, "CAUSA", 5) == 0) {
       // D-62: CAUSA <RCC_CSR en decimal> -> la causa que anotarArranque() REAL publica.
       if (sscanf(linea + 5, "%lu", &v[0]) != 1) { printf("ERROR\n"); continue; }

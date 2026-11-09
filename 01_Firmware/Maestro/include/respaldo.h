@@ -121,6 +121,18 @@ bool respaldo_aptoDado();
 void respaldo_guardarRojoSinHora();
 bool respaldo_rojoSinHora();
 
+// D-95 (SPEC_8 6.2): los dos interruptores de administrador, bits 9 y 10 de DR4. Los baja
+// solo su orden inversa o respaldo_borrar(); guardarDegradado()/guardarTestigo() no los
+// tocan. Getters por contenidoValido, sin copia en RAM (D-149): antes de respaldo_setup()
+// valen false, que es ON, el lado seguro.
+void respaldo_guardarVetoCamaraOff(bool off);
+bool respaldo_vetoCamaraOff();
+void respaldo_guardarBarreraFuera(bool fuera);
+bool respaldo_barreraFuera();
+// D-148: true si ESTE arranque encontro el respaldo invalido y lo borro. respaldo_valido()
+// no sirve: tras respaldo_setup() vale siempre true. Con ella se rechaza el OFF de los dos.
+bool respaldo_perdidoAlArrancar();
+
 // Borra todo. Deja el respaldo como en un equipo nuevo.
 void respaldo_borrar();
 

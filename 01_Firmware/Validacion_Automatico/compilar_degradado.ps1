@@ -98,6 +98,7 @@ $fuentesEsclavo = @(
     (Join-Path $ESCLAVO 'src\respaldo.cpp'),
     (Join-Path $ESCLAVO 'src\reloj.cpp'),
     (Join-Path $ESCLAVO 'src\deg_auto.cpp'),     # A-15: lo llama main.cpp
+    (Join-Path $ESCLAVO 'src\interruptores.cpp'), # SPEC_8 6: lo llaman main.cpp y bluetooth.cpp
     (Join-Path $RR 'rtc_periferico.cpp'),
     (Join-Path $DP 'adaptador_esclavo.cpp')
 )

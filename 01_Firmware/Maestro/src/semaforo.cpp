@@ -3,6 +3,8 @@
 #include "pines.h"
 // D-33: la pluma pregunta a las camaras antes de bajar. El porque, en escribirPines().
 #include "botones.h"
+// D-95/D-96: los dos interruptores de SPEC_8 6 viven en el respaldo; escribirPines() los lee.
+#include "respaldo.h"
 // D-33: y de aqui sale el suelo vial del todo-rojo contra el que se acota el retardo.
 #include "limites_ciclo.h"
 // N-82.bis: el test de lamparas solo corre FUERA DE SERVICIO, y eso es una pregunta
@@ -46,6 +48,11 @@ static const unsigned long TEST_FASE_MS = 2000;
 // asigna dentro de la propia orden de escribirPines(), que es el unico sitio que
 // decide (SFTY-28).
 static bool plumaAbierta = false;
+// D-150 (SPEC_8 6.4): Y SI ESTA ARRIBA POR EL INTERRUPTOR de barrera fuera de servicio. Se
+// asigna en la MISMA expresion que el pin (molde N-153): PLUMA:FUERA y el $ACK la leen con
+// semaforo_plumaFuera(), nunca la bandera del respaldo, que va por delante del pin antes de
+// la reentrada de D-149 o entre semaforo_setup() y respaldo_setup().
+static bool plumaFuera = false;
 
 // --- D-33: LA PLUMA BAJA UNOS SEGUNDOS DESPUES DEL ROJO --------------------
 //
@@ -158,8 +165,9 @@ static void escribirPines(bool rojo, bool amarillo, bool verde) {
   //
   // Verde encendido con la pluma abajo es la direccion segura y esta admitida: la
   // barrera puede ser MAS restrictiva que la lampara -el arnes del automatico solo
-  // exige lo contrario, que no haya pluma arriba sin verde-. Al reves seria una
-  // invitacion a entrar que nadie autorizo.
+  // exige lo contrario, que no haya pluma arriba sin verde fuera de S_FALLO, salvo la
+  // barrera fuera de servicio, por su NOMBRE (D-96, abajo)-. Al reves seria una
+  // invitacion a entrar que nadie autorizo; la unica autorizada es esa.
   //
   // Y EL S_FALLO DE ARRIBA NO CONTRADICE AL REPOSO DE pines.h, que es lo que confunde
   // al leerlo (anotado el 04/09/2026, con la politica reconfirmada por el responsable).
@@ -221,7 +229,18 @@ static void escribirPines(bool rojo, bool amarillo, bool verde) {
   // contacto se queda cerrado, y el $EVENT del contador en cuanto el veto actua.
   // D-53: S_ROJO_AMARILLO no la sube (verde apagado, fuera de la lista): sube con el VERDE.
   // D-110: y en los destellos de la noche, pluma ARRIBA en los dos (SPEC_0 5.10 (a)).
-  const bool luzPideArriba = (verde && !testLedsActivo) || estado == S_FALLO || estado == S_AMARILLO ||
+  //
+  // D-96 (confirmado por el responsable) - BARRERA FUERA DE SERVICIO: ARRIBA,
+  // TAMBIEN EN ROJO. DEROGA, SOLO PARA FLAG_BARRERA_FUERA y por su nombre, la premisa "pluma
+  // arriba sin verde solo en S_FALLO" de este bloque, de botones.cpp y de SFTY-28. Modo de
+  // fallo ACEPTADO con el delante: rojo aqui y verde en la otra punta con la pluma arriba es
+  // el carril unico con las dos bocas abiertas, sin tope de tiempo, sobreviviendo al corte
+  // (D-95) y sin $ALARM (solo el aviso de arranque, D-152). El brazo esta roto: manda la luz.
+  // 'fuera' gana el termino de la luz y sale por esta misma puerta; su anotacion va en la
+  // expresion del pin (D-150). Y CAMARA FUERA DEL VETO (FLAG_VETO_CAMARA_OFF): plumaVetada
+  // no vale nunca true y la pluma baja al cumplir el retardo, como con las borneras vacias.
+  const bool fuera = respaldo_barreraFuera();
+  const bool luzPideArriba = fuera || (verde && !testLedsActivo) || estado == S_FALLO || estado == S_AMARILLO ||
                              estado == S_AMBAR_INT || estado == S_ROJO_INT;
   bool plumaArriba;
   if (luzPideArriba) {
@@ -241,12 +260,12 @@ static void escribirPines(bool rojo, bool amarillo, bool verde) {
       tPlumaCierrePedido = millis();
     }
     const bool enRetardo = (millis() - tPlumaCierrePedido) < PLUMA_RETARDO_BAJADA_MS;
-    plumaVetada = !enRetardo && camara_presenciaJ16();
+    plumaVetada = !enRetardo && !respaldo_vetoCamaraOff() && camara_presenciaJ16();   // D-96
     plumaArriba = enRetardo || plumaVetada;
     if (!plumaArriba) plumaCierrePendiente = false;
   }
   digitalWrite(MOTOR_TALANQUERA,
-               (plumaAbierta = plumaArriba) ? TALANQUERA_ABRIR : TALANQUERA_CERRAR);
+               (plumaFuera = fuera, plumaAbierta = plumaArriba) ? TALANQUERA_ABRIR : TALANQUERA_CERRAR);
 }
 
 static void aplicarSalidas(bool rojo, bool amarillo, bool verde) {
@@ -289,6 +308,7 @@ void semaforo_setup() {
   // La bandera dice lo que dice el pin, tambien aqui: este digitalWrite no pasa por
   // escribirPines(), asi que es el unico sitio donde hay que repetirlo.
   plumaAbierta = false;
+  plumaFuera = false;   // D-150: la anotacion del interruptor, igual que la de arriba
   // D-33: y con ella las dos banderas del cierre. Un arranque no hereda un retardo a
   // medias ni un veto de antes del reinicio: la pluma ya esta abajo, que es el unico
   // estado desde el que las dos sobran.
@@ -497,4 +517,18 @@ const char* semaforo_nombreEstado() {
     case S_ROJO_INT: return "ROJO_INT";
   }
   return "";
+}
+
+// D-150: true si la ultima orden de escribirPines() abrio la pluma por el interruptor de
+// barrera fuera de servicio. La anotacion, no la bandera: ver su declaracion.
+bool semaforo_plumaFuera() {
+  return plumaFuera;
+}
+
+// D-149 (SPEC_8 6.3): la orden de un interruptor vuelve a pasar por la puerta. En S_ROJO
+// estable nada llama a escribirPines() -la reentrada del bucle solo corre con un cierre
+// pendiente-, asi que sin esto un OFF no moveria el pin hasta el siguiente cambio de luz.
+// Reentra con lo ULTIMO que pidio la logica, ya enclavado: no es un segundo escritor (SFTY-2).
+void semaforo_reaplicarSalidas() {
+  aplicarSalidas(ultR, ultA, ultV);
 }

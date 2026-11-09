@@ -470,6 +470,7 @@ static unsigned long g_ticksVerdeMaestro = 0;
 static unsigned long g_ticksVerdeEsclavo = 0;
 static unsigned long g_enclavamientoRoto = 0;   // rojo y verde a la vez EN LA MISMA punta
 static unsigned long g_talanqueraSinVerde = 0;
+static bool excepcionFueraOrq(int i);   // SPEC_8 6.3: en orquestador_interruptores.inc
 
 // D-33 - LA INVARIANTE DE LA PLUMA, REPARTIDA (CLAUDE.md 9): "pluma arriba siempre con razon
 // nombrada" y "la unica excepcion nombrada es S_FALLO" se conservan; "la razon es el verde"
@@ -589,7 +590,7 @@ static void vigilar(unsigned long t) {
     if (p->pin(MOTOR_TALANQUERA) == TALANQUERA_ABRIR &&
         p->pin(VERDE1) != HIGH && p->pin(VERDE2) != HIGH &&
         p->estado() != S_FALLO && p->estado() != S_AMARILLO_V && p->estado() != S_AMBAR_INT_V &&
-        p->estado() != S_ROJO_INT_V) {   // N-179: en la noche la pluma va ARRIBA (SPEC_0 5.10 (a))
+        p->estado() != S_ROJO_INT_V && !excepcionFueraOrq(i)) {   // N-179 noche (SPEC_0 5.10 (a)); D-96 por NOMBRE
       if (g_plumaSinVerdeDesde[i] == 0) g_plumaSinVerdeDesde[i] = g_t + 1;
       const unsigned long dur = g_t - (g_plumaSinVerdeDesde[i] - 1);
       if (dur > g_peorVentanaPlumaMs[i]) g_peorVentanaPlumaMs[i] = dur;
@@ -1095,6 +1096,7 @@ static void imprimirTrazaG(const char* titulo, const CorridaG& c) {
 }
 
 #include "orquestador_noche.inc"   // N-179: BLOQUE N, el modo noche
+#include "orquestador_interruptores.inc"   // BLOQUE S: SPEC_8 6 en el Esclavo REAL
 // ---------------------------------------------------------------------------
 int main() {
   std::printf("==============================================================\n");
@@ -1395,8 +1397,7 @@ int main() {
   comprobar(std::string(MAESTRO.nombre()) == "MAESTRO" &&
             std::string(ESCLAVO.nombre()) == "ESCLAVO",
             "E1: hay DOS modulos cargados y cada uno se identifica como su punta "
-            "(cargar dos veces el mismo daria un arnes midiendo una punta contra si "
-            "misma)");
+            "(cargar dos veces el mismo daria un arnes midiendo una punta contra si misma)");
 
   comprobar(MAESTRO.h != ESCLAVO.h,
             "E2: los dos HMODULE son distintos: el enlazador de Windows resolvio "
@@ -1682,16 +1683,14 @@ int main() {
     avanzar(2000);
     comprobar(ESCLAVO.orden("degradado_gobierna") == 1,
               "D3: el Modo Degradado del Esclavo GOBIERNA la luz: hay dos autoridades "
-              "vivas sobre el mismo cruce, el reloj de esta punta y el coordinador de "
-              "la otra");
+              "vivas sobre el mismo cruce, el reloj de esta punta y el coordinador de la otra");
 
     // Con el enlace vivo, la primera trama de gobierno tiene que sacarlo por la via
     // ordenada. Lo que se mide es que en TODA la transicion no coincida un verde.
     avanzar(200000);
     comprobar(g_verdeSimultaneo == sim0,
               "D4: durante la entrada y la salida del Degradado con el Maestro ciclando "
-              "por radio y una configuracion distinta, NUNCA coincidio un verde en las "
-              "dos puntas");
+              "por radio y una configuracion distinta, NUNCA coincidio un verde en las dos puntas");
   }
 
   {
@@ -3990,6 +3989,7 @@ int main() {
   }
 
   bloqueNoche();   // N-179 (D-106..D-111)
+  bloqueInterruptores();   // SPEC_8 6 (D-148..D-152)
   // reportar(): no cuenta. Lo que la excepcion de A9 dejo pasar en los bloques A a F. MEDIDO
   // el 11/09: la racha larga es del bloque D -D5/D6-, el Esclavo dando verde POR RELOJ en su
   // Degradado con el Maestro en S_FALLO (el Degradado del Maestro no se compila aqui): A9 la

@@ -181,7 +181,7 @@ vez el extremo de la cadena electrica que vive en `SPEC_5` §4. **Es de aqui.**
 > queda pegado. La respuesta de hoy es **avisar y no bajar nunca**, y esta escrita porque se eligio,
 > no porque se midiera que sea la mejor.
 
-# 6. 🟡 Los dos interruptores de administrador — **DECIDIDOS el 14/09, CERRADOS el 14/10, SIN CONSTRUIR**
+# 6. 🟡 Los dos interruptores de administrador — **CONSTRUIDOS SIN BANCO el 09/11 (`N-182`)**
 
 🔴 **La barrera fuera de servicio (6.3) la confirmo ARRIBA el responsable el 09/11 (`D-96`), con su modo de fallo.**
 
@@ -308,13 +308,13 @@ la **4** (la concesion de paso por camara nunca se probo)—. Aqui, lo que falta
 | 1 | **NINGUNA DE ESTAS CONDUCTAS SE HA VISTO EN UNA TARJETA.** El retardo de 3 s y el veto son del 14/09 y estan **escritos y no cargados**; la instalacion **certificada** es la `V8.4`, anterior a las dos. 🛑 **Que firmware hay hoy en cada equipo lo dice `ESTADO.md`, no este fichero** (`CLAUDE.md` §0.2) |
 | 2 | **Que una camara real cierre el contacto el tiempo suficiente para vetar.** El veto se apoya en `camara_presenciaJ16()`, cuya ventana la fija `demanda_ventanaMs()`; **con un contacto mas corto que la ventana el veto se sostiene, con uno mas largo tambien — y ninguno se ha medido con una camara puesta** |
 | 3 | **Que el aviso de pluma retenida llegue al telefono.** Sale por el mismo camino que el resto de `$EVENT` (`SPEC_6`), y **el Bluetooth no subio en toda la sesion de banco** (`SPEC_5` §6.17) |
-| 4 | **Los dos interruptores de §6: DECIDIDOS (`D-94`..`D-97`) y SIN CONSTRUIR.** No hay ni una linea de firmware ni de app; `decisiones_01_anclas` los lista junto a `D-22` hasta que se construyan |
+| 4 | **Los dos interruptores de §6: construidos el 09/11 (`interruptores.cpp` en las dos puntas, `js/interruptores.js`) y sin banco.** Tras un corte con la barrera fuera, la pluma vuelve a subir en la siguiente escritura de la luz, no al arrancar: lo mide el arnes de dos puntas (S3), sin fila que lo decida |
 | 5 | **Que las dos banderas de §6.2 sigan puestas tras un corte REAL, con pila** — HUECO en tarjeta, como `D-62`; el arnes de dos puntas solo simula el reinicio |
 | 6 | **La cinta de campo no ayuda:** 253 tramas del Sisga (10/09) y **las 253 dicen `CAM:?`** — en veinte minutos ninguna camara le dio un flanco al equipo (`SPEC_5` §6) |
 | 7 | **El recorrido real de la pluma:** ~60 s de subida segun Marco (06/10), sin cronometrar; la bajada, sin dato |
 
 *Decisiones recogidas: `D-12`, `D-13` (lo no derogado), `D-24`, `D-25`, `D-27`, `D-33`, `D-39`, `D-42`, `D-54`,
-`D-94`..`D-97` (§6, sin construir). Abiertas
+`D-94`..`D-97` (§6, construido sin banco). Abiertas
 que nombra sin resolver: `A-1.bis`, `A-6`. 🔴 **Y una eleccion vial vigente que NO tiene fila y deberia tenerla:
 la pluma ARRIBA en `S_FALLO`, del cliente y el PMT el 27/08/2026 (§5).** Manda esta spec;
 `DECISIONES.md` es su indice; el cobre, `17_...` y `SPEC_5`. Nacido el 14/09/2026 al

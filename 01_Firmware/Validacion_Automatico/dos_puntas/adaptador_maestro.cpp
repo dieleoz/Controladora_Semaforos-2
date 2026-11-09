@@ -148,6 +148,10 @@ uint8_t reloj_dia() { return 1; }
 uint32_t reloj_segundosDelDia() { return (uint32_t)(arnes_millis_valor / 1000UL); }
 uint32_t reloj_contadorSegundos() { return (uint32_t)(arnes_millis_valor / 1000UL); }
 void respaldo_marcarSync(uint32_t) {}
+// SPEC_8 6 (D-95): los dos interruptores, en ON. Este arnes no ejerce las ordenes del Maestro (lo
+// hace el Bloque I de arnes_automatico.cpp); los del Esclavo, el bloque de orquestador_interruptores.inc.
+bool respaldo_vetoCamaraOff() { return false; }
+bool respaldo_barreraFuera() { return false; }
 
 // N-133/N-135: los tiempos del ciclo, doblados con memoria de verdad.
 // Un doble que devolviera siempre "no hay nada" dejaria sin ejercer el camino de
@@ -319,6 +323,7 @@ PUNTA_API void punta_entrada(int pin, int nivel) {
 }
 
 PUNTA_API long punta_mando(const char* que, long arg) {
+  if (!strcmp(que, "pluma_fuera")) return semaforo_plumaFuera() ? 1 : 0;   // SPEC_8 6 (D-150)
   // Arranca un modo Automatico limpio: CONFIG_ROJO -> CONFIG_VERDE -> CONFIG_ESTATICO
   // -> CORRIENDO, aceptando lo configurado. Es la puerta de entrada real al ciclo.
   if (!strcmp(que, "arrancar_automatico")) {

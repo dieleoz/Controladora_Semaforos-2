@@ -100,19 +100,18 @@ def _condicion_pluma(cuerpo):
     return m.group(1).strip(), m.group(2), m.group(3)
 
 
-def _evaluar_pluma(cond, bandera, verde, test, fallo, amarillo=False, ra=False, ai=False):
+def _evaluar_pluma(cond, bandera, verde, test, fallo, amarillo=False, ra=False, ai=False, fuera=False):
     """Evalua la condicion REAL del C++ con la tabla de verdad dada.
 
-    No se reescribe la logica en Python -eso seria una segunda copia que alguien
-    tendria que sincronizar, que es el defecto que este banco persigue-: se traduce
-    la expresion y se evalua tal cual esta escrita en el fuente."""
+    No se reescribe la logica en Python -eso seria una segunda copia que alguien tendria que
+    sincronizar-: se traduce la expresion y se evalua tal cual esta escrita en el fuente."""
     py = re.sub(r"estado\s*==\s*S_FALLO", "ES_FALLO", " ".join(cond.split()))   # N-179: dos lineas
     py = re.sub(r"estado\s*==\s*S_ROJO_AMARILLO", "ES_RA", py)    # D-53: antes que S_AMARILLO
     py = re.sub(r"estado\s*==\s*S_AMARILLO", "ES_AMARILLO", py)   # D-45: el cierre
     py = re.sub(r"estado\s*==\s*S_(?:AMBAR|ROJO)_INT", "ES_AI", py)   # D-110: los destellos de la noche
     py = py.replace("&&", " and ").replace("||", " or ").replace("!", " not ")
     return bool(eval(py, {"__builtins__": {}},  # noqa: S307
-                     {"verde": verde, bandera: test, "ES_FALLO": fallo,
+                     {"verde": verde, bandera: test, "ES_FALLO": fallo, "FUERA": fuera,
                       "ES_AMARILLO": amarillo, "ES_RA": ra, "ES_AI": ai}))
 
 
@@ -322,9 +321,13 @@ def correr(b, fw):
     d33 = fw.apertura_de_la_pluma(cuerpoEscribir, publicada, expr)
     if d33 is not None:
         expr = d33["tabla"]
+    # D-96 (SPEC_8 6.3): la barrera fuera entra POR SU NOMBRE (FLAG_BARRERA_FUERA), no "con rojo".
+    mF = re.search(r"const\s+bool\s+(\w+)\s*=\s*respaldo_barreraFuera\(\)\s*;", cuerpoEscribir)
+    if mF:
+        expr = re.sub(r"\b%s\b" % mF.group(1), "FUERA", expr)
 
     desconocidos = sorted(set(_IDENT.findall(expr)) -
-                          {"verde", bandera, "estado", "S_FALLO", "S_AMARILLO",
+                          {"verde", bandera, "estado", "S_FALLO", "S_AMARILLO", "FUERA",
                            "S_ROJO_AMARILLO", "S_AMBAR_INT", "S_ROJO_INT"})   # D-53: ES_RA; D-110: ES_AI
     if desconocidos:
         raise fw.Abortado(
@@ -352,8 +355,7 @@ def correr(b, fw):
 
     b.verificar(
         pluma(True, False, False),
-        "fuera del test, la pluma SIGUE al verde: SFTY-28 intacto para el paso de "
-        "verdad",
+        "fuera del test, la pluma SIGUE al verde: SFTY-28 intacto para el paso de verdad",
         "con verde de servicio -sin test- la pluma se queda ABAJO. El arreglo de N-82 "
         "se paso de largo y dejo la barrera cerrada cuando el equipo si esta dando "
         "paso: eso es un corredor de obra sin salida")
@@ -381,11 +383,13 @@ def correr(b, fw):
         "en S_FALLO la pluma sigue subiendo -la politica de SFTY-6 que eligio el "
         "cliente el 27/08- y el test no se la lleva por delante",
         "la excepcion de S_FALLO se perdio: con el equipo sin enlace la barrera se "
-        "quedaria ABAJO, cerrando la via por completo, que es la politica CONTRARIA a "
-        "la decidida")
+        "quedaria ABAJO, cerrando la via por completo, que es la politica CONTRARIA a la decidida")
+    b.verificar(   # CLAUDE.md 9: la fila de arriba se CONSERVA sin la bandera y se INVIERTE con ella
+        all(_evaluar_pluma(expr, bandera, False, t, False, fuera=True) for t in (False, True)),
+        "D-96: con FLAG_BARRERA_FUERA la pluma SUBE sin verde y sin S_FALLO, haya test o no",
+        "D-96: con la barrera fuera de servicio la pluma da ABAJO en rojo; SPEC_8 6.3: ARRIBA")
     b.verificar(
-        _evaluar_pluma(expr, bandera, False, False, False, ai=True) and
-        _evaluar_pluma(expr, bandera, False, True, False, ai=True),
+        all(_evaluar_pluma(expr, bandera, False, t, False, ai=True) for t in (False, True)),
         "D-110: en S_AMBAR_INT (el destello del modo noche) la pluma SUBE, como en S_FALLO",
         "D-110: en el destello de la noche la condicion de la pluma da ABAJO; SPEC_0 5.10 (a) "
         "la quiere ARRIBA en los dos durante la franja")
@@ -428,11 +432,8 @@ def correr(b, fw):
     # D-33: y el detector de la rama de en medio, ejercido contra el texto defectuoso
     # de verdad -el que ABRE desde cerrada-, no contra uno inventado.
     _MALA = ("{ const bool L = (verde && !testLedsActivo) || estado == S_FALLO;"
-             "  bool P;"
-             "  if (L) { P = true; }"
-             "  else if (!F) { P = camara_presenciaJ16(); }"
-             "  else { P = false; }"
-             "  digitalWrite(MOTOR_TALANQUERA, (F = P) ? TALANQUERA_ABRIR : X); }")
+             "  bool P;  if (L) { P = true; }  else if (!F) { P = camara_presenciaJ16(); }"
+             "  else { P = false; }  digitalWrite(MOTOR_TALANQUERA, (F = P) ? TALANQUERA_ABRIR : X); }")
     _BUENA = _MALA.replace("P = camara_presenciaJ16();", "P = false;")
     b.control_negativo(
         fw.apertura_de_la_pluma(_MALA, "F", "P")["cierra"] is False
@@ -604,8 +605,7 @@ def correr(b, fw):
     b.verificar(
         not malos,
         "el test solo se admite con los DOS postes en rojo fijo (%s, luz en S_ROJO y "
-        "ACK_RED del Esclavo): en "
-        "ningun modo con ciclo puede encender un verde contra el otro sentido"
+        "ACK_RED del Esclavo): en ningun modo con ciclo puede encender un verde contra el otro sentido"
         % ", ".join(sorted(fuera_de_servicio)),
         "EL TEST SE ADMITE EN SERVICIO: %s. Su fase verde enciende VERDE1/VERDE2 sin "
         "mirar el ciclo, y SFTY-2 no lo impide porque solo conoce este poste"

@@ -260,6 +260,17 @@ def apertura_de_la_pluma(cuerpo, publicada, local):
     return None
 
 
+def anotacion_fuera(codigo):
+    """D-150 (SPEC_8 6.4): la bandera que devuelve semaforo_plumaFuera(), leida del fuente.
+
+    escribirPines() la asigna en la MISMA expresion que el pin, delante de la de N-153:
+    `(plumaFuera = fuera, plumaAbierta = plumaArriba) ? ...`. sin_asignacion() la quita SOLO
+    si es esa bandera; cualquier otra asignacion sigue sin entenderse y quien llama aborta."""
+    m = re.search(r"bool\s+semaforo_plumaFuera\s*\([^)]*\)\s*\{([^}]*)\}", codigo)
+    r = re.search(r"return\s+([A-Za-z_]\w*)\s*;", m.group(1)) if m else None
+    return r.group(1) if r else None
+
+
 def sin_asignacion(expr, codigo):
     """Desenvuelve `(plumaAbierta = X)` y devuelve X. Solo si la bandera es la publicada.
 
@@ -267,6 +278,11 @@ def sin_asignacion(expr, codigo):
     que mueve el pin, para que no haya una copia de la formula al lado. Se acepta esa
     asignacion y NINGUNA otra: con cualquier otro identificador esto devuelve la
     expresion tal cual y quien llama la vera como no entendida, que es lo correcto."""
+    fuera = anotacion_fuera(codigo)
+    m0 = fuera and re.match(r"^\(\s*%s\s*=\s*[A-Za-z_]\w*\s*,\s*(.+)\)$" % re.escape(fuera),
+                            expr.strip())
+    if m0:
+        expr = "(" + m0.group(1).strip() + ")"   # D-150: la anotacion, fuera
     m = re.match(r"^\(\s*([A-Za-z_]\w*)\s*=\s*(.+)\)$", expr.strip())
     if not m:
         return expr

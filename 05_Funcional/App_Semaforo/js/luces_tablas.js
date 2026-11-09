@@ -137,7 +137,9 @@ const MODOS = {
 
 const PLUMA_LEYENDA = {
   'ARRIBA': '▲ PLUMA ARRIBA',
-  'ABAJO':  '▼ PLUMA ABAJO'
+  'ABAJO':  '▼ PLUMA ABAJO',
+  // SPEC_8 6.4 (D-97, D-150): barrera sacada de servicio por la orden de D-94; ARRIBA (D-96).
+  'FUERA':  '▲ BARRERA FUERA DE SERVICIO'
 };
 
 // =========================================================================
@@ -167,7 +169,10 @@ const CAM_LEYENDA = {
   'CIEGA':  { texto: 'CIEGA',        frase: 'lleva demasiado tiempo de paso abierto sin una sola deteccion: puede estar tapada o sin corriente',
               color: 'var(--amber-lamp)' },
   'PEGADA': { texto: 'PEGADA',       frase: 'contacto fijo: dice que hay alguien y no se suelta',
-              color: 'var(--red-lamp)' }
+              color: 'var(--red-lamp)' },
+  // SPEC_8 6.4 (D-97, D-151): veto fuera Y camaras en OK o '?'. Ambar = mirar (D-83): hay que devolverlo.
+  'NOVETO': { texto: 'SIN VETO',     frase: 'cámara sana y sin veto: devolver el veto',
+              color: 'var(--amber-lamp)' }
 };
 
 if (typeof module !== 'undefined' && module.exports) {

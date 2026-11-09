@@ -104,8 +104,8 @@ bool camara_presenciaJ16() { return false; }
 
 bool camara_leerPin(uint8_t pin) { return digitalRead(pin) == HIGH; }
 
-// D-44: aqui vivian lcd_setup(), la bienvenida, menu_setup() y menu_loop();
-// main.cpp del Esclavo ya no los llama.
+// D-44: aqui vivian lcd_setup(), la bienvenida, menu_setup() y menu_loop(); main.cpp no los llama.
+#include "adaptador_esclavo_interruptores.inc"  // SPEC_8 6: camara_estado(), $EVENT/$STATUS, ordenes
 
 #ifdef ARNES_RELOJ_REAL
 #include "adaptador_esclavo_deg_auto.inc"  // bluetooth simulado y A-15 (bloque H): ver alli
@@ -180,8 +180,8 @@ static void btSalidaCaracter(char c) {
       } else if (!strncmp(g_btLinea, "$ALARM", 6)) {
         snprintf(g_btUltimaAlarma, sizeof(g_btUltimaAlarma), "%s", g_btLinea);
         g_btAlarmas++;
-      } else if (!strncmp(g_btLinea, "$EVENT", 6)) {
-        g_btEventos++;
+      } else {   // $EVENT (cuenta) y $STATUS: adaptador_esclavo_interruptores.inc
+        arnesInterruptores_linea(g_btLinea, &g_btEventos);
       }
       g_btLineaIdx = 0;
     }
@@ -232,9 +232,6 @@ unsigned long protocolo_tramasDescartadas() { return 0; }
 // de luz cuelga de el.
 void identidad_texto(char* dst) { snprintf(dst, 7, "%s", "ARNES1"); }
 
-// botones.cpp: el campo CAM: del $STATUS. La vigilancia de camaras la miden camara_01 y
-// camara_03; aqui solo hace falta que la trama se componga.
-const char* camara_estado() { return "OK"; }
 
 // reloj.cpp: las dos funciones de D-26 que el despachador consulta y que el modelo de
 // RTC de mas abajo no tiene. La FUENTE de la hora no la ejerce este arnes -la ejerce el
@@ -498,6 +495,7 @@ PUNTA_API void punta_entrada(int pin, int nivel) {
 }
 
 PUNTA_API long punta_mando(const char* que, long arg) {
+  { const long r = arnesInterruptores_mando(que, arg); if (r != PUNTA_DESCONOCIDO) return r; }  // SPEC_8 6
 #ifdef ARNES_RELOJ_REAL
   { const long r = arnesDegAuto_mando(que, arg); if (r != PUNTA_DESCONOCIDO) return r; }  // A-15
   // Con el reloj.cpp real no hay doble que cuente las llamadas a reloj_notarRadio(): se le

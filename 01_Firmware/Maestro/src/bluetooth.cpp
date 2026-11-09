@@ -17,6 +17,7 @@
 #include "deg_auto.h"      // A-15: SET_DEG_AUTO / CONSULTA_DEG_AUTO
 #include "modo_noche.h"    // D-110: SET_NOCHE / SET_NOCHE_TR / CONSULTA_NOCHE
 #include "respaldo.h"      // A-15: la opcion propia y el APTO oido del otro, para la consulta
+#include "interruptores.h" // SPEC_8 6: SET_VETO_CAMARA y SET_BARRERA_SERVICIO (D-94)
 #include <string.h>
 #include <stdio.h>
 
@@ -1034,6 +1035,8 @@ static void procesarComando(const char* cmd) {
     // NO se anota en el Diario. Preguntar la version no cambia el equipo, y una linea por
     // consulta inunda la bitacora donde hay que encontrar el fallo -es el umbral de J17 y
     // N-73 otra vez-. Lo que queda es la respuesta, que la app ya guarda.
+  } else if (const char* r = interruptores_orden(accion)) {   // D-94: molde SET_TIEMPOS, alli
+    enviarTramaConCrc(r);
   } else {
     enviarTramaConCrc("$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO");
   }
@@ -1482,8 +1485,8 @@ void bluetooth_loop() {
              "$STATUS,NODE:MAESTRO,SERIE:%s,MODO:%s,ESTADO:%s,T:%s,RF:%s,RTT:%s,BAT:--,HORA:%s,ESC:%s,PLUMA:%s,CAM:%s",
              serieTxt, modoStr, estadoStr, tTxt, rfTxt, rttTxt, horaBuf,
              coordinador_estadoEsclavo(),
-             semaforo_plumaArriba() ? "ARRIBA" : "ABAJO",
-             camara_estado());
+             semaforo_plumaFuera() ? "FUERA" : semaforo_plumaArriba() ? "ARRIBA" : "ABAJO",   // D-97/D-150
+             interruptores_camNoVeto() ? "NOVETO" : camara_estado());                        // D-151
 
     enviarTramaConCrc(payload);
 

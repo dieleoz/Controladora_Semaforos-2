@@ -2340,13 +2340,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // D-37/D-46: el Degradado sin testigo ya no se ofrece (D-37) y su orden salio del
-  // firmware (D-46); aqui vivian su manejador y su dialogo, sin boton desde el 29/09.
+  // D-37/D-46: el Degradado sin testigo ya no se ofrece y su orden salio del firmware.
   // D-35 (testigo) y A-15 (degradado automatico) viven en js/testigo.js y js/deg_auto.js.
   Testigo.iniciar({ state, enviarComandoFirmware, puntaCorrecta, avisarOtraPunta, addEvent,
                     showToast, horaLocal24, fechaLocalISO, pedirPin });
   DegAuto.iniciar({ state, enviarComandoFirmware, addEvent, showToast, pedirPin, horaLocal24 });
-  Noche.iniciar({ state, enviarComandoFirmware, addEvent, showToast, pedirPin });   // D-110, js/noche.js
+  const ctxOrdenes = { state, enviarComandoFirmware, addEvent, showToast, pedirPin };
+  Noche.iniciar(ctxOrdenes); Interruptores.iniciar(ctxOrdenes);   // D-110 js/noche.js; D-94 js/interruptores.js
 
   // =========================================================================
   // 4.quater DEMANDA: UN CONTROL QUE REFLEJA EL MODO EN VEZ DE GASTAR UN RECHAZO
@@ -2570,7 +2570,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Resuelve una entrada de las dos tablas de rechazo: puede ser el objeto directo o
   // una funcion de los campos de la trama, para los motivos que traen un dato dentro.
   function _traducirRechazo(data) {
-    const entrada = DegAuto.rechazo(data) || Noche.rechazo(data) || DiagnosticoEnlace.acuseReinicios(data) ||
+    const entrada = Interruptores.rechazo(data) || DegAuto.rechazo(data) || Noche.rechazo(data) || DiagnosticoEnlace.acuseReinicios(data) ||
                     Testigo.rechazo(data, state.node) ||
                     TextosSpec4.ERR[(data.CMD || '?') + '|' + (data.DESC || '')] || ERR_TEXTO[(data.CMD || '?') + '|' + (data.DESC || '')] || ERR_MOTIVO[data.DESC || ''];
     if (!entrada) return null;
@@ -2922,7 +2922,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const degAutoSinEspera = cual === DegAuto.ORDEN && !DegAuto._espera;   // D-130: dato del equipo, no respuesta
       const degAuto = DegAuto.acuse(data) || Noche.acuse(data) || DiagnosticoEnlace.acuseReinicios(data);  // A-15, D-64
       if (degAutoSinEspera) DegAuto._consultar();   // SPEC_4 3.ter.bis: se confirma con la consulta
-      const dicho = ACK_TEXTO[clave] || degAuto || TextosSpec4.ACK[clave] || TextosSpec4.tiempos(clave, state.modo);
+      const dicho = ACK_TEXTO[clave] || degAuto || Interruptores.acuse(data) || TextosSpec4.ACK[clave] || TextosSpec4.tiempos(clave, state.modo);
       if (dicho) {
         addEvent(dicho.tono, dicho.texto);
         showToast(dicho.toast);
@@ -3024,7 +3024,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // vuelve, la que se ignora porque manda la radio, y el salto de hora que pasa por
       // rojo-. Mismo molde que el $ALARM de arriba: crudo primero, traduccion detras, y
       // lo que la tabla no nombra en crudo y en cyan como siempre.
-      const aviso = Noche.evento(data) || DegAuto.evento(data) || AvisosEquipo.traducirEvento(data);
+      const aviso = Interruptores.evento(data) || Noche.evento(data) || DegAuto.evento(data) || AvisosEquipo.traducirEvento(data);
       const textoEvento = AvisosEquipo.cabezaEvento(data) + (aviso ? ' -> ' + aviso.texto : '');
       addEvent(aviso && aviso.tono ? aviso.tono : 'cyan', textoEvento); if (aviso && aviso.toast) showToast(aviso.toast);
       RegistroEnlace.anotar('EVENTO', enlaceDeAhora(), textoEvento); renderRegistroEnlace();

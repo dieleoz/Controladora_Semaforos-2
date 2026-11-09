@@ -160,8 +160,9 @@ def _literales_de_pluma(fw, punta):
     hace mas caso a la barrera que a la lampara, asi que un literal que la app no sepa
     pintar deja en pantalla un texto en crudo justo donde hay que decidir si se cruza."""
     codigo = fw.codigo(punta, "src", "bluetooth.cpp")
-    m = re.search(r'semaforo_plumaArriba\(\)\s*\?\s*"([^"]*)"\s*:\s*"([^"]*)"', codigo)
-    return [m.group(1), m.group(2)] if m else None
+    m = re.search(r'(?:semaforo_plumaFuera\(\)\s*\?\s*"(\w+)"\s*:\s*)?'   # D-150: FUERA, delante
+                  r'semaforo_plumaArriba\(\)\s*\?\s*"([^"]*)"\s*:\s*"([^"]*)"', codigo)
+    return [g for g in m.groups() if g] if m else None
 
 
 def _modo_fijo_del_esclavo(fw):
@@ -409,8 +410,7 @@ def correr(b, fw):
     sobran_p = [v for v in claves_pluma if v not in emitibles_pluma]
     b.verificar(
         not sobran_p,
-        "la app no sabe dibujar ninguna posicion de la pluma que el firmware no pueda "
-        "emitir",
+        "la app no sabe dibujar ninguna posicion de la pluma que el firmware no pueda emitir",
         "la app sabe dibujar PLUMA:%s y ninguna punta lo emite: es una rama que no se "
         "ejecuta nunca ocupando el sitio de las que si hacen falta, y el sitio por "
         "donde entra un vocabulario que no es el del equipo" % ", ".join(sobran_p))
@@ -452,7 +452,9 @@ def correr(b, fw):
             raise fw.Abortado(
                 "%s: camara_estado() no dio ni un `return \"...\";`. O cambio de forma o "
                 "el buscador se quedo atras -y medir cero valores sale en verde-" % punta)
-        literales_cam[punta] = lits
+        nv = re.search(r'interruptores_camNoVeto\(\)\s*\?\s*"(\w+)"\s*:\s*camara_estado\(\)',
+                       fw.codigo(punta, "src", "bluetooth.cpp"))   # D-151: NOVETO, desde el $STATUS
+        literales_cam[punta] = lits + ([nv.group(1)] if nv else [])
 
     b.verificar(
         literales_cam["Maestro"] == literales_cam["Esclavo"],
@@ -567,8 +569,7 @@ def correr(b, fw):
     por_letras = re.findall(r"estadoLuces\s*\.\s*includes\s*\(", js)
     b.verificar(
         not por_letras,
-        "el color del anillo se decide por el VALOR de ESTADO, no por las letras que "
-        "lleva dentro",
+        "el color del anillo se decide por el VALOR de ESTADO, no por las letras que lleva dentro",
         "app.js elige el color del anillo con estadoLuces.includes(...) %d vez/veces. "
         "MEDIDO sobre el enum real: 'AMARILLO' no contiene 'Y' y 'FALLO COM' tampoco, "
         "asi que los dos salen en ROJO -el equipo en ambar y el anillo diciendo ESPERA-"
@@ -599,8 +600,7 @@ def correr(b, fw):
     b.control_negativo(
         _claves_de_tabla("const X = { 'A': { t: 'no soy clave' }, 'B': { u: 'ni yo' } };", "X")
         == ["A", "B"],
-        "el lector de tablas devuelve las claves y no los literales de dentro de los "
-        "valores")
+        "el lector de tablas devuelve las claves y no los literales de dentro de los valores")
     b.control_negativo(
         bool(re.findall(r"estadoLuces\s*\.\s*includes\s*\(", "if (state.estadoLuces.includes('V'))"))
         and not re.findall(r"estadoLuces\s*\.\s*includes\s*\(", "const i = ESTADOS[state.estadoLuces];"),

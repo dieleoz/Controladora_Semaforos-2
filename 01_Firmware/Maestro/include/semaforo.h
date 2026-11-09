@@ -70,3 +70,14 @@ bool semaforo_plumaArriba();
 // cuando empieza a haber algo que contar. Se cuenta el flanco de subida de esta bandera.
 // ---------------------------------------------------------------------------
 bool semaforo_plumaVetada();
+// ---------------------------------------------------------------------------
+// D-150 (SPEC_8 6.4): true si la ultima orden de escribirPines() abrio la pluma POR EL
+// INTERRUPTOR de barrera fuera de servicio (D-96). Es una ANOTACION de la misma orden que
+// el pin, no la bandera del respaldo: la leen el $STATUS (PLUMA:FUERA) y el $ACK.
+// ---------------------------------------------------------------------------
+bool semaforo_plumaFuera();
+
+// D-149 (SPEC_8 6.3): reentra por aplicarSalidas() con lo ULTIMO que pidio la logica. La
+// llama la orden de un interruptor tras escribir su bandera: en S_ROJO estable nada mas
+// vuelve a pasar por escribirPines(). No escribe un pin por su cuenta (SFTY-2).
+void semaforo_reaplicarSalidas();

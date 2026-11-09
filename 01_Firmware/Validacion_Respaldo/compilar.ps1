@@ -96,4 +96,7 @@ for ($i = 0; $i -lt $casos.Count; $i++) {
 $borrar = "BORRAR" | & $exe
 if ($borrar -ne '0 0 0') { Write-Error "BORRAR DIFIERE de D-114: DR9 DR10 hayTiempos = '$borrar', se esperaba '0 0 0'" }
 
+# D-95/D-148/D-149 (SPEC_8 6.1-6.2): la linea esperada sale de las DECISIONES, no del fuente.
+$banderas = "BANDERAS" | & $exe
+if ($banderas -ne '0 1 1 1 0 1 1 0 0200') { Write-Error "BANDERAS DIFIERE de D-95/D-148: '$banderas', se esperaba '0 1 1 1 0 1 1 0 0200'" }
 Write-Host "OK: $exe (CAUSA D-62 $($casos.Count)/$($casos.Count))" -ForegroundColor Green

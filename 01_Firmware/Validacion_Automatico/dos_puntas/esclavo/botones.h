@@ -17,3 +17,5 @@ bool camara_leerPin(uint8_t pin);
 // callado-. La definicion esta en el adaptador y devuelve false: en este banco no hay
 // camaras cableadas, o sea que la pluma sigue a la luz con su retardo y nada mas.
 bool camara_presenciaJ16();
+// SPEC_8 6 (D-151): interruptores.cpp REAL la lee; la define adaptador_esclavo_interruptores.inc.
+const char* camara_estado();

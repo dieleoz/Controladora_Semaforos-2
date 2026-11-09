@@ -75,7 +75,8 @@ static bool camAnt[2] = {false, false};
 // La camara vigila EL BARRIDO DE LA PLUMA, no la zona de espera (D-13): un vehiculo
 // que espera correctamente para ANTES y no entra en la region. Lo unico que la ocupa
 // es alguien CRUZANDO, y solo se cruza con la pluma arriba, o sea durante un verde y
-// su despeje.
+// su despeje -y, desde D-96, en cualquier luz con la barrera fuera de servicio
+// (FLAG_BARRERA_FUERA, SPEC_8 6.3): ahi la pluma no baja nunca y quien manda es la luz-.
 //
 // El techo de eso son los MAXIMOS del ciclo, que viven en limites_ciclo.h:
 //
@@ -362,9 +363,10 @@ static bool camara_presencia(int i, unsigned long ahora) {
 //
 // EL SILENCIO SE ACUMULA SOLO CON LA PLUMA ARRIBA, y ese es el "con el ciclo corriendo"
 // de D-13: con la pluma abajo nadie puede cruzar el barrido y una camara callada no
-// esta fallando. Se lee semaforo_plumaArriba(), que devuelve LO QUE escribirPines() dejo
-// puesto en el pin y no una segunda formula de SFTY-28 que alguien tendria que mantener
-// igual a la primera.
+// esta fallando (D-96: con la barrera fuera de servicio esta arriba tambien en rojo y el
+// silencio corre, porque se cruza igual). Se lee semaforo_plumaArriba(), que devuelve LO
+// QUE escribirPines() dejo puesto en el pin y no una segunda formula de SFTY-28 que
+// alguien tendria que mantener igual a la primera.
 static void vigilante_tick(unsigned long ahora) {
   const bool arriba = semaforo_plumaArriba();
   const unsigned long dt = ahora - camTickAnt;

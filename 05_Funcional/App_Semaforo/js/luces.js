@@ -105,6 +105,8 @@ const Luces = {
       // Verde con la barrera abajo es la direccion SEGURA y esta admitida en SFTY-28 -la
       // barrera puede ser mas restrictiva que la lampara-, pero el que espera delante
       // necesita saber que la luz no basta.
+      // SPEC_8 6.3 (D-96): fuera de servicio el brazo no obedece a la luz; se dice hasta cuando.
+      if (pluma === 'FUERA') return 'arriba también en rojo, hasta ponerla en servicio';
       if (pluma === 'ABAJO' && state.estadoLuces === 'VERDE') {
         return 'verde, pero espere a que suba';
       }
@@ -165,9 +167,11 @@ const Luces = {
       // pasar", y la pareja rojo+arriba no autoriza a nadie: quien autoriza es el
       // semaforo. Arriba con verde va en verde; arriba sin verde, en ambar -hay algo que
       // explicar-; abajo, neutro, que es lo normal.
+      // FUERA va siempre en ambar (D-83, mirar): tambien en verde hay un interruptor que quitar.
+      const fuera = state.pluma === 'FUERA';
       const color = state.pluma === 'ABAJO' ? 'var(--text-muted)'
-                  : (state.estadoLuces === 'VERDE' ? 'var(--green-lamp)' : 'var(--amber-lamp)');
-      const fondo = (state.pluma === 'ARRIBA' && state.estadoLuces !== 'VERDE')
+                  : (state.estadoLuces === 'VERDE' && !fuera ? 'var(--green-lamp)' : 'var(--amber-lamp)');
+      const fondo = fuera || (state.pluma === 'ARRIBA' && state.estadoLuces !== 'VERDE')
                   ? 'rgba(255,179,0,0.12)' : 'transparent';
       decir(rotulo + ' · ' + texto + (frase ? ' · ' + frase : ''), color, fondo);
     }

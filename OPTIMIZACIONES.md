@@ -853,6 +853,8 @@ exactamente lo que hace hoy—.
 
 > 🟢 **Su mitad de «nunca al revés» la derogó `D-33` (14/09):** la pluma sigue a la luz para SUBIR y la cámara
 > sólo retiene la bajada. Manda `05_Funcional/SPEC_8` §1; lo de abajo es la regla de antes de esa fecha.
+> 🔴 **Y `D-96` (09/11) la deroga por su NOMBRE para `FLAG_BARRERA_FUERA`:** con la barrera fuera de servicio la pluma
+> va ARRIBA en cualquier luz, también en rojo (`SPEC_8` §6.3). Es la única excepción; no se ensancha a «con rojo».
 
 **Estado:** anotado el 26/08/2026 y **construido el 27/08** en las dos puntas. La orden sale de
 `escribirPines()` —**la misma puerta que las lámparas**— y sigue al `verde` YA enclavado; el arranque
@@ -878,11 +880,13 @@ función suelta, y que las dos puntas lo hagan igual. Visto caer con la pluma fo
 | 🟢 Verde | **SUBIDA** |
 | Todo-rojo de despeje | **BAJADA en las dos puntas** |
 | Ámbar intermitente (SFTY-6, sin enlace) | ✅ **SUBIDA** — decidido por el cliente el 27/08/2026: sin enlace se deja pasar con precaución, que es lo que ese ámbar significa en la calle. Cerrar la vía dejaría un corredor de obra sin salida |
+| Barrera fuera de servicio (`D-96`, `FLAG_BARRERA_FUERA`) | ⚠️ **SUBIDA en cualquier luz, también en rojo** — confirmado por el responsable el 09/11 con su modo de fallo: rojo aquí y verde en la otra punta con la pluma arriba, sin tope, sobrevive al corte y sin `$ALARM` (sólo el aviso de arranque, `D-152`). Manda `SPEC_8` §6.3 |
 
 **Y la consecuencia estructural, que es lo que la hace segura: la orden de la talanquera sale del
 mismo sitio que la luz, `semaforo.cpp`, y de ningún otro.** Es `§2` de `CLAUDE.md` extendida: si un
 modo pudiera mover la barrera por su cuenta, tendríamos una barrera abierta con la luz en rojo, que
-es **peor** que no tener barrera — porque el conductor confía en ella.
+es **peor** que no tener barrera — porque el conductor confía en ella. *(Salvo la barrera fuera de servicio de `D-96`,
+que sale por esta misma puerta y es una barrera rota: ahí manda la luz.)*
 
 **Para qué sirve una talanquera aquí:** en un paso alternado la barrera física hace lo que la luz no
 puede, **detener al que no mira**. En obra con maquinaria pesada, de noche, o con conductores que ya

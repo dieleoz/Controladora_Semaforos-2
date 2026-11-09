@@ -9,6 +9,7 @@
 #include "modo_degradado.h"  // SFTY-21
 #include "respaldo.h"        // N-20: lo que sobrevive al corte de energia
 #include "bluetooth.h"       // Módulo Bluetooth Serial (USART1)
+#include "interruptores.h"   // D-152: el aviso de arranque de los dos interruptores
 #include "deg_auto.h"        // A-15: el Degradado automatico (SPEC_2 7.ter)
 #include <IWatchdog.h>
 
@@ -272,6 +273,7 @@ void setup() {
   // Sale por el conector J17 -p3 y p2-, que es enchufable; PA9/PA10 no llegan
   // a ninguna bornera. Ver el porque en bluetooth.cpp.
   bluetooth_setup();
+  interruptores_avisoArranque();   // D-152: con el respaldo ya leido y el bluetooth arriba
 
   // ---------------------------------------------------------------------------
   // N-20: REANUDAR EL MODO DEGRADADO TRAS UN CORTE.

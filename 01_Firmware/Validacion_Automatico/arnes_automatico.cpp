@@ -179,6 +179,8 @@ static unsigned long g_margenSenalMs = MARGEN_MUESTREO_MS;
 // el MISMO tick en que se lee el pin. Se compara contra el pin, no contra la formula: una
 // tercera copia de SFTY-28 es lo que el campo evita.
 static long discrepanciasPluma = 0;
+#include "interruptores.h"
+#include "interruptores_modelo.inc"   // SPEC_8 6: el DR4 doblado y la excepcion por NOMBRE
 
 // D-53 (05/10): ROJO - ROJO+AMARILLO (2 s) - VERDE. Manual de Senalizacion Vial 4.4.2 y
 // Fig. 4-9. Viene de la DECISION, no del fuente: leida de protocolo.h, sin la constante el
@@ -237,7 +239,7 @@ static void vigilarEnclavamiento() {
   }
   // D-45: el amarillo de cierre es la otra luz que pide la pluma arriba (SPEC_8 1); la
   // ventana del retardo se abre con el ROJO. Que la pluma no baje ANTES lo mide el bloque A.
-  if (arnes_pines[MOTOR_TALANQUERA] == TALANQUERA_ABRIR &&
+  if (arnes_pines[MOTOR_TALANQUERA] == TALANQUERA_ABRIR && !excepcionBarreraFuera() &&
       arnes_pines[VERDE1] != HIGH && arnes_pines[VERDE2] != HIGH &&
       semaforo_estado() != S_FALLO && semaforo_estado() != S_AMARILLO) {
     // D-33: la ventana se abre en el primer tick sin luz y se cierra sola. Se fecha con
@@ -267,7 +269,8 @@ static void vigilarEnclavamiento() {
   if (semaforo_plumaVetada() && !camara_presenciaJ16()) {
     vetoSinPresencia++;
   }
-  if (semaforo_plumaArriba() != (arnes_pines[MOTOR_TALANQUERA] == TALANQUERA_ABRIR)) {
+  if (semaforo_plumaArriba() != (arnes_pines[MOTOR_TALANQUERA] == TALANQUERA_ABRIR) ||
+      (semaforo_plumaFuera() && arnes_pines[MOTOR_TALANQUERA] != TALANQUERA_ABRIR)) {   // D-150
     discrepanciasPluma++;
   }
 }
@@ -593,7 +596,6 @@ int main() {
       R"(PLUMA_RETARDO_BAJADA_MS\s*=\s*(\d+)UL)",
       "el retardo con el que la pluma baja DESPUES del rojo (D-33)");
 
-
   // D-45: el amarillo de cierre, en segundos y en el contrato de las dos puntas.
   long AMBAR_MS = 1000L * leerConstante("../include/protocolo.h",
       R"(#define\s+AMARILLO_SEG\s+(\d+)UL)",
@@ -914,8 +916,7 @@ int main() {
     }
     comprobar(msHastaRojo >= 0,
               "agotado el minuto de VERDE configurado, el Maestro suelta el verde solo, "
-              "sin intervencion externa -el sintoma de campo era exactamente que esto NO "
-              "pasaba-");
+              "sin intervencion externa -el sintoma de campo era exactamente que esto NO pasaba-");
     // D-45: SE INVIERTE. El ciclo real cierra el verde por su amarillo y no se cuenta la
     // fase mientras dura: el coordinador no esta listo hasta que el rojo y el despeje pasen.
     const bool amarilloAlSoltar = semaforo_estado() == S_AMARILLO && !coordinador_listoParaContar();
@@ -952,8 +953,7 @@ int main() {
     bombear(200, SEG_ESTATICO_MS + (unsigned long)AMBAR_MS + 5000UL,
         [](){ return coordinador_listoParaContar(); });
     comprobar(coordinador_listoParaContar() && !coordinador_comunicacionPerdida(),
-              "con el Esclavo simulado respondiendo, el ciclo llega a C_IDLE sin caer "
-              "en fallo");
+              "con el Esclavo simulado respondiendo, el ciclo llega a C_IDLE sin caer en fallo");
 
     // Deja pasar un latido completo (3 s) ANTES de cortar el enlace, para que
     // g_ultimaEntregaMs quede fijado por un intercambio real y no por lo que
@@ -1879,7 +1879,7 @@ int main() {
     correrG((unsigned long)VENTANA_G_MS + RETARDO * 4UL);
   }
 
-
+#include "interruptores_bloque.inc"   // Bloque I: SPEC_8 6 (D-94..D-97, D-148..D-151)
   // ===========================================================================
   // LO QUE SE REPARTIO DEL BLOQUE D AL RETIRAR EL MANDO (D-30, CLAUDE.md 9). Estas cuatro
   // vivian en el fuzz D9 sin medir el mando (son D-33 y N-153) y se mudaron aqui. Siguen

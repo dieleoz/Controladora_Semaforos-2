@@ -656,6 +656,34 @@
         </div>
       </div>
 
+      <!-- SPEC_8 6 (D-94): los dos interruptores, solo para averias. js/interruptores.js pregunta
+           antes de cada OFF y traduce el acuse; el estado lo dicen PLUMA y CAMARAS en Trafico. -->
+      <div class="card" id="interruptores">
+        <div class="card-header-flex">
+          <h3>Cámaras y barrera de este poste</h3>
+          <span class="badge">AVERÍAS</span>
+        </div>
+        <p class="card-sub">Solo este poste. Requieren PIN y siguen puestos tras un corte de luz.</p>
+        <div class="ctrl-grid">
+          <button class="ctrl-btn" data-interruptor="SET_VETO_CAMARA:OFF">
+            <strong>Sacar las cámaras del veto</strong>
+            <small>La cámara no deja bajar la barrera</small>
+          </button>
+          <button class="ctrl-btn" data-interruptor="SET_VETO_CAMARA:ON">
+            <strong>Devolver el veto</strong>
+            <small>La cámara ya ve bien</small>
+          </button>
+          <button class="ctrl-btn" data-interruptor="SET_BARRERA_SERVICIO:OFF">
+            <strong>Sacar la barrera de servicio</strong>
+            <small>Brazo roto: queda arriba, también en rojo</small>
+          </button>
+          <button class="ctrl-btn" data-interruptor="SET_BARRERA_SERVICIO:ON">
+            <strong>Poner la barrera en servicio</strong>
+            <small>Vuelve a obedecer a la luz</small>
+          </button>
+        </div>
+      </div>
+
       <!-- DEMANDA: la peticion de paso local del Modo Inteligente. NO es SOLICITAR_PASO
            -alli es el Esclavo el que pide a la otra punta-. Fuera del Modo Inteligente
            el firmware la rechaza porque ningun ciclo la mira, asi que el boton se apaga
@@ -1199,6 +1227,7 @@
   <script src="js/deg_fin.js"></script>
   <script src="js/deg_auto_eleccion.js"></script>
   <script src="js/noche.js"></script>
+  <script src="js/interruptores.js"></script>
   <script src="js/aviso_degradado.js"></script>
   <script src="js/textos_spec4.js"></script>
   <script src="js/textos_ack.js"></script>
