@@ -1,15 +1,15 @@
 ACTA DE VERIFICACION - Controladora de Semaforos
 ==============================================================================
 Fecha        : 2026-11-09
-HEAD         : f3d893d   rama: main
-Arbol        : CON CAMBIOS SIN COMMITEAR
+HEAD         : baf8f93   rama: main
+Arbol        : LIMPIO
 Modo         : completo
 PlatformIO   : PlatformIO Core, version 6.1.19
 GCC de host  : gcc.exe (MinGW-W64 x86_64-ucrt-posix-seh, built by Brecht Sanders, r3) 16.1.0
 
 RESULTADOS
 ------------------------------------------------------------------------------
-  PASS      guarda de rutas                   64 rutas parseadas, todas existen
+  PASS      guarda de rutas                   66 rutas parseadas, todas existen
   PASS      compila maestro                   Flash: [========  ]  80.2% (used 50948 bytes from 63488 bytes)
   PASS      compila esclavo                   Flash: [=======   ]  66.8% (used 42404 bytes from 63488 bytes)
   PASS      compila esp32                     Flash: [====      ]  35.8% (used 1126409 bytes from 3145728 bytes)
@@ -24,14 +24,11 @@ RESULTADOS
   PASS      arnes del respaldo                respaldo.cpp y respaldo.h identicos entre puntas | arnes vivo (PING/PONG)
   PASS      arnes del automatico              RESULTADO: 99/99 comprobaciones OK
   PASS      arnes de las dos puntas           RESULTADO: 184/184 comprobaciones OK
-  PASS      arnes del Degradado a dos puntas  RESULTADO: 158/158 comprobaciones OK
-  PASS      simulador del puente ESP32        RESULTADO: 159/159 comprobaciones del contrato del puente en PASS
+  PASS      arnes del Degradado a dos puntas  RESULTADO: 161/161 comprobaciones OK
+  PASS      simulador del puente ESP32        RESULTADO: 161/161 comprobaciones del contrato del puente en PASS
 ------------------------------------------------------------------------------
   RESUMEN: 16 PASS | 1 FALLA | 0 ABORTADO
 
 ABORTADO no es PASS: una comprobacion que no pudo correr no dice nada del
-firmware. Esta acta se verifica volviendo a f3d893d y re-corriendo
+firmware. Esta acta se verifica volviendo a baf8f93 y re-corriendo
 python 01_Firmware/compuerta.py.
-
-AVISO: el arbol tenia cambios sin commitear al medir. Estas
-cifras NO corresponden exactamente a f3d893d.
