@@ -4,7 +4,7 @@ Complementa a orquestador:entregar. Lo que aqui choque con esa skill, manda aqui
 
 Va, y solo esto:
 
-- **Fuente para PlatformIO** de `{Maestro,Esclavo,Repetidor,ESP32_Expansion}` bajo `01_Firmware/`
+- **Fuente para PlatformIO** de `{Maestro,Esclavo,ESP32_Expansion}` bajo `01_Firmware/`
   -- sin `Simulaciones/`, sin `Validacion_*`, sin el `README.md` de cada carpeta.
 - **La APK** compilada (ver seccion 3).
 - **La guia/formulario `.html` de pruebas vigente** de `05_Funcional/` -- el que Diego este usando
@@ -35,7 +35,7 @@ decide en silencio cual usar.
 Lista por INCLUSION, no por exclusion -- mas corta y no envejece con carpetas nuevas:
 
 ```bash
-git ls-files 01_Firmware/Maestro 01_Firmware/Esclavo 01_Firmware/Repetidor 01_Firmware/ESP32_Expansion
+git ls-files 01_Firmware/Maestro 01_Firmware/Esclavo 01_Firmware/ESP32_Expansion
 ```
 
 Cualquier fichero fuera de esas cuatro rutas (incluida `01_Firmware/Controladora_Semaforos/` y

@@ -488,7 +488,7 @@ segunda linea vacia en Eventos.
 
 > Lo que sigue **no cumple una decision vigente, o no lo cubre nadie**. Cada linea dice como se midio.
 
-🔴 **1 · El PIN `1234` viaja en claro y cuatro ordenes no lo piden** (`roadmap.md` 1.20). `correctPin`
+🟢 **1 · ACEPTADO por el responsable (09/11, `D-158`): cuatro ordenes sin PIN; solo ponen rojo o ambar.** `correctPin`
 es un literal en `app.js` y `CMD:PIN:1234:` es un literal en **los dos** `bluetooth.cpp`; el transporte es
 SPP **sin cifrar**. Recontadas hoy sobre el fuente, las ordenes que **cambian algo** y entran sin PIN son
 **cuatro**: `FORZAR_ROJO` y `SET_MODO:MENU` y `SET_MODO:ALCANCE` (Maestro) y `AMBAR_EMERGENCIA`
