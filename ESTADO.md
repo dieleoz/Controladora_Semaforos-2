@@ -49,9 +49,9 @@ cabecera con que HEAD y que arbol se midio; las comprueba `documentos_01` en cad
 | | |
 |---|---|
 | Flash | Maestro **80.2 %** · Esclavo **66.8 %** · Repetidor **20.6 %** · ESP32 **35.8 %** |
-| Banco por packs | **1513/1514 comprobaciones** en **70 packs**, 1 FALLA: `D-22` pide una tarjeta delante (`CLAUDE.md` §1) |
+| Banco por packs | **1518/1519 comprobaciones** en **70 packs**, 1 FALLA: `D-22` pide una tarjeta delante (`CLAUDE.md` §1) |
 | Arneses de C++ real | 99/99 automatico · 78/78 ciclo · 184/184 dos puntas · 158/158 Degradado a dos puntas |
-| App y puente | **842/842** jsdom · **70/70** funcional · **70/70** unitarios · 87/87 TDD · puente 159/159 |
+| App y puente | **912/912** jsdom · **71/71** funcional · **70/70** unitarios · 89/89 TDD · puente 159/159 |
 ## BLOQUEANTES: lo que no se cierra con teclado (roadmap §1 y §4)
 
 | bloqueo | referencia |

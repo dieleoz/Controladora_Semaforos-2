@@ -1,7 +1,7 @@
 ACTA DE VERIFICACION - Controladora de Semaforos
 ==============================================================================
 Fecha        : 2026-11-09
-HEAD         : acd7f6e   rama: main
+HEAD         : c94a6cb   rama: main
 Arbol        : CON CAMBIOS SIN COMMITEAR
 Modo         : completo
 PlatformIO   : PlatformIO Core, version 6.1.19
@@ -17,11 +17,11 @@ RESULTADOS
   PASS      simulador funcional               VEREDICTO FINAL: 9/9 PASS (SISTEMA V8.0 DEFINITIVA CERTIFICADO)
   PASS      simulador de repetidor            RESULTADO: 10/10 PASS
   PASS      simulador de app y bluetooth      RESULTADO GLOBAL: 12/12 comprobaciones PASS (app movil vs firmware Bluetooth)
-  PASS      test funcional de la app          [TEST] RESUMEN: 70/70 comprobaciones funcionales de la app en PASS
+  PASS      test funcional de la app          [TEST] RESUMEN: 71/71 comprobaciones funcionales de la app en PASS
   PASS      test unitarios de la app          RESUMEN DE PRUEBAS: 70 PASS | 0 FALLAS  (Total: 70)
-  PASS      test unitarios TDD de la app      RESUMEN TDD: 87 PASS | 0 FALLAS  (Total: 87)
-  PASS      app ejecutada en DOM              RESULTADO JSDOM: 842 PASS | 0 FALLAS
-  FALLA     banco por packs                   RESUMEN: 1513/1514 comprobaciones  |  packs: 69 PASS, 1 FALLA, 0 ABORTADO
+  PASS      test unitarios TDD de la app      RESUMEN TDD: 89 PASS | 0 FALLAS  (Total: 89)
+  PASS      app ejecutada en DOM              RESULTADO JSDOM: 912 PASS | 0 FALLAS
+  FALLA     banco por packs                   RESUMEN: 1518/1519 comprobaciones  |  packs: 69 PASS, 1 FALLA, 0 ABORTADO
   PASS      arnes del ciclo                   RESULTADO: 78/78 comprobaciones OK
   PASS      arnes del respaldo                respaldo.cpp y respaldo.h identicos entre puntas | arnes vivo (PING/PONG)
   PASS      arnes del automatico              RESULTADO: 99/99 comprobaciones OK
@@ -32,8 +32,8 @@ RESULTADOS
   RESUMEN: 18 PASS | 1 FALLA | 0 ABORTADO
 
 ABORTADO no es PASS: una comprobacion que no pudo correr no dice nada del
-firmware. Esta acta se verifica volviendo a acd7f6e y re-corriendo
+firmware. Esta acta se verifica volviendo a c94a6cb y re-corriendo
 python 01_Firmware/compuerta.py.
 
 AVISO: el arbol tenia cambios sin commitear al medir. Estas
-cifras NO corresponden exactamente a acd7f6e.
+cifras NO corresponden exactamente a c94a6cb.
