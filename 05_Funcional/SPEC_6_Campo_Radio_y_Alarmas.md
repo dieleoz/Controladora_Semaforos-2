@@ -221,7 +221,9 @@ del GO_GREEN a 1200/1.2k se estima en ~510 ms frente a 500 ms; en el borde. Con 
 
 1. **Radio sin energia.** Poner **`M0` y `M1` en `OFF`** (modo 3, configuracion; manual §6-§7).
 2. PC con convertidor **USB a RS485** (`A` con `485_A`, `B` con `485_B`) y 12 V a la bornera.
-3. `E90 RF_Setting` (el del fabricante) ➜ COM ➜ `Open Port` ➜ **`GetParam`** *(leer ANTES de escribir: ahi se ve el
+3. **`RF_Setting 4.6`** (el que Ebyte enlaza para el 433L37-V8; el «E90 RF_Setting V1.9» lo lee mal) ➜ COM ➜
+   `Open Port` ➜
+   **`GetParam`** *(leer ANTES de escribir: ahi se ve el
    canal que la instalacion tiene de verdad)*. UART **`9600`**, `8N1`; modo **`Transparent`**, no `Fixed`; misma
    `Address` en las dos (manual §7.2).
 4. Poner los valores de B.2 y **`SetParam`**.

@@ -276,6 +276,13 @@ Prueba simple de las radios sin controlador: LEDs `TXD`/`RXD` de las cajas con l
 latido, 3 s), y PC con dos USB-RS485 y un terminal a 1200 8N1 en cada radio (sin cable cruzado: A con A, B con B).
 Hechos tambien: `N-185` (`15c5fe6`), `D-98` tanda 3 (`8ac39f4`), `D-158` (`955d2c7`).
 
+**`N-184`, medido (17:06, `evidencia/091120261648` y `091120261707`):** con RF_Setting 4.6 (el que Ebyte enlaza para el
+433L37-V8; el V1.9 leia mal: «433C37», «Version 0,0», 1200/1.2k/Fixed) las DOS radios leen ID E90-DTU(433L37),
+version 7459-0-20, UART 9600 8N1, aire 2.4k, FEC Enable, Fixed Disable (= Transparent), canal 23, direccion 0,
+37 dBm: la configuracion de fabrica, que es la de SPEC_6 B.2. La unica causa que queda es M0/M1 en OFF/OFF. El
+entorno `radio_1200_fija` (`f3d893d`) no se usa; queda como entorno aparte sin efecto en el binario por defecto.
+Se cierra con el registro de Marco con M0/M1 en ON: «tramas buenas» > 0 y `RTT:` medido.
+
 **Pendiente (09/11, 16:40):** EN CURSO: firmware para radios a 1200/Fixed (`D-159`, worktree) -> arquitecto ->
 integrar -> compuerta completa sin el Repetidor (17 filas, dos pasadas) -> cifras -> QA -> APK -> `.zip` para Marco.
 ESPERANDO: veredictos del runbook de `auditoria/n182` (otra sesion) para su merge. DEL RESPONSABLE: §7.5 (retirar el

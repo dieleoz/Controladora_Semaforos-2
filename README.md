@@ -104,7 +104,7 @@ publicaba 32 rutas y 86,4 % de flash cuando el acta que ella misma citaba medía
 | Comprobación | Estado | |
 |---|---|---|
 | guarda de rutas de los instrumentos | ✅ | 64 rutas parseadas, todas existen |
-| banco por packs *(70 packs)* | 🔴 **FALLA** | **1519/1520 comprobaciones en 70 packs** — 69 PASS, **1 FALLA**. `decisiones_01_anclas` acusa a **`D-22`** (necesita una tarjeta delante); no se decora (`CLAUDE.md` §1) |
+| banco por packs *(70 packs)* | 🔴 **FALLA** | **1518/1519 comprobaciones en 70 packs** — 69 PASS, **1 FALLA**. `decisiones_01_anclas` acusa a **`D-22`** (necesita una tarjeta delante); no se decora (`CLAUDE.md` §1) |
 | compila Maestro / Esclavo / ESP32 | ✅ | **80.2 %** · 66.8 % · 35.8 % — *el Maestro ocupa **50948 de 63488 B** (las dos ultimas paginas quedan para las franjas de noche, `D-108`, y el testigo de `D-35`); el Esclavo, **41468 B**. Bajo al quitar la libreria RTC (`N-172`) y subio con la salida programada (`D-52`) y el verde del testigo (`D-59`)* |
 | simulador funcional | ✅ | 9/9 — eran 20, y 11 de aquellas no medían nada: se retiraron una a una con su evidencia |
 | compila ESP32 | ✅ | 35.8 % — 1126409 de 3.145.728 B |
@@ -127,7 +127,7 @@ publicaba 32 rutas y 86,4 % de flash cuando el acta que ella misma citaba medía
 > tabla **sólo caben filas con una medida detrás** — una fila sin medida se lee como medida.
 
 
-**18 PASS · 1 FALLA · 0 ABORTADO, de 19 comprobaciones — la compuerta sale con código `1`.**
+**16 PASS · 1 FALLA · 0 ABORTADO, de 17 comprobaciones — la compuerta sale con código `1`.**
 
 > 🔴 **El `1` es el hallazgo, no una regresión.** Lo acusa `decisiones_01_anclas`: **`D-22` está vigente en
 > `DECISIONES.md` sin una línea que la construya.** `D-22` es poner `Y1` y espera **una tarjeta
@@ -401,7 +401,7 @@ cerrar.)*
   [`ARQUITECTURA.map`](ARQUITECTURA.map); su crónica,
   [`ARQUITECTURA_hist.map`](05_Funcional/historico/ARQUITECTURA_hist.map).
 - [`01_Firmware/compuerta.py`](01_Firmware/compuerta.py): **la única forma correcta de
-  verificar** — `18 PASS · 1 FALLA · 0 ABORTADO`, exit code 1. Las cifras están en la tabla de
+  verificar** — `16 PASS · 1 FALLA · 0 ABORTADO`, exit code 1. Las cifras están en la tabla de
   arriba, que se copia del acta; ésta es sólo la puerta. Qué se corre según lo que se toca (la
   cadencia) y por qué el simulador está congelado: `CLAUDE.md` §4.
 - [`.githooks/`](.githooks) y [`.topes`](.topes): el pre-commit del método (topes de documentos,
