@@ -173,9 +173,10 @@ su cobre es SPEC 5. *(SPEC 2 §8 remitia «los parametros del modulo» a SPEC 5,
 
 1. **`2.4 kbps` de Air Data Rate.** La tasa vieja saturaba el canal y el cruce caia en fallo de comunicacion **justo
    al pasar el verde al otro poste**. Si el enlace sigue cayendo, **no se baja la velocidad otra vez**: se reporta.
-2. **`M0` y `M1` los dos en `OFF` en operacion.** Los `ON` son **solo** para configurar, y ahi la buena es **`M0=ON` con
-   `M1=OFF`**: la de `ON`/`ON` de un manual viejo deja la radio en un modo donde **la transmision puede quedar
-   deshabilitada mientras la recepcion sigue activa** — radios que oyen y no contestan, un dia de campo.
+2. **`M0` y `M1` los dos en `ON` en operacion (modo 0, normal); `OFF`/`OFF` es SOLO para configurar (modo 3).** Lo
+   dice el manual del modelo comprado, E90-DTU (433L37)-V8, §6 [p. 10] (`fuentes/md/E90-DTU_433L37-V8_User_Manual.md`),
+   y lo midio el banco el 09/11: con los dos en `OFF` la radio no contesto ni un latido (`RF:0%`, 505 sin respuesta,
+   `evidencia/091120261545`). La regla anterior (`OFF` para operar) era de otro modelo nunca confirmado.
 3. **TODAS las radios del enlace, IGUALES.** Una punta con otra tasa o en otro canal **no enlaza**, y el sintoma no dice
    «mal configurada»: dice **«el equipo se callo»** y manda a mirar el cable.
 4. 🔴 **HUECO MEDIDO (15/10, `9f951c7`, `N-180`): una punta no distingue su pareja de otra.** `RF_Packet` es
@@ -207,18 +208,19 @@ su cobre es SPEC 5. *(SPEC 2 §8 remitia «los parametros del modulo» a SPEC 5,
 
 ## B.3 El procedimiento, y el orden importa
 
-1. **Radio sin energia.** Poner **`M0=ON`, `M1=OFF`**.
+1. **Radio sin energia.** Poner **`M0` y `M1` en `OFF`** (modo 3, configuracion; manual §6-§7).
 2. PC con convertidor **USB a RS485** (`A` con `485_A`, `B` con `485_B`) y 12 V a la bornera.
-3. `04_Manuales/RF_Setting4.6.exe` ➜ COM ➜ **`9600`** ➜ `Open Port` ➜ **`Read Option`** *(leer ANTES de escribir: ahi
-   se ve el canal que la instalacion tiene de verdad)*.
-4. Poner los valores de B.2 y **`Write Option`**.
-5. **Quitar energia. `M0` y `M1` a `OFF` los dos.** Reconectar `485_A`/`485_B` al semaforo.
+3. `E90 RF_Setting` (el del fabricante) ➜ COM ➜ `Open Port` ➜ **`GetParam`** *(leer ANTES de escribir: ahi se ve el
+   canal que la instalacion tiene de verdad)*. UART **`9600`**, `8N1`; modo **`Transparent`**, no `Fixed`; misma
+   `Address` en las dos (manual §7.2).
+4. Poner los valores de B.2 y **`SetParam`**.
+5. **Quitar energia. `M0` y `M1` a `ON` los dos** (modo 0). Reconectar `485_A`/`485_B` al semaforo.
 6. **Repetir en la otra punta** y comprobar que las dos quedaron **iguales**.
 
 > 🛑 **NUNCA se energiza una radio sin la antena conectada.** Transmitir sin carga —o contra una antena desadaptada—
 > **daña el amplificador de salida**, y ese es el modo de averia que ya se pago una vez.
 
-**Casillas antes de cerrar los gabinetes:** ⬜ misma Air Data Rate en las dos ⬜ mismo canal ⬜ `M0`/`M1` en `OFF` en
+**Casillas antes de cerrar los gabinetes:** ⬜ misma Air Data Rate en las dos ⬜ mismo canal ⬜ `M0`/`M1` en `ON` en
 las dos ⬜ antena conectada en las dos ⬜ apuntado en el parte **que radio quedo con que canal**, leido con `Read
 Option` ⬜ **ese canal no lo usa ningun otro grupo de la obra** (`D-124`; dos canales por grupo con repetidor).
 

@@ -673,7 +673,7 @@ button#btnPdf{
   <h2>17. El enlace con todo conectado</h2>
   <div class="porque"><b class="t">Por qué</b>La configuración de una radio no la lee ningún equipo ni la app: solo lo que se apunta en papel. Y la calidad del enlace la mide el Poste 1. Se quiere el punto de partida, con cámaras y barrera funcionando, para comparar después.</div>
   <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
-    <li>Las dos radios configuradas como siempre (con RF_Setting, <strong>Read Option</strong> antes de escribir): <strong>2.4 kbps</strong> de Air Data Rate, el <strong>mismo canal</strong> en las dos, <strong>M0 y M1 en OFF</strong>, antena puesta.</li>
+    <li>Las dos radios configuradas con el programa E90 RF_Setting (interruptores en <strong>OFF/OFF</strong> solo para configurar; <strong>GetParam</strong> antes de escribir): UART <strong>9600</strong> 8N1, <strong>2.4 kbps</strong> de aire, modo <strong>Transparent</strong> (no Fixed), el <strong>mismo canal</strong> y la misma dirección en las dos. Para trabajar, interruptores <strong>M0 y M1 en ON</strong> (hacia la marca ON) y antena puesta.</li>
     <li>Poste 1 en <strong>AUTOMÁTICO</strong>, dando ciclos, con barrera moviéndose.</li>
   </ul></div>
   <ol>
@@ -866,7 +866,7 @@ button#btnPdf{
     <li><strong>45 minutos</strong> libres.</li>
   </ul></div>
   <ol>
-    <li>Ponga las <strong>cuatro radios en el mismo canal</strong> (sin energía, M0 en ON y M1 en OFF para configurar; después los dos en OFF). Las dos parejas en <strong>AUTOMÁTICO</strong>. Mire 5 minutos los dos Poste 2. Después <strong>apague el Poste 1 de la pareja A</strong> y mire si su Poste 2 pasa a ámbar y a qué segundo.</li>
+    <li>Ponga las <strong>cuatro radios en el mismo canal</strong> (sin energía, M0 y M1 en OFF para configurar; después los dos en ON para trabajar). Las dos parejas en <strong>AUTOMÁTICO</strong>. Mire 5 minutos los dos Poste 2. Después <strong>apague el Poste 1 de la pareja A</strong> y mire si su Poste 2 pasa a ámbar y a qué segundo.</li>
     <li>Repita con la pareja B en el <strong>canal contiguo</strong> (canal de A + 1).</li>
     <li>Repita con la pareja B <strong>lo más separada</strong> que permita el módulo. Anote los números.</li>
     <li>Deje cada radio con su canal original, compruébelo con Read Option.</li>

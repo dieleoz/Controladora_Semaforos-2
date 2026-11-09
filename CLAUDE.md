@@ -49,7 +49,7 @@ vacia por dentro; una regla nueva abre uno al final. Censo: `grep -rn "CLAUDE.md
   uno anterior al 14/09 compone secuencias con un puente. En campo manda lo CARGADO (`SPEC_5` §3).
 - **Carga por SWD: `mode=UR` con `-e all`, y no se cambia.** `HOTPLUG` engancha en marcha y, con un firmware que se
   cuelga al arrancar, el watchdog reinicia cada 4 s en mitad del borrado (`failed to erase memory`; delator: `NVM size:
-  128 KBytes (default)` en 64 KB). Si `UR` falla se reintenta. Radios: `2.4 kbps` de Air Data Rate, `M0`/`M1` en OFF.
+  128 KBytes (default)` en 64 KB). Si `UR` falla se reintenta. Radios: `2.4 kbps`, `M0`/`M1` en ON (OFF: configurar).
 
 ## 4. La compuerta y el banco
 
