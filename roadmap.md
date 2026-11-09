@@ -173,12 +173,12 @@ Lo ya definido no se pregunta (SPEC_4 §9.14 (c): un `NODE:` distinto da aviso r
 
 | # | quien | ficheros (solo esos) | que | estado |
 |---|---|---|---|---|
-| S | 1 agente, antes que nadie | SPEC_4, SPEC_2, `DECISIONES.md` | Lo no escrito, con valor por defecto y fila `D-127`..: tope del PR, confirmar «Quitar del grupo», avisos una vez por conexion, rango 3..15 min con `$ERR` | |
-| A | worktree | `js/grupos.js` y `www/js/grupos.js`, y sus pruebas | MAC en minusculas; `grupos:[null]`; orden numerico; «Quitar del grupo»; `NODE:` distinto hacia §9.14 (c); `anotarFw`; `preguntarNuevo` | |
-| B | worktree | `app.js` (las dos copias) y sus pruebas | ACK diferido entre sesiones; PR con tope; avisos por MAC al reenlazar | |
-| C | worktree | `style.css`, `index.html` y sus copias de `www/` | 320 px: franja sobre el modal, «emparejado», «(radio N %)», «MANDOS DE CAMPO», `.card-sub`, buscador; rotulo «Equipos de cintas» | |
-| D | worktree | `bluetooth.cpp` de Maestro y Esclavo, arnes de `SET_TIEMPOS` | `SET_TIEMPOS:259` rechazado con `$ERR` antes del `(uint8_t)`; mutantes vivos `SET_TIEMPOS` sin rango y `parar()` vacio | |
-| E | worktree | `tests/dom_claves.js` | reloj inyectable en «Practica» (4) | |
+| S | 1 agente, antes que nadie | SPEC_4, SPEC_2, `DECISIONES.md` | Lo no escrito, con valor por defecto y fila `D-127`..: tope del PR, confirmar «Quitar del grupo», avisos una vez por conexion, rango 3..15 min con `$ERR` || hecho, `8f46354` |
+| A | worktree | `js/grupos.js` y `www/js/grupos.js`, y sus pruebas | MAC en minusculas; `grupos:[null]`; orden numerico; «Quitar del grupo»; `NODE:` distinto hacia §9.14 (c); `anotarFw`; `preguntarNuevo` || hecho, `b5bad6e` |
+| B | worktree | `app.js` (las dos copias) y sus pruebas | ACK diferido entre sesiones; PR con tope; avisos por MAC al reenlazar || hecho, `6828945` |
+| C | worktree | `style.css`, `index.html` y sus copias de `www/` | 320 px: franja sobre el modal, «emparejado», «(radio N %)», «MANDOS DE CAMPO», `.card-sub`, buscador; rotulo «Equipos de cintas» || hecho, `f1e88c2` |
+| D | worktree | `bluetooth.cpp` de Maestro y Esclavo, arnes de `SET_TIEMPOS` | `SET_TIEMPOS:259` rechazado con `$ERR` antes del `(uint8_t)`; mutantes vivos `SET_TIEMPOS` sin rango y `parar()` vacio || hecho, `9ffc049` |
+| E | worktree | `tests/dom_claves.js` | reloj inyectable en «Practica» (4) || hecho, `dab890d` |
 | U | tras integrar A-E | ver bloque U debajo | Simplificar la app, en el mismo paquete | |
 | X | worktree, tras D | SPEC_8 §6, `respaldo.cpp`, despachador, app | `D-94`..`D-97`: arquitecto ANTES (§11.7), en cadena tras D (comparten despachador) | SI del responsable, 27/10 |
 | F | orquestador | arbol principal | integrar por el diff; compuerta completa hasta dos pasadas iguales; cifras a ESTADO | |
@@ -198,6 +198,34 @@ texto, aviso o modo: ¿lo necesita para operar? Si no, plegado o fuera». Ya dec
 
 Lo que no mide jsdom (scroll, toques de 48 px, 320 px) lo mide P en el telefono por CDP. Tiempo: U-S 45 min, U-B
 1,5-2 h.
+
+**`N-182` (09/11, responsable): paquete para Marco con radios, camaras y barrera; sustituye a P de `N-181`.** Marco
+pide version para probar radios y camaras; el responsable le pide barrera (puente H) conectada, subida y bajada sin
+final de carrera, tiempos, las 4 camaras en sus escenarios y, al final, prueba en calle con mensula (tiempo de
+respuesta por incidencia y cuanto se sostiene el rele). Lo que sale: firmware, APK y `.zip` con UN `.html` de lo que
+debe probar y lo que falta. U (simplificar la app) queda para el paquete siguiente. Numeros reservados:
+`D-148`..`D-155`.
+
+Hallazgo de fuente, sin medir (09/11): «en modo local va bien hasta el viernes; el fin de semana alguien va a
+programarlo». (1) El Sisga (`7ff7d12`/`b354fe9`) es anterior al modo noche (`8526f84`): no tiene horario. (2) Con HEAD
+tampoco cabe un fin de semana continuo: franja < 24 h (`inicio == fin` = apagada, `D-108`) y la franja que empieza
+al acabar otra se salta (`FRANJA_SALTADA`, `D-115`, puesto a proposito contra «24 h de ambar de dia»). (3) `-e all`
+borra las franjas en cada carga. Criterio del responsable: que nadie tenga que ir al poste el fin de semana.
+
+| # | quien | ficheros (solo esos) | que | estado |
+|---|---|---|---|---|
+| M | 2 agentes, solo lectura, mismo encargo | firmware de camaras, pluma y respaldo | Que hace HOY el equipo con una camara caida, las dos, la barrera sin final de carrera; se comparan: donde difieren se abre el fuente | |
+| R | 2 revisores, solo lectura, mismo encargo | `D-94`..`D-97`, `D-115`, SPEC_8 §6, SPEC_0 §5.10 | `CLAUDE.md` §11.7 ANTES de construir: modo de fallo de cada barrera que se retira (veto de camara, `FRANJA_SALTADA`); se comparan | |
+| S2 | 1 agente, tras M y R | SPEC_0 §5.10, SPEC_8 §6, `DECISIONES.md` | Fin de semana continuo programable (`D-148`..), condiciones de R a la spec | |
+| X | worktree | `respaldo.cpp`, despachador `bluetooth.cpp`, pluma y camaras de Maestro y Esclavo, su arnes | `D-94`..`D-97` | |
+| N | worktree | `modo_noche.cpp`, `noche_flash.*`, su arnes | Lo de S2 | |
+| AP | worktree | `app.js` (dos copias), `index.html`, sus pruebas | Interruptores de `D-94` y franjas de fin de semana | |
+| H | arbol principal | `05_Funcional/Hoja_Marco_<fecha>.html` | Hoja: barrera, 4 camaras, camara caida, interruptores, fin de semana, radios, calle con mensula; `D-22`, `D-124` | |
+| F, Q, P | orquestador | como `N-181` | Integrar, compuerta, arquitecto y QA una vez, APK, `.bin`, UN `.zip`; `0fe782f` a `RETIRADOS/` | |
+
+Abierto, para el responsable (no se construye en `N-182`): «inhibir UNA camara o dos» (hoy `D-94` es un solo
+interruptor y SPEC_8 §2 dice que las dos entradas hacen lo mismo) y «barrera ABAJO» desde la app (`D-96` solo da
+fuera de servicio = arriba; abajo forzada en verde no tiene fila).
 
 Cada constructor: prueba vista en rojo antes del codigo, duda del encargo, no comitea. Dos correcciones fallidas en un
 punto: se revierte ese punto y sigue el resto (`CLAUDE.md` §11). Tiempo estimado: S 45 min; A-E en paralelo 2-2,5 h;
