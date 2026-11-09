@@ -254,10 +254,18 @@ y posicion de los interruptores (pedido a Marco con la configuracion de las dos)
 `CLAUDE.md` §3 y la hoja cambian en el mismo commit. Manual transcrito a `.md` (fuente de trabajo). Despues, si
 sigue cayendo bien configurada: `RTT:` frente a las esperas del protocolo (LoRa, semiduplex, paquetes de 58 B).
 
-**`N-184` en curso (09/11):** manual transcrito (`fuentes/md/E90-DTU_433L37-V8_User_Manual.md`). Workflow: inventario
-de esperas y tramas del protocolo + experimento LoRa (retardo, semiduplex, subpaquetes de 58 B) sobre una COPIA del
-arnes de dos puntas en el scratchpad (el simulador del repo sigue congelado) -> arquitecto decide CAMBIAR / NO /
-MEDIR ANTES -> si CAMBIAR, firmware y SPEC_2 en worktree. La configuracion de las radios de Marco sigue sin medir.
+**`N-184` (09/11): causa medida, sin cambio de tiempos.** Registro de Marco (`evidencia/091120261545`, firmware
+`8f8dd7e`): `RF:0%` en los 126 `$STATUS`, 505 latidos sin respuesta: el enlace nunca existio. Foto: M0/M1 en OFF/OFF
+en las dos radios = modo 3 del manual. Corregido en `277fb72` (SPEC_6 B.1-B.3, `CLAUDE.md` §3, hoja): ON/ON para
+operar. Tiempos frente a LoRa (inventario + simulacion con el C++ real en el scratchpad): arquitecto MEDIR ANTES, sin
+cambio: a 2,4 k una rafaga ~0,15 s frente a ~1,35 s de borde; bajar reintentos no detecta antes la radio caida (eso
+es el silencio de 28 s, `D-48`) y haria pisar `GO_RED` sobre `ACK_RED`. Se reabre solo con `RTT:` medido en su banco
+con las radios bien configuradas. Paquete vigente: `277fb72`.
+
+**Pendiente (09/11, mientras Marco prueba):** teclado: `N-185` Repetidor (en curso, worktree); merge de
+`auditoria/n182` tras su runbook; tandas 3+ de `D-98`. Del responsable: §7.1 (cuatro ordenes sin PIN), §7.5 (Modo
+Alcance), C5 (camara en bajada) tras cronometrar la pluma. De banco: radios ON/ON y `RTT:`, puente H, 4 camaras,
+banderas tras corte, `FLASH_NO_RELEE`, `D-22`, `D-124`, El Sisga. Telefono: 360x640 y 320 px de la APK `277fb72`.
 
 **Rama `auditoria/n182` (otra sesion, 09/11):** 7 commits de instrumentos sobre `7f4a502` (rondas.json ignorado,
 lista cerrada en `barrera_03`, ABORTADO en `Validacion_Respaldo`, D-94 por el despachador real del Maestro en el
