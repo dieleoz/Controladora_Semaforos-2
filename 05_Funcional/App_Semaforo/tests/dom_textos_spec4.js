@@ -383,7 +383,7 @@ module.exports = async function pruebaTextosSpec4(montarAppLimpia, assert) {
       const a = montar(M, 'MENU');
       a.w.Testigo.guardar({ estado: 'ENVIADO', ...enDiez(), verde: 360,
         despeje: 30, serie: 'SEM-M-01', emitidoMs: Date.now(), enCaliente: cal });
-      a.entra(`ACK,CMD:SET_MODO:DEG_T,RESULT:${res}`); await new Promise(r => setTimeout(r, 5));
+      a.entra(`ACK,CMD:SET_MODO:DEG_T,RESULT:${res}`); await new Promise(r => setTimeout(r, 0));
       const ev = CALIENTE.test(a.d.getElementById('event-feed').textContent);
       const t = a.d.getElementById('toast-msg'); const to = CALIENTE.test(t ? t.textContent : '');
       assert(ev === debe && to === debe, `15: D-78 acuse ${res} con enCaliente=${cal}: aviso ${debe ? 'SI' : 'NO'} ` +
@@ -403,7 +403,7 @@ module.exports = async function pruebaTextosSpec4(montarAppLimpia, assert) {
   }
 
   // 16. MODO NOCHE en la app (SPEC_0 §5.10 (d), (f), (h), (i); SPEC_4 §3.1; D-106, D-109, D-110, D-111).
-  const tick = () => new Promise(r => setTimeout(r, 5));
+  const tick = () => new Promise(r => setTimeout(r, 0));
   const $ = (a, id) => a.d.getElementById(id);
   const tx = (a) => a.tramas.map(x => x.trim());
   {
