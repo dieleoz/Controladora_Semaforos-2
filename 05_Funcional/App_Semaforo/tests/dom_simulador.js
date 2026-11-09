@@ -54,10 +54,11 @@ const aRegex = (lit) => lit.split(/(%[-0-9.]*l*[sudxXc]|%%)/).map(x =>
 const DATOS = /^(SERIE|T|RF|RTT|BAT|HORA|FW|REIN|UP|ANTES|TR|NODE)$/;
 function vocabulario(punta) {
   const lits = literales(fuente(punta));
+  if (lits.includes('%s,CMD:%s%s%s,%s')) lits.filter(x => /^(RESULT|DESC):/.test(x)).forEach(c =>
+    ['$ACK', '$ERR'].forEach(k => lits.push(k + ',CMD:%s,' + c, k + ',CMD:%s:%s,' + c)));
   const cabezas = lits.filter(l => /^\$(ACK|ERR|STATUS|EVENT|ALARM),/.test(l))
     .map(l => ({ lit: l, re: new RegExp('^' + aRegex(l)), nombres: (l.match(/(?:^|,)([A-Z_]+):%/g) || []) }));
   const cola = lits.filter(l => /^,[A-Z]+%?[a-z]*:?.*%/.test(l)).map(l => new RegExp('^' + aRegex(l)));
-  // Un literal que es solo huecos ("%s") casaria con cualquier cosa: como molde vale si le queda texto fijo.
   const moldes = lits.filter(l => /%/.test(l) && /[A-Za-z]{2}/.test(l.replace(/%[-0-9.]*l*[sudxXc]/g, '')))
     .map(l => new RegExp('^' + aRegex(l) + '$'));
   const enLiteral = (v) => lits.some(l => l.includes(v)) || moldes.some(re => re.test(v));
@@ -122,15 +123,15 @@ module.exports = async function pruebaSimulador(montarAppLimpia, assert) {
          juzgar(VOC.MAESTRO, '$ACK,CMD:SET_TIEMPOS,RESULT:OK*4A') === null,
     'Simulador: control negativo: un DESC: que el C++ no tiene y un campo de mas se rechazan; uno del C++ pasa');
   // Las ordenes del despachador de cada punta, leidas del C++ (C++ -> simulador).
-  const ARGS = { 'SET_MODO:DEG_T:': '10:00:00,10:00:30,300,40', 'SET_MODO:DEG_FIN:': 'CANCELAR', 'SET_DEG_AUTO:': '1',
-                 'SET_TIEMPOS:': '5,5,30', 'SET_NOCHE:': '1,OFF', 'SET_NOCHE_TR:': '200', 'CMD:HORA_ESP32:': '2026-10-15T10:00:00' };
+  const ARGS = { 'SET_MODO:DEG_T:': '10:00:00,10:00:30,300,40', 'SET_MODO:DEG_FIN:': 'CANCELAR', 'SET_DEG_AUTO:': '1', 'SET_TIEMPOS:': '5,5,30',
+                 'SET_NOCHE:': '1,OFF', 'SET_NOCHE_TR:': '200', 'SET_VETO_CAMARA:': 'OFF', 'SET_BARRERA_SERVICIO:': 'OFF', 'CMD:HORA_ESP32:': '2026-10-15T10:00:00' };
   const NO_CONTESTA = ['$LATIDO', 'CMD:HORA_ESP32:'];   // bluetooth.cpp: el latido del puente y su hora no se contestan
   function ordenes(punta) {
-    const cods = [fs.readFileSync(path.join(FW, punta, 'src', 'bluetooth.cpp'), 'utf8')];
-    if (punta === 'Maestro') cods.push(fs.readFileSync(path.join(FW, punta, 'src', 'modo_noche.cpp'), 'utf8'));
+    const cods = ['bluetooth.cpp', 'interruptores.cpp'].concat(punta === 'Maestro' ? ['modo_noche.cpp'] : [])
+      .map(f => fs.readFileSync(path.join(FW, punta, 'src', f), 'utf8'));
     const out = new Set();
     cods.map(sinComentarios).forEach(c => {
-      const ini = c.search(/static (void|bool) (procesarComando|ordenEnNoche|modoNoche_orden)|bool modoNoche_orden/);
+      const ini = c.search(/static (void|bool) (procesarComando|ordenEnNoche|modoNoche_orden)|(bool|const char\*) (modoNoche_orden|interruptores_orden)/);
       const re = /\bstrn?cmp\s*\(\s*(cmd\s*\+\s*4|cmd|accion|a)\s*,\s*"([^"]+)"/g;
       let m;
       re.lastIndex = Math.max(0, ini);
@@ -175,12 +176,11 @@ module.exports = async function pruebaSimulador(montarAppLimpia, assert) {
       `que el firmware no contesta tampoco aqui; sin respuesta: ${falta.join(' ') || '-'}; de mas: ${sobra.join(' ') || '-'}`);
     // Barrido: en cada poste de la flota, cada orden de su punta con argumentos buenos y malos, dos veces seguidas
     // (las ramas que dependen de lo anterior: REARMADO, SIN_CAMBIO, YA_VUELVE_AL_MENU...).
-    const VARIANTES = { 'SET_MODO:DEG_T:': ['10:00:00,10:00:30,300,40', '10:00:00,10:00:30,301,40', '10:00:00,10:00:30,300,5',
-                                            '09:00:00,10:00:30,300,40', 'x'],
+    const VARIANTES = { 'SET_MODO:DEG_T:': ['10:00:00,10:00:30,300,40', '10:00:00,10:00:30,301,40', '10:00:00,10:00:30,300,5', '09:00:00,10:00:30,300,40', 'x'],
                         'SET_MODO:DEG_FIN:': ['CANCELAR', '10:00:00,10:30:00', '09:00:00,10:30:00', 'x'],
                         'SET_DEG_AUTO:': ['1', '0', '7'], 'SET_TIEMPOS:': ['5,5,30', '99,5,30', 'x'],
                         'SET_NOCHE:': ['1,OFF', '1,LMXJVSD,2200,0500,R', '9,OFF', '1,LMXJVSD,2500,0500,A', 'x'],
-                        'SET_NOCHE_TR:': ['200', '5', 'x'] };
+                        'SET_NOCHE_TR:': ['200', '5', 'x'], 'SET_VETO_CAMARA:': ['OFF', 'ON', 'x'], 'SET_BARRERA_SERVICIO:': ['OFF', 'ON', 'x'] };
     F.forEach(def => {
       const r = relojManual(T0), em = [];
       const sim = S.crear({ reloj: r, postes: [JSON.parse(JSON.stringify(def))], emitir: (p, t) => em.push([def.nodo, t]) });
@@ -381,10 +381,9 @@ module.exports = async function pruebaSimulador(montarAppLimpia, assert) {
     pasos(mac(6), ['btn-op-ambar-emergencia', 'btn-op-cancelar-ambar']);
     const puente = /^CMD:(PIN:\d+:)?(LEER_RTC|SET_RTC|LOG)/;
     const alSim = escritas.filter(o => !puente.test(o));
-    const cmdDe = (o) => o.replace(/^CMD:(PIN:\d+:)?/, '').replace(/^MANUAL:/, '').split(':').slice(0, 2).join(':');
-    const sinRespuesta = alSim.filter(o => !a.oidas.some(t => /^\$(ACK|ERR),CMD:/.test(t) &&
-      (t.indexOf('CMD:' + cmdDe(o)) >= 0 || (/AUTH_FAILED|DESCONOCIDO/.test(t) && !/SET_(VETO_CAMARA|BARRERA_SE)/.test(o)) ||
-       (/SET_NOCHE/.test(o) && /CMD:SET_NOCHE/.test(t)) || (/DEG_T/.test(o) && /DEG_T/.test(t)))));
+    const cmdDe = (o) => o.replace(/^CMD:(PIN:\d+:)?(MANUAL:)?/, '').replace(/^CONSULTA_NOCHE$/, 'NOCHE')
+      .replace(/^(SET_(?:TIEMPOS|DEG_AUTO|NOCHE|NOCHE_TR)):.*/, '$1').split(':').slice(0, 2).join(':');
+    const sinRespuesta = alSim.filter(o => !a.oidas.some(t => /^\$(ACK|ERR),CMD:/.test(t) && t.indexOf('CMD:' + cmdDe(o)) >= 0));
     const hechas = ['SET_MODO:MENU', 'SET_MODO:ALCANCE', 'TEST_LEDS', 'VERSION', 'SET_MODO:AUTO', 'CAMBIAR_TURNO',
                     'SET_MODO:AMBAR', 'FORZAR_ROJO', 'SET_TIEMPOS', 'SET_NOCHE', 'SET_NOCHE_TR', 'SET_DEG_AUTO',
                     'SET_MODO:DEG_T', 'AMBAR_EMERGENCIA', 'CANCELAR_AMBAR', 'SET_VETO_CAMARA', 'SET_BARRERA_SERVICIO']
