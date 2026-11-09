@@ -179,8 +179,8 @@ Lo ya definido no se pregunta (SPEC_4 §9.14 (c): un `NODE:` distinto da aviso r
 | C | worktree | `style.css`, `index.html` y sus copias de `www/` | 320 px: franja sobre el modal, «emparejado», «(radio N %)», «MANDOS DE CAMPO», `.card-sub`, buscador; rotulo «Equipos de cintas» || hecho, `f1e88c2` |
 | D | worktree | `bluetooth.cpp` de Maestro y Esclavo, arnes de `SET_TIEMPOS` | `SET_TIEMPOS:259` rechazado con `$ERR` antes del `(uint8_t)`; mutantes vivos `SET_TIEMPOS` sin rango y `parar()` vacio || hecho, `9ffc049` |
 | E | worktree | `tests/dom_claves.js` | reloj inyectable en «Practica» (4) || hecho, `dab890d` |
-| U | tras integrar A-E | ver bloque U debajo | Simplificar la app, en el mismo paquete | |
-| X | worktree, tras D | SPEC_8 §6, `respaldo.cpp`, despachador, app | `D-94`..`D-97`: arquitecto ANTES (§11.7), en cadena tras D (comparten despachador) | SI del responsable, 27/10 |
+| U | tras integrar A-E | ver bloque U debajo | Simplificar la app, en el mismo paquete || en curso en `N-182` (09/11, workflow U-S y U-B) |
+| X | worktree, tras D | SPEC_8 §6, `respaldo.cpp`, despachador, app | `D-94`..`D-97`: arquitecto ANTES (§11.7), en cadena tras D (comparten despachador) | hecho en `N-182` (`bd16447`) |
 | F | orquestador | arbol principal | integrar por el diff; compuerta completa hasta dos pasadas iguales; cifras a ESTADO | |
 | Q | 2 agentes a la vez | solo lectura | arquitecto (opus) y QA una vez sobre la candidata; condiciones por SPEC -> rojo -> codigo | |
 | P | orquestador | `entregas/`, telefono | APK y CRC; telefono CDP 9333 a 320 px; `.bin` con sello limpio; hoja con lo nuevo y lo que mide Marco (`D-22`, `D-124`, pila de `D-94`..`D-97`); UN paquete; `0fe782f` a `RETIRADOS/` | |
@@ -216,13 +216,20 @@ se MIDE en la visita (equipo, `VERSION`, `CONSULTA_NOCHE` y cinta de un sabado),
 
 | # | quien | ficheros (solo esos) | que | estado |
 |---|---|---|---|---|
-| M | 2 agentes, solo lectura, mismo encargo | firmware de camaras, pluma y respaldo | Que hace HOY el equipo con una camara caida, las dos, la barrera sin final de carrera; se comparan: donde difieren se abre el fuente | |
-| R | 2 revisores, solo lectura, mismo encargo | `D-94`..`D-97`, `D-115`, SPEC_8 §6, SPEC_0 §5.10 | `CLAUDE.md` §11.7 ANTES de construir: modo de fallo de cada barrera que se retira (veto de camara, `FRANJA_SALTADA`); se comparan | |
-| S2 | 1 agente, tras M y R | SPEC_8 §6, `DECISIONES.md` | Condiciones de R a la spec antes de construir X (`D-148`..) | |
-| X | worktree | `respaldo.cpp`, despachador `bluetooth.cpp`, pluma y camaras de Maestro y Esclavo, su arnes | `D-94`..`D-97` | |
-| AP | worktree | `app.js` (dos copias), `index.html`, sus pruebas | Interruptores de `D-94` | |
-| H | arbol principal | `05_Funcional/Hoja_Marco_<fecha>.html` | Hoja: barrera, 4 camaras, camara caida, interruptores, fin de semana, radios, calle con mensula; `D-22`, `D-124` | |
-| F, Q, P | orquestador | como `N-181` | Integrar, compuerta, arquitecto y QA una vez, APK, `.bin`, UN `.zip`; `0fe782f` a `RETIRADOS/` | |
+| M | 2 agentes, solo lectura, mismo encargo | firmware de camaras, pluma y respaldo | Que hace HOY el equipo con una camara caida, las dos, la barrera sin final de carrera; se comparan: donde difieren se abre el fuente || hecho: 8/11 coinciden; B2, B3 y R1 conciliados en el fuente |
+| R | 2 revisores, solo lectura, mismo encargo | `D-94`..`D-97`, `D-115`, SPEC_8 §6, SPEC_0 §5.10 | `CLAUDE.md` §11.7 ANTES de construir: modo de fallo de cada barrera que se retira (veto de camara, `FRANJA_SALTADA`); se comparan || hecho: A NO APTO, B APTO CON CONDICIONES; 7 condiciones a la spec (`D-148`..`D-152`), `268e90b` |
+| S2 | 1 agente, tras M y R | SPEC_8 §6, `DECISIONES.md` | Condiciones de R a la spec antes de construir X (`D-148`..) || hecho, `268e90b`; `D-96` ARRIBA confirmado por el responsable (09/11) con su modo de fallo |
+| X | worktree | `respaldo.cpp`, despachador `bluetooth.cpp`, pluma y camaras de Maestro y Esclavo, su arnes | `D-94`..`D-97` || hecho, `bd16447`: 99/99, 184/184, 158/158; flash 80,2 % / 66,8 % |
+| AP | worktree | `app.js` (dos copias), `index.html`, sus pruebas | Interruptores de `D-94` || hecho, `bd16447`: DOM 842/842 (aviso de arranque con literal inventado: rojo visto y corregido) |
+| H | arbol principal | `05_Funcional/Hoja_Marco_<fecha>.html` | Hoja: barrera, 4 camaras, camara caida, interruptores, fin de semana, radios, calle con mensula; `D-22`, `D-124` || hecho: `Pruebas_Funcional_2026-11-09.html`, 24 pruebas, `acd7f6e` |
+| F, Q, P | orquestador | como `N-181` | Integrar, compuerta, arquitecto y QA una vez, APK, `.bin`, UN `.zip`; `0fe782f` a `RETIRADOS/` || compuerta sobre `acd7f6e` 1513/1514 (solo `D-22`); paquete `8f8dd7e` en `entregas/` (zip `75861ee5...`, APK `c7b38cc2...`, sin telefono); arquitecto APTO CON CONDICIONES (cond. 3 en `3fa3614`, cond. 2 abajo); QA en curso |
+
+**Siguiente de `N-182` (09/11):** tras U, una tanda: (1) `NO_QUEDO_PUESTO` en la app (condicion 2 del arquitecto:
+`Interruptores.RECHAZOS` y caso en `dom_interruptores.js` con el literal del firmware, visto en rojo); (2) las
+condiciones de QA; (3) compuerta, APK, telefono a 320 px y paquete nuevo que sustituye a `8f8dd7e`. Hueco medido:
+tras un corte con la barrera fuera, la pluma sube en la siguiente escritura de la luz, no al arrancar. Riesgo medido
+en el fuente (C5): la camara no frena una bajada ya ordenada, y Marco cuenta ~60 s de recorrido con final de carrera;
+se cronometra en banco antes de decidir.
 
 Abierto, para el responsable (no se construye en `N-182`): «inhibir UNA camara o dos» (hoy `D-94` es un solo
 interruptor y SPEC_8 §2 dice que las dos entradas hacen lo mismo) y «barrera ABAJO» desde la app (`D-96` solo da
