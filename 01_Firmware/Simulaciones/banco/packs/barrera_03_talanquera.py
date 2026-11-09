@@ -116,18 +116,10 @@ def correr(b, fw):
             "SFTY-28 prohibe" % punta)
         m = re.search(r"digitalWrite\(\s*MOTOR_TALANQUERA\s*,\s*([^;]+)\)",
                       cuerpo.replace("\n", " "))
-        # D-33 (14/09/2026): LA CONDICION YA NO CABE EN EL TERNARIO, Y SE LA SIGUE.
-        #
-        # Hasta ese dia la tabla de verdad entera estaba escrita aqui dentro y un `in`
-        # bastaba. D-33 la saco a `luzPideArriba` una linea mas arriba, porque el retardo
-        # de bajada y el veto de la camara necesitan saber si la pluma YA estaba arriba.
-        # Las dos lineas de abajo NO se relajan: siguen exigiendo el mismo `verde` y el
-        # mismo S_FALLO, solo que sobre la expresion donde ahora viven (CLAUDE.md 9). Si
-        # la cadena no se entiende, esto ABORTA en vez de aprobar una barrera sin mirar.
+        # D-33: la tabla de verdad vive en luzPideArriba. Se exige 'verde', ausencia de
+        # 'rojo', S_FALLO y lista cerrada de identificadores (CLAUDE.md 9).
         crudo = m.group(1).strip() if m else ""
         expr = crudo.replace(" ", "")
-        # El ternario: la CONDICION es lo que va antes del '?'. Las dos ramas las mira
-        # el pack de N-82; aqui solo interesa de que depende la pluma.
         ternario = re.match(r"^(.+?)\?", crudo)
         suelto = fw.sin_asignacion(ternario.group(1).strip() if ternario else crudo, codigo)
         d33 = None
@@ -140,13 +132,17 @@ def correr(b, fw):
                     "entiende no se aprueba: se aborta y se viene a mirarla"
                     % (punta, suelto))
             expr = d33["tabla"].replace(" ", "")
+        mF = re.search(r"const\s+bool\s+(\w+)\s*=\s*respaldo_barreraFuera\(\)\s*;", cuerpo)
+        permitidos = ({"verde", "testLedsActivo", "estado", "S_FALLO", "S_AMARILLO",
+                       "S_AMBAR_INT", "S_ROJO_INT"} | ({mF.group(1)} if mF else set()))
+        desconocidos = sorted(set(re.findall(r"[A-Za-z_]\w*", d33["tabla"] if d33 else crudo)) - permitidos)
         b.verificar(
-            m is not None and "verde" in expr and "rojo" not in expr,
+            m is not None and "verde" in expr and "rojo" not in expr and not desconocidos,
             "%s: la pluma se decide con el MISMO 'verde' ya enclavado que enciende la "
-            "lampara, no con otra variable" % punta,
-            "%s: la talanquera se escribe con %r. Tiene que salir del mismo booleano "
-            "que la luz verde: cualquier otra fuente puede desincronizarse de ella"
-            % (punta, expr or "(no se pudo leer)"))
+            "lampara, no con otra variable (lista cerrada)" % punta,
+            "%s: la talanquera se escribe con %r (fuera de lista: %s). Tiene que salir del "
+            "mismo booleano que la luz verde: cualquier otra fuente puede desincronizarse"
+            % (punta, expr or "(no se pudo leer)", desconocidos))
         # La excepcion de SFTY-6 se comprueba PRESENTE, no se da por supuesta. Si
         # alguien la borra, la pluma dejaria de subir en ambar intermitente y nadie lo
         # notaria hasta que un equipo se quedara sin enlace en obra -que es cuando
