@@ -183,6 +183,8 @@ vez el extremo de la cadena electrica que vive en `SPEC_5` §4. **Es de aqui.**
 
 # 6. 🟡 Los dos interruptores de administrador — **DECIDIDOS el 14/09, CERRADOS el 14/10, SIN CONSTRUIR**
 
+🔴 **La barrera fuera de servicio (6.3) la confirmo ARRIBA el responsable el 09/11 (`D-96`), con su modo de fallo.**
+
 Hay dos averias distintas que hoy dejan un poste sin salida, y llevan **dos interruptores
 separados en el modo administrador de la app, uno por poste**. No se pueden juntar en uno: lo que
 falla no es lo mismo y lo que queda funcionando tampoco. **No son interruptores fisicos** (`D-94`): no hay
@@ -194,7 +196,7 @@ medidas no hay codigo** (`CLAUDE.md` §3, `roadmap.md` `N-178` M12): este aparta
 | el interruptor | cuando se usa | que hace el equipo despues |
 |---|---|---|
 | **Sacar la camara del veto** | la camara esta averiada o mal apuntada y **no deja bajar la barrera** | la barrera **vuelve a trabajar**: sube con el verde y baja tras el rojo, con su retardo. Lo unico que se pierde es que la camara pueda retenerla. Saca del veto a **las dos camaras del poste** (una por poste, como se decidio el 14/09; no por camara) |
-| **Sacar la barrera de servicio** | la barrera esta **rota de verdad** —brazo partido, actuador atascado— | el brazo se queda **arriba** y deja de obedecer a la luz. El cruce sigue funcionando **solo con el semaforo** |
+| **Sacar la barrera de servicio** | la barrera esta **rota de verdad** —brazo partido, actuador atascado— | **SUSPENDIDO (6.3):** el brazo se queda **arriba** y deja de obedecer a la luz. El cruce sigue funcionando **solo con el semaforo** |
 
 ## 6.1 Las ordenes (`D-94`)
 
@@ -203,11 +205,25 @@ medidas no hay codigo** (`CLAUDE.md` §3, `roadmap.md` `N-178` M12): este aparta
   **No viajan por radio:** el Poste 2 recibe la suya por su propio Bluetooth, como `SET_MODO`. El Maestro no la reenvia.
 - Tras la clave de administracion de la app (`D-56`, que las suma a su lista) **y el PIN del equipo**, como toda orden.
   Viven en Diagnostico, no en la pantalla del operario (`D-80`); antes de enviar `OFF` la app dice la consecuencia con
-  las palabras de la tabla de arriba y, para la barrera, **«el brazo sube AHORA, tambien con la luz en rojo»**.
-- **Molde `SET_TIEMPOS`** (`CLAUDE.md` §2): `$ACK,CMD:<orden>,RESULT:OK` solo si el indicador LEIDO del respaldo tras
-  escribirlo es el pedido; ya en ese estado, `RESULT:SIN_CAMBIO` sin tocar nada (`D-65`); otro texto,
-  `$ERR ... DESC:FORMATO_INVALIDO`; respaldo invalido (sin pila o agotada), `$ERR ... DESC:RESPALDO_INVALIDO`, porque
-  un interruptor que no va a sobrevivir al corte no se pone: el poste sigue entero, que es el lado seguro.
+  las palabras de la tabla de arriba y, para la barrera, **«el brazo sube AHORA, tambien con la luz en rojo»**
+  (frase pendiente de la fila de 6.3).
+- **Molde `SET_TIEMPOS`** (`CLAUDE.md` §2): ya en ese estado, `RESULT:SIN_CAMBIO` sin tocar nada (`D-65`); otro texto,
+  `$ERR ... DESC:FORMATO_INVALIDO`; con el respaldo perdido en este arranque, `$ERR ... DESC:RESPALDO_INVALIDO`
+  (abajo). Si no, se escribe la bandera, **la orden vuelve a pasar por la puerta** (6.3) y `$ACK,CMD:<orden>,RESULT:OK`
+  solo si lo leido DESPUES es lo pedido (`D-149`): el getter de la bandera y, para la barrera, `semaforo_plumaFuera()`
+  (6.4). Releer el registro solo no basta: un registro recien escrito devuelve siempre lo escrito.
+- **Que es «respaldo invalido» (`D-148`):** `respaldo_valido()` no sirve: `respaldo_setup()` acaba siempre en
+  `sellar()`, que pone `contenidoValido = true`, tambien tras `respaldo_borrar()`. El criterio es una bool en RAM que
+  `respaldo_setup()` pone ANTES de llamar a `respaldo_borrar()`, leida con `respaldo_perdidoAlArrancar()`: «este
+  arranque encontro el respaldo invalido y lo borro» (pila agotada en el ultimo corte, equipo nuevo, pila recien
+  cambiada). Con ella, el `OFF` de las dos ordenes sale con ese `$ERR` hasta un arranque con respaldo valido; el `ON`
+  se acepta, porque es el lado seguro. Un interruptor que no va a sobrevivir al corte no se pone.
+  🔴 **Lo que NO detecta:** una pila que se agota con el equipo encendido. Mientras hay corriente el dominio de respaldo
+  vive de `VDD`; el interruptor se pierde en el siguiente corte y vuelve a `ON` (6.2), y el arranque siguiente ya
+  rechaza. Tras cambiar la pila, el primer arranque rechaza: se reinicia una vez.
+- **Una sola fuente:** las ordenes y `escribirPines()` leen el MISMO getter (`respaldo_vetoCamaraOff()`,
+  `respaldo_barreraFuera()`), molde `respaldo_degAuto()`: pasan por `contenidoValido`, asi que antes de
+  `respaldo_setup()` (en el Esclavo, `semaforo_setup()` va antes) y con `DR4` corrupto valen `ON`. Sin copia en RAM.
 - El `$ACK` queda en el registro del puente (`D-73`): es la huella de quien puso el interruptor y cuando.
 
 ## 6.2 Sobreviven al corte: dos banderas en la casilla de indicadores (`D-95`)
@@ -227,23 +243,49 @@ tras un corte real, con pila; el arnes de dos puntas solo mide que el reinicio s
   `true` y la pluma baja al cumplirse `PLUMA_RETARDO_BAJADA_MS`, como con las borneras vacias. El retardo de 3 s no
   cambia (`D-33`, `D-42`). El vigilante de las camaras sigue contando y avisando (`CAM_PEGADA`, `CAM_CIEGA`, `D-24`):
   asi se sabe cuando la camara volvio a dar flancos y se puede devolver el veto.
-- **Barrera fuera de servicio:** `luzPideArriba` gana el termino del interruptor y **el pin va a `ABRIR` en el mismo
-  tick, tambien con la luz en rojo**, por la misma puerta que las luces (SFTY-28). Es la politica de `S_FALLO` (§5):
-  la barrera declarada rota no protege a nadie, y esperar al siguiente verde la dejaria abajo durante horas en un
-  rojo fijo (`D-38`). Subir un brazo no aplasta a nadie; la app lo avisa antes de enviar. Sin veto ni retardo mientras
-  dure: la pluma no baja. El test de lamparas no la mueve (ya esta arriba). **Con el brazo abajo no hay instante que
-  mirar:** sube, y lo que la luz diga lo decide el semaforo, igual que en un cruce sin barrera.
-- Las dos cosas que §6 pedia medir quedan asi: la segunda, decidida arriba; la primera es el HUECO de 6.2.
+- 🔴 **Barrera fuera de servicio: ARRIBA, confirmado por el responsable el 09/11 (`D-96`).** `luzPideArriba` gana el
+  termino del interruptor y el pin va a `ABRIR`, tambien con la luz en rojo. **Modo de fallo aceptado:** rojo aqui y
+  verde en la otra punta con la pluma arriba = el carril unico con las dos bocas abiertas, sin tope de tiempo,
+  sobreviviendo al corte (`D-95`) y sin `$ALARM` (solo el aviso de arranque, `D-152`); caso tipico, se repara el brazo
+  y nadie quita el interruptor. No es la politica de `S_FALLO` (alli ninguna punta tiene verde). Deroga, SOLO para
+  `FLAG_BARRERA_FUERA`, la premisa «pluma arriba sin verde fuera de `S_FALLO`» de `semaforo.cpp`, `botones.cpp` y
+  `OPTIMIZACIONES.md` SFTY-28 («una barrera abierta con la luz en rojo ... es peor que no tener barrera»).
+  **En el mismo cambio que la construye:** los comentarios de las dos puntas, la tabla de SFTY-28 y
+  esta seccion; las pruebas que exigen lo contrario se reparten o invierten una a una (`CLAUDE.md` §9) con la excepcion
+  **por el NOMBRE** `FLAG_BARRERA_FUERA`, nunca ensanchando a «con rojo»; control negativo: bandera forzada sin la orden
+  o quitada con la pluma arriba en rojo, y `violacionesTalanquera > 0`. Cada una vista en rojo.
+- **La orden vuelve a pasar por la puerta (`D-149`).** Con la luz en `S_ROJO`
+  estable nada llama a `escribirPines()`: la unica reentrada del bucle es `if (plumaCierrePendiente)
+  aplicarSalidas(ultR, ultA, ultV)`, y la rama `luzPideArriba` deja `plumaCierrePendiente = false`. Sin reentrada,
+  `OFF` no mueve el pin hasta el siguiente cambio de luz (horas en rojo fijo, `D-38`) y `ON` deja la pluma arriba sin
+  razon nombrada. Por eso, tras escribir la bandera, la orden llama a una funcion publica de `semaforo.cpp` que llama
+  a `aplicarSalidas(ultR, ultA, ultV)` —sin un segundo `digitalWrite` (SFTY-2)— y el `$ACK` lee despues. Con `ON` en
+  rojo la pluma baja a `PLUMA_RETARDO_BAJADA_MS`, o la retiene el veto. Prueba: C++ real en las dos puntas, `S_ROJO`
+  estable, vista en rojo sobre el fuente de hoy.
+- Lo que §6 pedia medir: la segunda cosa, decidida ARRIBA (`D-96`, 09/11); la primera, el HUECO de 6.2.
 
 ## 6.4 Se publican sin crecer la trama (`D-97`)
 
 El `$STATUS` no gana campo ni byte (le quedan 3 B, `D-60`): el estado viaja **como valor de dos campos que ya existen
-y ya tienen su ancho** (cota por buffer, `N-154`): `PLUMA:FUERA` (5 <= 6 de `ARRIBA`) mientras la barrera esta fuera
-de servicio —no esconde nada: el pin esta siempre en `ABRIR`— y `CAM:NOVETO` (6 <= 6 de `PEGADA`) mientras las camaras
-estan fuera del veto, en lugar de la peor de las dos. En las dos puntas. Sin `$ALARM` repetida: el `$STATUS` lo dice a
-1 Hz desde que alguien se conecta y el `$ACK` ya esta en el registro. La app pinta los dos en ambar (`D-83`, mirar)
-con la frase de que falta: «barrera fuera de servicio: el brazo queda arriba, manda el semaforo» y «camara sin veto:
-la barrera baja sin mirar la camara». `app_04_valores_de_status` compara los literales del C++ con `PLUMA_LEYENDA` y
+y ya tienen su ancho** (cota por buffer, `N-154`), en las dos puntas:
+- **`PLUMA:FUERA`** (5 <= 6 de `ARRIBA`; su sentido depende de la fila pendiente de 6.3). **Una sola fuente
+  (`D-150`):** `escribirPines()` anota en la misma asignacion que el pin si va por el interruptor (molde `N-153`), y el
+  `$STATUS` y el `$ACK` leen esa anotacion con `semaforo_plumaFuera()`, nunca la bandera del respaldo: si no, el
+  `$STATUS` diria `FUERA` con el pin en `CERRAR` (antes de la reentrada de 6.3, o entre `semaforo_setup()` y
+  `respaldo_setup()`). El arnes compara `PLUMA:` con el pin real (`discrepanciasPluma`) tambien con la bandera puesta.
+- **`CAM:NOVETO`** (6 <= 6 de `PEGADA`) **solo con el veto fuera Y `camara_estado()` en `OK` o `?` (`D-151`)**; si
+  diria `PEGADA` o `CIEGA`, se publica eso aunque el veto este fuera. Asi el campo sigue diciendo lo que 6.3 promete
+  (cuando la camara vuelve a dar flancos): las alarmas de camara son de una vez (`$ALARM` al entrar, `$EVENT
+  CAMARA_RECUPERADA` al salir) y el campo es lo unico que permanece. `NOVETO` se lee «camara sana y sin veto: devolver
+  el veto». La prueba ejerce las dos lecturas con datos asimetricos (C en `PEGADA` y D en `OK`, y al reves).
+- **Sin `$ALARM` repetida;** el `$STATUS` lo dice a 1 Hz desde que alguien se conecta y el `$ACK` esta en el registro.
+  **Sin telefono (`D-152`):** si al arrancar sigue puesta alguna de las dos banderas, el parte de arranque lo dice con
+  un `$EVENT` de una sola vez, que queda en el registro del puente (`D-73`); la prueba, en el arnes de dos puntas con
+  reinicio simulado, vista en rojo.
+
+La app pinta los dos en ambar (`D-83`, mirar) con la frase de que falta: «barrera fuera de servicio» (el resto de la
+frase espera la fila de 6.3) y «camara sana y sin veto: devolver el veto». `app_04_valores_de_status` compara los
+literales del C++ con `PLUMA_LEYENDA` y
 `CAM_LEYENDA` en los dos sentidos: queda en rojo hasta que firmware y app lleven los dos valores, y su lector del
 ternario de `PLUMA:` (`_literales_de_pluma`, dos sitios) se recuenta ANTES de construir (`CLAUDE.md` §5).
 
