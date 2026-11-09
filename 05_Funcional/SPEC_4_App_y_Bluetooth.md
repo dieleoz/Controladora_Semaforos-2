@@ -1315,7 +1315,7 @@ Ficheros: `Maestro/src/bluetooth.cpp`, `App_Semaforo/js/diagnostico_enlace.js`, 
 `App_Semaforo/tests/dom_cabecera_fase.js` y las copias en `www/`. Medida de §8: ~25 lineas de producto contra ~15 de
 test; la razon instrumentos/producto no sube.
 
-### 9.12 `app.js` en modulos, por tandas y con salida identica (`N-178` M13; `D-98`) — tandas 1 y 2 construidas
+### 9.12 `app.js` en modulos, por tandas y con salida identica (`N-178` M13; `D-98`) — tandas 1 a 3 construidas
 
 Fuente: `ROADMAP_APP.md` 8. Decidido por Fable por delegacion del responsable, 14/10. Medido sobre el arbol del 14/10:
 `app.js` es UN cierre (`document.addEventListener('DOMContentLoaded', () => { ... })`) de 5860 lineas con 240 nombres
@@ -1348,11 +1348,11 @@ que lee las tablas en su modulo). Prueba en `tests/test_unitarios.js`: orden de 
 
 **Orden de las tandas:** 2.a la pintura de luces, construida el 15/10 (`N-178` N5): tablas a `js/luces_tablas.js`,
 pintores a `js/luces.js` (`Luces.instalar(dep)`, 14 nombres del cierre; `renderLights`, `pintarPluma`, `pintarCamaras`
-quedan de envoltorio en `app.js`), `app_04` lee los tres ficheros; TDD 87|4 antes, 91|0 despues; 3.a depuracion (241
-lineas, 13 nombres) con `D-72`..`D-75`; 4.a el enlace y los equipos (648 lineas, 21 nombres); la ULTIMA, los modales y
-el PIN (189 lineas): es la barrera de §4 y se mueve solo con `dom_claves.js` delante y `app_01`/`app_05` recontados.
-**Sin construir** (medido en `4da7574`, `app.js` de 4556 lineas): la 3.a, la 4.a y la ultima. Siguen en `app.js`
-`renderDepuracion()`, `abrirEnlace()`/`cambiarDeEquipo()`/`desconectarEquipo()` y `pinModal`/`pedirPin()`.
+quedan de envoltorio en `app.js`), `app_04` lee los tres ficheros; TDD 87|4 antes, 91|0 despues; 3.a depuracion, el
+09/11, a `js/depuracion_vista.js` (`DepuracionVista.instalar(dep)`, 4 nombres; sus 9 elementos con ella; quedan de
+envoltorio `renderDepuracion()` y `textoDepuracion()`), TDD 88|3 antes y 91|0 despues; 4.a el enlace y los equipos (648
+lineas, 21 nombres); la ULTIMA, los modales y el PIN (189 lineas), barrera de §4: solo con `dom_claves.js` delante y
+`app_01`/`app_05` recontados. **Sin construir** (`app.js` de 4319 lineas): la 4.a y la ultima.
 
 ### 9.13 Firmware y APK del MISMO paquete, y la APK primero (`D-102`) — decidido el 15/10, regla de campo
 

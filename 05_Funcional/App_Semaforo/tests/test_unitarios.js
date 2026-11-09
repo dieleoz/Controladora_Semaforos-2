@@ -441,35 +441,37 @@ async function pruebasExportar12() {
     'Un fallo de la hoja que no es cancelar se propaga (la app lo pinta en rojo)');
 }
 
-console.log('\n--- 13. app.js en modulos, tandas 1 y 2 (SPEC_4 9.12, D-98) ---');
-// Corte sin cambio de comportamiento: las tablas de acuse y rechazo salen de app.js a
-// js/textos_ack.js y js/textos_err.js. La guarda (4) es el modo de fallo del corte: un
-// modulo que lea un nombre del cierre de app.js como global revienta en el telefono.
+console.log('\n--- 13. app.js en modulos, tandas 1 a 3 (SPEC_4 9.12, D-98) ---');
+// Corte sin cambio de comportamiento: tablas y vistas salen de app.js a js/. La guarda (4) es el modo de
+// fallo del corte: un modulo que lea un nombre del cierre de app.js como global revienta en el telefono.
 const fs13 = require('fs'); const path13 = require('path');
 const leer13 = (rel) => { try { return fs13.readFileSync(path13.join(__dirname, '..', rel), 'utf8'); } catch (e) { return null; } };
-const html13 = leer13('index.html') || '';
-const app13 = leer13('app.js') || '';
+const html13 = leer13('index.html') || ''; const app13 = leer13('app.js') || '';
 assert(/<script src="js\/textos_ack\.js"><\/script>[\s\S]*<script src="js\/textos_err\.js"><\/script>[\s\S]*<script src="js\/luces_tablas\.js"><\/script>[\s\S]*<script src="js\/luces\.js"><\/script>[\s\S]*<script src="app\.js"><\/script>/.test(html13),
   'index.html carga js/textos_ack.js, js/textos_err.js, js/luces_tablas.js y js/luces.js ANTES de app.js');
 assert(!/^\s+(const (ACK_TEXTO|ERR_TEXTO|ERR_MOTIVO|ESTADOS|ESC_LUZ|MODOS|PLUMA_LEYENDA|CAM_LEYENDA) = \{|function (_fraseDeEstadoLuces|_fraseDeLaPareja|pintarBadgeModo)\()/m.test(app13),
   'app.js ya no declara las tablas de acuse, rechazo y luces ni sus pintores: viven en js/');
-let ack13 = null, err13 = null, luz13 = null;
+let ack13 = null, err13 = null, luz13 = null, depu13 = null;
 try { ack13 = require('../js/textos_ack.js'); } catch (e) { ack13 = null; }
 try { err13 = require('../js/textos_err.js'); } catch (e) { err13 = null; }
 try { luz13 = [require('../js/luces_tablas.js'), require('../js/luces.js')]; } catch (e) { luz13 = null; }
+try { depu13 = require('../js/depuracion_vista.js'); } catch (e) { depu13 = null; }
 assert(!!luz13 && luz13[0].ESTADOS['FALLO COM'].anillo === 'amber' && !!luz13[0].MODOS.MENU.porEstado &&
        typeof luz13[1].instalar === 'function', 'js/luces_tablas.js exporta las tablas y js/luces.js, Luces.instalar');
 assert(!!ack13 && !!ack13['SET_MODO:ALCANCE|OK'] && typeof ack13['SET_MODO:ALCANCE|OK'].texto === 'string',
   'js/textos_ack.js exporta ACK_TEXTO con SET_MODO:ALCANCE|OK y su texto');
 assert(!!err13 && typeof err13.ERR_TEXTO === 'object' && typeof err13.ERR_MOTIVO === 'object' &&
-       !!err13.ERR_TEXTO && !!err13.ERR_MOTIVO,
-  'js/textos_err.js exporta { ERR_TEXTO, ERR_MOTIVO }');
-// (4) Ningun nombre del cierre (declarado a dos espacios en app.js) aparece como
-// identificador en un modulo partido, salvo que el modulo lo declare o lo reciba por dep.
-const PARTIDOS13 = ['textos_ack.js', 'textos_err.js', 'luces_tablas.js', 'luces.js'];
-const nombres13 = new Set();
+       !!err13.ERR_TEXTO && !!err13.ERR_MOTIVO, 'js/textos_err.js exporta { ERR_TEXTO, ERR_MOTIVO }');
+// Tanda 3: depuracion a js/depuracion_vista.js; renderDepuracion() y textoDepuracion(), envoltorios en app.js.
+assert(/<script src="js\/depuracion_vista\.js"><\/script>[\s\S]*<script src="app\.js"><\/script>/.test(html13),
+  'index.html carga js/depuracion_vista.js ANTES de app.js');
+assert(!/^\s+(function (_textoContadores|nombreFicheroDepuracion)\(|const depuListaEl = )/m.test(app13) &&
+       /^  function renderDepuracion\(\)/m.test(app13) && !!depu13 && typeof depu13.instalar === 'function',
+  'app.js ya no declara la pantalla de depuracion (queda renderDepuracion de envoltorio); DepuracionVista.instalar');
+// (4) Ningun nombre del cierre (a dos espacios en app.js) en un modulo partido, salvo declarado o recibido por dep.
+const PARTIDOS13 = ['textos_ack.js', 'textos_err.js', 'luces_tablas.js', 'luces.js', 'depuracion_vista.js'];
+const nombres13 = new Set(); const fugas13 = [];
 for (const m of app13.matchAll(/^  (?:const|let|var|function|class)\s+(\w+)/gm)) nombres13.add(m[1]);
-const fugas13 = [];
 for (const mod of PARTIDOS13) {
   const crudo = leer13('js/' + mod);
   if (crudo === null) { fugas13.push(mod + ': no existe'); continue; }
@@ -490,7 +492,5 @@ pruebasExportar12().catch(e => { assert(false, 'pruebasExportar12 lanzo: ' + e);
   console.log('\n' + '='.repeat(80));
   console.log(` RESUMEN TDD: ${passed} PASS | ${failed} FALLAS  (Total: ${passed + failed})`);
   console.log('='.repeat(80));
-  if (failed === 0) {
-    console.log('🎉 TODAS LAS PRUEBAS UNITARIAS TDD PASARON AL 100%\n');
-  }
+  if (failed === 0) console.log('🎉 TODAS LAS PRUEBAS UNITARIAS TDD PASARON AL 100%\n');
 });
