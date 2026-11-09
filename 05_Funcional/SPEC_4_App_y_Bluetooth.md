@@ -9,8 +9,8 @@
 > queda ninguna otra superficie donde el operario pueda comprobarlo.
 
 **Que manda:** este fichero en su materia y `05_Funcional/17_...` en el cobre; `DECISIONES.md` es su indice.
-**Que NO entra aqui:** el ciclo y sus tiempos (SPEC 1), la radio entre postes (SPEC 2), la hora y su
-siembra (SPEC 3), el cobre y los conectores (SPEC 5).
+**Que NO entra aqui:** el ciclo y sus tiempos (SPEC 1), la radio entre postes (SPEC 2; su montaje, `D-160` y
+SPEC 6 B: la app no la configura), la hora y su siembra (SPEC 3), el cobre y los conectores (SPEC 5).
 
 **Convencion de este fichero:** se cita el **simbolo**, nunca el numero de linea (`CLAUDE.md` §7.3), y
 **no se copia ninguna cifra que este fichero no pueda recalcular** (§14): donde hace falta un numero se
@@ -116,11 +116,9 @@ prometia rojo y hacia ambar con la talanquera arriba. Lo rechaza **nombrando el 
 | `REINICIOS` | no (es una consulta) | `D-60`, §9.4 (construido, sin banco): `RESULT:OK` con `REIN`, `CAUSA`, `UP` y `ANTES` |
 | `SET_VETO_CAMARA:ON` / `:OFF` · `SET_BARRERA_SERVICIO:ON` / `:OFF` | si | `bd16447`, 09/11, sin banco; SPEC 8 §6.1. `interruptores_orden()`, molde `SET_TIEMPOS`, cinco respuestas: `$ERR,CMD:<orden>,DESC:FORMATO_INVALIDO` si el valor no es `ON` ni `OFF`; `$ACK,CMD:<orden>:<valor>,RESULT:SIN_CAMBIO` si ya estaba asi; `$ERR ... DESC:RESPALDO_INVALIDO` solo con `OFF` y el respaldo perdido en este arranque (`D-148`); `$ERR ... DESC:NO_QUEDO_PUESTO` si lo releido tras `semaforo_reaplicarSalidas()` no es lo pedido (`D-149`); `RESULT:OK` si lo es. Locales: no viajan por radio |
 
-**Rango de `SET_TIEMPOS` (`D-131`; HUECO hasta `N-181` D).** Verde y rojo 3..15 min, despeje 10..90 s, con una sola
-copia en `limites_ciclo.h` (`VERDE_MIN_MIN/MAX`, `ROJO_MIN_MIN/MAX`, `DESPEJE_SEG_MIN/MAX`). Se juzga el numero que
-llego, sin truncar: `SET_TIEMPOS:259,3,10` y `-253,3,10` son `$ERR ... RANGO`, no 3 (hoy el `(uint8_t)` del
-despachador los acepta como 3). Por defecto `modoAutomatico_fijarTiempos()` recibe `int` y el despachador sigue sin
-rangos propios; los tres `$ERR` siguen siendo uno por motivo y no nace ningun `DESC:` nuevo.
+**Rango de `SET_TIEMPOS` (`D-131`; construido en `9ffc049`, sin banco).** Verde y rojo 3..15 min, despeje 10..90 s,
+con una sola copia en `limites_ciclo.h`. Se juzga el numero que llego, sin truncar: `modoAutomatico_fijarTiempos()`
+recibe `int`, y `SET_TIEMPOS:259,3,10` y `-253,3,10` son `$ERR ... RANGO`, no 3. Ningun `DESC:` nuevo.
 
 ### 3.2 Esclavo (poste 2) — `Esclavo/src/bluetooth.cpp`, `procesarComando()`
 
@@ -155,37 +153,12 @@ que viviera en una funcion comun los dejaria midiendo un bloque vacio (`N-89`).
 
 ## 3.bis 🟢 LAS BOTONERAS A/B/C/D ESTAN ELIMINADAS — el equipo se opera SOLO por la app
 
-**El hardware ya no existe: se retiro del equipo el 05/09** —*«se opera solo por app»*— y el
-responsable lo reafirma el 14/09: *«eliminamos las botoneras A, B, C y D»*. **No hay superficie
-fisica de operacion**: ni botones, ni receptor que comprar, ni pantalla —esa salio del firmware el
-13/09—. La guia de campo ya retiro su paso de prueba del mando, y **`J16` p5 y p8 se quedan vacios:
-no hay nada que cablear ahi**.
-
-✅ **Y EL PROGRAMA YA NO COMPONE NADA CON ELLOS: el mando salio del firmware el 14/09.** `mando.cpp` y `mando.h` de
-las dos puntas estan retirados —681 lineas— y con ellos el reconocedor de secuencias, de modo que
-**un puente en `J16` p5 o p8 ya no compone nada**: era el unico riesgo que quedaba vivo, porque
-puentear una bornera para probarla es lo primero que hace un instalador y entonces movia el cruce de
-verdad. Los bornes siguen vacios y pelados, asi que **la instruccion de no cablearlos sigue en pie**;
-lo que cambia es que ya no es lo unico que lo impide.
-
-✅ **Y lo que cuesta sacarlo esta MEDIDO hoy, porque el repositorio lo daba por mas caro de lo que
-es** — dos frases que lo frenaban y son falsas:
-
-| lo que se decia | lo medido el 14/09 |
-|---|---|
-| *«retirar el mando se lleva por delante parte de la barrera de salidas»* | **No.** La bandera que intercepta las luces la arman **dos** funciones y sus **unicos** llamadores son el mando. Sin ellos la bandera se queda en falso para siempre y la guarda que cuelga de ella **no dispara**: el equipo escribe las luces por el camino normal. **No deja ningun veto abierto — deja codigo muerto** |
-| *«borrar el menu borra el todo-rojo de las dos puntas»* | **Tampoco.** Ese todo-rojo tiene **tres** llamadores: el menu, el Modo Alcance y el Modo Hora, **y los dos ultimos se alcanzan desde la app**. ⬇️ Con `D-44` el Modo Hora salio y `menu_setup()` **se quedo**: es la puerta que piden `SET_MODO:MENU` y la salida de cada modo |
-
-✅ **Y la condicion que puso el responsable se cumplio: el camino de interceptar las luces SALIO
-ENTERO con el mando**, en vez de quedarse dentro sin nadie que lo ejerza. Con el fuera, `semaforo.cpp`
-escribe los pines por un solo sitio —`aplicarSalidas()`, donde vive el enclavamiento `SFTY-2`— y la
-lista de funciones autorizadas a saltarselo **baja de cinco a una**: cualquier camino nuevo a una
-lampara es ahora un rojo del banco en vez de una excepcion ya aprobada por su nombre.
-
-✅ **Y CON `D-44` (`f9cad1f`, 02/10; sin banco) SALIO EL RESTO** (SPEC 1 §12.2): `J16` p5/p8 son `J16_P5_SIN_USO` y
-`J16_P8_SIN_USO`, `INPUT` sin lector (`botones_actualizar()` solo llama a `camaras_actualizar()`); salieron
-`botonArriba`/`Abajo`/`Aceptar`/`Cancelar`, la navegacion del menu, el Modo Hora y `semaforo_toggle()`.
-`menu_setup()` se queda: es el todo-rojo de `SET_MODO:MENU`.
+**No hay superficie fisica de operacion** (`D-1`, `D-30`, `D-44`): ni botones, ni mando de reles, ni pantalla
+(`D-17.bis`). `mando.cpp` salio de las dos puntas el 14/09 y con el el reconocedor de secuencias y el camino que
+interceptaba las luces: `semaforo.cpp` escribe los pines por un solo sitio (`CLAUDE.md` §2). Con `D-44` (`f9cad1f`)
+`J16` p5/p8 son `J16_P5_SIN_USO`/`J16_P8_SIN_USO`, `INPUT` sin lector; salieron la navegacion del menu, el Modo Hora y
+`semaforo_toggle()`. `menu_setup()` se queda: es el todo-rojo de `SET_MODO:MENU`. **`J16` p5 y p8 siguen sin
+cablearse**: un firmware anterior al 14/09 compone secuencias con un puente (`CLAUDE.md` §3).
 
 ## 3.ter EL DEGRADADO CON TESTIGO EN LA APP — flujo (`D-35`, SPEC 2 §7.bis; construido en `11b57b3`)
 
@@ -245,9 +218,9 @@ funcional: lo intento sin radio y no entendio el rechazo `SIN_ENLACE_CON_EL_OTRO
   (b) «Entran solos en Degradado a los 5 min sin radio» = `SET_DEG_AUTO:1`. Pide PIN; se elige en LOS DOS postes.
 - **Sin radio los botones quedan desactivados** y la orden no sale: con `FALLO COM` fuera de `MODO:AMBAR` o `RF:0%`.
   No se bloquea por `APTO_NO`: con la opcion en OFF el apto es siempre NO.
-- **Pantalla principal, linea fija encima de la tarjeta del cruce** con lo que dio `CONSULTA_DEG_AUTO`: «Si se
-  cae la radio: AMBAR, ir con testigo» o «… DEGRADADO SOLO a los 5 min»; «Los postes no coinciden» en rojo si ESTE
-  y OTRO difieren.
+- **Linea de la eleccion, dentro de la tarjeta** (`#degauto-linea`, Ajustes; salio de Trafico, §9.9 (f)) con lo que
+  dio `CONSULTA_DEG_AUTO`: «Si se cae la radio: AMBAR, ir con testigo» o «… DEGRADADO SOLO a los 5 min». Si ESTE y
+  OTRO difieren, la franja sin clave dice «Los postes no coinciden: el tecnico elige lo mismo en los dos» (§9.9 (g) 5).
 - **Recuadro de la eleccion, «Listo para entrar solo»** (06/10, foto de Marco: «SI» con el otro en OFF y no entro): SI
   solo con `ESTE_ON`, `OTRO_ON` y `APTO_SI`, lo mismo que exige el firmware para entrar. Si no, NO con el motivo:
   «este poste en OFF», «el otro poste no esta listo» (su ultimo APTO oido) o «este poste no cumple las
@@ -258,9 +231,10 @@ funcional: lo intento sin radio y no entendio el rechazo `SIN_ENLACE_CON_EL_OTRO
   estar en AUTO o INTELIGENTE con (b) pulsada»; (4) APTO NO: «ponga la hora y compruebe que hay radio»; todo bien:
   «nada: si la radio cae 5 min, entran solos».
 - **Al conectar**, si no consta o no coincide, aviso que pide elegir («Mas tarde» lo pospone hasta la siguiente).
-- **Al caer la radio**, cartel segun la eleccion: (a) «quedan en AMBAR y NO arrancan solos: hay que ir con el
-  testigo», con boton al testigo; (b) cuenta «aprox. m:ss» desde que la app ve `FALLO COM` (llega tarde respecto al
-  reloj del firmware: por eso «aprox.»), y con `AUTO_ENTRADA_INICIO` o `MODO:DEGRADADO`, «En Degradado por reloj».
+- **Al caer la radio**, cartel de una frase (`#degauto-sinradio`, `DegAutoEleccion.textoCartel()`) segun la eleccion:
+  (a) «Sin radio, quedan en AMBAR y NO arrancan solos: hay que ir con el testigo.», con boton al testigo;
+  (b) cuenta «aprox. m:ss» desde que la app ve `FALLO COM` (llega tarde respecto al reloj del firmware: por eso
+  «aprox.»), y con `AUTO_ENTRADA_INICIO` o `MODO:DEGRADADO`, «En Degradado por reloj».
   La cuenta (b) sale solo con `ESTE_ON`, `OTRO_ON` y `APTO_SI`: es lo que el firmware exige para entrar
   (`degAuto_loop()`: `respaldo_otroApto()` y `puertaAbierta()`, y `entrar()` repite la comprobacion de
   `degAuto_aptoPropio()`; el ECO `respaldo_aptoDado()` no llega a la app). En cualquier otro caso sale el cartel (a),
@@ -269,11 +243,10 @@ funcional: lo intento sin radio y no entendio el rechazo `SIN_ENLACE_CON_EL_OTRO
   60 s sin `MODO:DEGRADADO` ni `AUTO_ENTRADA_INICIO` (cubre el ECO, que la app no ve): «No entraron solos: quedan en
   AMBAR. Hay que ir con el testigo», con boton al testigo.
 - Mientras espera el `$ACK` diferido (hasta `DEG_AUTO_ACUSE_MS`) queda «esperando al otro poste», no el valor pedido.
-- **La espera es de la conexion que envio la orden (`D-130`, HUECO hasta `N-181` B).** Al caer el enlace o enlazar
-  otra MAC se cancela sin pintar «no contesto» en la sesion nueva; queda en el registro «SET_DEG_AUTO:<v> enviada a
-  <MAC>: sin acuse en esa conexion, mire la consulta». Un `$ACK` de `SET_DEG_AUTO` que llega sin espera en ESTA
-  conexion se pinta como lo que dice el equipo, no como respuesta a un boton, y dispara `CONSULTA_DEG_AUTO`. Hoy
-  `_espera` sobrevive al cambio de enlace y `DegAuto.alStatus()` solo limpia con otro `NODE:`.
+- **La espera es de la conexion que envio la orden (`D-130`; construido en `6828945`, `soltarEsperaDegAuto()` de
+  `app.js`).** Al caer el enlace o enlazar otra MAC se cancela sin pintar «no contesto» en la sesion nueva; queda en
+  Eventos «SET_DEG_AUTO:<v> enviada a <MAC>: sin acuse en esa conexion, mire la consulta». Un `$ACK` de
+  `SET_DEG_AUTO` que llega sin espera se pinta como lo que dice el equipo y dispara `CONSULTA_DEG_AUTO`.
 
 **Eventos y alarmas que traduce, a texto de operario:**
 - `DEGRADADO` / `AUTO_ENTRADA_INICIO_HH:MM:SS` — «Sin radio 5 min: modo degradado automatico, rojo hasta HH:MM».
@@ -300,7 +273,6 @@ que devolvio `modo_degradado_forzarRojo()`: `RESULT:ROJO_FIJO_EN_ESTE_POSTE` · 
 `RESULT:SALIDA_YA_EN_CURSO` · `RESULT:OK` (fuera del modo). En la ventana de `D-29` (permiso esperando la siembra)
 revoca el permiso y entra en ROJO FIJO, nunca ambar: `OK_REANUDACION_CANCELADA`. `SET_MODO:MENU` en esa ventana:
 `OK_REANUDACION_CANCELADA`.
-no cruza a nadie.
 
 `SET_MODO:DEG_FIN`, un `$ERR ... DESC:<texto>` por motivo y en este orden: `FORMATO_INVALIDO` · «No esta en
 Degradado» · «Ya esta saliendo» · «Falta: reloj sin poner en hora» · «Ahora no coincide» (`TOLERANCIA_TESTIGO_S`) ·
@@ -362,9 +334,10 @@ sale sin fecha.
   para.* Por eso el rojo de emergencia entra sin clave: quien esta viendo el incidente tiene que poder
   pedirlo aunque no se sepa la clave.
 - **La segunda puerta de la app no es una clave: es el VALE DE VIA DESPEJADA.** Para las ordenes que abren paso
-  desde la botonera de campo, `enviarComandoFirmware()` exige `viaConfirmadaVigente()` en vez del PIN, y el motivo
-  no es comodidad: **un PIN demuestra QUIEN eres y no demuestra que hayas MIRADO.** El firmware no cambia —sigue
-  exigiendo el PIN y la app se lo sigue poniendo—; cambia a quien se lo pide la app.
+  desde los mandos de Trafico (`SET_MODO:AUTO`, `MANUAL:CAMBIAR_TURNO`), `enviarComandoFirmware()` exige
+  `viaConfirmadaVigente()` en vez del PIN, y el motivo no es comodidad: **un PIN demuestra QUIEN eres y no
+  demuestra que hayas MIRADO.** El firmware no cambia —sigue exigiendo el PIN y la app se lo sigue poniendo—; cambia
+  a quien se lo pide la app.
 - **La app devuelve si la orden llego a salir, y el que llama tiene que mirarlo.** `enviarComandoFirmware()`
   devuelve `bool`: pulsar un boton no es saber que el equipo obedecio, y **ni siquiera es saber que la orden
   salio**. Una orden que no salio se anota en el Diario **y no en la cinta** —por el cable no paso un byte—.
@@ -372,9 +345,9 @@ sale sin fecha.
 - **La unica orden que sale sin que nadie pulse es `CMD:VERSION`** (sin PIN, no cambia nada): una vez por enlace,
   a los `TIMEOUT_ENLACE_MS` de conectar, solo con telemetria viva y si el CONTROLADOR no ha contestado ya
   (`EVT:VERSION` es el sello del puente). No renueva la inactividad del PIN. El sello de cada `NODE` va en la linea
-  `Firmware:` de la cabecera del diario y de la cinta, y **«Exportar todo como archivo»** saca los dos en un
-  `IOTVIAL_<serie>_<AAAAMMDD-HHMMSS>.txt` (`js/exportar.js`). En el navegador sale por la hoja de compartir con
-  el fichero adjunto o, si no la hay, como descarga. En la APK se escribe en la cache de la app
+  `Firmware:` de la cabecera del diario y de la cinta, y **«Exportar registro»** (Eventos, sin clave, `D-143`) los
+  saca en un `IOTVIAL_<serie>_<AAAAMMDD-HHMMSS>.txt` (`js/exportar.js`). En el navegador sale por la hoja de
+  compartir con el fichero adjunto o, si no la hay, como descarga. En la APK se escribe en la cache de la app
   (`@capacitor/filesystem`, `Directory.Cache`) y se abre la hoja de compartir de Android con ese fichero
   (`@capacitor/share`, por el `FileProvider` `<applicationId>.fileprovider` y el `<cache-path>` de
   `file_paths.xml`); cerrar la hoja se dice como cancelado, y un fallo, o una APK sin los dos plugins, va en rojo a
@@ -415,7 +388,7 @@ aqui** (§14).
 | | **Poste 1 (Maestro)** | **Poste 2 (Esclavo)** |
 |---|---|---|
 | rotulo en Android | `<prefijo><serie>-M` | `<prefijo><serie>-E` (o el provisional en la primera arrancada del modulo) |
-| cabecera | `MAESTRO (POSTE 1)` + «(radio N %)» con `RF:` medido | `ESCLAVO (POSTE 2)` + «(enlazado)» — lo decide `NODE:`, no lo que el operario suponga. En las dos, «(sin radio)» (§9.9 (d), `D-82`; hoy «(sin radio entre postes)») con `FALLO COM` fuera de `MODO:AMBAR` o `RF:0%`, y «(sin enlace)» sin `$STATUS` |
+| cabecera | `MAESTRO (POSTE 1)` + «(radio N %)» con `RF:` medido | `ESCLAVO (POSTE 2)` + «(enlazado)» — lo decide `NODE:`, no lo que el operario suponga. En las dos, «(sin radio)» (§9.9 (d), `D-82`) con `FALLO COM` fuera de `MODO:AMBAR` o `RF:0%`, y «(sin enlace)» sin `$STATUS` |
 | `MODO:` | `MENU` `MANUAL` `AUTO` `INTELIGENTE` `ALCANCE` `DEGRADADO` `AMBAR` (~~`HORA`~~, `D-44`) | `SUBORDINADO` `DEGRADADO` `RENDIDO` — el campo dice si esta punta esta obedeciendo o gobernando |
 | `ESTADO:` | `ROJO` `VERDE` `AMARILLO` `FALLO COM` (con espacio); `ROJO+AMAR` (`D-53`, construido, sin banco) | los mismos |
 | cuenta atras `T:` | numero o `--` | **`--` FIJO** |
@@ -490,13 +463,10 @@ segunda linea vacia en Eventos.
 
 🟢 **1 · ACEPTADO por el responsable (09/11, `D-158`): cuatro ordenes sin PIN; solo ponen rojo o ambar.** `correctPin`
 es un literal en `app.js` y `CMD:PIN:1234:` es un literal en **los dos** `bluetooth.cpp`; el transporte es
-SPP **sin cifrar**. Recontadas hoy sobre el fuente, las ordenes que **cambian algo** y entran sin PIN son
-**cuatro**: `FORZAR_ROJO` y `SET_MODO:MENU` y `SET_MODO:ALCANCE` (Maestro) y `AMBAR_EMERGENCIA`
-(Esclavo). Las otras dos ramas que preceden a la guarda de PIN **no cuentan**: la del latido no contesta
-ni actua, y la de `HORA_ESP32` el puente la tira si viene del telefono. **`SET_MODO:MENU` no es inocuo**:
-su `menu_setup()` llama al todo-rojo de las dos puntas. La exencion de `FORZAR_ROJO` y `AMBAR_EMERGENCIA`
-esta razonada en el fuente y es defendible; **lo que no esta escrito en ningun sitio vivo es que las
-cuatro juntas son la superficie sin clave de un equipo cuyo unico mando es el telefono.**
+SPP **sin cifrar**. Las ordenes que **cambian algo** y entran sin PIN son **cuatro**: `FORZAR_ROJO`, `SET_MODO:MENU`
+y `SET_MODO:ALCANCE` (Maestro) y `AMBAR_EMERGENCIA` (Esclavo); ninguna da verde (`SET_MODO:MENU` corre el todo-rojo
+de las dos puntas). El latido y `HORA_ESP32` preceden a la guarda y no cuentan: uno no actua y el otro lo tira el
+puente. El emparejamiento del puente con clave (`spp.begin` sin ella) es firmware de la version siguiente (`D-158`).
 
 🔴 **2 · `SET_RTC` con un PIN falso pone la hora** (`roadmap.md` 2.11). El puente no conoce el PIN y el
 STM32 ya no ve la linea: **no hay quien lo rechace**. Esta **abierto POR DECISION** —`D-26` (1), riesgo
@@ -534,13 +504,15 @@ campos que ya tienen su ancho, `PLUMA:FUERA` (5 <= 6) y `CAM:NOVETO` (6 <= 6), e
 de `HORA:` se queda sin gastar. La app los pinta en ambar con su frase (`D-83`, `D-80`) desde `PLUMA_LEYENDA` y
 `CAM_LEYENDA`, que `app_04_valores_de_status` compara con el C++ en los dos sentidos. Las ordenes van tras la
 clave de administracion (`D-56`) y el PIN, locales al poste conectado (`D-94`). Firmware: `interruptores.cpp` de las
-dos puntas (`SET_VETO_CAMARA`, `SET_BARRERA_SERVICIO`); app: `js/interruptores.js`; lo ejercen
-`tests/dom_interruptores.js` y `app_04_valores_de_status`. Falta la tarjeta con barrera y pila (SPEC 8 §6).
+dos puntas (`SET_VETO_CAMARA`, `SET_BARRERA_SERVICIO`); app: `js/interruptores.js` (Ajustes > «Averias: camaras y
+barrera»; cada OFF se confirma antes; traduce `RESPALDO_INVALIDO`, `NO_QUEDO_PUESTO` y el `$EVENT` de arranque de
+`D-152` por el nombre de la bandera); la practica los contesta (§9.10 (c)); lo ejercen `tests/dom_interruptores.js` y
+`app_04_valores_de_status`. Falta la tarjeta con barrera y pila (SPEC 8 §6).
 
 ⚠️ **11 · Lo que 1.49 dejo a medias** (`622a20b`). **(a)** cerrado (§9.6, SPEC 6 C.1). **(b)** El acuse diferido de
 `REINICIAR_RELOJ` (§3.1) no lo recorre ningun arnes en el tiempo: solo packs de texto (`reloj_01`, `app_08`).
 
-🟡 **12 · «Exportar todo como archivo» en la APK: construido; en telefono, a medias.** `js/exportar.js` escribe con
+🟡 **12 · «Exportar registro» (Eventos) en la APK: construido; en telefono, a medias.** `js/exportar.js` escribe con
 `Filesystem.writeFile` a `CACHE` y comparte con `Share.share` (`@capacitor/filesystem` y `@capacitor/share` 6.0.4;
 `FileProvider` en el manifiesto); lo ejercen `tests/test_unitarios.js` §12 y `tests/dom_exportar.js`. Medido en
 telefono (`evidencia/2026-10-14_telefono_d55.txt`, APK `96c3d32`): la APK publica `Filesystem` y escribe en
@@ -594,24 +566,25 @@ lo que esta spec dice del puente —`D-15`, los limites de linea, los siete moti
 leen texto. ⚠️ **Y una refutacion que conviene dejar escrita: `Maestro/src/bluetooth.cpp` SI lo compila alguien** —la
 fila 20, junto con el del Esclavo—; lo que no compila nadie es el despachador del **ESP32**, que es otro fichero.
 
-## 9. VERSION SIGUIENTE — decidida del 09/10 al 15/10; cada apartado dice si esta construido
+## 9. LO DECIDIDO DESDE EL 09/10 — cada apartado dice si esta construido
 
-Lo que el equipo debe hacer en la proxima version; lo construido lo dice su cabecera. Detalle y orden en
-[`App_Semaforo/ROADMAP_APP.md`](App_Semaforo/ROADMAP_APP.md); las decisiones que lo abren, `D-55`..`D-58`.
+Decidido del 09/10 al 09/11; la cabecera de cada apartado dice si esta construido y que falta medir. Lo pendiente,
+en [`App_Semaforo/ROADMAP_APP.md`](App_Semaforo/ROADMAP_APP.md).
 
 ### 9.1 Las preguntas las hace la app, no el navegador (`ROADMAP_APP.md` 5) — construido, sin telefono
 
 Lo que HACE (contra el fuente; lo ejerce `tests/dom_dialogos.js` sobre el `app.js` real): ninguna pregunta sale
 por `prompt`, `confirm` o `alert` del navegador: el nativo sale en el idioma del sistema (en ingles en la APK de
 Pasos Peatonales), bloquea el hilo (colgo una corrida E2E, `N75-4`) y en jsdom no se contesta.
-Las seis que hay (vaciar la bitacora del enlace, la cinta de tramas y el diario de ordenes; crear un cruce, nombre y
-ubicacion; renombrarlo) salen por un dialogo propio en espanol (`js/dialogo.js`, `#dialogo-modal`):
-- el titulo dice QUE se borra o que se pide, y el boton nombra la accion («Vaciar», «Guardar»), no «Aceptar» ni
-  «OK»; Cancelar a la izquierda y la accion a la derecha, como en el aviso de via;
+Todas salen por un dialogo propio en espanol (`js/dialogo.js`, `#dialogo-modal`; `confirmar()` y `pedirTexto()`):
+vaciar la bitacora del enlace, la cinta y el diario; grupo nuevo, renombrar, quitar, mover y cambiar de hueco
+(`js/grupos.js`, §9.14); y cada OFF de los interruptores (`js/interruptores.js`). Los avisos de paleteros usan su
+modal propio (`#aviso-deg-modal`, §9.9 (e)).
+- el titulo dice QUE se borra o que se pide, y el boton nombra la accion («Vaciar», «Sacar del veto»), no «Aceptar»
+  ni «OK»; Cancelar a la izquierda y la accion a la derecha;
 - Cancelar, la ✕ o tocar fuera no borran ni guardan nada; un nombre vacio no crea ni renombra;
-- crear un cruce son dos preguntas seguidas, con los campos VACIOS (el `prompt` proponia nombre y PR al azar con
-  `Math.random()`: un valor inventado que se guarda con un toque); sin nombre no se guarda; cancelar la segunda lo
-  guarda sin ubicacion, como el `prompt`.
+- grupo nuevo son tres preguntas seguidas (via opcional, nombre, PR opcional), con los campos VACIOS: nada se
+  propone al azar; sin nombre no se guarda.
 
 ### 9.2 Dos claves: la de administracion ensena, el PIN del equipo autoriza (`D-56`, `D-57`) — construido, sin telefono
 
@@ -619,7 +592,7 @@ Lo que HACE (contra el fuente, `js/clave_admin.js` y `setRole()`; lo ejerce `tes
 que no se mezclan: **rol visible** (clave de administracion de la app) y **autorizacion de ordenes** (PIN del
 equipo, §4; `state.pinVerificado`, `CMD:PIN:`). Ninguno arma al otro.
 - **Sin clave de administracion** el tecnico ve Trafico (estado, luces de los dos postes, ROJO TOTAL, AMBAR
-  EMERGENCIA, la botonera), Eventos, exportar y **«Prueba de focos»**, que pasa a Trafico y sigue pidiendo el PIN.
+  EMERGENCIA, los mandos), Eventos, exportar y **«Prueba de focos»**, que pasa a Trafico y sigue pidiendo el PIN.
   Construido (`4105ba3`; `D-141`, `D-143`, §9.9 (f)): Prueba de focos plegada en «Mas» de Trafico, y un solo
   «Exportar registro» en Eventos (el `.txt` de «Exportar todo»).
 - **Con la clave** se ven ademas Tiempos, Ajustes (Degradado: testigo, eleccion del automatico, salida `D-52`;
@@ -649,7 +622,7 @@ Lo que DEBE hacer, y HACE desde este cambio (lo ejerce `tests/dom_registro_sesio
    anterior del mismo `NODE` se guarda en `RegistroCambios` (`js/registro_enlace.js`, tope 2000, en memoria; al
    pasarlo se cuenta lo tirado), con la trama entera y el cambio campo a campo. El primero de cada `NODE` es
    `INICIO`. La cinta sigue en 300.
-2. **Copia persistente fuera de CACHE.** «Exportar todo» en la APK copia el `.txt` de CACHE a `Directory.External`
+2. **Copia persistente fuera de CACHE.** «Exportar registro» en la APK copia el `.txt` de CACHE a `Directory.External`
    (`Android/data/com.iotvial.semaforos/files/`, sin permisos, se saca con `adb pull`) antes de abrir la hoja de
    compartir; cancelar la hoja no borra la copia. Si la copia falla, rojo en la bitacora con el motivo; el envio sigue.
 3. **Un solo `.txt`.** El `IOTVIAL_<serie>_<fecha>.txt` lleva, tras el diario y la cinta, dos secciones mas,
@@ -996,7 +969,7 @@ Jerga = lo que casa con `JERGA` (una sola expresion, en el test, copiada aqui):
    avise al tecnico»); el conector y el circuito siguen en la linea de Eventos, que no cambia. Oraculo (`D-101`):
    `J17_MUDO` y `RECHAZADA_FORMATO` «Este poste no tiene hora fiable: avise al tecnico (detalle en Eventos)»;
    `SIN_HORA_DEL_ESP32` «Este poste no tiene hora: pongasela desde el telefono (con la clave: Ajustes > Sincronizar)»
-   (la ruta sigue a la pestana: «Tecnico» paso a «Ajustes» con `D-145`; igual en los textos de Eventos). Las pruebas
+   (`D-145`; igual en los textos de Eventos). Las pruebas
    que exigen «revise el circuito ESP32-STM32» en el toast (`test_unitarios_app.js` «Avisos D-26» J17_MUDO, 4.o
    aserto; `test_dom_execution.js` 15.2, ultimo aserto) celebran el defecto (`CLAUDE.md` §9) y se INVIERTEN: el toast
    no casa con `JERGA` y contiene «avise al tecnico»; los asertos sobre `texto` (REVISE EL CIRCUITO...) se CONSERVAN.
@@ -1077,14 +1050,6 @@ aviso o modo, ¿lo necesita el operario para operar? Si no, plegado (`<details>`
 basto alli, y aqui la lista de la clave es cerrada (`D-56`, `D-123`): **nada nuevo pasa tras la clave**; lo que sobra
 se pliega o sale. Lo de abajo es lo que hace (`4105ba3`, U-B); lo ejerce el bloque «K» de `tests/dom_usabilidad.js`.
 
-Medido el 09/11 sobre `8f8dd7e` (jsdom con el `index.html` y el `app.js` reales; Chrome sin cabeza con el doble de
-`bluetoothSerial`, `$STATUS` Maestro `ROJO`, `ESC:VERDE`, `PLUMA:ABAJO`, `CAM:OK`, `RF:97`, `BAT:12.9`). Trafico sin
-clave: 7 botones y 140 palabras con el Maestro, 6 y 136 sin enlace, 4 y 329 con el Esclavo. A 360x640 la barra de
-pestanas empieza en 569 px, ROJO TOTAL acaba en 607 (tapado), VOLVER AL MENU en 709 y la pantalla en 1166 (dos
-alturas); a 320 no hay scroll lateral (ancho 320). A <= 400 px `#role-label` no se ve (`style.css`, `D-82`): la
-pastilla de rol es solo el emoji. Con la clave: Tiempos 55 mandos (cuatro franjas de noche abiertas), «Tecnico» 19
-mandos y 529 palabras, Tramas 9 mandos.
-
 Inventario y destino (QUEDA · PLEGADO · FUERA; «clave» = ya estaba tras ella):
 
 | pantalla | elemento | destino |
@@ -1124,8 +1089,7 @@ Construido (`4105ba3`, U-B): `#emergencia-hint` sigue a la vista con el POSTE 1 
 otro sigue alternando por su reloj; el `<small>` que lo dice esta apagado por CSS en pantallas de menos de 740 px de
 alto (todos los telefonos), asi que la linea es el unico sitio donde el operario lo lee antes de pulsar.
 Por lo mismo, con el POSTE 2 la linea dice «ÁMBAR EMERGENCIA abre la talanquera.» y el `<small>` del boton se
-apaga, porque ella lo sustituye (QA de U, C1, 09/11: antes salia y el operario del Esclavo no leia en ningun sitio
-que el brazo sube). Con ella Trafico del Esclavo da 80 palabras, el tope de (g) 2.
+apaga, porque ella lo sustituye (`c94a6cb`). Con ella Trafico del Esclavo da 80 palabras, el tope de (g) 2.
 
 **(g) Cifras de la principal (`D-142`).** Trafico sin clave, con todo `<details>` cerrado, en tres fotos (sin enlace;
 Maestro como arriba; Esclavo `SUBORDINADO`):
@@ -1334,9 +1298,9 @@ los packs por ruta. Prohibido: leer un nombre del cierre de `app.js` como global
 no publica nada, y en jsdom solo se publica lo de columna 0 de los modulos), y un modulo que declare un nombre que ya
 declara otro a columna 0 (`SyntaxError` al cargar en el navegador, y la app no arranca).
 
-**Salida identica, medida y no declarada.** Antes y despues de cada tanda, sobre el mismo arbol: `test_dom_execution`
-(hoy 668 PASS | 0), `tests/test_unitarios.js` (85), `test_unitarios_app.js` (67), `test_funcional_app.py` (70/70) y el
-banco por packs con el MISMO total por pack; `documentos_03_trama_status` verde con `www/` y, si existe, el `public/`
+**Salida identica, medida y no declarada.** Antes y despues de cada tanda, sobre el mismo arbol: `test_dom_execution`,
+`tests/test_unitarios.js`, `test_unitarios_app.js`, `test_funcional_app.py` (cifras en el acta, no aqui) y el banco
+por packs con el MISMO total por pack; `documentos_03_trama_status` verde con `www/` y, si existe, el `public/`
 de Android copiados. Una cifra que baja, un pack que cambia de total o una ruta nueva sin su tupla en el mismo commit
 (`CLAUDE.md` §5) deshacen la tanda: dos intentos y se revierte (`N-178`).
 

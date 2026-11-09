@@ -1,127 +1,54 @@
-# ROADMAP de la app — mejoras aprendidas de Pasos Peatonales
+# ROADMAP de la app — lo hecho y lo que falta
 
-Version siguiente de la app (APK y web de PC), no de este banco. Fuente: lo que la sesion de Pasos Peatonales
-(`D:\@Proyect\IoT\Pasos Peatonales`, HEAD `e968cc7`) respondio el 08-09/10 sobre como rehizo la app heredada de esta.
-Nada de aqui esta construido en Semaforos 2; alli, «sin probar» = sin placa. Cada fila entra primero en `SPEC_4` (o la
-SPEC que toque) y su prueba se entrega vista en rojo (`CLAUDE.md` §15). Lo que es del responsable va marcado DECIDE.
+La app (APK y web de PC) que HACE hoy esta en `SPEC_4`; aqui solo el estado de cada mejora y lo pendiente. El origen
+fue lo que Pasos Peatonales (`D:\@Proyect\IoT\Pasos Peatonales`, HEAD `e968cc7`) rehizo de esta app el 08-09/10; la
+comparacion fila a fila esta en git (este fichero en `63e4c63`). Cada fila nueva entra primero en `SPEC_4` y su
+prueba se entrega vista en rojo (`CLAUDE.md` §15). «Sin telefono» = sin medir en un celular; «sin banco» = sin tarjeta.
 
-## Lo que tomaron de nosotros, y como lo mejoraron
+## Hecho
 
-| tomado de aqui | mejora alli | fichero alli (`03_App_Movil/web/` = W) |
-|---|---|---|
-| formato de trama y XOR-8 | verificado en cada linea, en un modulo | `W/js/trama.js` |
-| `serial_pc.js` (Web Serial) | una interfaz para USB y SPP; probada con placa (USB) | `W/js/serial_pc.js` |
-| exportar (filesystem + share) | PDF, .txt y .csv en un toque, hoja de compartir | `W/js/compartir.js` |
-| empaquetador con CRC APK contra `www/` | `www/` regenerado desde `web/` al compilar | `apk/scripts/generar_www.js` |
-| L-06 (gradle por java) | `compilar.sh` con `java -classpath` por los espacios de la ruta | `apk/compilar.sh` |
-| L-12, L-13, `$ACK` solo con el resultado | escritos en su SPEC desde el principio | `SPEC_8:24-26` |
-| app.js monolitico, PIN en claro | NO heredados: 27 modulos; clave como huella | — |
+| mejora | `SPEC_4` | commit | falta medir |
+|---|---|---|---|
+| Hoja de banco con «Debe ver antes de empezar» | — | `Pruebas_Funcional_2026-10-16.html` | — |
+| Un color, una accion; gris sin dato; frase por estado; sin jerga (`D-80`, `D-83`) | §9.9 (a)-(c) | `cd437b2` | sol |
+| Cabecera: `#rssi-text` <= 16 caracteres, «(sin radio)» (`D-82`) | §9.9 (d) | `cd437b2` | sin red |
+| Un solo aviso de paleteros al cambiar el verde en Degradado (`D-81`) | §9.9 (e) | `cd437b2` | — |
+| Dialogos propios (0 nativos); grupo nuevo sin valores al azar | §9.1 | `38a42ca` | — |
+| Clave de administracion y de soporte (`D-56`, `D-57`) | §9.2 | `a16356d` | — |
+| Pastilla «Operario»/«Tecnico», pestana «Ajustes», frase por ajuste (`D-145`) | §9.9 (g) 6, (h) | `4105ba3` | — |
+| Mas/Detalle plegados, resumen en una linea, focos en «Mas» (`D-141`, `D-142`) | §9.9 (f), (g) | `4105ba3` | scroll |
+| Un solo «Exportar registro» en Eventos; WhatsApp y CSV fuera (`D-143`) | §4, §9.3 | `4105ba3` | compartir |
+| Avisos a una frase, «Detalle» plegado, «Emparejar y conectar» (`D-144`) | §9.9 (g) 5 | `4c709fd`, `c94a6cb` | — |
+| Guion por tarea del tecnico, bloque «T» de `dom_usabilidad.js` (`D-144`) | §9.9 (i) | `4105ba3` | — |
+| Nueve rechazos con frase llana; `RESULT:` desconocido en rojo (`N-183`, `D-156`) | §7.16 | `f41caf8` | — |
+| Interruptores en Ajustes > Averias (`D-94`..`D-97`, `D-148`..`D-152`) | §7.10 | `bd16447` | banco |
+| La practica contesta los interruptores (`PLUMA:FUERA`, `CAM:NOVETO`) | §9.10 (c) | `666d904`, `6242f8f` | — |
+| Espera de `SET_DEG_AUTO` atada a la conexion (`D-130`) | §3.ter.bis | `6828945` | — |
+| Registro de la sesion: cambios de `$STATUS`, un `.txt`, copia fuera de CACHE (`D-55`) | §9.3 | `71241ec` | `copy` |
+| Registro en el puente, `CMD:LOG,DESDE:<N>` (`D-72`..`D-75`, `D-100`) | §9.8 | `cd437b2` | banco |
+| Reinicios fechados y contador que baja (`D-60`..`D-64`) | §9.4 | `cd437b2` | banco |
+| `RESULT:SIN_CAMBIO` en `ALCANCE`/`INTELIGENTE` repetidos (`D-65`, `D-66`) | §9.5 | `cd437b2` | banco |
+| Alarmas del limite repetidas mientras duran (`D-67`..`D-69`) | §9.6 | `cd437b2` | banco |
+| SPP del puente que no bloquea, `CONG` contado (`D-70`, `D-71`) | §9.7 | `cd437b2` | banco |
+| Practica sin poste (`D-86`..`D-89`), con estado y grupos (`D-117`..) | §9.10, §9.14 | `cd437b2`, `ac844b9` | franja |
+| `app.js` en modulos, tandas 1, 2 y 3 (`D-98`) | §9.12 | `cd437b2`, `8526f84`, `8ac39f4` | — |
 
-## Lo que se trae, en orden
+## Pendiente
 
-Orden por dano en campo, no por facilidad. Cada fase cierra con sus pruebas en verde y una APK `_SIN_BANCO`.
-
-### Fase 1 — Lo que hoy confunde al tecnico en el poste (pide poco firmware o ninguno)
-
-1. **Hoja de banco con «Por que» y «Debe ver» (estado de partida) en cada caso.** El 06/10 Marco probo la (b) en el
-   modo equivocado y la cinta no sirvio. Solo `.html`; entra en la siguiente hoja.
-2. **Un color, una accion** (rojo ir, ambar mirar, verde, gris sin datos) y **una frase por estado**; tramas,
-   contadores y siglas a una pestana «Datos tecnicos». Medido el 09/10 (punto 4): contraste minimo 6,52:1 (el
-   3,15:1 de alla no se da aqui); jerga a la vista del operario: `SET_MODO_AUTO`, `[J17] MUDO`, `OTRO_PERRO`, MAC,
-   `RF:--`, `RTT`, `RSSI`, «CAMARAS J16», y en el Poste 2 «no viaja en esta trama», «desde D-23».
-   Decidido el 14/10 en `SPEC_4` §9.9 (`D-80`, `D-83`): dos zonas (Eventos queda en la tecnica), expresion `JERGA`
-   en `tests/dom_usabilidad.js`, gris para todo `--`, cyan se queda en los mandos; sin pestana «Datos tecnicos».
-3. **Cabecera**: a 360 px el rol y el enlace quedan en dos emoji (`style.css`, `@media (max-width: 400px)`); el
-   rotulo del enlace llega a 246 de 248 px libres. El recorte del 06/10 no se reprodujo en simulado (fuentes con
-   red; sin red, como en la APK, sin medir): se mide en el telefono antes de cambiarla.
-   Decidido el 14/10 en `SPEC_4` §9.9 (`D-82`): sin tocar `style.css`; `#rssi-text` <= 16 caracteres, «(sin radio)».
-   Y el aviso unico del cambio en caliente, `D-81` (§9.9 (e)): el modal de paleteros absorbe el `Dialogo`.
-4. **Revision UX en simulado: HECHA el 09/10** (agente, Chrome sin cabeza, 360x640 y 1280x800; informe y capturas en
-   el scratchpad de la sesion, fuera del repo). Lo que le hace EQUIVOCARSE, primero:
-   - a 360x640 la barra inferior flotante tapa 38 de 58 px de los botones AMBAR y ROJO TOTAL en Trafico;
-   - «nuevo cruce» propone nombre y PR aleatorios (`Math.random()` en el `prompt`): aceptar sin leer guarda un
-     cruce inventado como activo.
-   Y lo que le hace DUDAR: 26 de 61 textos de Trafico a 9-10 px; `#btn-select-site` de 21 px de alto y la casilla
-   del testigo de 13x13. Sin medir: tema claro (no existe), carteles de alarma y Degradado, flujo del PIN, sol y
-   guante: los mide quien lo usa de pie.
-5. **Dialogos propios: HECHO el 09/10** (`www/js/dialogo.js`, `SPEC_4` §9.1). Los 6 nativos pasan a 0; el boton dice
-   el verbo («Vaciar la cinta»), no «OK»; «nuevo cruce» sale vacio y sin nombre no guarda. `tests/dom_dialogos.js`:
-   19 de 22 en rojo antes, 22/22 despues. La barra que tapaba AMBAR y ROJO TOTAL no se reprodujo sin equipo
-   conectado (botones en 407-548, barra en 569): se mide con equipo, en el telefono.
-
-### Fase 2 — Modo administracion y estructura
-
-6. **Clave de administracion: HECHA el 09/10** (`www/js/clave_admin.js`, `SPEC_4` §9.2, `D-56` dos claves). Solo
-   muestra u oculta tiempos, Degradado, diagnostico y depuracion; el PIN del equipo sigue autorizando cada orden y
-   ya no sube el rol. FORZAR ROJO sin clave; «Prueba de focos» pasa a Trafico con PIN. Tiempos y hora, sin PIN,
-   abren el teclado y hay que volver a pulsar. `tests/dom_claves.js`: 18 en rojo antes; arnes jsdom 608/0.
-   Pendiente: los rotulos siguen siendo «Operario»/«Tecnico».
-7. **Clave cambiable y de soporte: HECHA el 09/10** (`D-57`): 4-8 cifras, huella FNV-1a con sal en `localStorage`,
-   1234 de fabrica; «He olvidado la clave» pide la de soporte, guardada solo como huella. Con 4 cifras no es secreta
-   para quien lea el codigo: es barrera de uso, no seguridad del equipo.
-8. **`app.js` (338 KB) partido en modulos y `www/` regenerado en cada compilacion.** Se hace por tandas al tocar
-   cada zona, no de golpe: los instrumentos leen el fuente por RUTA (`CLAUDE.md` §5) y cada movimiento lleva su
-   ruta en el mismo commit.
-   Molde, medida y tanda 1 (`ACK_TEXTO`, `ERR_TEXTO`, `ERR_MOTIVO` a `js/textos_ack.js` y `js/textos_err.js`)
-   decididos el 14/10 en `SPEC_4` §9.12 (`D-98`); orden de las tandas siguientes alli. Sin construir.
-
-### Fase 3 — Lo que pide firmware (ESP32 del puente o STM32) y una decision
-
-9. **Alarmas que se ven aunque nadie estuviera conectado**: el equipo repite la alarma mientras dure y, al conectar,
-   la app pide `ALARMAS` y el equipo lista las activas con `FIN,<n>`; el cierre repite la CAUSA de la apertura;
-   toda frase sale de una tabla. Cierra las tres `DEGRADADO` de limite que salen una sola vez (`SPEC_6` parte C).
-   Decidido el 14/10 en `SPEC_6` C.1 (`D-67`..`D-69`): se repiten mientras duren (molde `ROJO_SIN_HORA`) y el
-   Esclavo publica la suya al rendirse; sin consulta `ALARMAS` ni `FIN` (lista a medias = mentira); la app ya
-   traduce las tres causas y no cambia.
-10. **Registro en el equipo, no en la cinta de la app**: anillo en RAM y FIFO en flash con CRC; la app pide
-    `LOG,DESDE:<N>` y recuerda el ultimo N. Cabria en el ESP32 del puente, no en el STM32 (flash en la ultima acta,
-    `CLAUDE.md` §10). Se hacen las dos cosas (`D-55`): esto y las cuatro mejoras de la app del 06/10 (`ESTADO.md`).
-    Las de la app, HECHAS el 09/10 (`SPEC_4` §9.3): cambios de `$STATUS` en registro aparte (2000), un solo .txt
-    con diario, cinta, cambios y enlace, copia fuera de CACHE y fichero de la sesion en la APK. El 06/10 la cinta
-    tiro 1542 tramas. Sin probar en el telefono. La del equipo (ESP32 del puente), sin construir.
-    Decidida el 14/10 en `SPEC_4` §9.8 (`D-72`..`D-75`): particion `spiffs` del puente en crudo, FIFO de
-    128 B con CRC-16, `CMD:LOG,DESDE:<N>` sin PIN; la app pide solo si el parte de arranque trae `LOG:`.
-11. **Reinicios fechados**: `$STATUS` con REIN, ULT_REIN, UP_ANT y HEAP_MIN; la app alarma si un contador baja sin que
-    cambie REIN. REFUTADO a medias el 14/10: la caida de 1789 a 91 del 06/10 a las 10:43:30 fue
-    `SET_MODO_ALCANCE` (10:43:00, SFTY-15), no un reinicio. Decidido en `SPEC_4` §9.4 (`D-60`..`D-64`): no
-    cabe en el `$STATUS`; `REIN` va en el `$EVENT ENLACE_RF` y el resto en la consulta `REINICIOS`.
-12. **Todo `$ACK` lleva `RES`/`APLICA` o es `$ERR`**; la orden que no cambia nada da `MOTIVO:SIN_CAMBIO` y la app
-    dice «ya estaba asi» (`SPEC_4` §7, el cambio bajo `if (modo != modoAnterior)`). Alli tambien quedo a medias.
-    Decidido el 14/10 en `SPEC_4` §9.5 (`D-65`, `D-66`): el campo es `RESULT:` y ya va en todo `$ACK`; `SIN_CAMBIO`
-    solo en `SET_MODO:ALCANCE` e `INTELIGENTE` repetidos, sin re-armar.
-13. **SPP que no bloquea en el puente**: un `write` SPP espera hasta 1 s; si no hay sitio se descarta y se cuenta.
-    Antes, un arnes que compile `transporte_app.cpp` y lo vea fallar con la cola llena (`SPEC_4` §7: hoy nadie).
-    Decidido el 14/10 en `SPEC_4` §9.7 (`D-70`, `D-71`): sin espera (el «hasta 1 s» no cabe en `loop()`: perro y
-    `J17`), con `CONG` se descarta y se cuenta; sin arnes nuevo (simulador congelado): guarda de texto en `esp32_06`
-    y el contador sale con el LOG de M5. Las cintas traen 28 `CAUSA:OTRO_PERRO` del puente, causa sin medir.
-
-### Fase 4 — Modo de practica sin poste, con varios equipos (`D-58`)
-
-14. **Practicar sin poste**, como en Pasos Peatonales: un boton que abre una flota de equipos simulados (varios
-    semaforos, cada uno con un fallo distinto) para ensenar y probar la app sin placa. Las tramas se copian
-    de cintas reales de `evidencia/`, no escritas a mano (sacarlas del firmware compilado pediria un arnes nuevo,
-    y el simulador esta CONGELADO); las cintas son anteriores a `D-53`: se renuevan con la primera cinta posterior.
-    Condiciones, por lo que esta app ya pago con el «SIMULADOR DE PRUEBAS - DEMO EN VIVO» que pintaba fases
-    inventadas sobre la telemetria (`app.js`, comentario de la pestana de depuracion):
-    - nunca con un equipo real conectado, y una franja SIMULADO fija en todas las pantallas;
-    - el registro, el .txt y el PDF salen marcados SIMULADO, y la hoja de banco no los acepta como evidencia;
-    - en la APK de campo, detras de la clave de administracion (`D-56`), no a un toque del tecnico;
-    - una prueba que falla si un campo nuevo del `$STATUS` no esta en el simulador (alli se desfasaba a mano).
-    No es el simulador de PC del repo, que sigue CONGELADO (`CLAUDE.md` §4): este es producto, en `www/js/`.
-    Decidido el 14/10 (`SPEC_4` §9.10, `D-86`..`D-89`): la cinta del 06/10 ya es posterior a `D-53`, pero ninguna
-    trae `ROJO+AMAR` crudo; la del 02/10 se queda hasta que una lo traiga.
+1. **Medir en el telefono** (P, por CDP): scroll de Trafico a 360x640 y ancho a 320 (§9.9 (g) 3); la hoja de
+   compartir y que WhatsApp reciba el `.txt` (§7.12); `copy` al exportar y cuanto se pierde al matar la app (§9.3);
+   la franja SIMULADO sobre el modal del PIN (§9.10); contraste del gris a pleno sol (§9.9 (b)).
+2. **`D-98`, tandas 4.a (el enlace y los equipos) y ultima (modales y PIN)** (§9.12); la ultima solo con
+   `tests/dom_claves.js` delante y `app_01`/`app_05` recontados.
+3. **Aviso en vivo de un fallo de escritura del fichero de sesion**: hoy solo se declara en el `.txt` (§9.3).
+4. **Emparejamiento del puente con clave** (`D-158`): firmware del ESP32, version siguiente; la app no cambia.
+5. **Del responsable:** retirar el Modo Alcance o darle medida propia (§7.5); `ESC:AMARILLO` (§6, sin decidir).
+6. **Version siguiente:** el origen del ambar del Poste 2 (§9.11, queda fuera).
 
 ## Lo que NO se trae, y por que
 
 - **Claude Design como paso obligatorio.** Alli el brief no quedo en el repo y la app se comparo contra el lienzo a
-  mano. Sirve para la fase 1 si se guarda el brief y el lienzo en el repo; no sustituye a la revision del punto 4.
+  mano. No sustituye a la revision en simulado ni al guion por tarea.
 - **Reenvio automatico de una orden tras pedir la clave** (alli dio `CLAVE, PRUEBA, HORA`; arreglado en `ca3ab68`).
 - **Codigo por delante de la SPEC**: alli lo pagaron dos veces (`ca3ab68`, `93b8977`).
-
-## Validar como un usuario
-
-Su caso modelo es `W/pruebas/test_qa45_dom_clave.js`: sonda dentro del `index.html` real, puerto falso con checksum
-real, `prompt` respondido, cada orden registrada; Chrome sin cabeza con `--dump-dom`. Sin navegador, OMITIDA; sonda
-que no corre, ABORTADO; ninguna cuenta como PASS. Aqui `tests/dom_*.js` ya corre `app.js` en jsdom: lo que falta es
-el guion por TAREA del tecnico (conectar, leer estado, exportar, entrar en Degradado) y el contraste calculado.
-Sin nuevo instrumento si la razon instrumentos/producto no lo permite (`CLAUDE.md` §4, trinquete).
+- **Una pestana «Datos tecnicos»**: Eventos queda en la zona tecnica (`D-80`).

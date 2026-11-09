@@ -56,7 +56,7 @@ SWD con `mode=UR` y `-e all`, y no se cambia de modo: si falla, se reintenta -- 
 cuestion de *timing*, y `Unable to get core ID` no es falta de cableado. `HOTPLUG` se engancha al
 micro en marcha; con un firmware que se cuelga al arrancar, el watchdog reinicia cada 4 s en mitad
 del borrado (`failed to erase memory`), y el delator es `NVM size: 128 KBytes (default)` en un chip
-de 64 KB. Radios: `2.4 kbps` de Air Data Rate, `M0`/`M1` en OFF.
+de 64 KB. Radios: `2.4 kbps` de Air Data Rate, `M0`/`M1` en ON (OFF solo para configurar, `D-160`).
 
 ## 6. Presupuesto de flash y RAM
 
