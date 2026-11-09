@@ -170,8 +170,8 @@ button#btnPdf{
   <div class="porque"><b class="t">Por qué</b>Sin saber qué firmware tiene dentro cada placa, nada de lo que se vea después se puede leer. Antes de cargar se guarda una copia de lo que hay, por si hay que volver atrás. La carga se hace siempre igual: por SWD, en modo <strong>UR</strong> y con borrado completo (<code>-e all</code>). <strong>El borrado completo borra también las franjas del modo noche y el testigo del Degradado guardado</strong>: tras cargar no queda ninguna franja; si el poste las usaba, hay que volver a programarlas.</div>
   <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
     <li>Los dos postes encendidos, con las antenas puestas, y <strong>sin cámaras ni barrera conectadas</strong> todavía.</li>
-    <li>El PC con STM32CubeProgrammer y el programador SWD; el .bin del Maestro y el del Esclavo de este paquete (código <strong>{{FW}}</strong>) y el fuente <strong>01_Firmware/ESP32_Expansion</strong> para el puente.</li>
-    <li>En <strong>todos</strong> los celulares que vayan a usar estos postes, la APK de este paquete (huella sha256 <strong>{{APK}}</strong>).</li>
+    <li>El PC con STM32CubeProgrammer y el programador SWD; el .bin del Maestro y el del Esclavo de este paquete (código <strong>XXXXXXX</strong>) y el fuente <strong>01_Firmware/ESP32_Expansion</strong> para el puente.</li>
+    <li>En <strong>todos</strong> los celulares que vayan a usar estos postes, la APK de este paquete, <strong>IOT_VIAL_Semaforos_2026-11-09_XXXXXXX_SIN_BANCO.apk</strong>.</li>
   </ul></div>
   <ol>
     <li>Instale la APK de este paquete en todos los celulares.</li>
@@ -181,7 +181,7 @@ button#btnPdf{
     <li>Pulse &laquo;Operario&raquo;, ponga la clave de administración y, en cada poste: pestaña Técnico &rarr; <strong>"Consultar version del firmware"</strong>. Lea Eventos y, en Tramas, la línea que empieza por <code>$ACK,CMD:VERSION</code>.</li>
     <li>Ponga la hora en cada poste desde la app.</li>
   </ol>
-  <div class="espera">Se espera: en Eventos, <strong>"Version cargada - Controlador MAESTRO: FW {{FW}}"</strong> en el Poste 1, <strong>"Version cargada - Controlador ESCLAVO: FW {{FW}}"</strong> en el Poste 2 y <strong>"Version cargada - Puente (ESP32): FW {{FW}}"</strong> en los dos. En Tramas, <code>$ACK,CMD:VERSION,RESULT:OK,NODE:MAESTRO,FW:{{FW}}</code> (y <code>NODE:ESCLAVO</code> en el Poste 2). <strong>El mismo código en los cuatro</strong>, sin +SUCIO. Si alguno no coincide, no siga y avise. Al terminar, el Poste 1 queda en ámbar intermitente, como tras cualquier arranque: sale con <strong>VOLVER AL MENÚ</strong> y <strong>AUTOMÁTICO</strong>.</div>
+  <div class="espera">Se espera: en Eventos, <strong>"Version cargada - Controlador MAESTRO: FW XXXXXXX"</strong> en el Poste 1, <strong>"Version cargada - Controlador ESCLAVO: FW XXXXXXX"</strong> en el Poste 2 y <strong>"Version cargada - Puente (ESP32): FW XXXXXXX"</strong> en los dos. En Tramas, <code>$ACK,CMD:VERSION,RESULT:OK,NODE:MAESTRO,FW:XXXXXXX</code> (y <code>NODE:ESCLAVO</code> en el Poste 2). <strong>El mismo código en los cuatro</strong>, sin +SUCIO. Si alguno no coincide, no siga y avise. Al terminar, el Poste 1 queda en ámbar intermitente, como tras cualquier arranque: sale con <strong>VOLVER AL MENÚ</strong> y <strong>AUTOMÁTICO</strong>.</div>
   <div class="horas">
     <label class="campo">Poste 1 - Controlador: línea $ACK,CMD:VERSION copiada <input type="text" id="h1a" class="hora"></label>
     <label class="campo">Poste 1 - Puente: código <input type="text" id="h1b" class="hora"></label>
@@ -203,7 +203,7 @@ button#btnPdf{
   <h2>2. Conectar cámaras y barrera</h2>
   <div class="porque"><b class="t">Por qué</b>Cada poste tiene <strong>dos entradas de cámara</strong> (cuatro cámaras entre los dos postes) y <strong>una sola salida de barrera</strong>. Las dos entradas hacen exactamente lo mismo: no hay una &laquo;de demanda&raquo; y otra &laquo;de presencia&raquo;. La cámara se lee por su <strong>relé</strong>: contacto cerrado = ve algo.</div>
   <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
-    <li>Prueba 1 en OK: los dos postes con el código {{FW}} <strong>cargado</strong>.</li>
+    <li>Prueba 1 en OK: los dos postes con el código XXXXXXX <strong>cargado</strong>.</li>
     <li>Los postes <strong>sin energía</strong> mientras conecta.</li>
   </ul></div>
   <ol>
