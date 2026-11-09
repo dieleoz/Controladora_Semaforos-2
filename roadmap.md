@@ -283,6 +283,10 @@ version 7459-0-20, UART 9600 8N1, aire 2.4k, FEC Enable, Fixed Disable (= Transp
 entorno `radio_1200_fija` (`f3d893d`) no se usa; queda como entorno aparte sin efecto en el binario por defecto.
 Se cierra con el registro de Marco con M0/M1 en ON: «tramas buenas» > 0 y `RTT:` medido.
 
+**`N-184` resuelto (17:24):** con M0/M1 en ON, «Enlace: 100 % de latidos contestados». Definido en `D-160`: RS485 a
+9600 transparente, sin cambio de firmware. Falta: los registros de los dos postes para medir `RTT:` con LoRa. Propuesto
+retirar el entorno `radio_1200_fija` (`D-159`), conservando el calculo de `ENVIO_RAFAGA_MS`/`ENVIO_SYNC_MS`.
+
 **Pendiente (09/11, 16:40):** EN CURSO: firmware para radios a 1200/Fixed (`D-159`, worktree) -> arquitecto ->
 integrar -> compuerta completa sin el Repetidor (17 filas, dos pasadas) -> cifras -> QA -> APK -> `.zip` para Marco.
 ESPERANDO: veredictos del runbook de `auditoria/n182` (otra sesion) para su merge. DEL RESPONSABLE: §7.5 (retirar el
