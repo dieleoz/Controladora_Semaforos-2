@@ -625,7 +625,7 @@ static void procesarComando(const char* cmd) {
   //
   // 🔴 N-142 / §3.16-A (11/09) - HASTA HOY ESA FRASE ERA FALSA, MEDIDA EN EL FUENTE:
   // protocolo_enviarPaquete(CMD_AMBAR_ESCLAVO) tenia UN SOLO llamador en todo Esclavo/src y estaba en la puerta CON
-  // PIN, mientras la app manda AMBAR_EMERGENCIA por la de SIN PIN (esta): el aviso de N-142 no lo habia disparado
+  // PIN, mientras la app manda AMBAR_EMERGENCIA por la SIN PIN (esta, D-158): el aviso de N-142 no lo habia disparado
   // nadie desde un telefono, esta punta se iba a S_FALLO y el Maestro seguia su ciclo pudiendo dar VERDE en el Poste
   // 1 hacia un carril cuyo otro extremo ya no controla nadie. Es el candidato mas firme del DAR PASO del Sisga
   // (roadmap §3.16).

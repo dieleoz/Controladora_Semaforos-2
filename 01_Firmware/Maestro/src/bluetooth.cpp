@@ -571,7 +571,7 @@ static void procesarComando(const char* cmd) {
   if (strcmp(cmd, "$LATIDO") == 0) {
     return;
   }
-  // D-110/D-111: las ordenes de noche y, en la noche, las salidas; antes del rojo sin PIN, que
+  // D-110/D-111: las ordenes de noche y, en la noche, las salidas; antes del rojo sin PIN (D-158), que
   // en la noche saca del modo. Lo que no contesta aqui sigue por el despachador de siempre.
   if (modoNoche_orden(cmd, enviarTramaConCrc)) return;
 
