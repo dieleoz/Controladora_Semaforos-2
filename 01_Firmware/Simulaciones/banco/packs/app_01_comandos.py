@@ -86,7 +86,7 @@ NO_LA_MANDA_LA_APP = "HORA_ESP32"
 
 def _atiende(fw, punta):
     """Los comandos que el despachador de esa punta reconoce. Leidos del C++."""
-    atiende = _atiende_codigo(fw.codigo(punta, "src", "bluetooth.cpp"))
+    atiende = _atiende_codigo(fw.codigo(punta, "src", "bluetooth.cpp") + "\n" + fw.codigo(punta, "src", "interruptores.cpp"))
     if punta == NOCHE_CPP[0]:
         atiende |= _atiende_noche(fw.codigo(*NOCHE_CPP))
     return atiende
@@ -183,7 +183,7 @@ def _envia_de(js, html):
     # arriba ya lo cubre, y anadir ademas la raiz suelta -SET_MODO- inventa un
     # comando que la app no manda: el cable siempre lleva SET_MODO:AUTO.
     literales |= set(re.findall(r"enviarComandoFirmware\(\s*'([^']+)'\s*,\s*[^'\s)]", js))
-    del_html = set(re.findall(r'data-cmd="([^"]+)"', html))
+    del_html = set(re.findall(r'data-(?:cmd|interruptor)="([^"]+)"', html))
     # Los que se CONSTRUYEN con plantilla, que son los que llevan parametros pegados:
     # SET_RTC con la fecha, SET_TIEMPOS con los tres numeros. Se guarda su raiz.
     #
