@@ -132,18 +132,8 @@ expectedTabs.forEach(tabId => {
   assert(targetPane.classList.contains('active'), `Al hacer clic en [${tabId}], el contenedor recibe la clase .active`);
 });
 
-// 3. Probar Modal de Conexión Bluetooth
-const btnDevice = document.getElementById('btnDevice');
-btnDevice.click();
-const btModal = document.getElementById('bt-modal');
-assert(btModal.classList.contains('active'), 'Al pulsar [btnDevice] se abre el modal de Bluetooth (.active)');
-
-// Simular clic en dispositivo Bluetooth
-const firstBtItem = document.querySelector('.bt-device-item');
-assert(!!firstBtItem, 'Dispositivos Bluetooth listados en el modal');
-firstBtItem.click();
-assert(!btModal.classList.contains('active'), 'Al conectar con un dispositivo, el modal se cierra automáticamente');
-assert(btnDevice.classList.contains('connected'), 'El botón de dispositivo pasa a estado conectado (.connected)');
+// 3. La hoja de conexion (abrir, listar, conectar, cerrarse): la recorre el guion T1 de tests/dom_usabilidad.js.
+document.getElementById('btnDevice').click(); document.querySelector('.bt-device-item').click();
 
 // 4. Inyectar telemetría NMEA en vivo ($STATUS)
 assert(typeof window._btSubscribeCb === 'function', 'Callback de suscripción serie Bluetooth activo');

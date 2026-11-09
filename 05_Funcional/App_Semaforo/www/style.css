@@ -644,57 +644,10 @@ body {
   box-shadow: 0 0 25px rgba(0, 240, 255, 0.1);
 }
 
-.pad-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.pad-header h3 {
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 0.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
-  color: var(--cyan-neon);
-}
-
 .pad-sub {
   font-size: 10px;
   font-weight: 700;
   color: var(--text-muted);
-}
-
-/* A QUE POSTE ESTOY CONECTADO. Va en la cabecera de la botonera porque es la primera
-   pregunta que se hace quien llega al armario con el telefono en la mano, y hasta hoy
-   la app solo la contestaba en dos sitios que el operario no mira: el rotulo tecnico
-   de la cabecera -"MAESTRO"/"ESCLAVO", que no significa nada para un banderillero- y
-   un parrafo de 10 px debajo de la reja.
-   Dice POSTE 1 / POSTE 2, que es el vocabulario que la propia pantalla ya usa encima
-   de cada semaforo, y "Poste sin identificar" sin $STATUS. No inventa un poste
-   por descarte: la ausencia del dato tiene su propio rotulo y su propio color.
-
-   ALTO EXACTO 17 px, QUE ES EL DEL <h3> QUE TIENE AL LADO, y eso no es un detalle de
-   estilo: la cabecera de la botonera esta encima de los mandos, asi que un pixel que
-   crezca aqui es un pixel que empuja el ultimo mando fuera de la pantalla a 320 px.
-   Por eso no lleva ni borde ni relleno vertical: el line-height hace de alto. */
-.pad-poste {
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.6px;
-  line-height: 17px;
-  padding: 0 8px;
-  border-radius: var(--radius-pill);
-  color: var(--cyan-neon);
-  background: rgba(0, 240, 255, 0.12);
-  white-space: nowrap; flex-shrink: 0;
-}
-
-/* "Poste sin identificar" es la ausencia del dato: gris de --enlace-sindato (7.36:1).
-   Letra 9 px sin espaciado: a 10 px partia el <h3> en dos lineas a 320 px y bajaba los
-   mandos 16 px (medido en Chrome, 320x647); el <h3> recorta con puntos antes que partir. */
-.pad-poste.pad-poste-sindato {
-  color: var(--enlace-sindato); font-size: 9px; letter-spacing: 0; padding: 0 5px;
-  background: rgba(148, 163, 184, 0.14);
 }
 
 .operario-grid {
@@ -1930,8 +1883,6 @@ body {
   .semaforo-housing { padding: 8px 0; }
   .countdown-center { transform: scale(0.86); }
 
-  /* El encabezado de la botonera: se queda el titulo, se va la coletilla. */
-  .pad-header { margin-bottom: 6px; }
   .pad-sub { display: none; }
 
   /* Mandos mas compactos SIN tocar el area de pulsacion util: se recorta el
@@ -2039,7 +1990,6 @@ body {
   .app-container { padding-top: 4px; }
   .tab-content { gap: 6px; }
   .operario-pad-card { padding: 8px 12px; }
-  .pad-header { margin-bottom: 4px; }
 }
 
 /* ==========================================================================
@@ -2189,7 +2139,6 @@ body { padding-bottom: var(--hueco-barra, calc(90px + env(safe-area-inset-bottom
    de mas empujaria la botonera bajo la barra (herramientas_medir_pulsables.js a 320x568).
    Y "SIN EQUIPO (sin enlace)" en una sola fuente. */
 .semaforo-label span { display: inline-block; white-space: nowrap; }
-.semaforo-label .semaforo-rol { font-weight: 600; opacity: 0.8; }
 .rssi-text { font-family: var(--font-sans); }
 
 /* SPEC_4 9.2 (D-56): lo que solo ve quien puso la clave de administracion; setRole() pone .admin en body. */
@@ -2217,11 +2166,6 @@ body.simulado .status-bar { top: var(--franja-alto); }
 .node-info { min-width: 0; }
 .node-role-row { flex-wrap: wrap; row-gap: 0; line-height: 1.25; }
 #node-name, .rssi-text { max-width: 100%; }
-/* "MANDOS DE CAMPO" junto a "Poste sin identificar": se estrecha la letra, no se parte el titulo
-   (partirlo baja los mandos 16 px, ver .pad-poste-sindato). */
-@media (max-width: 400px) {
-  .pad-header h3 { font-size: 12px; letter-spacing: 0; }
-}
 /* Texto de ayuda de una tarjeta: no tenia regla y salia a 16 px en blanco. */
 .card-sub { font-size: 11px; line-height: 1.4; color: var(--text-secondary); margin: 4px 0 8px; overflow-wrap: break-word; }
 /* El buscador de equipos y de grupos: no tenia regla y el texto guia se cortaba. A lo ancho de la
@@ -2234,3 +2178,11 @@ body.simulado .status-bar { top: var(--franja-alto); }
 }
 .site-manager-bar .site-search-input { margin-bottom: 0; }
 .site-search-input::placeholder { color: var(--text-muted); }
+/* N-181 U (SPEC_4 9.9 (f)-(g), D-141..D-145): el resumen de una linea con el color de D-83 por trozo, los
+   plegados con un <summary> de 48 px y «Averias» en ambar si algo esta fuera de servicio. */
+.resumen-equipo { margin: 4px 0; font-size: 12px; text-align: center; overflow-wrap: anywhere; }
+.res-verde { color: var(--green-lamp); } .res-ambar { color: var(--amber-lamp); }
+.res-rojo { color: var(--red-lamp); } .res-sindato { color: var(--text-muted); }
+details > summary { min-height: 48px; display: flex; align-items: center; cursor: pointer; font-weight: 700; }
+#averias > summary.averia-fuera { color: var(--amber-lamp); }
+.ajuste { margin: 4px 0; } .ajuste small, .form-group small.hint { display: block; }

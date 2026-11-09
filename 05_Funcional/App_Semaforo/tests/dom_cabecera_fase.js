@@ -54,15 +54,9 @@ module.exports = async function pruebaCabeceraFase(montarAppLimpia, assert) {
   assert(fp.replace(/^MAESTRO: /, '').length <= 60 && /sin dato/.test(fp) && !/operario/.test(fp) && /precauci/.test(fp),
     `Fase: ambar sin origen leido, corto y sin afirmar quien lo pidio: "${fp}"`);
 
-  // (2) jsdom no calcula posiciones: se comprueba la estructura que lo garantiza. La linea va
-  // FUERA de la tarjeta del cruce, encima de ella y debajo del cartel sin radio, asi queda en
-  // la mitad alta del telefono (412x915) y no al pie, bajo la barra de pestanas fija.
-  const linea = d.getElementById('degauto-linea');
-  const tarjeta = d.querySelector('#tab-estado .card-traffic');
-  const cartel = d.getElementById('degauto-sinradio');
-  const antes = (x, y) => !!(x.compareDocumentPosition(y) & 4);   // DOCUMENT_POSITION_FOLLOWING
-  assert(!tarjeta.contains(linea) && antes(linea, tarjeta) && antes(cartel, linea),
-    'Linea "Si se cae la radio": fuera de la tarjeta del cruce, entre el cartel sin radio y la tarjeta');
+  // (2) INVERTIDA por N-181 U (SPEC_4 9.9 (f)): la linea es Degradado y sale de Trafico; vive tras la clave (D-56).
+  assert(!d.querySelector('#tab-estado #degauto-linea') && d.querySelector('#card-deg-auto #degauto-linea'),
+    'Linea "Si se cae la radio": fuera de Trafico, en la tarjeta del automatico (Ajustes)');
 
   // (4) D-91..D-93 (SPEC_4 9.11): el origen del ambar del Poste 1 viaja como AMBAR:<o> al final
   // del periodico ENLACE_RF del Maestro; la app lo dice solo cuando lo ha leido. App nueva, para

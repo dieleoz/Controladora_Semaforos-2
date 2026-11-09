@@ -35,7 +35,7 @@
 
     <div class="status-right">
       <!-- Role Toggle: Operario vs Técnico -->
-      <button class="role-pill-btn" id="btn-toggle-role" title="Cambiar a Modo Técnico / Administrador">
+      <button class="role-pill-btn" id="btn-toggle-role" title="Operario: manda el cruce" aria-label="Operario: manda el cruce">
         <span id="role-icon">👷</span>
         <span id="role-label">Operario</span>
       </button>
@@ -77,6 +77,11 @@
       <p class="camara-pluma-accion" id="aviso-corte-accion"></p>
       <button type="button" class="btn-top" id="btn-aviso-corte-ok">Entendido</button>
     </div>
+    <!-- D-144 (SPEC_4 9.9 (g) 5): sin emparejar se empareja aqui mismo; lo gobierna js/pantalla_operario.js. -->
+    <div class="card card-camara-pluma" id="aviso-pareja" hidden>
+      <strong class="camara-pluma-titulo" id="aviso-pareja-txt">No se pudo conectar: este teléfono no está emparejado con el poste.</strong>
+      <button type="button" class="btn-degradado" id="btn-aviso-pareja">Emparejar y conectar</button>
+    </div>
     <!-- Carteles fijos que abre un $EVENT repetido (radio en Degradado): js/carteles_equipo.js. -->
     <div id="carteles-equipo" hidden></div>
     <!-- La eleccion del Degradado automatico, dicha en el momento: js/deg_auto_eleccion.js. -->
@@ -98,9 +103,6 @@
          =================================================================== -->
     <section class="tab-content active" id="tab-estado">
       
-      <!-- Si cae la radio (CONSULTA_DEG_AUTO). Encima de la tarjeta (06/10): al pie lo tapaba la barra. -->
-      <div class="pluma-estado" id="degauto-linea" hidden><span id="degauto-linea-txt"></span>
-        <strong id="degauto-linea-difieren" style="color: var(--red-lamp);" hidden> · Los postes no coinciden</strong></div>
       <div class="card card-traffic">
         <div class="traffic-header">
           <span class="card-tag">ESTADO DEL CRUCE</span>
@@ -110,7 +112,7 @@
         <div class="dual-semaforos">
           <!-- Semáforo 1 (Maestro) -->
           <div class="semaforo-col">
-            <div class="semaforo-label"><span>POSTE 1</span> <span class="semaforo-rol">MAESTRO</span></div>
+            <div class="semaforo-label"><span>POSTE 1</span></div>
             <div class="semaforo-housing">
               <div class="lamp red" id="s1-red"></div>
               <div class="lamp amber" id="s1-amber"></div>
@@ -149,16 +151,13 @@
 
           <!-- Semáforo 2 (Esclavo) -->
           <div class="semaforo-col">
-            <div class="semaforo-label"><span>POSTE 2</span> <span class="semaforo-rol">ESCLAVO</span></div>
+            <div class="semaforo-label"><span>POSTE 2</span></div>
             <div class="semaforo-housing">
               <div class="lamp red" id="s2-red"></div>
               <div class="lamp amber" id="s2-amber"></div>
               <div class="lamp green" id="s2-green"></div>
             </div>
             <div class="semaforo-state-text" id="s2-text">SIN DATOS</div>
-            <button class="btn-ir-al-otro" id="btn-ir-al-esclavo" style="display:none;">
-              Conectarse al POSTE 2
-            </button>
           </div>
         </div>
 
@@ -191,13 +190,10 @@
            Solo se ve con un ESCLAVO confirmado por NODE: del $STATUS. -->
       <div class="card diag-card" id="panel-diagnostico" style="display:none;">
         <div class="traffic-header">
-          <span class="card-tag">VENTANA DE DIAGNÓSTICO · POSTE 2</span>
+          <span class="card-tag">POSTE 2</span>
           <span class="badge badge-diag">NO SE OPERA EL CRUCE</span>
         </div>
-        <p class="diag-desc">
-          El cruce se manda desde el <strong>POSTE 1 (Maestro)</strong>. Esta ventana es
-          para ver qué le llega a este poste y qué hace con ello.
-        </p>
+        <details id="diag-que-se-ve"><summary>Qué se ve desde este poste</summary>
         <!-- LO QUE ESTA PUNTA PUBLICA Y LO QUE NO, MEDIDO EN EL FUENTE Y NO SUPUESTO.
              Esclavo/src/bluetooth.cpp:776 manda literalmente
                MODO:SUBORDINADO,ESTADO:%s,T:--,RF:--,RTT:--,BAT:--,HORA:%s
@@ -260,6 +256,7 @@
           </div>
         </div>
 
+        </details>
         <!-- Lo rellena renderDiagnostico() con state.events, la MISMA lista de Eventos: no hay
              segunda copia. Es Eventos acercado, literal: zona tecnica (D-101, SPEC_4 9.9 (a) 4). -->
         <div class="diag-log-cab admin-only solo-admin">Últimos movimientos de este enlace</div>
@@ -271,22 +268,6 @@
            BOTONERA TÁCTIL DE CAMPO (4 BOTONES TIPO MANDO DE RELÉS)
            =============================================================== -->
       <div class="card operario-pad-card">
-        <div class="pad-header">
-          <!-- El rotulo lo cambia aplicarModoPantalla(): contra el POSTE 2 esta tarjeta
-               deja de ser una botonera de ciclo -el Esclavo no tiene esas ramas- y se
-               queda solo con las emergencias, que si son suyas. Un titulo que siga
-               diciendo "BOTONERA" sobre dos botones de emergencia promete mandos que no
-               estan. -->
-          <h3 id="pad-titulo">🎮 MANDOS DE CAMPO</h3>
-          <!-- A QUE POSTE ESTA CONECTADO, CON LAS PALABRAS QUE USA LA PANTALLA.
-               "MAESTRO" y "ESCLAVO" son el vocabulario del protocolo y no significan
-               nada para un banderillero; POSTE 1 y POSTE 2 son los rotulos que estan
-               justo encima de cada semaforo en esta misma pantalla. Arranca en "Poste
-               sin identificar" y lo escribe actualizarMandosDePunta() con lo que declara NODE: en
-               el $STATUS. Sin $STATUS se queda sin identificar: no se deduce el poste
-               por descarte. -->
-          <span class="pad-poste pad-poste-sindato" id="pad-poste" title="No se sabe a que poste esta conectado">Poste sin identificar</span>
-        </div>
 
         <div class="operario-grid">
           <!-- 1. MODO AUTOMÁTICO -->
@@ -362,7 +343,7 @@
           <!-- El rotulo dice QUE maniobra; esta linea dice CONTRA QUE EQUIPO va, que
                es la mitad que faltaba: el mismo boton pulsado en otro poste haria otra
                cosa. Sin telemetria lo declara en vez de suponer una punta. -->
-          <p class="pad-hint" id="emergencia-hint">No se sabe qué poste hay al otro lado: ROJO TOTAL es del POSTE 1 y ÁMBAR EMERGENCIA del POSTE 2.</p>
+          <p class="pad-hint" id="emergencia-hint">ROJO TOTAL es del POSTE 1; ÁMBAR EMERGENCIA, del POSTE 2.</p>
 
           <!-- 5. VOLVER AL MENU: la salida de CUALQUIER modo, y por eso ocupa las dos
                columnas en vez de ser un boton mas de la reja. Hasta hoy esta vuelta
@@ -395,6 +376,10 @@
            aqui: bajo a la pestana de Tramas el 04/09, con el barrido de textos.
            Quien quiera el detalle tecnico baja; quien esta regulando trafico, no.
            =============================================================== -->
+      <!-- D-142 (SPEC_4 9.9 (g) 4): radio, bateria y camaras en UNA linea; la escribe js/pantalla_operario.js
+           con lo que ya pintaron las tres tarjetas de abajo (un solo escritor por dato). -->
+      <p class="resumen-equipo" id="resumen-equipo"></p>
+      <details class="card" id="detalle-equipo"><summary>Detalle</summary>
       <div class="grid-metrics">
         <div class="card metric-card">
           <div class="metric-head">
@@ -455,14 +440,18 @@
         </div>
       </div>
 
-      <!-- Prueba de focos: sin clave de administracion, con el PIN del equipo (SPEC_4 9.2, D-56). -->
-      <div class="card">
+      </details>
+      <!-- D-141: lo que no hace falta para operar, plegado. Prueba de focos sin clave y con PIN (SPEC_4 9.2). -->
+      <details class="card" id="mas-trafico"><summary>Más</summary>
         <h3>💡 Prueba de focos</h3>
         <p class="card-sub">2s rojo · 2s ámbar · 2s verde.</p>
         <button class="btn-secondary-bt" id="btn-start-test-leds" style="width: 100%;">
           ⚡ Iniciar prueba (6s)
         </button>
-      </div>
+        <button class="btn-ir-al-otro" id="btn-ir-al-esclavo" style="display:none;">
+          Conectarse al POSTE 2
+        </button>
+      </details>
     </section>
 
     <!-- ===================================================================
@@ -479,12 +468,10 @@
           <!-- Renderizado dinámico -->
         </div>
 
+        <!-- D-143: el .txt de «Exportar todo» (SPEC_4 9.3 (3)), sin clave; WhatsApp y CSV salieron. -->
         <div class="feed-actions">
-          <button class="btn-share" id="btn-share-whatsapp">
-            <span>📲 Reporte WhatsApp</span>
-          </button>
-          <button class="btn-export" id="btn-export-csv">
-            <span>📥 Exportar CSV</span>
+          <button class="btn-export" id="btn-exportar-todo">
+            <span>📎 Exportar registro</span>
           </button>
         </div>
       </div>
@@ -496,7 +483,7 @@
            el técnico no está delante. Esto se guarda en el teléfono y
            sobrevive al cierre de la app.
            =============================================================== -->
-      <div class="card">
+      <details class="card" id="bitacora-enlace"><summary>Bitácora del enlace</summary>
         <div class="card-header-flex">
           <h3>📉 Bitácora del enlace</h3>
           <span class="badge badge-auto">Guardada en el teléfono</span>
@@ -523,7 +510,7 @@
             <span>🗑️ Borrar bitácora</span>
           </button>
         </div>
-      </div>
+      </details>
     </section>
 
     <!-- ===================================================================
@@ -545,21 +532,21 @@
         <form id="form-tiempos" class="tiempos-form">
           <div class="form-row">
             <div class="form-group half">
-              <label for="num-tiempo-verde">🟢 Verde (min)</label>
+              <label for="num-tiempo-verde">Verde (min)</label>
               <input type="number" id="num-tiempo-verde" class="form-input" min="3" max="15" value="3" required>
-              <small class="hint">3 a 15 min</small>
+              <small class="hint">Minutos que dura el verde, de 3 a 15.</small>
             </div>
             <div class="form-group half">
-              <label for="num-tiempo-rojo">🔴 Rojo (min)</label>
+              <label for="num-tiempo-rojo">Rojo (min)</label>
               <input type="number" id="num-tiempo-rojo" class="form-input" min="3" max="15" value="3" required>
-              <small class="hint">3 a 15 min</small>
+              <small class="hint">Minutos que dura el rojo, de 3 a 15.</small>
             </div>
           </div>
 
           <div class="form-group">
-            <label for="num-tiempo-despeje">🟡 Despeje todo-rojo (seg)</label>
+            <label for="num-tiempo-despeje">Todo rojo entre sentidos (s)</label>
             <input type="number" id="num-tiempo-despeje" class="form-input" min="10" max="90" value="15" required>
-            <small class="hint">10 a 90 seg</small>
+            <small class="hint">Segundos con los dos en rojo para vaciar el tramo, de 10 a 90.</small>
           </div>
 
           <button type="submit" class="btn-save-site" id="btn-aplicar-tiempos">
@@ -592,9 +579,11 @@
         <p class="card-sub" id="noche-estado">Sin conectar.</p>
         <p class="card-sub">Destellan los dos con la pluma arriba; con rojo en el POSTE 2, sin radio pasa a ámbar.</p>
         <div class="form-group"><label for="num-noche-distancia">Distancia entre postes (m)</label>
-          <input type="number" id="num-noche-distancia" class="form-input" min="1" max="20000"></div>
-        <div class="form-group"><label for="num-noche-tr">Todo-rojo de entrada y salida (seg)</label>
+          <input type="number" id="num-noche-distancia" class="form-input" min="1" max="20000">
+          <small class="hint">Con ella la app propone el todo rojo de la noche.</small></div>
+        <div class="form-group"><label for="num-noche-tr">Todo rojo al entrar y salir de noche (s)</label>
           <input type="number" id="num-noche-tr" class="form-input" min="10" max="900" value="180">
+          <small class="hint">No baja de 180 ni de lo que pide la distancia.</small>
           <small class="hint" id="noche-tr-propuesta">Ponga la distancia: la app propone el todo-rojo.</small></div>
         <button type="button" class="btn-save-site" id="btn-noche-tr">Guardar todo-rojo</button>
         <div id="noche-franjas"></div>
@@ -658,13 +647,14 @@
 
       <!-- SPEC_8 6 (D-94): los dos interruptores, solo para averias. js/interruptores.js pregunta
            antes de cada OFF y traduce el acuse; el estado lo dicen PLUMA y CAMARAS en Trafico. -->
-      <div class="card" id="interruptores">
-        <div class="card-header-flex">
-          <h3>Cámaras y barrera de este poste</h3>
-          <span class="badge">AVERÍAS</span>
-        </div>
+      <details class="card" id="averias"><summary>Averías: cámaras y barrera</summary>
+        <div id="averias-cuerpo">
         <p class="card-sub">Solo este poste. Requieren PIN y siguen puestos tras un corte de luz.</p>
-        <div class="ctrl-grid">
+        <p class="ajuste"><strong>Cámaras: veto de la barrera</strong>
+          <small>Fuera, la cámara deja de impedir que baje la barrera.</small></p>
+        <p class="ajuste"><strong>Barrera en servicio</strong>
+          <small>Fuera, la barrera queda arriba también en rojo (brazo roto).</small></p>
+        <div class="ctrl-grid" id="interruptores">
           <button class="ctrl-btn" data-interruptor="SET_VETO_CAMARA:OFF">
             <strong>Sacar las cámaras del veto</strong>
             <small>La cámara no deja bajar la barrera</small>
@@ -682,7 +672,8 @@
             <small>Vuelve a obedecer a la luz</small>
           </button>
         </div>
-      </div>
+        </div>
+      </details>
 
       <!-- DEMANDA: la peticion de paso local del Modo Inteligente. NO es SOLICITAR_PASO
            -alli es el Esclavo el que pide a la otra punta-. Fuera del Modo Inteligente
@@ -690,7 +681,7 @@
            solo segun el MODO que dice $STATUS en vez de gastar una orden que ya se sabe
            rechazada. Sin telemetria no se sabe en que modo esta el equipo, y entonces
            tampoco se habilita: no saber no es estar en Inteligente. -->
-      <div class="card">
+      <div class="card" id="card-demanda" hidden>
         <div class="card-header-flex">
           <h3>🚶 Pedir paso (Modo Inteligente)</h3>
           <span class="badge">DEMANDA</span>
@@ -701,6 +692,56 @@
         <p class="card-sub" id="demanda-hint">Sin datos del equipo: no se sabe en qué modo está.</p>
       </div>
 
+
+
+      <!-- Sincronización Directa de Reloj -->
+      <div class="card">
+        <h3>⏱️ Sincronizar reloj DS3231</h3>
+        <p class="card-sub">Con la hora del teléfono.</p>
+        <!-- N-150 (05/09): LA HORA QUE EL EQUIPO DICE TENER, QUE HASTA HOY NO SE PINTABA
+             EN NINGUNA PARTE.
+             El campo HORA: viaja en cada $STATUS desde hace meses y `state.hora` tenia
+             UN escritor y CERO lectores: la app la recibia y la tiraba. Lo destapo un
+             censo, no una queja, y a partir de esta noche importa mas -el puente ESP32
+             ya sella la hora del DS3231 en la trama, asi que deja de ser --:--:-- para
+             traer hora de verdad-.
+             VA AQUI Y NO EN LA PANTALLA DE OPERACION porque aqui es donde SE DECIDE:
+             debajo esta el boton que la pisa con la del telefono, y nadie puede decidir
+             si sincroniza sin ver antes lo que el equipo tiene. Una hora suelta en el
+             tablero de campo seria un dato mas que mirar con un coche encima; aqui es
+             la mitad izquierda de una comparacion. -->
+        <p class="card-sub">
+          El equipo dice tener: <strong id="equipo-hora">sin datos del equipo</strong>
+        </p>
+        <button class="btn-save-site" id="btn-sync-rtc">
+          ⏱️ Sincronizar (<span id="rtc-sync-digits">--:--:--</span>)
+        </button>
+      </div>
+
+
+      <!-- D-141: lo que solo se usa si lo pide soporte, plegado. -->
+      <details class="card" id="soporte"><summary>Soporte</summary>
+        <!-- A-9 (05/09): LA CONSULTA VA ENCIMA DEL BOTON QUE PISA LA HORA, Y ESE ORDEN
+             ES EL ARREGLO.
+             Hasta hoy la unica forma de LEER el reloj era MANDARLO: el $ACK de SET_RTC
+             devuelve FECHA:/HORA: releidas del chip, asi que COMPROBAR si el cruce esta
+             en hora obligaba a CAMBIARSELA - y con eso se pierde justo el dato que se
+             buscaba, que es cuanto se habia desviado.
+             Y hay DOS relojes por cruce -un DS3231 con pila por ESP32- sin nada que los
+             sincronice ni los compare (A-9). Esta consulta no los sincroniza: los hace
+             VISIBLES. El desfase entre los dos sale de restar el error de cada uno
+             contra el reloj del celular, asi que la caminata entre postes se cancela.
+             Cero efecto vial: no toca el reloj, no toca una luz y no pide PIN. -->
+        <button class="btn-secondary-bt" id="btn-leer-rtc" style="width: 100%; margin-bottom: 8px;">
+          🔎 Consultar reloj (no cambia nada)
+        </button>
+        <!-- 1.51. QUE FIRMWARE LLEVA ESTE EQUIPO. Esta al lado de la consulta de reloj
+             porque es la misma clase de orden: mira y no toca nada. El 16/09 se exporto
+             una cinta entera del Sisga sin poder decir que firmware estaba dentro, y sin
+             ese hash una foto de campo no se lee (CLAUDE.md 0.2). Cero efecto vial. -->
+        <button class="btn-secondary-bt" id="btn-leer-version" style="width: 100%; margin-bottom: 8px;">
+          🏷️ Consultar version del firmware
+        </button>
       <!-- REINICIAR_RELOJ borra hora, ciclo acordado y la autorizacion del Degradado.
            Va aparte del resto porque no es un cambio de modo: es un borrado. -->
       <div class="card">
@@ -710,7 +751,6 @@
           🧹 Reiniciar reloj y respaldo
         </button>
       </div>
-
       <!-- Asistente Courier RTC -->
       <div class="card card-courier">
         <div class="card-header-flex">
@@ -748,53 +788,7 @@
           </div>
         </div>
       </div>
-
-      <!-- Sincronización Directa de Reloj -->
-      <div class="card">
-        <h3>⏱️ Sincronizar reloj DS3231</h3>
-        <p class="card-sub">Con la hora del teléfono.</p>
-        <!-- N-150 (05/09): LA HORA QUE EL EQUIPO DICE TENER, QUE HASTA HOY NO SE PINTABA
-             EN NINGUNA PARTE.
-             El campo HORA: viaja en cada $STATUS desde hace meses y `state.hora` tenia
-             UN escritor y CERO lectores: la app la recibia y la tiraba. Lo destapo un
-             censo, no una queja, y a partir de esta noche importa mas -el puente ESP32
-             ya sella la hora del DS3231 en la trama, asi que deja de ser --:--:-- para
-             traer hora de verdad-.
-             VA AQUI Y NO EN LA PANTALLA DE OPERACION porque aqui es donde SE DECIDE:
-             debajo esta el boton que la pisa con la del telefono, y nadie puede decidir
-             si sincroniza sin ver antes lo que el equipo tiene. Una hora suelta en el
-             tablero de campo seria un dato mas que mirar con un coche encima; aqui es
-             la mitad izquierda de una comparacion. -->
-        <p class="card-sub">
-          El equipo dice tener: <strong id="equipo-hora">sin datos del equipo</strong>
-        </p>
-        <!-- A-9 (05/09): LA CONSULTA VA ENCIMA DEL BOTON QUE PISA LA HORA, Y ESE ORDEN
-             ES EL ARREGLO.
-             Hasta hoy la unica forma de LEER el reloj era MANDARLO: el $ACK de SET_RTC
-             devuelve FECHA:/HORA: releidas del chip, asi que COMPROBAR si el cruce esta
-             en hora obligaba a CAMBIARSELA - y con eso se pierde justo el dato que se
-             buscaba, que es cuanto se habia desviado.
-             Y hay DOS relojes por cruce -un DS3231 con pila por ESP32- sin nada que los
-             sincronice ni los compare (A-9). Esta consulta no los sincroniza: los hace
-             VISIBLES. El desfase entre los dos sale de restar el error de cada uno
-             contra el reloj del celular, asi que la caminata entre postes se cancela.
-             Cero efecto vial: no toca el reloj, no toca una luz y no pide PIN. -->
-        <button class="btn-secondary-bt" id="btn-leer-rtc" style="width: 100%; margin-bottom: 8px;">
-          🔎 Consultar reloj (no cambia nada)
-        </button>
-        <!-- 1.51. QUE FIRMWARE LLEVA ESTE EQUIPO. Esta al lado de la consulta de reloj
-             porque es la misma clase de orden: mira y no toca nada. El 16/09 se exporto
-             una cinta entera del Sisga sin poder decir que firmware estaba dentro, y sin
-             ese hash una foto de campo no se lee (CLAUDE.md 0.2). Cero efecto vial. -->
-        <button class="btn-secondary-bt" id="btn-leer-version" style="width: 100%; margin-bottom: 8px;">
-          🏷️ Consultar version del firmware
-        </button>
-        <button class="btn-save-site" id="btn-sync-rtc">
-          ⏱️ Sincronizar (<span id="rtc-sync-digits">--:--:--</span>)
-        </button>
-      </div>
-
-
+      </details>
       <!-- D-37 (29/09): aqui estaba «Entrar en Modo Degradado»: en banco dio verde en un poste con el otro en
            ambar. Queda el testigo, que espera en rojo a una hora comun (la orden sigue en el firmware). -->
 
@@ -806,8 +800,10 @@
           <span class="badge badge-degradado">PELIGROSO</span>
         </div>
         <p class="card-sub"><strong>Con los dos postes en degradado sin radio, no cambie el modo de uno solo sin paleteros en los dos extremos.</strong></p>
+        <details><summary>Por qué</summary>
         <p class="card-sub">Una orden por poste: <strong>primero el POSTE 1, después el POSTE 2</strong>, con el mismo testigo que este teléfono guarda. Los dos quedan en <strong>ROJO fijo hasta la hora de inicio</strong> y después alternan solos, sin radio.</p>
         <p class="card-sub">Necesita un firmware que ya lleve esta orden: si el equipo la rechaza como desconocida, no la lleva. El testigo sale solo cuando el poste acusa la hora del teléfono.</p>
+        </details>
         <label class="degradado-check">
           <input type="checkbox" id="chk-testigo-verificado">
           <span>He verificado en persona este poste y la radio entre postes está caída.</span>
@@ -840,13 +836,19 @@
            estado lo dice el equipo (CONSULTA_DEG_AUTO), no el boton pulsado. -->
       <div class="card card-degradado" id="card-deg-auto">
         <div class="card-header-flex">
-          <h3>📡 Si se cae la radio entre los postes:</h3>
+          <h3>Si se cae la radio</h3>
+          <small>Qué hacen los dos postes tras 5 min sin oírse.</small>
           <span class="badge badge-degradado">PELIGROSO</span>
         </div>
+        <!-- 9.9 (f): la linea de la eleccion vive aqui, tras la clave (D-56); en Trafico sobraba. -->
+        <div class="pluma-estado" id="degauto-linea" hidden><span id="degauto-linea-txt"></span>
+          <strong id="degauto-linea-difieren" style="color: var(--red-lamp);" hidden> · Los postes no coinciden</strong></div>
+        <details><summary>Por qué</summary>
         <p class="card-sub"><strong>Con los dos postes en degradado sin radio, no cambie el modo de uno solo sin paleteros en los dos extremos.</strong></p>
         <p class="card-sub">Se elige al montar el equipo, con los dos postes enlazados por radio; el otro poste se entera por radio. Hay que elegirlo <strong>en los dos postes</strong>.</p>
         <p class="card-sub">(a) es la de fábrica y la recomendada en carretera. Con (b) en los dos, si la radio cae 5 min, <strong>los dos pasan a ROJO</strong> y después arrancan solos a una hora fija, alternando por reloj, sin nadie mirando.</p>
         <p class="card-sub">Cuando la radio vuelve <strong>siguen en degradado</strong> hasta que el técnico los saque (Volver al menú en el POSTE 1).</p>
+        </details>
         <p class="card-sub">Este poste: <strong id="degauto-este">sin conectar</strong><br>
           Otro poste: <strong id="degauto-otro">-</strong><br>
           Listo para entrar solo: <strong id="degauto-apto">-</strong></p>
@@ -900,11 +902,6 @@
              teléfono. Son las mismas que la cinta y por el mismo motivo — dentro de un
              WebView una descarga puede no llegar a ninguna parte sin que la página se
              entere, así que la de copiar es la que no puede fallar. -->
-        <div class="feed-actions">
-          <button class="btn-export" id="btn-exportar-todo">
-            <span>📎 Exportar todo como archivo</span>
-          </button>
-        </div>
         <div class="feed-actions">
           <button class="btn-export" id="btn-diario-export">
             <span>📥 Guardar el diario</span>
@@ -984,7 +981,7 @@
     </button>
     <button class="nav-item admin-tab" data-tab="tab-diag" id="tab-btn-diag" style="display: none;">
       <span class="nav-icon">⚙️</span>
-      <span class="nav-label">Técnico</span>
+      <span class="nav-label">Ajustes</span>
     </button>
     <button class="nav-item admin-tab" data-tab="tab-depuracion" id="tab-btn-depuracion" style="display: none;">
       <span class="nav-icon">🧪</span>
@@ -1039,6 +1036,7 @@
       <p class="modal-desc">Módulo Bluetooth del poste:</p>
       <!-- APP-1.6: el permiso de ubicacion saltaba sin explicar. Lo pide el plugin al buscar
            los NO emparejados (discoverUnpaired); la app no lee la posicion. -->
+      <details id="bt-ayuda"><summary>Si no aparece su equipo</summary>
       <p class="modal-desc bt-aviso-permiso" id="bt-aviso-permiso">
         Si Android pide permiso de <strong>Ubicación</strong> o <strong>Dispositivos
         cercanos</strong>: lo exige para buscar equipos Bluetooth. La app no lee su posición.
@@ -1058,6 +1056,7 @@
         no con el nombre del cruce. Android <strong>no pide PIN</strong> al emparejar.
         El 1234 es PIN de comando, no clave del sistema.
       </p>
+      </details>
 
       <!-- N-124: aqui habia DOS FILAS FIJAS con el MAC escrito a mano. Una empezaba por
            98:D3:31 -prefijo de los HC-05, los modulos que el ESP32 sustituyo el 28/08- y
@@ -1237,6 +1236,7 @@
   <script src="js/serial_pc.js"></script>
   <script src="js/simulador.js"></script>
   <script src="js/practica.js"></script>
+  <script src="js/pantalla_operario.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

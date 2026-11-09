@@ -291,9 +291,9 @@ const Testigo = {
       txt = 'Testigo enviado al POSTE 1 (serie ' + (g.serie || '?') + ') a las ' +
             g.emitido + '; esperando su acuse. Sin acuse no hay nada que llevar al POSTE 2.';
     } else if (vivo) {
-      txt = 'Testigo del POSTE 1 (serie ' + (g.serie || '?') + '): inicio ' + g.inicio +
-            ', verde ' + this._min(g.verde) + ', despeje ' + g.despeje + ' s. Faltan ' +
-            this._mmss(g.inicioMs - Date.now()) + ' para el inicio.';
+      txt = 'Lleve el testigo al POSTE 2 antes de las ' + g.inicio + ' (faltan ' +   // 9.9 (i) 4: la hora limite
+            this._mmss(g.inicioMs - Date.now()) + '). Testigo del POSTE 1 (serie ' + (g.serie || '?') +
+            '): verde ' + this._min(g.verde) + ', despeje ' + g.despeje + ' s.';
     } else {
       txt = 'El inicio del testigo (' + g.inicio + ') ya paso. Para el POSTE 2 hay que ' +
             'repetir el testigo en el Maestro.';

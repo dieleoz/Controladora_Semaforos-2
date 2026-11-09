@@ -200,7 +200,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const camPlumaAccionEl = document.getElementById('camara-pluma-accion');
   const camPlumaLimiteEl = document.getElementById('camara-pluma-limite');
   const cortEl = document.getElementById('aviso-corte');   // N-170, js/aviso_corte.js
-  const padTituloEl = document.getElementById('pad-titulo');
   const btnIrAlMaestro = document.getElementById('btn-ir-al-maestro');
   const btnIrAlEsclavo = document.getElementById('btn-ir-al-esclavo');
   const btStatusDot = document.getElementById('bt-status-dot');
@@ -284,7 +283,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const emergenciaSubMaestroEl = document.getElementById('emergencia-maestro-sub');
   const emergenciaSubEsclavoEl = document.getElementById('emergencia-esclavo-sub');
   const btnOpMenu = document.getElementById('btn-op-menu');
-  const padPosteEl = document.getElementById('pad-poste');
 
   // Mandos de tecnico que no salen por data-cmd porque cada uno tiene una condicion
   // propia: ALCANCE viaja sin PIN y DEMANDA solo vale en un modo concreto.
@@ -323,10 +321,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const avisoTiemposParado = document.getElementById('aviso-tiempos-parado');
   const btnArrancarCiclo = document.getElementById('btn-arrancar-ciclo');
 
-  // Events Feed & Export
   const eventFeedEl = document.getElementById('event-feed');
-  const btnShareWhatsapp = document.getElementById('btn-share-whatsapp');
-  const btnExportCsv = document.getElementById('btn-export-csv');
 
   // PIN Modal
   const pinModal = document.getElementById('pin-modal');
@@ -1386,7 +1381,8 @@ document.addEventListener('DOMContentLoaded', () => {
     diarioVista.render();
   }
 
-  Exportar.conectarBoton(document.getElementById('btn-exportar-todo'), {
+  PantallaOperario.instalar(() => state);   // N-181 U: resumen, «Averias» y el aviso sin emparejar (D-141..D-144)
+  Exportar.conectarBoton(document.getElementById('btn-exportar-todo'), {   // «Exportar registro», en Eventos (D-143)
     vacio: () => !DiarioOrdenes.todas().length && !RegistroCrudo.todas().length,
     texto: () => diarioVista.texto() + '\n\n' + '='.repeat(72) + '\n\n' + textoDepuracion(),
     nombre: () => Exportar.nombreFichero(state.serie, new Date()), showToast, addEvent
@@ -1520,12 +1516,15 @@ document.addEventListener('DOMContentLoaded', () => {
   function setRole(newRole) {
     state.role = newRole;
     document.body.classList.toggle('admin', newRole === 'TECNICO');
+    // D-145 (SPEC_4 9.9 (g) 6): el rotulo dice el modo; a <= 400 px solo queda el emoji, y el title lo nombra.
+    const rotulo = newRole === 'TECNICO' ? 'Técnico: además ajusta y diagnostica' : 'Operario: manda el cruce';
+    if (btnToggleRole) { btnToggleRole.title = rotulo; btnToggleRole.setAttribute('aria-label', rotulo); }
     if (newRole === 'TECNICO') {
       if (btnToggleRole) btnToggleRole.classList.add('admin');
       if (roleIconEl) roleIconEl.textContent = '🛡️';
       if (roleLabelEl) roleLabelEl.textContent = 'Técnico';
       adminTabs.forEach(t => t.style.display = 'flex');
-      showToast('🛡️ Clave de administración: Tiempos, Diagnóstico y Depuración a la vista');
+      showToast('🛡️ Técnico: Tiempos, Ajustes y Tramas a la vista');
       addEvent('cyan', 'Sesion: clave de administracion puesta. Las ordenes siguen pidiendo el PIN del equipo.');
     } else {
       if (btnToggleRole) btnToggleRole.classList.remove('admin');
@@ -1540,7 +1539,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('tab-estado').classList.add('active');
         document.querySelector('.nav-item[data-tab="tab-estado"]').classList.add('active');
       }
-      showToast('👷 Modo Operario Activo');
+      showToast('👷 Operario');
     }
   }
 
@@ -2036,15 +2035,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // de los mandos estan APAGADOS por CSS en cualquier pantalla de menos de 740 px de
     // alto -o sea en todos los telefonos-, asi que cuando se ensenan las dos
     // emergencias esta linea es el UNICO sitio donde se dice cual es de cada poste.
+    // D-141: con el poste identificado sale (repite el rotulo), salvo el POSTE 1 en Degradado: ahi
+    // el rojo es solo de ESTE poste y el <small> que lo dice no se ve en el telefono.
+    emergenciaHintEl.hidden = !!punta && !(punta === 'MAESTRO' && state.modo === 'DEGRADADO');
     if (punta === 'MAESTRO') {
       emergenciaHintEl.textContent = emM.hint;
-    } else if (punta === 'ESCLAVO') {
-      emergenciaHintEl.textContent = 'POSTE 2: la parada de emergencia NO deja rojo. ' +
-        'Pone ÁMBAR INTERMITENTE y ABRE la talanquera: los dos sentidos pasan con ' +
-        'precaución. En gris, lo que solo se manda desde el POSTE 1.';
-    } else {
-      emergenciaHintEl.textContent = 'No se sabe qué poste hay al otro lado: ROJO ' +
-        'TOTAL es del POSTE 1 y ÁMBAR EMERGENCIA del POSTE 2.';
+    } else if (!punta) {
+      emergenciaHintEl.textContent = 'ROJO TOTAL es del POSTE 1; ÁMBAR EMERGENCIA, del POSTE 2.';   // D-142
     }
   }
 
@@ -2083,14 +2080,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function actualizarMandosDePunta(punta) {
-    if (padPosteEl) {
-      // Tres rotulos y no dos: "sin identificar" no es un poste, es la ausencia del dato, y
-      // por eso tiene rotulo y color propios en vez de quedarse en blanco.
-      padPosteEl.textContent = punta === 'MAESTRO' ? 'POSTE 1'
-                             : punta === 'ESCLAVO' ? 'POSTE 2'
-                             : 'Poste sin identificar';
-      padPosteEl.classList.toggle('pad-poste-sindato', !punta);
-    }
     for (const par of MANDOS_DE_CICLO) {
       marcarDisponible(par[0], !puntaCorrecta(par[1]));
     }
@@ -2156,11 +2145,8 @@ document.addEventListener('DOMContentLoaded', () => {
     for (const par of MANDOS_DE_CICLO) {
       if (par[0]) par[0].style.display = enEsclavo ? 'none' : '';
     }
-    if (padTituloEl) {
-      padTituloEl.textContent = enEsclavo
-        ? '🚨 EMERGENCIA DE ESTE POSTE'
-        : '🎮 MANDOS DE CAMPO';
-    }
+    // 9.9 (g) 1: con el Esclavo, «Que se ve desde este poste» ocupa el sitio de «Detalle».
+    PantallaOperario.verDetalle(!enEsclavo);
     if (panelDiagnosticoEl) {
       panelDiagnosticoEl.style.display = enEsclavo ? '' : 'none';
     }
@@ -2361,7 +2347,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function actualizarDemanda() {
     if (!btnDemanda) return;
     const disponible = state.telemetriaViva && state.modo === 'INTELIGENTE';
-    btnDemanda.disabled = !disponible;
+    btnDemanda.disabled = !disponible; btnDemanda.closest('.card').hidden = !disponible;   // 9.9 (f): fuera de Inteligente, fuera
     if (!demandaHintEl) return;
     if (disponible) {
       demandaHintEl.textContent = 'El equipo esta en Modo Inteligente: la peticion ' +
@@ -3369,7 +3355,7 @@ document.addEventListener('DOMContentLoaded', () => {
     bt.connect(
       mac,
       () => {
-        state.connected = true; renderLights();   // D-80: «esperando su primer dato» hasta el primer $STATUS
+        state.connected = true; renderLights(); PantallaOperario.sinPareja(null);   // D-80: «esperando su primer dato»
         revisarGrupo();   // 9.14 (b): el grupo de ESTA MAC desde el enlace
         if (btnDevice) btnDevice.className = 'btn-top btn-device connected';
         actualizarBotonDesconectar();
@@ -3406,7 +3392,8 @@ document.addEventListener('DOMContentLoaded', () => {
           // NO CONECTAR NO ES CONECTAR. Se dice, y se deja el estado en falso: pintar
           // "Enlazado" sobre un socket que no abrio es lo que hizo que el banco
           // gastara cuatro pasos buscando el fallo en el modulo.
-          showToast('❌ No se pudo conectar');
+          // D-144 (SPEC_4 9.9 (g) 5): sin emparejar, el aviso ofrece emparejar ahi mismo (misma MAC; Android pide vincular).
+          if (emparejada) showToast('❌ No se pudo conectar'); else PantallaOperario.sinPareja(() => abrirEnlace(mac, name, false));
           addEvent('red', `Bluetooth NO conectado a ${name} (${mac}): ${err}. ` +
                           (emparejada
                             ? 'Comprueba que el equipo este encendido y a la vista.'
@@ -4358,53 +4345,6 @@ document.addEventListener('DOMContentLoaded', () => {
       state.pin = '';
       updatePinDisplay();
     }
-  }
-
-  // =========================================================================
-  // 11. EXPORTACIÓN WHATSAPP Y CSV
-  // =========================================================================
-  if (btnShareWhatsapp) {
-    btnShareWhatsapp.addEventListener('click', () => {
-      let r = `🚦 *REPORTE SEMAFÓRICO IOT-VIAL*\n`;
-      r += `📍 *Cruce:* ${state.site}\n`;
-      // La punta puede no estar identificada todavia -N-124: ya no se adivina al
-      // pulsar la fila-, y este reporte SALE DE LA APP: es el sitio donde menos
-      // puede aparecer la palabra `null` haciendose pasar por un dato.
-      r += `👑 *Nodo:* ${state.node || 'sin identificar'} | Modo: ${state.modo || 'sin datos'}\n`;
-      // "Enlace RF: null%" es lo que salia aqui: state.rfQuality no lo escribia el
-      // camino de $STATUS -solo el del puente de PC, que ya no existe- asi que el
-      // reporte que el tecnico manda por WhatsApp publicaba la palabra `null`. Ahora
-      // se dice el valor con SU HORA, o se declara que no se midio. Un reporte que
-      // viaja fuera de la app es el sitio donde menos puede haber un numero sin sello.
-      const enlaceTexto = state.rfQuality === null
-        ? 'no medido en esta sesion'
-        : `${state.rfQuality}% de latidos contestados (medido a las ${_horaDe(state.rfMedidaMs)})`;
-      const bateriaTexto = state.battery === null
-        ? 'no medida por el equipo' : `${state.battery.toFixed(1)} V`;
-      r += `🔋 *Batería:* ${bateriaTexto} | *Enlace:* ${enlaceTexto}\n`;
-      r += `⏱️ *Hora RTC:* ${state.hora || 'sin datos'} | *Pluma:* ${state.pluma || 'sin datos'} | *Cámaras:* ${state.cam || 'sin datos'}\n`;
-      r += `_El enlace es el % de latidos que contestaron, no potencia de señal._\n\n`;
-      r += `*Últimos Eventos:*\n`;
-      state.events.slice(0, 5).forEach(ev => {
-        r += `• [${ev.time}] ${ev.msg}\n`;
-      });
-      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(r)}`, '_blank');
-    });
-  }
-
-  if (btnExportCsv) {
-    btnExportCsv.addEventListener('click', () => {
-      let csv = 'Timestamp,Tipo,Mensaje\n';
-      state.events.forEach(ev => {
-        csv += `"${ev.time}","${ev.type}","${ev.msg}"\n`;
-      });
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = `Log_Semaforos_${state.site.replace(/[\s\·\/]+/g, '_')}.csv`;
-      link.click();
-      showToast('📥 Archivo CSV descargado.');
-    });
   }
 
   // =========================================================================

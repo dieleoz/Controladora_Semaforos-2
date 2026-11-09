@@ -598,8 +598,12 @@ que no se mezclan: **rol visible** (clave de administracion de la app) y **autor
 equipo, §4; `state.pinVerificado`, `CMD:PIN:`). Ninguno arma al otro.
 - **Sin clave de administracion** el tecnico ve Trafico (estado, luces de los dos postes, ROJO TOTAL, AMBAR
   EMERGENCIA, la botonera), Eventos, exportar y **«Prueba de focos»**, que pasa a Trafico y sigue pidiendo el PIN.
+  DEBE (`D-141`, `D-143`; §9.9 (f), NO construido): Prueba de focos plegada en «Mas» de Trafico, y un solo
+  «Exportar registro» en Eventos (el `.txt` de «Exportar todo»).
 - **Con la clave** se ven ademas Tiempos, Diagnostico (Degradado: testigo, eleccion del automatico, salida `D-52`;
   hora y Courier; mandos directos) y Depuracion, y la tarjeta que pide la eleccion del automatico al conectar.
+  DEBE (`D-145`): la pastilla dice «Operario» o «Tecnico» y la pestana Diagnostico se rotula «Ajustes»; la lista de
+  lo que ensena la clave no crece (`D-141`).
   Quien hace Degradado lleva las dos claves (SPEC_6 A.1).
 - **El PIN no cambia:** cada orden que lo pide abre el teclado del PIN, tambien con la clave puesta. Tiempos y las
   dos de hora no salen sin el: el emisor las frena (al diario como no salidas) y abre el teclado; tecleado, se
@@ -1041,6 +1045,110 @@ Ficheros: `index.html`, `app.js`, `style.css`, `js/testigo.js`, `js/aviso_degrad
 lineas de producto contra ~70 de test DOM; la razon instrumentos/producto no sube porque el test sustituye prosa de
 manual, no firmware. Sin medir hasta el telefono: contraste del gris `sindato` a pleno sol y la cabecera con fuente
 de reserva sin red.
+
+**(f) Menos pantalla (`N-181` U, `D-141`..`D-145`; 09/11, NO construido).** Orden del responsable (27/10): «no es
+usable, tantas funciones que no se entienden». Criterio, de Pasos Peatonales (`ROADMAP_APP.md`): antes de un texto,
+aviso o modo, ¿lo necesita el operario para operar? Si no, plegado (`<details>`) o fuera. Ocultar tras la clave no
+basto alli, y aqui la lista de la clave es cerrada (`D-56`, `D-123`): **nada nuevo pasa tras la clave**; lo que sobra
+se pliega o sale. Lo de abajo es lo que DEBE hacer; lo construye U-B con la prueba en rojo primero.
+
+Medido el 09/11 sobre `8f8dd7e` (jsdom con el `index.html` y el `app.js` reales; Chrome sin cabeza con el doble de
+`bluetoothSerial`, `$STATUS` Maestro `ROJO`, `ESC:VERDE`, `PLUMA:ABAJO`, `CAM:OK`, `RF:97`, `BAT:12.9`). Trafico sin
+clave: 7 botones y 140 palabras con el Maestro, 6 y 136 sin enlace, 4 y 329 con el Esclavo. A 360x640 la barra de
+pestanas empieza en 569 px, ROJO TOTAL acaba en 607 (tapado), VOLVER AL MENU en 709 y la pantalla en 1166 (dos
+alturas); a 320 no hay scroll lateral (ancho 320). A <= 400 px `#role-label` no se ve (`style.css`, `D-82`): la
+pastilla de rol es solo el emoji. Con la clave: Tiempos 55 mandos (cuatro franjas de noche abiertas), «Tecnico» 19
+mandos y 529 palabras, Tramas 9 mandos.
+
+Inventario y destino (QUEDA · PLEGADO · FUERA; «clave» = ya estaba tras ella):
+
+| pantalla | elemento | destino |
+|---|---|---|
+| cabecera | grupo, poste y enlace, pastilla de rol, Dispositivo | QUEDA |
+| Trafico | `#degauto-linea` «Si se cae la radio: ...» | sale de Trafico: es Degradado (clave, `D-56`); «Los postes no coinciden» pasa a la franja (g) |
+| Trafico | luces, cuenta, `#phase-desc`, `#badge-modo`, `#pluma-estado` | QUEDA |
+| Trafico | «MAESTRO»/«ESCLAVO» bajo POSTE 1/POSTE 2 (`.semaforo-rol`) | FUERA: ya lo dice la cabecera (§6) |
+| Trafico | `#btn-ir-al-maestro` desde el Esclavo | QUEDA (decision del 04/09) |
+| Trafico | `#btn-ir-al-esclavo` desde el Maestro | PLEGADO en «Mas» |
+| Trafico | `.pad-header` «MANDOS DE CAMPO» y `#pad-poste` | FUERA: el poste ya esta en la cabecera |
+| Trafico | AUTOMATICO, DAR PASO, AMBAR, ROJO TOTAL, AMBAR EMERGENCIA, RETIRAR AMBAR, VOLVER AL MENU | QUEDA |
+| Trafico | `#emergencia-hint` | QUEDA sin poste identificado; con poste, FUERA (repite el rotulo) |
+| Trafico | las tres tarjetas de radio, bateria y camaras | una linea `#resumen-equipo`; las tarjetas, PLEGADO en «Detalle» con la nota junto a su barra (a) 3 |
+| Trafico | Prueba de focos | PLEGADO en «Mas», sin clave y con PIN (§9.2) |
+| Trafico, Esclavo | lista «Si publica / NO publica» y contadores de linea | PLEGADO en «Que se ve desde este poste» |
+| Eventos | lista de eventos | QUEDA |
+| Eventos | Reporte WhatsApp, Exportar CSV, Exportar bitacora | FUERA: los sustituye «Exportar registro» (`D-143`) |
+| Eventos | Borrar bitacora | PLEGADO |
+| Eventos | tarjeta «Bitacora del enlace» | PLEGADO |
+| hoja de conexion | Buscar, lista, filtro, Desconectar | QUEDA |
+| hoja de conexion | PIN «1234 (unico aceptado)» y los dos parrafos de permiso y matricula | PLEGADO en «Si no aparece su equipo» (el pack `documentos_03` lee el selector: sigue en el DOM) |
+| Tiempos (clave) | verde, rojo, despeje, Aplicar; aviso de cruce parado | QUEDA, con nombre y frase (h) |
+| Tiempos (clave) | modo noche: distancia y todo-rojo | QUEDA |
+| Tiempos (clave) | las cuatro franjas | cada una PLEGADO; su `<summary>` dice dias, horas y color, o «sin usar» |
+| Ajustes (clave) | Practicar sin poste; Manual, Inteligente, Alcance | QUEDA |
+| Ajustes (clave) | interruptores de `D-94` | PLEGADO en «Averias: camaras y barrera»; abierto y en ambar si alguno esta fuera |
+| Ajustes (clave) | Pedir paso | solo con `MODO:INTELIGENTE`; en otro modo, FUERA de la vista |
+| Ajustes (clave) | Degradado con testigo; «Si se cae la radio» | QUEDA con una frase; el resto del texto, PLEGADO en «Por que» |
+| Ajustes (clave) | Sincronizar hora | QUEDA |
+| Ajustes (clave) | Courier, Consultar reloj, Consultar version, Reiniciar reloj y respaldo | PLEGADO en «Soporte» |
+| Tramas (clave) | diario y cinta | QUEDA; «Exportar todo» pasa a Eventos (`D-143`) |
+
+**(g) Cifras de la principal (`D-142`).** Trafico sin clave, con todo `<details>` cerrado, en tres fotos (sin enlace;
+Maestro como arriba; Esclavo `SUBORDINADO`):
+1. **Botones**: <= 6 `<button>` visibles en `#tab-estado` y <= 2 `<summary>` («Detalle», «Mas»; con el Esclavo,
+   «Que se ve desde este poste» ocupa el sitio de «Detalle»).
+2. **Palabras**: <= 80 en el texto visible de `#tab-estado` (tokens `[A-Za-z0-9%` y acentos`]+`; un `<details>`
+   cerrado cuenta solo su `<summary>`). Hoy 140, 136 y 329.
+3. **Sin scroll a 360x640**: el pie de `#tab-estado` no pasa del borde superior de la barra de pestanas (hoy 1166
+   contra 569); si no cabe, lo primero que tiene que caber es, en orden: luces y frase, los mandos, el resumen,
+   «Mas». **Sin scroll lateral a 320x640** (ancho del documento <= 320). Lo mide P en el telefono por CDP; jsdom no.
+4. **Resumen** `#resumen-equipo`, una linea: «Radio entre postes: <BUENA|...> · Bateria <v> V · Camaras <bien|...>»,
+   color de `D-83` por trozo, gris sin dato. No dice «antena» ni «senal»: la nota de (a) 3 va con la barra.
+5. **Franja de aviso**: cada cartel de arriba (`#aviso-camara-pluma`, `#aviso-corte`, `#carteles-equipo`,
+   `#degauto-sinradio`) muestra UNA frase «<sintoma>: <que hacer>.», <= 120 caracteres, sin `JERGA`; medida,
+   limite y causa van en su `<details>` «Detalle». **Sin emparejar** (lo que alli era `SIN_PAREJA`): si el enlace
+   con un equipo «sin emparejar» falla, el aviso dice «No se pudo conectar: este telefono no esta emparejado con el
+   poste.» y lleva el boton «Emparejar y conectar», que repite `abrirEnlace()` con la misma MAC (Android pide
+   vincular); no hace volver a la hoja.
+6. **Rotulos** (`D-145`): la pastilla dice «Operario» (manda el cruce) o «Tecnico» (ademas ajusta y diagnostica),
+   en `#role-label` y en `title`/`aria-label`, que es lo que queda a <= 400 px mientras `D-82` mande. La pestana
+   «Tecnico» (`#tab-btn-diag`) pasa a «Ajustes», para que «Tecnico» nombre un modo y no una pestana.
+
+**(h) Un nombre llano y una frase por ajuste (`D-145`).** El `<label>` es el nombre; la frase, el `<small>` de al
+lado. Oraculo del test:
+
+| ajuste | nombre | frase |
+|---|---|---|
+| `#num-tiempo-verde` | Verde (min) | Minutos que dura el verde, de 3 a 15. |
+| `#num-tiempo-rojo` | Rojo (min) | Minutos que dura el rojo, de 3 a 15. |
+| `#num-tiempo-despeje` | Todo rojo entre sentidos (s) | Segundos con los dos en rojo para vaciar el tramo, de 10 a 90. |
+| `#num-noche-distancia` | Distancia entre postes (m) | Con ella la app propone el todo rojo de la noche. |
+| `#num-noche-tr` | Todo rojo al entrar y salir de noche (s) | No baja de 180 ni de lo que pide la distancia. |
+| franja N | Franja N de noche | Dias, horas y color en que destellan los dos postes. |
+| veto de camaras | Camaras: veto de la barrera | Fuera, la camara deja de impedir que baje la barrera. |
+| barrera en servicio | Barrera en servicio | Fuera, la barrera queda arriba tambien en rojo (brazo roto). |
+| eleccion del automatico | Si se cae la radio | Que hacen los dos postes tras 5 min sin oirse. |
+| clave de administracion | Clave de tecnico | Ensena los ajustes; cada orden sigue pidiendo el PIN del equipo. |
+
+**(i) El guion por TAREA del tecnico (`D-144`).** Molde Pasos Peatonales (`test_qa45_dom_clave`): el `index.html`
+y el `app.js` reales en jsdom (`montarAppLimpia`), puerto falso con checksum real, cada orden registrada, y se pulsa
+lo que pulsaria el tecnico, por su rotulo visible, no llamando funciones. Bloque «T» de `tests/dom_usabilidad.js`;
+cada paso asevera lo que debe VER y que no ve lo que no toca.
+1. **Conectar.** Dispositivo -> Buscar -> la fila del equipo. Ve: cabecera «MAESTRO (POSTE 1)», «Enlazado», la frase
+   de (c) y ningun aviso; sin `JERGA`. Variante sin emparejar: `connect` falla, ve la frase de (g) 5, pulsa
+   «Emparejar y conectar» y hay una segunda llamada a `connect` con la misma MAC.
+2. **Leer el estado del cruce.** Sin pulsar nada tras el `$STATUS` de arriba: POSTE 1 en rojo, POSTE 2 en verde, la
+   cuenta, la pluma abajo y el resumen «Radio entre postes: BUENA · Bateria 12.9 V · Camaras bien»; las cifras de
+   (g) 1-2. Con `ESTADO:FALLO COM`, `RF:0`: la frase de (c) y el resumen en rojo, sin abrir nada.
+3. **Exportar el registro.** Eventos -> «Exportar registro» (sin clave; el unico boton de exportar a la vista). Sale
+   `IOTVIAL_<serie>_<fecha>.txt` por la hoja de compartir (dobles de `tests/dom_exportar.js`).
+4. **Entrar en Degradado con testigo.** Sin clave no hay pestana Ajustes. «Operario» -> clave -> la pastilla dice
+   «Tecnico» -> Ajustes -> Degradado con testigo -> POSTE 1 -> aviso de paleteros (casilla y boton) -> PIN -> sale
+   `SET_RTC` y, con su `$ACK`, `SET_MODO:DEG_T`; ve `#testigo-estado` con la hora limite para el POSTE 2.
+5. **Sacar la barrera de servicio (`D-94`).** Sin clave no existe a la vista. Con clave: Ajustes -> «Averias: camaras
+   y barrera» -> «Sacar la barrera de servicio» -> PIN -> sale `SET_BARRERA_SERVICIO:OFF`; con `$ACK` `RESULT:OK` y
+   `PLUMA:FUERA`, Trafico pinta la pluma en ambar con su frase (`D-97`) y el `<summary>` de Averias queda en ambar.
+Ficheros, los de U-B (`roadmap.md` bloque U). Lo que jsdom no mide (scroll, 48 px, 320 px, sol) lo mide P.
 
 ### 9.10 Practica sin poste (`N-178` M9; `D-58`, `D-86`..`D-89`) — construido, sin telefono
 

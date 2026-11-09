@@ -118,10 +118,8 @@ module.exports = function pruebaUsabilidad(montarAppLimpia, assert) {
   const rotulos = Array.from(a.d.querySelectorAll('.semaforo-label')).map(r => r.textContent);
   assert(rotulos.length === 2 && rotulos.every(r => !/\u00b7/.test(r)),
     `F: los rotulos de los postes ya no llevan el punto que colgaba (${rotulos.join(' | ')})`);
-  const padPoste = fresca.d.getElementById('pad-poste').textContent.trim();
-  // Texto decidido por el responsable el 28/09: "algo que se entienda" sin explicacion.
-  assert(padPoste === 'Poste sin identificar',
-    `F: sin punta la botonera dice "Poste sin identificar" (${padPoste})`);
+  // N-181 U (D-141): «Poste sin identificar» de la botonera y MAESTRO/ESCLAVO bajo cada poste salen: lo dice la cabecera.
+  assert(!fresca.d.querySelector('#pad-poste, .pad-header, .semaforo-rol'), 'F: sin rotulo de punta repetido en Trafico (D-141)');
 
   // --- E. APP-1.6: la hoja de conexion abre arriba y avisa del permiso ---------------
   const e = montarAppLimpia();
@@ -215,6 +213,161 @@ module.exports = function pruebaUsabilidad(montarAppLimpia, assert) {
     ['1', '2', '3', '4'].forEach(k => j.d.querySelector(`.pin-btn[data-key="${k}"]`).click());
     assert(j.d.getElementById('aviso-deg-modal').classList.contains('active'), 'J (6): en DEGRADADO el aviso de paleteros abierto');
     foto('6 (aviso de paleteros)');
+    return tareas(montarAppLimpia, assert);
   });
 };
+// --- K y T: N-181 U (SPEC_4 9.9 (f)-(i); D-141..D-145). Se pulsa por el rotulo VISIBLE, como el tecnico. ---
+// Visible: sin hidden ni display:none en la cadena, en la pestana y la ventana activas, fuera de un <details> cerrado
+// (salvo su <summary>) y, sin clave, fuera de .solo-admin. jsdom no carga style.css; scroll y 48 px los mide P (CDP).
+const oculto = (n) => {
+  const admin = n.ownerDocument.body.classList.contains('admin');
+  for (let e = n; e && e.nodeType === 1; e = e.parentElement) {
+    if (e.hidden || e.style.display === 'none' || (!admin && e.classList.contains('solo-admin'))) return true;
+    if (/\b(tab-content|modal-overlay)\b/.test(e.className) && !e.classList.contains('active')) return true;
+    const p = e.parentElement;
+    if (p && p.tagName === 'DETAILS' && !p.open && e.tagName !== 'SUMMARY') return true;
+  }
+  return false;
+};
+const textoVisible = (raiz) => { const w = raiz.ownerDocument.createTreeWalker(raiz, 4); let t = '';
+  for (let x; (x = w.nextNode());) if (!oculto(x.parentElement)) t += ' ' + x.textContent;
+  return t.replace(/\s+/g, ' ').trim(); };
+// D-142 (9.9 (g) 1-2): botones, <summary> y palabras visibles de Trafico.
+const cifras = (d) => { const r = d.getElementById('tab-estado'), vis = (s) => Array.from(r.querySelectorAll(s)).filter(n => !oculto(n));
+  return { botones: vis('button').length, summary: vis('summary').length,
+           palabras: (textoVisible(r).match(/[A-Za-z0-9%\u00C0-\u017F]+/g) || []).length }; };
+async function tareas(montarAppLimpia, assert) {
+  const xor = (s) => { let c = 0; for (const ch of s) c ^= ch.charCodeAt(0); return c.toString(16).toUpperCase().padStart(2, '0'); };
+  const micro = () => new Promise(r => setTimeout(r, 0));
+  const AVISOS = ['aviso-camara-pluma', 'aviso-corte', 'carteles-equipo', 'degauto-sinradio', 'aviso-pareja'];
+  const app = () => { const a = montarAppLimpia(); a.w.clearTimeout(a.w.DegAuto._timerConsulta);
+    a.entra = (c) => a.w._btSubscribeCb(`$${c}*${xor(c)}\n`);
+    a.t = (id) => (a.d.getElementById(id) || { textContent: '' }).textContent.replace(/\s+/g, ' ').trim();
+    a.ve = (id) => !!a.d.getElementById(id) && !oculto(a.d.getElementById(id));
+    a.pin = () => ['1', '2', '3', '4'].forEach(k => a.d.querySelector(`.pin-btn[data-key="${k}"]`).click());
+    a.pulsa = (rotulo) => { const n = Array.from(a.d.querySelectorAll('button, summary, .bt-device-item'))
+      .find(x => !oculto(x) && x.textContent.includes(rotulo));
+      assert(!!n, `T: «${rotulo}» a la vista para pulsarlo`); if (n) n.click(); };
+    a.clave = () => { a.pulsa('Operario'); a.d.getElementById('clave-entrada').value = '1234'; a.pulsa('Entrar'); };
+    return a; };
+  const M = 'STATUS,NODE:MAESTRO,SERIE:SEM-M-01,MODO:AUTO,ESTADO:ROJO,T:45,RF:97,RTT:70,BAT:12.9,HORA:14:31:00,ESC:VERDE,PLUMA:ABAJO,CAM:OK';
+  const E = 'STATUS,NODE:ESCLAVO,SERIE:SEM-E-01,MODO:SUBORDINADO,ESTADO:VERDE,T:--,RF:--,RTT:--,BAT:--,HORA:14:31:00,PLUMA:ARRIBA,CAM:OK';
+
+  // K (D-142, 9.9 (g) 1-2): Trafico sin clave y con todo plegado, en las tres fotos de U-S.
+  for (const [n, st] of [['sin enlace', null], ['Maestro', M], ['Esclavo', E]]) {
+    const a = app(); if (st) a.entra(st); else a.d.getElementById('btn-bt-disconnect').click();
+    await micro();
+    const c = cifras(a.d);
+    assert(c.botones <= 6 && c.summary <= 2 && c.palabras <= 80,
+      `K (D-142) ${n}: ${c.botones} botones (<= 6), ${c.summary} summary (<= 2), ${c.palabras} palabras (<= 80)`);
+  }
+  // K (D-141, D-143, D-145; 9.9 (f), (g) 6, (h)): lo plegado, lo que sale, los rotulos y un nombre con su frase.
+  {
+    const a = app(), rol = a.d.getElementById('btn-toggle-role');
+    const r = () => a.t('role-label') + '|' + rol.title + '|' + rol.getAttribute('aria-label');
+    assert(/^Operario\|Operario: manda el cruce/.test(r()) && /Operario/.test(rol.getAttribute('aria-label') || ''), `K (D-145): pastilla Operario: ${r()}`);
+    assert(!a.ve('btn-start-test-leds') && !a.ve('btn-ir-al-esclavo'), 'K (D-141): Prueba de focos e ir al POSTE 2, plegados en «Más»');
+    a.pulsa('Más');
+    assert(a.ve('btn-start-test-leds') && a.ve('btn-ir-al-esclavo'), 'K (D-141): «Más» los abre, sin clave');
+    a.pulsa('Eventos');
+    const exp = Array.from(a.d.querySelectorAll('#tab-eventos button')).filter(b => !oculto(b));
+    assert(exp.length === 1 && /Exportar registro/.test(exp[0].textContent) && !a.d.getElementById('btn-share-whatsapp') &&
+           !a.d.getElementById('btn-export-csv'), `K (D-143): Eventos, un solo boton: ${exp.map(b => b.textContent.trim()).join(' | ')}`);
+    a.clave();
+    assert(/^Técnico\|Técnico: además ajusta/.test(r()) && a.t('tab-btn-diag') === '⚙️ Ajustes', `K (D-145): pastilla Técnico y pestaña Ajustes: ${r()} / ${a.t('tab-btn-diag')}`);
+    const H = [['Verde (min)', 'Minutos que dura el verde, de 3 a 15.'], ['Rojo (min)', 'Minutos que dura el rojo, de 3 a 15.'],
+      ['Todo rojo entre sentidos (s)', 'Segundos con los dos en rojo para vaciar el tramo, de 10 a 90.'],
+      ['Distancia entre postes (m)', 'Con ella la app propone el todo rojo de la noche.'],
+      ['Todo rojo al entrar y salir de noche (s)', 'No baja de 180 ni de lo que pide la distancia.'],
+      ['Franja 4 de noche', 'Días, horas y color en que destellan los dos postes.'],
+      ['Cámaras: veto de la barrera', 'Fuera, la cámara deja de impedir que baje la barrera.'],
+      ['Barrera en servicio', 'Fuera, la barrera queda arriba también en rojo (brazo roto).'],
+      ['Si se cae la radio', 'Qué hacen los dos postes tras 5 min sin oírse.']];
+    const conFrase = (nom, fr) => Array.from(a.d.querySelectorAll('label, strong, h3, summary')).some(e => e.textContent.trim().startsWith(nom) &&
+      Array.from(e.parentElement.querySelectorAll('small')).some(s => s.textContent.trim() === fr));
+    const faltan = H.filter(([nom, fr]) => !conFrase(nom, fr)).map(x => x[0]);
+    assert(!faltan.length, `K (D-145, 9.9 (h)): cada ajuste con su nombre y su frase; faltan: ${faltan.join(' | ')}`);
+    a.pulsa('Técnico'); a.pulsa('Operario');   // volver a pedir la clave: su ventana dice que hace
+    assert(a.t('clave-titulo') === 'Clave de técnico' && a.t('clave-texto') === 'Enseña los ajustes; cada orden sigue pidiendo el PIN del equipo.',
+      `K (9.9 (h)): la ventana de la clave: ${a.t('clave-titulo')} / ${a.t('clave-texto')}`);
+    a.pulsa('Cancelar'); a.clave(); a.pulsa('Ajustes');
+    assert(!a.ve('btn-demanda') && !a.ve('btn-courier-capture') && !a.ve('btn-leer-rtc') && a.ve('btn-sync-rtc') &&
+           !a.ve('btn-leer-version') && a.ve('btn-practica'), 'K (9.9 (f)): Pedir paso fuera de Inteligente; Courier y consultas en «Soporte»');
+    a.entra(M.replace('MODO:AUTO', 'MODO:INTELIGENTE'));
+    assert(a.ve('btn-demanda'), 'K (9.9 (f)): con MODO:INTELIGENTE, Pedir paso a la vista');
+  }
+
+  // T2. Leer el estado del cruce sin pulsar nada.
+  const a2 = app(); a2.entra(M); await micro();
+  const luz = (id) => a2.d.getElementById(id).classList.contains('active');
+  assert(luz('s1-red') && luz('s2-green') && a2.t('cd-num') === '45' && /ABAJO/.test(a2.t('pluma-estado')) &&
+         a2.t('resumen-equipo') === 'Radio entre postes: BUENA · Batería 12.9 V · Cámaras bien',
+    `T2: POSTE 1 rojo, POSTE 2 verde, cuenta, pluma y resumen: "${a2.t('resumen-equipo')}"`);
+  a2.entra('STATUS,NODE:MAESTRO,SERIE:SEM-M-01,MODO:AUTO,ESTADO:FALLO COM,T:9,RF:0,RTT:--,BAT:12.9,HORA:14:31:05,ESC:?,PLUMA:ARRIBA,CAM:OK');
+  await micro();
+  assert(/ámbar y pluma arriba: pasar con precaución/.test(a2.t('phase-desc')) && a2.d.querySelector('#resumen-equipo .res-rojo') &&
+         a2.ve('resumen-equipo'), `T2: FALLO COM, frase de (c) y la radio del resumen en rojo: "${a2.t('phase-desc')}"`);
+
+  // T1. Conectar: Dispositivo -> Buscar -> la fila. Variante sin emparejar: «Emparejar y conectar» ahi mismo.
+  const a1 = app(); a1.d.getElementById('btn-bt-disconnect').click();
+  a1.d.getElementById('btnDevice').click(); a1.pulsa('Buscar'); a1.pulsa('JDY-31 Maestro'); a1.entra(M); await micro();
+  assert(a1.t('node-name') === 'MAESTRO (POSTE 1)' && a1.t('bt-btn-text') === 'Enlazado' && !a1.ve('bt-modal') &&
+         a1.d.getElementById('btnDevice').classList.contains('connected') &&
+         /: ROJO, este poste no da paso/.test(a1.t('phase-desc')) && AVISOS.every(id => !a1.ve(id)) &&
+         !JERGA.test(textoVisible(a1.d.body)), `T1: conectado: ${a1.t('node-name')} / ${a1.t('bt-btn-text')} / ${a1.t('phase-desc')}`);
+  const b1 = app(), bt = b1.w.bluetoothSerial, macs = [];
+  b1.d.getElementById('btn-bt-disconnect').click();
+  bt.list = (ok) => ok([]); bt.discoverUnpaired = (ok) => ok([{ name: 'SEM-A1-M', id: 'AA:BB', address: 'AA:BB' }]);
+  bt.connect = (mac, ok, ko) => { macs.push(mac); if (macs.length === 1) ko('device not paired'); else ok(); };
+  b1.d.getElementById('btnDevice').click(); b1.pulsa('Buscar'); b1.pulsa('SEM-A1-M'); await micro();
+  const frase = b1.t('aviso-pareja-txt');
+  assert(b1.ve('aviso-pareja') && frase === 'No se pudo conectar: este teléfono no está emparejado con el poste.' && frase.length <= 120,
+    `T1: sin emparejar, el aviso dice sintoma y que hacer: "${frase}"`);
+  b1.pulsa('Emparejar y conectar');
+  assert(macs.length === 2 && macs[1] === 'AA:BB' && !b1.ve('aviso-pareja'), `T1: «Emparejar y conectar» repite connect con la misma direccion: ${macs}`);
+
+  // T3. Exportar el registro, sin clave, por la hoja de compartir (dobles de dom_exportar.js).
+  const a3 = app(), llam = { write: [], share: [] };
+  a3.w.Capacitor = { isNativePlatform: () => true, Plugins: {
+    Filesystem: { writeFile: (x) => { llam.write.push(x); return Promise.resolve({ uri: 'file:///c/' + x.path }); } },
+    Share: { share: (x) => { llam.share.push(x); return Promise.resolve({}); } } } };
+  a3.pulsa('Eventos'); a3.pulsa('Exportar registro'); await micro();
+  assert(llam.write.length === 1 && /^IOTVIAL_SEM-M-01_\d{8}-\d{6}\.txt$/.test(llam.write[0].path) && llam.share.length === 1,
+    `T3: sale IOTVIAL_<serie>_<fecha>.txt por la hoja de compartir: ${(llam.write[0] || {}).path}`);
+
+  // T4. Degradado con testigo: sin clave no hay Ajustes; con ella, aviso de paleteros, PIN, SET_RTC y DEG_T.
+  const a4 = app(), navAjustes = () => Array.from(a4.d.querySelectorAll('.nav-item')).some(b => !oculto(b) && /Ajustes/.test(b.textContent));
+  a4.entra('STATUS,NODE:MAESTRO,SERIE:SEM-M-01,MODO:DEGRADADO,ESTADO:ROJO,T:9,RF:0,RTT:0,BAT:12.9,HORA:14:31:50');
+  await new Promise(r => setTimeout(r, 1100));   // js/testigo.js repinta su tarjeta cada segundo
+  assert(!navAjustes(), 'T4: sin clave no hay pestaña Ajustes');
+  a4.clave();
+  assert(a4.t('role-label') === 'Técnico' && navAjustes(), 'T4: con la clave, la pastilla dice Técnico y sale Ajustes');
+  a4.pulsa('Ajustes'); a4.d.getElementById('chk-testigo-verificado').checked = true; a4.tramas.length = 0;
+  a4.pulsa('Degradado con testigo · POSTE 1');
+  assert(a4.ve('aviso-deg-modal') && !a4.tramas.length, 'T4: en Degradado sale antes el aviso de paleteros, sin enviar nada');
+  a4.d.getElementById('chk-aviso-deg').click(); a4.pulsa('Cambiar este poste');
+  assert(a4.ve('pin-modal'), 'T4: tras el aviso, el PIN'); a4.pin();
+  a4.entra('ACK,NODE:PUENTE,CMD:SET_RTC,RESULT:OK,FECHA:2026-11-09,HORA:14:31:55');
+  await new Promise(r => setTimeout(r, 1100));
+  a4.entra('ACK,CMD:SET_MODO:DEG_T,RESULT:OK'); await new Promise(r => setTimeout(r, 1100));
+  const sal = a4.tramas.map(x => x.replace(/^CMD:PIN:\d+:|\r\n$/g, '').split(':').slice(0, 2).join(':'));
+  const iR = sal.findIndex(x => x.startsWith('SET_RTC'));
+  assert(iR >= 0 && sal.indexOf('SET_MODO:DEG_T') > iR &&
+         /^Lleve el testigo al POSTE 2 antes de las \d\d:\d\d:\d\d/.test(a4.t('testigo-estado')),
+    `T4: SET_RTC y despues SET_MODO:DEG_T; hora limite para el POSTE 2: ${sal.join(' > ')} / "${a4.t('testigo-estado')}"`);
+
+  // T5. Sacar la barrera de servicio (D-94): plegada en «Averías», y su resumen en ambar si esta fuera.
+  const a5 = app(); a5.entra(M);
+  assert(!Array.from(a5.d.querySelectorAll('button')).some(b => !oculto(b) && /Sacar la barrera/.test(b.textContent)), 'T5: sin clave no esta a la vista');
+  a5.clave(); a5.pulsa('Ajustes');
+  assert(!a5.ve('averias-cuerpo'), 'T5: «Averías» nace plegado con todo en servicio');
+  a5.pulsa('Averías: cámaras y barrera'); a5.tramas.length = 0; a5.pulsa('Sacar la barrera de servicio');
+  if (a5.ve('dialogo-modal')) a5.d.getElementById('btn-dialogo-aceptar').click();
+  if (a5.ve('pin-modal')) a5.pin();
+  assert(a5.tramas.length === 1 && /SET_BARRERA_SERVICIO:OFF\r\n$/.test(a5.tramas[0]), `T5: sale SET_BARRERA_SERVICIO:OFF: ${a5.tramas}`);
+  a5.entra('ACK,CMD:SET_BARRERA_SERVICIO:OFF,RESULT:OK'); a5.entra(M.replace('PLUMA:ABAJO', 'PLUMA:FUERA')); await micro();
+  const pl = a5.d.getElementById('pluma-estado'), sm = a5.d.querySelector('#averias > summary');
+  assert(/FUERA DE SERVICIO/.test(pl.textContent) && /amber/.test(pl.style.color) && a5.d.getElementById('averias').open &&
+         sm.classList.contains('averia-fuera'), `T5: pluma en ambar con su frase y «Averías» abierto en ambar: ${pl.textContent} / ${pl.style.color}`);
+}
 module.exports.JERGA = JERGA;

@@ -36,7 +36,7 @@ const ClaveAdmin = {
 
   _el(id) { return document.getElementById(id); },
   TEXTOS: {
-    entrar: ['Clave de administración', 'Tiempos, Degradado, hora y depuración. Las órdenes piden además el PIN del equipo.', 'Entrar'],
+    entrar: ['Clave de técnico', 'Enseña los ajustes; cada orden sigue pidiendo el PIN del equipo.', 'Entrar'],   // 9.9 (h)
     actual: ['Cambiar la clave', 'Clave actual:', 'Seguir'],
     soporte: ['He olvidado la clave', 'Clave de soporte (la da el responsable):', 'Seguir'],
     nueva: ['Clave nueva', 'Clave nueva, de 4 a 8 cifras:', 'Guardar']

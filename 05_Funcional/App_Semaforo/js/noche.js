@@ -197,8 +197,8 @@ const Noche = {
     let h = '';
     for (let n = 1; n <= this.FRANJAS; n++) {
       const p = 'noche-f' + n;
-      h += '<div class="form-group"><label>Franja ' + n + ' · <span id="' + p + '-guardada">sin consultar</span>' +
-        '</label>' +
+      h += '<details class="form-group"><summary>Franja ' + n + ' de noche · <span id="' + p + '-guardada">sin consultar' +
+        '</span></summary><small class="hint">Días, horas y color en que destellan los dos postes.</small>' +   // 9.9 (f), (h)
         '<div>' + this.DIAS.split('').map((c, k) => '<label><input type="checkbox" id="' + p + '-d' + k + '"> ' + c +
         '</label> ').join('') + '</div>' +
         '<input type="time" id="' + p + '-ini" class="form-input"> a ' +
@@ -206,7 +206,7 @@ const Noche = {
         '<select id="' + p + '-color" class="form-input"><option value="A">' + this.COLOR.A + '</option>' +
         '<option value="R">' + this.COLOR.R + '</option></select>' +
         '<button type="button" class="btn-save-site" id="btn-' + p + '-guardar">Guardar franja ' + n + '</button> ' +
-        '<button type="button" class="btn-secondary-bt" id="btn-' + p + '-apagar">Apagar</button></div>';
+        '<button type="button" class="btn-secondary-bt" id="btn-' + p + '-apagar">Apagar</button></details>';
     }
     caja.innerHTML = h;
     for (let n = 1; n <= this.FRANJAS; n++) {
