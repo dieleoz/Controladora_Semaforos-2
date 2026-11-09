@@ -153,10 +153,10 @@ Quien cita la transcripcion: `SPEC_1_Ciclo_y_Luces.md:109` (§2 y §5), `SPEC_1:
 |---|---|---|
 | `Validacion_Ciclo/compilar.ps1` | `arnes_ciclo.cpp` (`ciclo_degradado.h`) | funcion pura: sin maquina de estados ni tiempo |
 | `Validacion_Respaldo/compilar.ps1` | `arnes_respaldo.cpp`, `respaldo.cpp` | no ejerce el arranque; compara identidad M/E |
-| `Validacion_Automatico/compilar.ps1` | Maestro: coordinador, botones, semaforo, modo_automatico, modo_inteligente, demanda | solo el Maestro; no ejerce Degradado ni microcorte |
-| `Validacion_Automatico/compilar_dos_puntas.ps1` | M: coordinador:60, modo_automatico:62, semaforo:53, adaptador_maestro:64; E: main:73, modo_degradado:74, config_ciclo:75, demanda:76, respaldo:77, deg_auto:78, adaptador_esclavo:79 | el microcorte y `respaldo.cpp`/`protocolo.cpp` del Maestro no entran |
-| `Validacion_Automatico/compilar_degradado.ps1` | M: coordinador, semaforo, modo_degradado, modo_ambar, modos, respaldo, `rtc_periferico.cpp` (sustituto); E: `reloj.cpp` REAL, mas los seis hermanos | no ejerce el microcorte |
-| `Simulaciones/puente_esp32/compilar.ps1` | `arnes_puente.cpp`; bluetooth, coordinador, modo_automatico, modo_degradado, semaforo, identidad | el ESP32 es modelo en Python: no carga su binario |
+| `Validacion_Automatico/compilar.ps1` | Maestro: coordinador, botones, semaforo, modo_automatico, modo_inteligente, demanda, interruptores | solo el Maestro; no ejerce Degradado ni microcorte |
+| `Validacion_Automatico/compilar_dos_puntas.ps1` | M: coordinador:60, semaforo:61, modo_automatico:62, modo_noche:63, adaptador_maestro:65; E: semaforo:73, main:74, modo_degradado:75, config_ciclo:76, demanda:77, respaldo:78, deg_auto:79, interruptores:80, adaptador_esclavo:81 | el microcorte y `respaldo.cpp`/`protocolo.cpp` del Maestro no entran |
+| `Validacion_Automatico/compilar_degradado.ps1` | M: coordinador, semaforo, modo_degradado, modo_ambar, modos, respaldo, `rtc_periferico.cpp` (sustituto); E: `reloj.cpp` REAL, mas los seis hermanos, `deg_auto.cpp` e `interruptores.cpp` | no ejerce el microcorte |
+| `Simulaciones/puente_esp32/compilar.ps1` | `arnes_puente.cpp`; M: bluetooth, semaforo, coordinador, modo_automatico, modos, demanda, identidad, modo_noche, interruptores; E: bluetooth, semaforo, demanda, identidad, modo_degradado, interruptores | el ESP32 es modelo en Python: no carga su binario |
 
 `ESP32_Expansion/src/despachador.cpp` no lo compila ningun arnes (SPEC_4:582): solo lo cruza PlatformIO.
 Antes de conectar un arnes se inyecta un defecto en el `.cpp` real y se exige que baje la cuenta (CLAUDE.md §6).

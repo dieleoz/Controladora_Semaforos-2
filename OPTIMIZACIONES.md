@@ -876,7 +876,7 @@ función suelta, y que las dos puntas lo hagan igual. Visto caer con la pluma fo
 | Luz | Talanquera |
 |---|---|
 | 🔴 Rojo | **BAJADA** |
-| 🟡 Ámbar (transición) | **BAJADA** — sólo sube cuando el verde está confirmado |
+| 🟡 Amarillo de cierre (`D-45`) | **SUBIDA**; el retardo de bajada cuenta desde el rojo (SPEC 1 §2) |
 | 🟢 Verde | **SUBIDA** |
 | Todo-rojo de despeje | **BAJADA en las dos puntas** |
 | Ámbar intermitente (SFTY-6, sin enlace) | ✅ **SUBIDA** — decidido por el cliente el 27/08/2026: sin enlace se deja pasar con precaución, que es lo que ese ámbar significa en la calle. Cerrar la vía dejaría un corredor de obra sin salida |

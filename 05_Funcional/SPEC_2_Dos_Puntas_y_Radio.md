@@ -31,7 +31,7 @@ identificador, comando, **un solo byte** de parámetro y CRC, y cada envío sale
 
 | comando | dirección | qué es |
 |---|---|---|
-| `CMD_GO_GREEN` / `CMD_ACK_GREEN` | M→E / E→M | la única orden que abre paso en el Poste 2, y su «verde encendido y estable» (con `D-53`, tras el rojo+amarillo; §2.2.ter, HUECO) |
+| `CMD_GO_GREEN` / `CMD_ACK_GREEN` | M→E / E→M | la única orden que abre paso en el Poste 2, y su «verde encendido y estable» (con `D-53`, tras el rojo+amarillo; §2.2.ter, sin banco) |
 | `CMD_GO_RED` / `CMD_ACK_RED` | M→E / E→M | la orden que cierra —también es el latido cuando el rojo no consta— y su «estoy en rojo», que desde `D-45` (`cda33df`) acusa el ROJO ENCENDIDO, tras el amarillo (§2.2.bis) |
 | `CMD_PING` / `CMD_PONG` · `CMD_GO_AMBAR` | M→E / E→M | el latido, que mide que el enlace vive · y el ámbar ordenado, siempre detrás de una orden de rojo previa |
 | `CMD_AMBAR_ESCLAVO` / `CMD_ACK_AVISO_AMBAR` | E→M / M→E | el Poste 2 avisa de su ámbar de emergencia, y el acuse (`D-31`) |
@@ -78,8 +78,7 @@ GO_RED -> AMARILLO E (C_ESPERANDO_ACK_RED) -> rojo E -> ACK_RED -> despeje -> Ve
 - **El todo-rojo empieza con la punta que CIERRA en rojo**: el del Poste 1, desde su rojo estable (`tRef` se renueva
   al acabar todo amarillo); el del Poste 2, desde el `CMD_ACK_RED`. La marca de rojo confirmado sigue poniéndose sólo
   con el acuse: durante el amarillo del otro poste NO consta su rojo.
-- **`CMD_ACK_GREEN` es cierto al recibirse**: verde directo y acuse en la misma vuelta (HACE hoy; `D-53` lo cambia,
-  §2.2.ter).
+- **`CMD_ACK_GREEN` es cierto al recibirse**: acusa el verde encendido, tras el rojo+amarillo (`D-53`, §2.2.ter).
 - **El presupuesto de radio (`D-48`):** `SFTY6_SILENCIO_MS` de 25 a 28 s. `PEOR_CASO_CICLO_MS = LATIDO_MS +
   AMARILLO_MS + CICLO_MAX_REINTENTOS × PASO_RADIO_MS` = 3 + 3 + 5 × 3,56 = **23,8 s**; libres **4,2 s** (§9 (A)).
   Lo vetado sigue siendo BAJAR el umbral (§4).
@@ -90,10 +89,10 @@ GO_RED -> AMARILLO E (C_ESPERANDO_ACK_RED) -> rojo E -> ACK_RED -> despeje -> Ve
 - 🔴 **ABIERTO: `ESC:AMARILLO` no se construyó.** Durante el amarillo del Poste 2 `coordinador_estadoEsclavo()`
   publica `ESC:VERDE` hasta el `CMD_ACK_RED` (SPEC 4 §6).
 
-### 2.2.ter El rojo+amarillo en el diálogo (`D-53`, `N-176`) — HUECO: DECIDIDO, SIN CONSTRUIR
+### 2.2.ter El rojo+amarillo en el diálogo (`D-53`, `N-176`) — CONSTRUIDO en `f608bf8`, SIN BANCO
 
 `... despeje -> GO_GREEN -> ROJO+AMARILLO E -> verde E -> ACK_GREEN -> ... -> ACK_RED -> despeje -> ROJO+AMARILLO M ->
-Verde M`. Todo este apartado es lo que el equipo DEBE hacer; el estado y la constante, SPEC 1 §3.3.
+Verde M`. Este apartado es lo que el equipo HACE (`f608bf8`, sin banco); el estado y la constante, SPEC 1 §3.3.
 - **Cada punta enciende SU rojo+amarillo** (`semaforo_forzarVerde()`); `CMD_GO_GREEN` sigue diciendo «abre».
 - **`CMD_ACK_GREEN` acusa el VERDE ENCENDIDO**, con el patrón de `CMD_ACK_RED`: con la luz en `S_ROJO_AMARILLO` se
   arma un acuse pendiente que sale en la vuelta en que pasa a `S_VERDE`; si acaba en otra cosa (rojo, ámbar) se
@@ -174,7 +173,7 @@ producía **más** ámbares en microcortes que se recuperan. **El umbral NO se b
 caiga donde caía el rojo directo: un amarillo contra el ámbar intermitente del otro poste es paso abierto. En el
 Poste 1, `puedeSostenerVerde()` suma `TIMEOUT_ACK_MS + AMARILLO_MS` (la suelta a 21,5 s de silencio, el rojo a
 24,5 s); en el Poste 2, `SUELTA_VERDE_MS = SFTY6_SILENCIO_MS - AVISO_AMBAR_TIMEOUT_MS - AMARILLO_SEG × 1000`, sólo con
-la luz en `S_VERDE` (HUECO `D-53`: también en `S_ROJO_AMARILLO`, que vuelve a rojo directo; SPEC 1 §3.3 (3)).
+la luz en `S_VERDE` o en `S_ROJO_AMARILLO`, que vuelve a rojo directo (`D-53`; SPEC 1 §3.3 (3)).
 **Lo que ese margen NO cubre —el verde de la OTRA punta cuando ésta ya cayó— es §9.** **Vuelta del enlace**
 (`SFTY-9`): se reencolan la hora y la configuración, se fuerza rojo, se pide el rojo del otro lado y **se espera su
 acuse** antes de contar despeje; tras una suelta por margen se reanuda por esa misma puerta, porque un todo-rojo de
@@ -283,7 +282,7 @@ El rojo fijo sobrevive a un corte (`D-47`) y alcanza al reloj que se congela en 
 `semaforo_forzarRojo()`: el fin de la fase propia (§8 (e)), el salto de hora, la entrada con un verde encendido, las
 cuatro salidas, el rojo fijo sin hora y la caída a ámbar (`irAAmbar()`: amarillo, rojo y el parpadeo). Mientras dura
 el amarillo se renueva el reloj de esos todo-rojo (`tEstado`, `tCambioEstado`) y la puerta del testigo rechaza. Las
-dos puntas abren su verde DIRECTO (HACE hoy). **HUECO `D-53`:** abren por rojo+amarillo (§8 (e.ter)); `FORZAR_ROJO`,
+dos puntas abren su verde por rojo+amarillo (`D-53`, `f608bf8`, sin banco; §8 (e.ter)); `FORZAR_ROJO`,
 `D-38`, `D-49`, las salidas y el salto de hora durante él dan rojo DIRECTO, sin amarillo, porque no hubo verde
 (SPEC 1 §3.3 (3)); la puerta del testigo rechaza también durante él (`MDT_EN_VERDE`, `DEG_RECHAZO_T_EN_VERDE`).
 
@@ -428,7 +427,7 @@ escribe una vez por testigo, con el poste en ROJO, y lleva su propia suma. `resp
 | `DEG_AUTO_MARCA_S` | 300 | la marca de inicio, múltiplo de 5 min del día de pared (`A-15`) |
 | `DEG_AUTO_ROJO_MIN_S` | 420 | rojo fijo mínimo antes de `inicio`, (b) |
 | verde / despeje | 180 / 30 | fijos en el automatico (`DEG_VERDE_SEG`/`TESTIGO_VERDE_SEG`, `TESTIGO_DESPEJE_MIN`); el testigo manual elige el verde (`D-59`) |
-| `CMD_PRESENTE` | `0x17` | primer código libre de la cabecera de protocolo (la última es `CMD_ACK_AVISO_AMBAR` `0x16`); el siguiente, `CMD_GO_NOCHE` `0x18` (param bit0 = Poste 2 rojo intermitente), es la orden de gobierno del modo noche, DEBE, sin construir: SPEC 0 §5.10 (e) |
+| `CMD_PRESENTE` | `0x17` | primer código libre de la cabecera de protocolo (la última es `CMD_ACK_AVISO_AMBAR` `0x16`); el siguiente, `CMD_GO_NOCHE` `0x18` (param bit0 = Poste 2 rojo intermitente), es la orden de gobierno del modo noche, construida en `N-179` (`8526f84`), sin banco: SPEC 0 §5.10 (e) |
 | `DEG_AUTO_APTO` / `DEG_AUTO_ECO` | `0x02` / `0x04` del param | `0x01` es `PONG_VERDE_SOLTADO` (`D-34`) |
 | `FLAG_DEG_AUTO` / `FLAG_OTRO_APTO` | bit4 / bit5 de `REG_FLAGS` | libres; bit3 es `FLAG_TESTIGO` |
 | `FLAG_RENDIDO` / `FLAG_APTO_DADO` | bit6 / bit7 de `REG_FLAGS` | la rendición sin intercambio sano después, (b); el `ECO` oído del otro, (a) |
@@ -878,7 +877,7 @@ configuración imposible tiene respuesta escrita:** con verde o despeje a cero d
 >   desfasan en cada vuelta, **verde contra verde**. `costura_01_contratos` lo vigila en el árbol, no en los equipos.
 >   **Se cargan las dos en la misma visita**; en campo manda `ESTADO.md`.
 
-> **(e.ter) El rojo+amarillo en la fase (`D-53`, `N-176`) — HUECO: DECIDIDO, SIN CONSTRUIR.**
+> **(e.ter) El rojo+amarillo en la fase (`D-53`, `N-176`) — CONSTRUIDO en `f608bf8`, SIN BANCO.**
 > - **Ocho fases, en este orden:** `FD_ROJO_AMARILLO_MAESTRO`, `FD_VERDE_MAESTRO`, `FD_AMARILLO_MAESTRO`,
 >   `FD_DESPEJE_A`, `FD_ROJO_AMARILLO_ESCLAVO`, `FD_VERDE_ESCLAVO`, `FD_AMARILLO_ESCLAVO`, `FD_DESPEJE_B`. **Ciclo =
 >   2 × (`ROJO_AMARILLO_SEG` + verde + `AMARILLO_SEG` + despeje)**, idéntico en las dos puntas; la posición 0 es el
@@ -886,7 +885,7 @@ configuración imposible tiene respuesta escrita:** con verde o despeje a cero d
 > - **El rojo+amarillo va DESPUÉS del despeje y no lo consume.** El margen de desfase sigue siendo el despeje: el
 >   rojo+amarillo no abre paso, pero no se cuenta como margen.
 > - **El verde propio son las dos fases, rojo+amarillo y verde:** en ellas la punta llama a `semaforo_forzarVerde()`
->   (hoy el Poste 1 sólo en `FD_VERDE_MAESTRO`), y el semáforo pone el rojo+amarillo y el verde a los
+>   y el semáforo pone el rojo+amarillo y el verde a los
 >   `ROJO_AMARILLO_SEG`. Fuera de ellas, rojo.
 > - **Ningún verde se enciende sin su rojo+amarillo, aunque la fase salte a verde** (inicio del día, entrada, salto
 >   de hora): lo garantiza el semáforo, no la fase, y el rojo+amarillo sale del principio de ese verde.
@@ -995,5 +994,5 @@ el mismo hueco visto tres veces.
    `F2.6` y `F3.5` (SPEC 3 §5). Símbolos, SPEC 1 §12.10.
 11. 🔴 **LA SALIDA PROGRAMADA (`D-52`) Y EL ROJO TOTAL (`D-51`): CONSTRUIDOS (`a4545bb`), SIN BANCO** (§7.quater):
    falta el banco con dos tarjetas (i); los riesgos de (h) son del responsable.
-12. 🔴 **EL ROJO+AMARILLO (`D-53`, `N-176`): DECIDIDO, SIN CONSTRUIR** (§2.2.ter, §7, §8 (e.ter); SPEC 1 §3.3). Hoy
-   se abre directo. **Abierto (arquitecto):** el umbral de silencio y la suelta de `D-50` (§2.2.ter: 28, 30 o 31 s).
+12. 🟡 **EL ROJO+AMARILLO (`D-53`, `N-176`): CONSTRUIDO en `f608bf8`, SIN BANCO** (§2.2.ter, §7, §8 (e.ter);
+   SPEC 1 §3.3). **Abierto (arquitecto):** el umbral de silencio y la suelta de `D-50` (§2.2.ter: 28, 30 o 31 s).

@@ -74,10 +74,10 @@ leyendo **los dos despachadores** y prohibe que una lista reclame una orden que 
 |---|---|---|
 | `SET_MODO:` AUTO · MANUAL · AMBAR · MENU · ALCANCE · INTELIGENTE · `MANUAL:CAMBIAR_TURNO` · `SET_TIEMPOS` · `TEST_LEDS` · `DEMANDA` · `REINICIAR_RELOJ` · `FORZAR_ROJO` | `AMBAR_EMERGENCIA` · `CANCELAR_AMBAR` | `LEER_RTC` · `SET_RTC` |
 
-Las dos puntas atienden `SET_MODO:DEG_T`, `SET_DEG_AUTO` y `CONSULTA_DEG_AUTO` (§3.1, §3.2). ⬇️ ~~`SET_MODO:DEGRADADO`
-la atienden las DOS~~ → **salio de las dos con `D-46` (`f9cad1f`, 02/10; sin banco)**, y `SOLICITAR_PASO` del
-Esclavo con ella: las dos caen en el `else` final de `procesarComando()` y contestan
-`$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO` (`..._EN_ESCLAVO` en el Poste 2).
+Las dos puntas atienden `SET_MODO:DEG_T`, `SET_DEG_AUTO` y `CONSULTA_DEG_AUTO` (§3.1, §3.2). `SET_MODO:DEGRADADO`
+**salio de las dos con `D-46` (`f9cad1f`, 02/10; sin banco)**, y `SOLICITAR_PASO` del Esclavo con ella: las dos caen en
+el `else` final de `procesarComando()` y contestan `$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO` (`..._EN_ESCLAVO` en
+el Poste 2). Tambien las dos, locales y sin radio: `SET_VETO_CAMARA` y `SET_BARRERA_SERVICIO` (§3.1; SPEC 8 §6.1).
 
 ⚠️ **`FORZAR_ROJO` no significa lo mismo en las dos puntas, y por eso el Esclavo ya no lo acepta:** alli
 prometia rojo y hacia ambar con la talanquera arriba. Lo rechaza **nombrando el literal nuevo**
@@ -105,7 +105,7 @@ prometia rojo y hacia ambar con la talanquera arriba. Lo rechaza **nombrando el 
 | `SET_MODO:DEG_T:ahora,inicio,verde,despeje` | si | Construido (`990c278`; `D-35`, SPEC 2 §7.bis). **La unica orden de entrada al Degradado.** Puerta paralela a `modo_degradado_evaluarEntrada()`, sin sync de radio: `$ERR ... DESC:<texto>` (`modo_degradado_textoTestigo()`) por `MDT_FALTA_HORA`, `MDT_AHORA_DESFASADO` (`TOLERANCIA_TESTIGO_S`), `MDT_DESPEJE_RANGO`, `MDT_INICIO_VENCIDO`, `MDT_AMBAR_VIGENTE`, `MDT_EN_VERDE`, `MDT_NO_GUARDADO`; `RESULT:OK` / `RESULT:RENOVADO`. Con salida programada (`D-52`): `$ERR ... DESC:Cancele antes la salida programada` |
 | `SET_DEG_AUTO:1` / `SET_DEG_AUTO:0` | si | Construido (`A-15`, SPEC 2 §7.ter (a)). **El `$ACK` sale DIFERIDO**, cuando el `ECO` del otro poste refleja el cambio: `RESULT:ON_EFECTIVO` (el otro tambien apto) / `RESULT:ON_FALTA_EL_OTRO_POSTE` / `RESULT:OFF`. Rechazos: `$ERR ... SIN_ENLACE_CON_EL_OTRO_POSTE` · `EN_DEGRADADO_SALGA_PRIMERO` · `FORMATO_INVALIDO`; sin `ECO` en `DEG_AUTO_ACUSE_MS`, `$ERR ... CAMBIADO_AQUI_SIN_ACUSE_DEL_OTRO_POSTE` (el cambio queda y se sigue publicando). Maestro en `MENU`: siempre ese `$ERR` (SPEC 2 §7.ter (a)). Misma orden y mismos literales en el Esclavo |
 | `CONSULTA_DEG_AUTO` | no (es una consulta) | Construido. `RESULT:ESTE_<ON/OFF>_OTRO_<ON/OFF>_APTO_<SI/NO>`: la opcion propia, el ultimo `APTO` oido del otro y el `APTO` propio. Igual en el Esclavo |
-| `FORZAR_ROJO` | **no** (y con PIN tambien) | Fuera de Degradado: `coordinador_forzarRojoTotal()`, `RESULT:OK`, 3 s de amarillo y rojo (`D-45`); sobre un rojo+amarillo, rojo directo (`D-53`, HUECO, SPEC 1 §3.3 (3)). En Degradado, **construido el 04/10 (`a4545bb`, `D-51`), sin banco:** rojo FIJO inmediato en ese poste (`DEG_ROJO_SIN_HORA`; tambien en la ventana de `D-29`), sin aviso de paleteros (decidido); respuestas en §3.ter.ter |
+| `FORZAR_ROJO` | **no** (y con PIN tambien) | Fuera de Degradado: `coordinador_forzarRojoTotal()`, `RESULT:OK`, 3 s de amarillo y rojo (`D-45`); sobre un rojo+amarillo, rojo directo (`D-53`, sin banco, SPEC 1 §3.3 (3)). En Degradado, **construido el 04/10 (`a4545bb`, `D-51`), sin banco:** rojo FIJO inmediato en ese poste (`DEG_ROJO_SIN_HORA`; tambien en la ventana de `D-29`), sin aviso de paleteros (decidido); respuestas en §3.ter.ter |
 | `SET_MODO:DEG_FIN:ahora,salida` · `SET_MODO:DEG_FIN:CANCELAR` | si | Construido el 04/10 (`a4545bb`, `D-52`), sin banco; SPEC 2 §7.quater (c): `salida` = `HH:MM:SS` a la que esta punta sale por su reloj; aviso de paleteros; un `$ERR` por motivo y `$ACK` solo si quedo programada (listas en §3.ter.ter) |
 | `CONSULTA_DEG_FIN` | no (es una consulta) | Construido el 04/10, sin banco. `RESULT:NINGUNA` o `RESULT:SALE_HHMMSS_FALTAN_<s>S_<RESPALDADA/SIN_RESPALDO>` (`_SIN_RESPALDO` tambien tras `FORZAR_ROJO` o hora perdida). Molde `CONSULTA_DEG_AUTO`; el contador no cabe en `$STATUS` (SPEC 2 §7.quater (c)). Igual en el Esclavo |
 | `MANUAL:CAMBIAR_TURNO` | si | **tres, y el ORDEN importa** (`N-151`): `$ERR ... MODO_SIN_CICLO_SALGA_PRIMERO` si `modoMueveElCoordinador()` es falso; si no, `RESULT:OK` cuando `pedirCambioVerificado()` devuelve true, y `$ERR ... EN_TRANSICION_REINTENTE` cuando no |
@@ -114,6 +114,7 @@ prometia rojo y hacia ambar con la talanquera arriba. Lo rechaza **nombrando el 
 | `REINICIAR_RELOJ` | si | **cuatro, y el `$ACK` NO sale en la rama** (1.49 (a), `622a20b`). ~~depende del bool de `reloj_reiniciarDominioRespaldo()`: `RESULT:CRISTAL_OK_PONGA_LA_HORA` o ...~~ → el bool solo decide si hay algo que verificar. `$ERR ... REPITA_EN_UNOS_SEGUNDOS` si ya hay una orden esperando veredicto —sin tocar nada: reiniciar otra vez abriria otra ventana y dejaria dos ordenes para un veredicto—; `$ERR ... SIGUE_PARADO_VEA_CONSULTA_RELOJ` si el oscilador no arranca, con el `$EVENT` `ORIGEN:RELOJ` de `reportarBitsDelReloj()`; y si arranca, **no contesta todavia**: publica `$EVENT ... ORIGEN:APP_BLUETOOTH, DETALLE:RELOJ_REINICIADO_VERIFICANDO` y deja la orden pendiente. **El veredicto sale despues, una sola vez**, desde `bluetooth_loop()` cuando `reloj_estadoCristal()` deja de decir VIGILANDO: `RESULT:CRISTAL_OK_PONGA_LA_HORA` **solo** con CUENTA, o `$ERR ... ARRANCA_Y_NO_CUENTA_VEA_CONSULTA_RELOJ` con CONGELADO, otra vez con los bits. **Llega unos segundos despues de pulsar**: el plazo es la ventana de vigilancia del cristal y no se copia aqui. La app traduce los tres `DESC` |
 | `DEMANDA` | si | **tres**: `$ERR ... SOLO_EN_MODO_INTELIGENTE` fuera del modo —registrar una peticion que ningun ciclo va a mirar es fingirla—; `RESULT:REGISTRADA` si `demanda_solicitar()` devuelve true; `$ERR ... REPITA_EN_UNOS_SEGUNDOS` si devuelve false |
 | `REINICIOS` | no (es una consulta) | `D-60`, §9.4 (construido, sin banco): `RESULT:OK` con `REIN`, `CAUSA`, `UP` y `ANTES` |
+| `SET_VETO_CAMARA:ON` / `:OFF` · `SET_BARRERA_SERVICIO:ON` / `:OFF` | si | `bd16447`, 09/11, sin banco; SPEC 8 §6.1. `interruptores_orden()`, molde `SET_TIEMPOS`, cinco respuestas: `$ERR,CMD:<orden>,DESC:FORMATO_INVALIDO` si el valor no es `ON` ni `OFF`; `$ACK,CMD:<orden>:<valor>,RESULT:SIN_CAMBIO` si ya estaba asi; `$ERR ... DESC:RESPALDO_INVALIDO` solo con `OFF` y el respaldo perdido en este arranque (`D-148`); `$ERR ... DESC:NO_QUEDO_PUESTO` si lo releido tras `semaforo_reaplicarSalidas()` no es lo pedido (`D-149`); `RESULT:OK` si lo es. Locales: no viajan por radio |
 
 **Rango de `SET_TIEMPOS` (`D-131`; HUECO hasta `N-181` D).** Verde y rojo 3..15 min, despeje 10..90 s, con una sola
 copia en `limites_ciclo.h` (`VERDE_MIN_MIN/MAX`, `ROJO_MIN_MIN/MAX`, `DESPEJE_SEG_MIN/MAX`). Se juzga el numero que
@@ -139,6 +140,7 @@ que viviera en una funcion comun los dejaria midiendo un bloque vacio (`N-89`).
 | `FORZAR_ROJO` | las dos formas | `$ERR ... RENOMBRADO_USE_AMBAR_EMERGENCIA`. **Se rechaza ensenando el nombre bueno**, no en silencio: quien lo manda tiene una app o un manual anteriores al cambio |
 | `TEST_LEDS` | si | `$ERR ... NO_EN_SERVICIO_USE_EL_MAESTRO`, **rechazado a proposito**: la secuencia enciende VERDE sin mirar nada, y ese verde saldria mientras el Maestro da paso al otro sentido |
 | `REINICIOS` | no (es una consulta) | `D-60`, §9.4 (construido, sin banco): igual que en el Maestro, con `NODE:ESCLAVO` |
+| `SET_VETO_CAMARA` · `SET_BARRERA_SERVICIO` (SPEC 8 §6.1) | si | Las del Maestro (§3.1): el mismo `interruptores.cpp`, por el Bluetooth de este poste |
 
 ### 3.3 El puente ESP32 de cada poste — `ESP32_Expansion/src/despachador.cpp`
 
@@ -238,7 +240,7 @@ sin uno nuevo.
 **Es una ELECCION DE MONTAJE, no un modo que se pone cuando ya cayo la radio** (decidido el 05/10, tras el banco del
 funcional: lo intento sin radio y no entendio el rechazo `SIN_ENLACE_CON_EL_OTRO_POSTE`). Construido en
 `js/deg_auto.js` y `js/deg_auto_eleccion.js` (`N-176`, sin banco):
-- **La tarjeta (pestana Tecnico, las dos pantallas) es una pregunta**: «Si se cae la radio entre los postes:»
+- **La tarjeta (pestana Ajustes, las dos pantallas) es una pregunta**: «Si se cae la radio entre los postes:»
   (a) «Ambar intermitente y voy con el testigo» = `SET_DEG_AUTO:0`, la de fabrica y la de carretera (`D-43`);
   (b) «Entran solos en Degradado a los 5 min sin radio» = `SET_DEG_AUTO:1`. Pide PIN; se elige en LOS DOS postes.
 - **Sin radio los botones quedan desactivados** y la orden no sale: con `FALLO COM` fuera de `MODO:AMBAR` o `RF:0%`.
@@ -323,7 +325,7 @@ o sin registro; un corte la pierde; gana a `REPROGRAMADA`) · `CANCELADA`.
    en el Esclavo ofrece «Aplicar salida guardada — Maestro `<serie>`, salida `HH:MM:SS`» sin formulario nuevo, con un
    `ahora` fresco. **Lleva el aviso de paleteros** (`aplica()` ya cubre `SET_MODO:DEG_FIN`; el vale se compara por el
    nombre de la orden, no por sus argumentos). Botones «Reprogramar» y «Cancelar salida» (`SET_MODO:DEG_FIN:CANCELAR`).
-3. **Tarjeta de estado** (la pestaña Técnico, como `js/deg_auto.js`): pide `CONSULTA_DEG_FIN` al conectar y tras cada
+3. **Tarjeta de estado** (la pestaña Ajustes, como `js/deg_auto.js`): pide `CONSULTA_DEG_FIN` al conectar y tras cada
    orden y pinta «sale a HH:MM:SS, faltan N s» contando hacia atrás sola, con la marca «sin respaldo» si el firmware la
    dio. **Si esta app programó el Maestro y no consta el Esclavo, el cartel queda fijo:** «salida programada en el
    Maestro; FALTA el Esclavo» (el firmware no puede saberlo sin radio; riesgo SPEC 2 §7.quater (h).1).
@@ -396,14 +398,15 @@ sale sin fecha.
 | `$EVENT` | `NODE` `ORIGEN` `DETALLE` `HORA` | las dos puntas. Es el **Diario de Ordenes**: lo que sobrevive al viaje del tecnico |
 | `$ALARM` | `NODE` `EVENTO` `CAUSA` + el tramo del enlace + `ACCION` `HORA` | las dos puntas. El tramo es `RF`/`RTT`/`SINRESP` en el Maestro y `RX`/`OK`/`RUIDO` en el Esclavo — **no son los mismos tres numeros**, porque no miden lo mismo |
 
-**Las marcas de ausencia, y significan cosas distintas:** `--` es *«todavia no lo se»* o *«en esta fase no
-hay dato»*; `!` es *«llego un valor imposible»*. **Un `0` de relleno esta prohibido**: `T:0` es el ultimo
-segundo de la fase y significa lo contrario que `T:--`.
+Valores: `PLUMA:` `ARRIBA` `ABAJO` `FUERA` (`D-150`); `CAM:` `OK` `?` `CIEGA` `PEGADA` `NOVETO` (`D-151`, solo con el
+veto fuera y la camara en `OK` o `?`). El ancho no cambia (`D-97`). **Las marcas de ausencia, y significan cosas
+distintas:** `--` es *«todavia no lo se»* o *«en esta fase no hay dato»*; `!` es *«llego un valor imposible»*. **Un `0`
+de relleno esta prohibido**: `T:0` es el ultimo segundo de la fase y significa lo contrario que `T:--`.
 
-**El `DETALLE` de un `$EVENT` no lleva comas**, y no es estilo: el parser de la app parte por `,` y cada
-trozo por su **primer** `:`, asi que una coma dentro convertiria el resto en campos sueltos que el pintor
-de `$EVENT` no mira. Los buffers de todas estas tramas los recalcula `esp32_07_presupuesto_bytes` en cada
-corrida, **y la cuenta no se copia aqui** (§14).
+**El `DETALLE` de un `$EVENT` no lleva comas**, y no es estilo: el parser de la app parte por `,` y cada trozo por su
+**primer** `:`, asi que una coma dentro convertiria el resto en campos sueltos que el pintor de `$EVENT` no mira. Los
+buffers de todas estas tramas los recalcula `esp32_07_presupuesto_bytes` en cada corrida, **y la cuenta no se copia
+aqui** (§14).
 
 ---
 
@@ -414,7 +417,7 @@ corrida, **y la cuenta no se copia aqui** (§14).
 | rotulo en Android | `<prefijo><serie>-M` | `<prefijo><serie>-E` (o el provisional en la primera arrancada del modulo) |
 | cabecera | `MAESTRO (POSTE 1)` + «(radio N %)» con `RF:` medido | `ESCLAVO (POSTE 2)` + «(enlazado)» — lo decide `NODE:`, no lo que el operario suponga. En las dos, «(sin radio)» (§9.9 (d), `D-82`; hoy «(sin radio entre postes)») con `FALLO COM` fuera de `MODO:AMBAR` o `RF:0%`, y «(sin enlace)» sin `$STATUS` |
 | `MODO:` | `MENU` `MANUAL` `AUTO` `INTELIGENTE` `ALCANCE` `DEGRADADO` `AMBAR` (~~`HORA`~~, `D-44`) | `SUBORDINADO` `DEGRADADO` `RENDIDO` — el campo dice si esta punta esta obedeciendo o gobernando |
-| `ESTADO:` | `ROJO` `VERDE` `AMARILLO` `FALLO COM` (con espacio); *`ROJO+AMAR` con `D-53` (HUECO)* | los mismos |
+| `ESTADO:` | `ROJO` `VERDE` `AMARILLO` `FALLO COM` (con espacio); `ROJO+AMAR` (`D-53`, construido, sin banco) | los mismos |
 | cuenta atras `T:` | numero o `--` | **`--` FIJO** |
 | enlace `RF:` `RTT:` | medidos | **`--` FIJOS** |
 | bateria `BAT:` | **`--` FIJO** en las dos puntas: el equipo declara que **no la mide** —falta el divisor y la entrada analogica—, y la app lo dice con esas palabras en vez de pintar un numero |
@@ -620,11 +623,10 @@ equipo, §4; `state.pinVerificado`, `CMD:PIN:`). Ninguno arma al otro.
   Construido (`4105ba3`; `D-141`, `D-143`, §9.9 (f)): Prueba de focos plegada en «Mas» de Trafico, y un solo
   «Exportar registro» en Eventos (el `.txt` de «Exportar todo»).
 - **Con la clave** se ven ademas Tiempos, Ajustes (Degradado: testigo, eleccion del automatico, salida `D-52`;
-  hora y Courier; mandos directos) y Tramas, y la tarjeta que pide la eleccion del automatico al conectar.
-  Construido (`D-145`, `4105ba3`): la pastilla dice «Operario» o «Tecnico» y la pestana `#tab-btn-diag` se rotula
-  «Ajustes» (lo ejercen `tests/dom_claves.js` y `tests/dom_usabilidad.js` K); la lista de lo que ensena la clave no
-  crece (`D-141`).
-  Quien hace Degradado lleva las dos claves (SPEC_6 A.1).
+  hora y Courier; mandos directos; «Averias: camaras y barrera» con los dos interruptores de `D-94`; Practicar sin
+  poste) y Tramas, y la tarjeta que pide la eleccion del automatico al conectar. Rotulos «Operario»/«Tecnico» y
+  «Ajustes»: §9.9 (g) 6 (`D-145`, `4105ba3`; lo ejercen `tests/dom_claves.js` y `tests/dom_usabilidad.js` K); la
+  lista de lo que ensena la clave no crece (`D-141`). Quien hace Degradado lleva las dos claves (SPEC_6 A.1).
 - **El PIN no cambia:** cada orden que lo pide abre el teclado del PIN, tambien con la clave puesta. Tiempos y las
   dos de hora no salen sin el: el emisor las frena (al diario como no salidas) y abre el teclado; tecleado, se
   vuelve a pulsar. FORZAR_ROJO y AMBAR_EMERGENCIA salen sin ninguna clave.
@@ -1184,10 +1186,11 @@ cada paso asevera lo que debe VER y que no ve lo que no toca.
 4. **Entrar en Degradado con testigo.** Sin clave no hay pestana Ajustes. «Operario» -> clave -> la pastilla dice
    «Tecnico» -> Ajustes -> Degradado con testigo -> POSTE 1 -> aviso de paleteros (casilla y boton) -> PIN -> sale
    `SET_RTC` y, con su `$ACK`, `SET_MODO:DEG_T`; ve `#testigo-estado` con la hora limite para el POSTE 2.
-5. **Sacar la barrera de servicio (`D-94`).** Sin clave no existe a la vista. Con clave: Ajustes -> «Averias: camaras
-   y barrera» -> «Sacar la barrera de servicio» -> PIN -> sale `SET_BARRERA_SERVICIO:OFF`; con `$ACK` `RESULT:OK` y
-   `PLUMA:FUERA`, Trafico pinta la pluma en ambar con su frase (`D-97`) y el `<summary>` de Averias queda en ambar.
-Ficheros, los de U-B (`roadmap.md` bloque U). Lo que jsdom no mide (scroll, 48 px, 320 px, sol) lo mide P.
+5. **Sacar la barrera de servicio (`D-94`).** Sin clave no existe a la vista. Con clave: Ajustes -> «Averias: camaras y
+   barrera» -> «Sacar la barrera de servicio» -> confirmar «Sacar de servicio» -> PIN -> sale
+   `SET_BARRERA_SERVICIO:OFF`; con `$ACK` `RESULT:OK` y `PLUMA:FUERA`, Trafico pinta la pluma en ambar con su frase
+   (`D-97`) y el `<summary>` de Averias queda en ambar. Ficheros, los de U-B (`roadmap.md` bloque U). Lo que jsdom no
+   mide (scroll, 48 px, 320 px, sol) lo mide P.
 
 ### 9.10 Practica sin poste (`N-178` M9; `D-58`, `D-86`..`D-89`) — construido, sin telefono
 
@@ -1216,15 +1219,16 @@ cuenta cinco pestanas y sigue contandolas.
 **(b) La flota (`D-87`, sustituida por `D-120`/`D-121`).** `Practica.FLOTA` (`js/practica.js`) son once postes: cinco
 parejas, una por via, y uno sin matricula; cada uno lo contesta `Simulador.crear()` (`js/simulador.js`), un poste con
 estado que emite lo que emitiria su firmware, con checksum calculado y constantes que citan `archivo:simbolo` del C++
-(§9.14 (f)). Las cintas `js/practica_cinta_1..4.js` ya no se reproducen: `index.html` no las carga y quedan de
-referencia para `tests/dom_simulador.js`, que las compara con el simulador (§9.14 (g)).
+(§9.14 (f)); las cintas `js/practica_cinta_1..4.js` quedan de referencia (§9.14 (g)).
 
 **(c) Las ordenes (`D-88`, sustituida por `D-120`).** `write()` del puerto falso deja la orden en el diario y en la
 cinta como siempre (`-->`) y la pasa al simulador, que contesta a los `RESPUESTA_MS` (100 ms) segun su estado: el
 mismo `$ACK` o `$ERR` que daria el firmware. Una orden que el firmware no contesta queda sin acuse, igual que en la
 app con un equipo. El PIN se pide igual (§4) y viaja igual; `juzgarTrama()` juzga cada trama como a las de un equipo.
 `SET_VETO_CAMARA` y `SET_BARRERA_SERVICIO` (`D-94`) se contestan como `interruptores_orden()`, con estado por poste, y
-su `$STATUS` publica `PLUMA:FUERA` y `CAM:NOVETO` (`D-150`, `D-151`).
+su `$STATUS` publica `PLUMA:FUERA` y `CAM:NOVETO` (`D-150`, `D-151`). No imita: el `$EVENT` `INTERRUPTOR` de arranque
+(no reinicia), `NO_QUEDO_PUESTO` (relee la variable que acaba de escribir), un poste de la flota con el respaldo
+perdido, ni el `CAM:` real: sin veto publica `NOVETO` y si no `?`, porque sus camaras no dan flancos.
 
 **(d) Marcas y registros (`D-89`).** Con `Practica.activa()`: `Exportar.nombreFichero()` da
 `IOTVIAL_SIMULADO_<serie>_...txt`; la cabecera de la cinta (`Exportar.textoCinta()`) y la del diario
@@ -1243,12 +1247,8 @@ inyectado, la contesta el simulador y Eventos ensena su `FW:`; (5) Salir devuelv
 quita franja y clase; (6) campo nuevo: cada `CAMPO:` del literal `$STATUS` de `Maestro/src/bluetooth.cpp` y del de
 `Esclavo/src/bluetooth.cpp` esta en el `$STATUS` del simulador (un campo nuevo en el firmware lo deja en rojo).
 `tests/dom_exportar.js`: en practica, con plugins, `Filesystem.appendFile` no se llama y el nombre y la cabecera llevan
-SIMULADO. `test_funcional_app.py` sigue en verde con los literales de (a). Ficheros: `index.html`, `style.css`, `app.js`
-(solo `window.appEnlazada`), `js/practica.js`, `js/simulador.js`, `js/exportar.js`, `js/depuracion.js`, los dos tests, y
-las copias en `www/`. `app.js`, `index.html`, `style.css` y `js/depuracion.js` no crecen en neto. Medida de §8: ~150
-lineas de producto (sin contar las cintas, que son datos copiados) contra ~70 de test DOM; la razon
-instrumentos/producto no sube. Sin medir hasta el telefono: que la franja se lea sobre el modal del PIN y que el bucle
-de 300 tramas no caliente.
+SIMULADO. `test_funcional_app.py` sigue en verde con los literales de (a). Sin medir hasta el telefono: que la franja
+se lea sobre el modal del PIN y que el bucle de 300 tramas no caliente.
 
 ### 9.11 El origen del ambar del Poste 1 (`N-178` M11; SFTY-22; `D-91`..`D-93`) — construido, sin banco ni telefono
 
@@ -1406,7 +1406,7 @@ grupo» con las MAC vistas sin matricular y el aviso de `N-129`. La busqueda fil
 de `iot_vial_cruces_v2` es de fabrica solo si su `id`, `nombre` y `ubicacion` son los de `CRUCES_DEFAULT` sin tocar
 (`D-123`); los demas, renombrados incluidos, pasan a un grupo sin postes en «Sin via». La clave vieja no se borra.
 **(f) Practica con estado** (`D-120`; sustituye a las cintas; boton, franja y marcas de `D-86`/`D-89`; en el sitio del
-puerto falso). Cada poste es un estado (modo, fase, tiempos, PIN, franjas de noche, `tr`, Degradado, radio, FW) que
+puerto falso). Cada poste es un estado (modo, fase, tiempos, PIN, noche y `tr`, Degradado, radio, FW, interruptores) que
 contesta cada orden de §3.1/§3.2 con el `$ACK`/`$ERR` y los `$STATUS`/`$EVENT`/`$ALARM` que emitiria su firmware.
 Determinista, reloj inyectable, cada constante con su origen `archivo:simbolo`. **Vocabulario atado al C++, entero:**
 cada cabeza que el simulador puede emitir (tipo, `CMD:`, `RESULT:`/`DESC:` y la secuencia de nombres de campo) existe

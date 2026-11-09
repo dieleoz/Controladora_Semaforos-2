@@ -161,6 +161,7 @@ vez el extremo de la cadena electrica que vive en `SPEC_5` §4. **Es de aqui.**
   de lamparas** (`!testLedsActivo`, N-82). **La tabla luz -> pluma entera es SPEC 1 §2** y no se repite.
   Es **SFTY-28**. Desde `D-45` (`cda33df`) sigue arriba tambien durante el amarillo de cierre (§1); el paso de
   verde a ambar intermitente no cambia: la pluma sigue arriba sin interrupcion.
+  Y en cualquier luz con la barrera fuera de servicio (`FLAG_BARRERA_FUERA`, `D-96`, §6.3).
 - **Por que ARRIBA y no ABAJO, escrito en vez de supuesto.** El ambar intermitente dice que el equipo
   se quedo sin enlace y ya no puede garantizar quien tiene el paso. Caben dos politicas y ninguna es
   obviamente correcta: con la pluma **ABAJO** se cierra la via por completo —y un corredor de obra sin
@@ -186,7 +187,7 @@ vez el extremo de la cadena electrica que vive en `SPEC_5` §4. **Es de aqui.**
 🔴 **La barrera fuera de servicio (6.3) la confirmo ARRIBA el responsable el 09/11 (`D-96`), con su modo de fallo.**
 
 Hay dos averias distintas que hoy dejan un poste sin salida, y llevan **dos interruptores
-separados en el modo administrador de la app, uno por poste**. No se pueden juntar en uno: lo que
+separados en la app, tras la clave de tecnico (`D-56`, `D-145`), uno por poste**. No se pueden juntar en uno: lo que
 falla no es lo mismo y lo que queda funcionando tampoco. **No son interruptores fisicos** (`D-94`): no hay
 entrada libre decidida —`J14`/`PB0` reservada al fin de carrera (`D-46`), `J16` p5/p8 vacios y sin cablear
 (`D-44`)— y un interruptor que el telefono no puede ver puesto es peor que ninguno. Lo que el responsable dejo
@@ -204,7 +205,8 @@ lo que pide tarjeta con barrera y pila esta en §7 (filas 4, 5 y 7).
   `ON` es lo normal (veto puesto, barrera en servicio) y lo que sale de fabrica; `OFF` es el interruptor puesto.
   **No viajan por radio:** el Poste 2 recibe la suya por su propio Bluetooth, como `SET_MODO`. El Maestro no la reenvia.
 - Tras la clave de administracion de la app (`D-56`, que las suma a su lista) **y el PIN del equipo**, como toda orden.
-  Viven en Diagnostico, no en la pantalla del operario (`D-80`); antes de enviar `OFF` la app dice la consecuencia con
+  Viven en Ajustes, plegados en «Averias: camaras y barrera» (`D-141`, `D-145`), no en Trafico; antes de enviar `OFF`
+  la app dice la consecuencia con
   las palabras de la tabla de arriba y, para la barrera, **«el brazo sube AHORA, tambien con la luz en rojo»**.
 - **Molde `SET_TIEMPOS`** (`CLAUDE.md` §2): ya en ese estado, `RESULT:SIN_CAMBIO` sin tocar nada (`D-65`); otro texto,
   `$ERR ... DESC:FORMATO_INVALIDO`; con el respaldo perdido en este arranque, `$ERR ... DESC:RESPALDO_INVALIDO`
@@ -212,6 +214,8 @@ lo que pide tarjeta con barrera y pila esta en §7 (filas 4, 5 y 7).
   (`Interruptores.RECHAZOS`: «El equipo NO lo dejo puesto: ... repita la orden y, si vuelve a pasar, avise»; caso I7
   de `tests/dom_interruptores.js` con el literal de `interruptores_orden()`).
   No confundir con `NO_QUEDO_PUESTA` del reloj.
+  Literales (`responder()`): `$ACK,CMD:<orden>:<valor>,RESULT:...` y `$ERR,CMD:<orden>:<valor>,DESC:...`; solo
+  `FORMATO_INVALIDO` va sin valor: `$ERR,CMD:<orden>,DESC:FORMATO_INVALIDO`.
   Si no, se escribe la bandera, **la orden vuelve a pasar por la puerta** (6.3) y `$ACK,CMD:<orden>,RESULT:OK` solo si
   lo leido DESPUES es lo pedido (`D-149`): el getter de la bandera y, para la barrera, `semaforo_plumaFuera()`
   (6.4). Releer el registro solo no basta: un registro recien escrito devuelve siempre lo escrito.
@@ -261,7 +265,7 @@ tras un corte real, con pila; el arnes de dos puntas solo mide que el reinicio s
   estable nada llama a `escribirPines()`: la unica reentrada del bucle es `if (plumaCierrePendiente)
   aplicarSalidas(ultR, ultA, ultV)`, y la rama `luzPideArriba` deja `plumaCierrePendiente = false`. Sin reentrada,
   `OFF` no mueve el pin hasta el siguiente cambio de luz (horas en rojo fijo, `D-38`) y `ON` deja la pluma arriba sin
-  razon nombrada. Por eso, tras escribir la bandera, la orden llama a una funcion publica de `semaforo.cpp` que llama
+  razon nombrada. Por eso, tras escribir la bandera, la orden llama a `semaforo_reaplicarSalidas()`, que llama
   a `aplicarSalidas(ultR, ultA, ultV)` —sin un segundo `digitalWrite` (SFTY-2)— y el `$ACK` lee despues. Con `ON` en
   rojo la pluma baja a `PLUMA_RETARDO_BAJADA_MS`, o la retiene el veto. Prueba: C++ real en las dos puntas, `S_ROJO`
   estable, vista en rojo sobre el fuente de hoy.
@@ -271,7 +275,7 @@ tras un corte real, con pila; el arnes de dos puntas solo mide que el reinicio s
 
 El `$STATUS` no gana campo ni byte (le quedan 3 B, `D-60`): el estado viaja **como valor de dos campos que ya existen
 y ya tienen su ancho** (cota por buffer, `N-154`), en las dos puntas:
-- **`PLUMA:FUERA`** (5 <= 6 de `ARRIBA`; su sentido depende de la fila pendiente de 6.3). **Una sola fuente
+- **`PLUMA:FUERA`** (5 <= 6 de `ARRIBA`; brazo arriba tambien en rojo, 6.3). **Una sola fuente
   (`D-150`):** `escribirPines()` anota en la misma asignacion que el pin si va por el interruptor (molde `N-153`), y el
   `$STATUS` y el `$ACK` leen esa anotacion con `semaforo_plumaFuera()`, nunca la bandera del respaldo: si no, el
   `$STATUS` diria `FUERA` con el pin en `CERRAR` (antes de la reentrada de 6.3, o entre `semaforo_setup()` y
@@ -284,13 +288,15 @@ y ya tienen su ancho** (cota por buffer, `N-154`), en las dos puntas:
 - **Sin `$ALARM` repetida;** el `$STATUS` lo dice a 1 Hz desde que alguien se conecta y el `$ACK` esta en el registro.
   **Sin telefono (`D-152`):** si al arrancar sigue puesta alguna de las dos banderas, el parte de arranque lo dice con
   un `$EVENT` de una sola vez, que queda en el registro del puente (`D-73`); la prueba, en el arnes de dos puntas con
-  reinicio simulado, vista en rojo.
+  reinicio simulado, vista en rojo. El `$EVENT` es `ORIGEN:INTERRUPTOR` con `DETALLE:ARRANQUE_CAM_NOVETO`,
+  `ARRANQUE_BARRERA_FUERA` o `ARRANQUE_CAM_NOVETO_Y_BARRERA_FUERA` (`interruptores_avisoArranque()`, llamada en
+  `main.cpp` tras leer el respaldo); la app lo pinta en ambar con `Interruptores.evento()`.
 
-La app pinta los dos en ambar (`D-83`, mirar) con la frase de que falta: «barrera fuera de servicio» (el resto de la
-frase espera la fila de 6.3) y «camara sana y sin veto: devolver el veto». `app_04_valores_de_status` compara los
-literales del C++ con `PLUMA_LEYENDA` y
-`CAM_LEYENDA` en los dos sentidos: queda en rojo hasta que firmware y app lleven los dos valores, y su lector del
-ternario de `PLUMA:` (`_literales_de_pluma`, dos sitios) se recuenta ANTES de construir (`CLAUDE.md` §5).
+La app pinta los dos en ambar (`D-83`, mirar): la pluma, «BARRERA FUERA DE SERVICIO · arriba tambien en rojo, hasta
+ponerla en servicio» (`PLUMA_LEYENDA`, `js/luces.js`); la camara, «SIN VETO» con «camara sana y sin veto: devolver el
+veto» (`CAM_LEYENDA`). Con cualquiera de los dos, «Averias» de Ajustes se abre con el `<summary>` en ambar
+(`js/pantalla_operario.js`). `app_04_valores_de_status` compara los literales del C++ con `PLUMA_LEYENDA` y
+`CAM_LEYENDA` en los dos sentidos.
 
 🔴 **Lo que NO garantiza «sacar la barrera de servicio»: que el brazo se quede arriba si se va la
 luz.** Sin energia la salida cae y el actuador baja por su muelle o por su peso — es el fallo seguro
@@ -317,7 +323,7 @@ la **4** (la concesion de paso por camara nunca se probo)—. Aqui, lo que falta
 | 7 | **El recorrido real de la pluma:** ~60 s de subida segun Marco (06/10), sin cronometrar; la bajada, sin dato |
 
 *Decisiones recogidas: `D-12`, `D-13` (lo no derogado), `D-24`, `D-25`, `D-27`, `D-33`, `D-39`, `D-42`, `D-54`,
-`D-94`..`D-97` (§6, construido sin banco). Abiertas
+`D-94`..`D-97` y `D-148`..`D-152` (§6, construido sin banco). Abiertas
 que nombra sin resolver: `A-1.bis`, `A-6`. 🔴 **Y una eleccion vial vigente que NO tiene fila y deberia tenerla:
 la pluma ARRIBA en `S_FALLO`, del cliente y el PMT el 27/08/2026 (§5).** Manda esta spec;
 `DECISIONES.md` es su indice; el cobre, `17_...` y `SPEC_5`. Nacido el 14/09/2026 al

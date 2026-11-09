@@ -3,7 +3,9 @@
 **Version del equipo: `V9.1`** *(14/09/2026)*. Sube desde la `V9.0` del 12/09 por **dos cambios que se ven desde la carretera**, y ninguno de los dos cabe dentro de un numero de version ya entregado:
 
 - **El verde del modo sin radio pasa de medio minuto a TRES MINUTOS.** Es el cambio mayor: cuando los dos postes pierden el enlace y se reparten el paso por reloj, cada lado da paso tres minutos en vez de treinta segundos. Lo que hace ese modo, en `SPEC_7`.
-- **La barrera ya no baja en el mismo instante en que el semaforo se pone en rojo:** baja unos segundos despues, **para dar tiempo a los vehiculos que ya venian pasando y no golpearlos**, y **no baja en absoluto mientras una camara vea algo debajo**. Lo que hace y lo que no, en `SPEC_5`.
+- **La barrera ya no baja en el mismo instante en que el semaforo se pone en rojo:** baja unos segundos despues,
+  **para dar tiempo a los vehiculos que ya venian pasando y no golpearlos**, y **no baja en absoluto mientras una
+  camara vea algo debajo**. Lo que hace y lo que no, en `SPEC_8`.
 
 ⚠️ **Y esta version NO ha visto una tarjeta.** Lo que hay instalado en campo sigue siendo la `V8.4`.
 
@@ -152,7 +154,8 @@ configuracion** (`SPEC_6` HUECO 3), y si no se hizo el sintoma no dira «radio m
    **declarados y muertos** —ni un `pinMode` ni un `digitalWrite`—: **cableados a `J11`/`J9`/`J13` no se encienden nunca y no
    hay mensaje de error** (`SPEC_5` §2, `SPEC_1` §1). **No se venden como funciones del equipo.**
 3. **NO DISTINGUE UN VEHICULO PARADO DEBAJO DE UNA CAMARA MAL APUNTADA.** 🟢 ~~Ninguna camara protege la pluma~~ →
-   **desde el 14/09 SI la protege**: la barrera baja 3 s despues del rojo y **no baja mientras una camara vea algo debajo**
+   **desde el 14/09 SI la protege**: la barrera baja 3 s despues del rojo y **no baja mientras una camara vea algo
+   debajo** —salvo con las camaras sacadas del veto desde la app, `SPEC_8` §6—
    (`SPEC_8` §1). 🔴 **Lo que el equipo NO puede hacer es juzgar lo que ve:** un vehiculo parado y una camara
    que dispara sola **dan el mismo contacto cerrado**, asi que ante la duda **no baja y avisa** —y quien decide si eso es
    una averia o trafico es una persona, no el equipo—. Y **los ultimos metros de la bajada no los ve nadie**: no hay fin

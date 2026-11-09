@@ -42,8 +42,9 @@ CIERRA, porque el pin cae a reposo. Y **ninguna avería de la pluma detiene el c
    la función de escritura, sobre el mismo verde **ya enclavado**: si un modo pudiera moverla por su cuenta
    habría pluma arriba con luz en rojo, **peor** que no tener barrera —el conductor confía en ella—. Lo
    vigila `barrera_03_talanquera`.
-4. **Dos excepciones, dentro de la propia condición:** **no** sigue al verde de un test de lámparas (una
-   prueba de taller no abre la vía; `testLedsActivo`, `N-82`); y **sí sube en estado de fallo** (el principio).
+4. **Tres excepciones, dentro de la propia condición:** **no** sigue al verde de un test de lámparas (una
+   prueba de taller no abre la vía; `testLedsActivo`, `N-82`); **sí sube en estado de fallo** (el principio); y **sube
+   en cualquier luz con la barrera fuera de servicio** (`FLAG_BARRERA_FUERA`, `D-96`, SPEC 8 §6.3; sin banco).
 5. **La bandera que dice si la pluma está arriba se asigna DENTRO del paréntesis de esa condición**, no al lado: el
    pin y lo que se lee de él no pueden discrepar. Y **no sólo se publica** (campo `PLUMA:` de la app): **el vigilante
    de cámaras la usa de reloj** —sólo acumula silencio con la pluma ARRIBA, el *«con el ciclo corriendo»* de la
@@ -62,6 +63,7 @@ CIERRA, porque el pin cae a reposo. Y **ninguna avería de la pluma detiene el c
 | **Amarillo de cierre** (`D-45`, §3.2; construido en `cda33df`, sin banco) | **ARRIBA**: `luzPideArriba` lleva `estado == S_AMARILLO`; el retardo de bajada cuenta desde el ROJO (SPEC 8 §1) |
 | Verde y amarillo de test de lámparas | **ABAJO** (en el test `estado` sigue en `S_ROJO`) |
 | Fallo (ámbar intermitente) | **ARRIBA** |
+| Cualquier luz con la barrera fuera de servicio (`D-96`, SPEC 8 §6.3; sin banco) | **ARRIBA**, tambien en rojo |
 | Equipo sin energía | ABAJO (nivel de reposo del pin) |
 
 ⚠️ **Lo que la pluma NO tiene: realimentación.** No hay final de carrera —el responsable dejó `J14` sin
