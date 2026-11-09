@@ -929,9 +929,8 @@ latido está suprimido y sus acuses **no renuevan** el silencio del Maestro, as�
 sus intentos tienen que caber antes del punto de suelta del verde —si no, un intercambio con lluvia soltaría el verde
 con el Esclavo contestando—. Lo exige un `static_assert` junto a `SYNC_MAX_INTENTOS`, que desde `D-45` mide contra el
 ARRANQUE de la suelta (un `AMARILLO_MS` antes del rojo), y `costura_09` lo recalcula. **El tiempo de cable** de una
-ráfaga (`ENVIO_RAFAGA_MS`) y del cuarteto de hora (`ENVIO_SYNC_MS`) se calcula desde los baudios y la cabecera de
-`protocolo.h` (`N-184`); el aire no se deriva de nada. `costura_09` lleva 0,06 s: cubre la ráfaga, no el cuarteto.
-Los parámetros del módulo son de **SPEC 6 §B**, y aquí sólo se exige que las dos radios estén
+ráfaga (`ENVIO_RAFAGA_MS`) y del cuarteto de hora (`ENVIO_SYNC_MS`) se calcula a `9600` sin cabecera (`D-160`);
+el aire no; `costura_09` cubre la ráfaga. Del módulo manda **SPEC 6 §B**; aquí sólo se exige que las dos radios estén
 configuradas igual o el CRC no casa. **Subir el umbral de silencio sin mover los reintentos por su plazo ensancha el
 HUECO 5** — el compromiso que `T-2` resolvió en campo: **SPEC 6 D.**
 

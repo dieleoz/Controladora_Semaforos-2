@@ -401,24 +401,6 @@
 // DEBE ser idéntico en Maestro y Esclavo.
 #define RF_BURST_COPIES 3
 
-// N-184, D-159: RADIOS QUE NO SE PUEDEN RECONFIGURAR. Solo el entorno radio_1200_fija de
-// platformio.ini define RADIO_1200_FIJA; el entorno por defecto no lo ve y su binario es el
-// mismo byte a byte. Radios del banco: UART 1200 8N1, modo Fixed, direccion 0, canal 0
-// (evidencia/091120261523). Formato Fixed de Ebyte: los 3 primeros bytes del paquete serie
-// son direccion alta + direccion baja + canal del DESTINO, y el receptor entrega solo la
-// carga (manual E90-DTU(400SL37) v1.5, registro de modo, bit 6; el del 433L37-V8 solo dice
-// "Fixed point", fuentes/md/E90-DTU_433L37-V8_User_Manual.md 7.2). Solo banco (SPEC_6 B.2).
-#ifdef RADIO_1200_FIJA
-#define RADIO_BUS_BAUDIOS          1200UL
-#define RADIO_FIJA_CABECERA_BYTES  3UL
-#define RADIO_FIJA_ADDH            0x00
-#define RADIO_FIJA_ADDL            0x00
-#define RADIO_FIJA_CANAL           0x00
-#else
-#define RADIO_BUS_BAUDIOS          9600UL   // radios de fabrica: 9600 y Transparent, sin cabecera
-#define RADIO_FIJA_CABECERA_BYTES  0UL
-#endif
-
 #pragma pack(push, 1)
 struct RF_Packet {
     uint8_t msgID;

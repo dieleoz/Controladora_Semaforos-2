@@ -266,10 +266,10 @@ const uint8_t CICLO_MAX_REINTENTOS = 5;
 // aire medio duplex es el tiempo de cable, 2 x ENVIO_RAFAGA_MS. El borde de costura_09 es
 // el que acota lo que este aviso puede gastar, y es el que el responsable tuvo delante.
 // ENVIO_RAFAGA_MS: el bloqueo de UN protocolo_enviarPaquete() -delay(2) + bytes x 10 / baudios + 1,2 ms-
-// mas 10 ms de conmutacion; ENVIO_SYNC_MS, el cuarteto de enviarHoraCompleta(). N-184: baudios y cabecera
-// Fixed salen de protocolo.h (26 ms a 9600, 139 a 1200); costura_09 lleva 0,06 s: cubre la rafaga, no el cuarteto.
-static constexpr unsigned long RAFAGA_US = 2000UL + 1200UL +
-    (RADIO_FIJA_CABECERA_BYTES + RF_BURST_COPIES * sizeof(RF_Packet)) * 10000000UL / RADIO_BUS_BAUDIOS;
+// mas 10 ms (26 ms); ENVIO_SYNC_MS, el cuarteto. D-160: Bus.begin(9600) de protocolo.cpp, transparente y sin
+// cabecera; el cuarteto es enviarHoraCompleta(). costura_09 lleva 0,06 s: cubre la rafaga, no el cuarteto.
+static constexpr unsigned long RADIO_BUS_BAUDIOS = 9600UL, RADIO_CABECERA_BYTES = 0UL, RAFAGA_US = 2000UL + 1200UL +
+    (RADIO_CABECERA_BYTES + RF_BURST_COPIES * sizeof(RF_Packet)) * 10000000UL / RADIO_BUS_BAUDIOS;
 static constexpr unsigned long ENVIO_RAFAGA_MS = (RAFAGA_US + 999UL) / 1000UL + 10UL;
 static constexpr unsigned long ENVIO_SYNC_MS = 4UL * ENVIO_RAFAGA_MS;
 static constexpr unsigned long PASO_RADIO_MS = TIMEOUT_ACK_MS + ENVIO_RAFAGA_MS;
@@ -322,7 +322,7 @@ static_assert(AVISO_AMBAR_TIMEOUT_MS == TIMEOUT_ACK_MS,
 //             aire. Contar solo los reintentos fue la otra mitad del defecto del 12/09, y
 //             ademas dejaba a este fichero contando distinto que el arnes de las dos
 //             puntas, que ya cuenta 1 + N (dos_puntas/orquestador.cpp).
-//   hoy       (1 + 3) x 2 x 26 ms = 208 ms contra 4.370 libres (1.112 contra 3.805 a 1200). Esa
+//   hoy       (1 + 3) x 2 x 26 ms = 208 ms contra 4.370 ms libres. Esa
 //             holgura ES la razon por la que el aire no es lo que acota este numero.
 // Si alguien sube los reintentos del aviso, el latido o los del ciclo hasta que no quepa,
 // esto NO COMPILA y el diseno vuelve al responsable: no se recorta el techo.

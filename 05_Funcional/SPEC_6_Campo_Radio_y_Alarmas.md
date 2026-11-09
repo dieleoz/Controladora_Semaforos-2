@@ -200,16 +200,7 @@ su cobre es SPEC 5. *(SPEC 2 §8 remitia «los parametros del modulo» a SPEC 5,
 | **UART** | `9600`, `8N1` | 🟢 **el FIRMWARE**: abre el bus de radio a esa velocidad en **las dos puntas**. **Si la radio no esta a esa velocidad, no hay enlace posible** |
 | **Air Data Rate** · **Potencia** · **FEC** · **Transmission Mode** · **Canal** | `2.4 kbps` · la maxima del modulo · activado · `Transparent` *(fixed-point desactivado)* · **el MISMO en las dos puntas** | 🔴 **nadie**: viven en la NVM del modulo y ningun instrumento de aqui los lee |
 
-**Radios que no se pueden reconfigurar (433L37-V8 del banco, 09/11; `N-184`):** entorno `radio_1200_fija` de
-`platformio.ini` (`pio run -e radio_1200_fija`), en Maestro y Esclavo: UART `1200` y modo Fixed, con la cabecera
-direccion alta + direccion baja + canal del destino (`00 00 00`) delante de cada rafaga (`protocolo.h`,
-`RADIO_1200_FIJA`). Deroga para ese entorno la regla B.1 (1) de no bajar la tasa (`D-159`). Solo banco, nunca campo; el
-entorno por defecto sigue a `9600`/`Transparent`. El presupuesto de radio (`coordinador.cpp`) cobra el cable en dos
-constantes calculadas desde los baudios y la cabecera: `ENVIO_RAFAGA_MS`, una rafaga por paso del ciclo y del aviso
-(26 ms a 9600, 139 a 1200), y `ENVIO_SYNC_MS`, el cuarteto de hora (104 y 556). A 1200: ciclo 27.695 ms contra 28.000,
-aviso 1.112 contra 3.805 libres, hora 21.668; ningun `static_assert` relajado. 🔴 **Premisa `D-34` sin medir:** la ida
-del GO_GREEN a 1200/1.2k se estima en ~510 ms frente a 500 ms; en el borde. Con la subida muerta abre una ventana de
-10-100 ms de amarillo del Esclavo contra ambar del Maestro (clase `N-163` G3): solo banco, se cierra midiendo la ida.
+La variante a `1200`/Fixed (`D-159`) se retiro: `D-160`.
 
 > 🔴 **NINGUN INSTRUMENTO DE ESTE REPOSITORIO LEE LA CONFIGURACION DE UNA RADIO.** La compuerta no la ve, el firmware
 > no la puede preguntar y el `$STATUS` no la publica. **La unica evidencia de que una radio quedo bien configurada es
