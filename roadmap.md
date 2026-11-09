@@ -287,12 +287,13 @@ Se cierra con el registro de Marco con M0/M1 en ON: «tramas buenas» > 0 y `RTT
 9600 transparente, sin cambio de firmware. Falta: los registros de los dos postes para medir `RTT:` con LoRa. Propuesto
 retirar el entorno `radio_1200_fija` (`D-159`), conservando el calculo de `ENVIO_RAFAGA_MS`/`ENVIO_SYNC_MS`.
 
-**Pendiente (09/11, 16:40):** EN CURSO: firmware para radios a 1200/Fixed (`D-159`, worktree) -> arquitecto ->
-integrar -> compuerta completa sin el Repetidor (17 filas, dos pasadas) -> cifras -> QA -> APK -> `.zip` para Marco.
-ESPERANDO: veredictos del runbook de `auditoria/n182` (otra sesion) para su merge. DEL RESPONSABLE: §7.5 (retirar el
-Modo Alcance, recomendado). DE BANCO: M0/M1 en ON y LEDs `TXD`/`RXD`; enlace y `RTT:` con el firmware nuevo; puente H;
-4 camaras y C5 (prueba 12, caso 2); banderas tras corte; `FLASH_NO_RELEE`; `D-22`; `D-124`; El Sisga. TELEFONO:
-360x640 y 320 px. CONGELADO: el «simulador funcional» aun modela un repetidor (se toca al descongelar).
+**`N-186` (09/11, 17:45, responsable): UN `.zip` con firmware, APK y `.html` solo de lo que falta.** «No usar esa rama
+de LoRa»: sale el entorno `radio_1200_fija` (`D-159` derogada por `D-160`), se conserva el calculo de tiempos de envio.
+«Que funcione bien los fines de semana en Degradado»: con testigo no hay tope de 48 h (H9), pero ningun arnes lo
+ejercia: casos de 72 h (viernes a lunes) en el arnes del Degradado, vistos en rojo. Hoja nueva solo con lo pendiente
+(barrera, camaras, interruptores, RTT, fin de semana en Degradado, calle, El Sisga, `D-22`, `D-124`). Workflow con tres
+agentes en ficheros disjuntos; `auditoria/n182` fusionada en main (7 commits + «NO CUBRE», `d77695a`). Despues:
+integrar, compuerta dos pasadas, QA una vez, APK, `.zip`.
 
 **Rama `auditoria/n182` (otra sesion, 09/11):** 7 commits de instrumentos sobre `7f4a502` (rondas.json ignorado,
 lista cerrada en `barrera_03`, ABORTADO en `Validacion_Respaldo`, D-94 por el despachador real del Maestro en el
