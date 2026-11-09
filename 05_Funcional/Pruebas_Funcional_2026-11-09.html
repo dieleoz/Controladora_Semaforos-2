@@ -170,18 +170,18 @@ button#btnPdf{
   <div class="porque"><b class="t">Por qué</b>Sin saber qué firmware tiene dentro cada placa, nada de lo que se vea después se puede leer. Antes de cargar se guarda una copia de lo que hay, por si hay que volver atrás. La carga se hace siempre igual: por SWD, en modo <strong>UR</strong> y con borrado completo (<code>-e all</code>). <strong>El borrado completo borra también las franjas del modo noche y el testigo del Degradado guardado</strong>: tras cargar no queda ninguna franja; si el poste las usaba, hay que volver a programarlas.</div>
   <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
     <li>Los dos postes encendidos, con las antenas puestas, y <strong>sin cámaras ni barrera conectadas</strong> todavía.</li>
-    <li>El PC con STM32CubeProgrammer y el programador SWD; el .bin del Maestro y el del Esclavo de este paquete (código <strong>XXXXXXX</strong>) y el fuente <strong>01_Firmware/ESP32_Expansion</strong> para el puente.</li>
+    <li>El PC con PlatformIO, STM32CubeProgrammer y el programador SWD, y el .zip de este paquete (código <strong>XXXXXXX</strong>) descomprimido. El paquete <strong>no trae ningún .bin</strong>: trae el fuente de las cuatro puntas, <strong>01_Firmware/Maestro</strong>, <strong>01_Firmware/Esclavo</strong>, <strong>01_Firmware/ESP32_Expansion</strong> (el puente) y <strong>01_Firmware/Repetidor</strong>, cada una con su <strong>FW_HASH.txt</strong>.</li>
     <li>En <strong>todos</strong> los celulares que vayan a usar estos postes, la APK de este paquete, <strong>IOT_VIAL_Semaforos_2026-11-09_XXXXXXX_SIN_BANCO.apk</strong>.</li>
   </ul></div>
   <ol>
     <li>Instale la APK de este paquete en todos los celulares.</li>
     <li>En cada tarjeta, <strong>antes de cargar</strong>, guarde lo que tiene:<br><code>STM32_Programmer_CLI -c port=SWD mode=UR -u 0x08000000 65536 leido_poste1.bin</code> (y <code>leido_poste2.bin</code> en la otra). Guarde los dos archivos y mándelos con este PDF.</li>
-    <li>Cargue el <strong>Poste 1</strong> con el .bin del Maestro y el <strong>Poste 2</strong> con el del Esclavo:<br><code>STM32_Programmer_CLI -c port=SWD mode=UR -e all -w &lt;archivo&gt;.bin 0x08000000 -v -rst</code><br>Si falla, <strong>reintente igual</strong>, con <code>mode=UR</code>: no cambie a otro modo.</li>
-    <li>Cargue el <strong>puente</strong> de los dos postes con <strong>01_Firmware/ESP32_Expansion</strong>, como siempre.</li>
+    <li>Abra en PlatformIO <strong>01_Firmware/Maestro</strong>, compile y cargue el <strong>Poste 1</strong> por SWD (Upload). Haga lo mismo con <strong>01_Firmware/Esclavo</strong> en el <strong>Poste 2</strong>. La carga usa la configuración que trae el <code>platformio.ini</code> de cada proyecto (<code>mode=UR</code> con <code>-e all</code>): <strong>no la cambie</strong>. Si falla, <strong>reintente igual</strong>, con <code>mode=UR</code>: no cambie a otro modo. Abra el proyecto desde la carpeta del .zip, con su FW_HASH.txt al lado: de ahí sale el código de versión.</li>
+    <li>Abra <strong>01_Firmware/ESP32_Expansion</strong> en PlatformIO y cargue el <strong>puente</strong> de los dos postes por USB, como siempre.</li>
     <li>Pulse &laquo;Operario&raquo;, ponga la clave de administración y, en cada poste: pestaña Técnico &rarr; <strong>"Consultar version del firmware"</strong>. Lea Eventos y, en Tramas, la línea que empieza por <code>$ACK,CMD:VERSION</code>.</li>
     <li>Ponga la hora en cada poste desde la app.</li>
   </ol>
-  <div class="espera">Se espera: en Eventos, <strong>"Version cargada - Controlador MAESTRO: FW XXXXXXX"</strong> en el Poste 1, <strong>"Version cargada - Controlador ESCLAVO: FW XXXXXXX"</strong> en el Poste 2 y <strong>"Version cargada - Puente (ESP32): FW XXXXXXX"</strong> en los dos. En Tramas, <code>$ACK,CMD:VERSION,RESULT:OK,NODE:MAESTRO,FW:XXXXXXX</code> (y <code>NODE:ESCLAVO</code> en el Poste 2). <strong>El mismo código en los cuatro</strong>, sin +SUCIO. Si alguno no coincide, no siga y avise. Al terminar, el Poste 1 queda en ámbar intermitente, como tras cualquier arranque: sale con <strong>VOLVER AL MENÚ</strong> y <strong>AUTOMÁTICO</strong>.</div>
+  <div class="espera">Se espera: en Eventos, <strong>"Version cargada - Controlador MAESTRO: FW XXXXXXX"</strong> en el Poste 1, <strong>"Version cargada - Controlador ESCLAVO: FW XXXXXXX"</strong> en el Poste 2 y <strong>"Version cargada - Puente (ESP32): FW XXXXXXX"</strong> en los dos. En Tramas, <code>$ACK,CMD:VERSION,RESULT:OK,NODE:MAESTRO,FW:XXXXXXX</code> (y <code>NODE:ESCLAVO</code> en el Poste 2). <strong>El mismo código en los cuatro</strong>, igual al del nombre del .zip, sin +SUCIO. Si alguno no coincide, no siga y avise. Al terminar, el Poste 1 queda en ámbar intermitente, como tras cualquier arranque: sale con <strong>VOLVER AL MENÚ</strong> y <strong>AUTOMÁTICO</strong>.</div>
   <div class="horas">
     <label class="campo">Poste 1 - Controlador: línea $ACK,CMD:VERSION copiada <input type="text" id="h1a" class="hora"></label>
     <label class="campo">Poste 1 - Puente: código <input type="text" id="h1b" class="hora"></label>
@@ -335,7 +335,7 @@ button#btnPdf{
     <li>Repita con el brazo <strong>bajando, a medias</strong>.</li>
     <li>Repita cortando solo el <strong>Poste 2</strong> con su brazo subiendo.</li>
   </ol>
-  <div class="espera">Se espera: durante el corte, <strong>anote lo medido</strong> (el poste no manda nada). Al volver la luz del <strong>Poste 1</strong>: un instante de BAJAR y enseguida <strong>SUBIR</strong> en los dos postes, los dos en ámbar intermitente, hasta que alguien pulse AUTOMÁTICO. Al volver la luz del <strong>Poste 2</strong> solo: arranca en <strong>rojo</strong> con la orden de <strong>BAJAR</strong> y vuelve a alternar con el Poste 1. La app dice lo que el poste manda, no dónde está el brazo: si no coinciden, anótelo.</div>
+  <div class="espera">Se espera: durante el corte, <strong>anote lo medido</strong> (el poste no manda nada). Al volver la luz del <strong>Poste 1</strong>: primero BAJAR durante <strong>al menos 2 s</strong> (lo que tarda el poste en arrancar) y después <strong>SUBIR</strong> en los dos postes, los dos en ámbar intermitente, hasta que alguien pulse AUTOMÁTICO. Al volver la luz del <strong>Poste 2</strong> solo: arranca en <strong>rojo</strong> con la orden de <strong>BAJAR</strong> y vuelve a alternar con el Poste 1. La app dice lo que el poste manda, no dónde está el brazo: si no coinciden, anótelo.</div>
   <div class="horas">
     <label class="campo">Poste 1 subiendo: qué hizo el brazo en el corte <input type="text" id="h6a" class="hora"></label>
     <label class="campo">Poste 1 subiendo: qué hizo al volver la luz, y qué decía la app <input type="text" id="h6b" class="hora"></label>
@@ -356,7 +356,7 @@ button#btnPdf{
   <h2>Parte 3 (pruebas 7 a 12): las 4 cámaras, caso por caso</h2>
   Los postes en <strong>AUTOMÁTICO con radio</strong>, con barrera. Lo que hay que saber antes:
   <ul>
-    <li><strong>La cámara nunca sube la pluma.</strong> La pluma sube solo con el verde.</li>
+    <li><strong>La cámara nunca sube la pluma.</strong> En AUTOMÁTICO la pluma sube solo con el verde (en ámbar intermitente o con la barrera fuera de servicio está arriba sin verde: pruebas 5 y 14).</li>
     <li>La cámara solo puede <strong>retener la pluma arriba</strong>, y solo pasados los 3 s del rojo: con cualquiera de las dos cámaras del poste viendo algo, la pluma no baja.</li>
     <li>Una vez que el poste mandó bajar, <strong>ya no mira la cámara</strong> durante la bajada.</li>
     <li>Cada caso vale igual en el Poste 1 que en el Poste 2: hágalo en uno y repítalo en el otro si tiene tiempo.</li>
@@ -459,7 +459,7 @@ button#btnPdf{
     <li>Deje el puente puesto <strong>22 minutos</strong> desde la hora anotada. Lea el estado de cámaras y Eventos.</li>
     <li>Quite el puente. Anote la hora y mire qué hace la pluma y qué dice la app.</li>
   </ol>
-  <div class="espera">Se espera: con el puente puesto y la pluma abajo, <strong>no sube</strong> hasta el verde. Tras ese verde, <strong>no vuelve a bajar</strong> en ningún rojo. En Tramas, en cada rojo <code>VETO_ACTUADO_N:</code> y, cada 90 s de pluma retenida, <code>VETO_SOSTENIDO_S:</code> con los segundos que lleva. En la app, a los 90 s, el cartel <strong>"LA CÁMARA TIENE LA BARRERA RETENIDA"</strong> con <strong>"La barrera está ARRIBA y no va a bajar sola. Mire debajo del brazo antes de tocar nada. Si no hay nada, revise el apunte y la configuración de la cámara."</strong> A los <strong>20 min</strong> de puente: en Tramas <code>CAM_PEGADA</code> con <code>CAM_C_CONTACTO_FIJO</code>, y cámaras <strong>PEGADA</strong> en Tráfico. Al quitar el puente: la pluma <strong>baja en ese momento</strong> si está en rojo; en Tramas <code>CAM_C_RECUPERADA</code>; el cartel cambia a <strong>"LA BARRERA YA HA BAJADO — el aviso queda por lo que la dejó arriba"</strong> y no se va solo.</div>
+  <div class="espera">Se espera: con el puente puesto y la pluma abajo, <strong>no sube</strong> hasta el verde (en AUTOMÁTICO la pluma sube solo con el verde). Tras ese verde, <strong>no vuelve a bajar</strong> en ningún rojo. En Tramas, en cada rojo <code>VETO_ACTUADO_N:</code> y, cada 90 s de pluma retenida, <code>VETO_SOSTENIDO_S:</code> con los segundos que lleva. En la app, a los 90 s, el cartel <strong>"LA CÁMARA TIENE LA BARRERA RETENIDA"</strong> con <strong>"La barrera está ARRIBA y no va a bajar sola. Mire debajo del brazo antes de tocar nada. Si no hay nada, revise el apunte y la configuración de la cámara."</strong> A los <strong>20 min</strong> de puente: en Tramas <code>CAM_PEGADA</code> con <code>CAM_C_CONTACTO_FIJO</code>, y cámaras <strong>PEGADA</strong> en Tráfico. Al quitar el puente: la pluma <strong>baja en ese momento</strong> si está en rojo; en Tramas <code>CAM_C_RECUPERADA</code>; el cartel cambia a <strong>"LA BARRERA YA HA BAJADO — el aviso queda por lo que la dejó arriba"</strong> y no se va solo.</div>
   <div class="horas">
     <label class="campo">Hora en que puso el puente <input type="text" id="h10a" class="hora"></label>
     <label class="campo">¿Subió antes del verde? (sí/no) <input type="text" id="h10b" class="hora"></label>
@@ -480,20 +480,20 @@ button#btnPdf{
 
 <section class="prueba" id="p11">
   <h2>11. Cámara intermitente</h2>
-  <div class="porque"><b class="t">Por qué</b>Una cámara que se enciende y apaga sin parar (una rama movida por el viento, un reflejo) se cuenta como presencia si los huecos entre disparos son de <strong>menos de 3 s</strong>: entonces retiene la pluma. Con huecos de <strong>más de 3 s</strong>, la pluma baja en un hueco. Y como el contacto se abre entre disparos, <strong>nunca</strong> llega a la alarma de pegada, aunque tenga la pluma arriba.</div>
+  <div class="porque"><b class="t">Por qué</b>Una cámara que se enciende y apaga sin parar (una rama movida por el viento, un reflejo) se cuenta como presencia si de un cierre del contacto al siguiente pasan <strong>menos de 3 s</strong>: entonces retiene la pluma. Los 3 s se cuentan desde que el contacto <strong>se cierra</strong>, no desde que se abre. Con <strong>más de 3 s</strong> de cierre a cierre, la pluma baja en un hueco. Y como el contacto se abre entre disparos, <strong>nunca</strong> llega a la alarma de pegada, aunque tenga la pluma arriba.</div>
   <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
     <li>Poste 1 en <strong>AUTOMÁTICO</strong>, dando ciclos. Cronómetro y <strong>15 minutos</strong> libres.</li>
   </ul></div>
   <ol>
-    <li>Antes de un rojo, empiece a cerrar y abrir el contacto de la cámara 1 (o pase la mano delante) con huecos de unos <strong>2 s</strong>. Siga durante todo el rojo. Mire la pluma.</li>
-    <li>En otro rojo, haga lo mismo con huecos de unos <strong>5 s</strong>.</li>
-    <li>Repita la de 2 s durante <strong>3 minutos</strong> seguidos y lea Eventos, Tramas y el estado de cámaras.</li>
+    <li>Antes de un rojo, empiece a cerrar y abrir el contacto de la cámara 1 (o pase la mano delante): un toque cada <strong>2 s</strong>, contados de cierre a cierre (siempre <strong>menos de 3 s</strong>). Siga durante todo el rojo. Mire la pluma.</li>
+    <li>En otro rojo, haga lo mismo con un toque cada <strong>5 s</strong> de cierre a cierre.</li>
+    <li>Repita la de un toque cada 2 s durante <strong>3 minutos</strong> seguidos y lea Eventos, Tramas y el estado de cámaras.</li>
   </ol>
-  <div class="espera">Se espera: con huecos de <strong>2 s</strong>, la pluma <strong>se queda arriba</strong> tras los 3 s del rojo mientras dure. Con huecos de <strong>5 s</strong>, la pluma <strong>baja en el primer hueco</strong> de más de 3 s después de los 3 s del rojo, y ya no sube hasta el verde. En Tramas <code>VETO_ACTUADO_N:</code> y, si pasa de 90 s retenida, <code>VETO_SOSTENIDO_S:</code> y el cartel de barrera retenida. Cámaras en <strong>OK</strong>, <strong>nunca PEGADA</strong>.</div>
+  <div class="espera">Se espera: con un toque cada <strong>2 s</strong> (menos de 3 s de cierre a cierre), la pluma <strong>se queda arriba</strong> tras los 3 s del rojo mientras dure. Con un toque cada <strong>5 s</strong>, la pluma <strong>baja en el primer hueco</strong> en que pasan más de 3 s desde el último cierre, después de los 3 s del rojo, y ya no sube hasta el verde. En Tramas <code>VETO_ACTUADO_N:</code> y, si pasa de 90 s retenida, <code>VETO_SOSTENIDO_S:</code> y el cartel de barrera retenida. Cámaras en <strong>OK</strong>, <strong>nunca PEGADA</strong>.</div>
   <div class="horas">
-    <label class="campo">Huecos de 2 s: ¿se quedó arriba? (sí/no) <input type="text" id="h11a" class="hora"></label>
-    <label class="campo">Huecos de 5 s: ¿bajó en un hueco? ¿cuántos s después del rojo? <input type="text" id="h11b" class="hora"></label>
-    <label class="campo">3 minutos con huecos de 2 s: estado de cámaras y avisos <input type="text" id="h11c" class="hora"></label>
+    <label class="campo">Un toque cada 2 s: ¿se quedó arriba? (sí/no) <input type="text" id="h11a" class="hora"></label>
+    <label class="campo">Un toque cada 5 s: ¿bajó en un hueco? ¿cuántos s después del rojo? <input type="text" id="h11b" class="hora"></label>
+    <label class="campo">3 minutos con un toque cada 2 s: estado de cámaras y avisos <input type="text" id="h11c" class="hora"></label>
   </div>
   <div class="resultado">
     <label><input type="radio" name="r11" value="OK" data-txt="OK"> OK</label>
@@ -582,9 +582,9 @@ button#btnPdf{
     <li>Deje pasar <strong>dos ciclos completos</strong>. Mire la pluma en cada rojo.</li>
     <li>Pulse <strong>Sacar la barrera de servicio</strong> otra vez y copie lo que dice.</li>
     <li>En un <strong>rojo</strong>, pulse <strong>Poner la barrera en servicio</strong>. Cronometre hasta que la pluma empieza a bajar.</li>
-    <li>Repita el paso 5 con un objeto delante de la cámara: mire si la pluma se queda arriba.</li>
+    <li>Vuelva a sacar la barrera de servicio (como en el paso 1; la pluma sube). Ponga un objeto delante de la cámara y, con el objeto delante y en un <strong>rojo</strong>, pulse <strong>Poner la barrera en servicio</strong>: mire si la pluma se queda arriba. Al terminar, quite el objeto y deje la barrera <strong>en servicio</strong>.</li>
   </ol>
-  <div class="espera">Se espera: en el paso 1, antes de confirmar, <strong>"Solo si la barrera está rota. El brazo sube AHORA y se queda arriba también con la luz en rojo..."</strong>; al confirmar, la pluma <strong>sube en ese momento</strong> (J15 conduce). En Eventos <strong>"Equipo: barrera FUERA DE SERVICIO..."</strong>; en Tráfico <strong>"▲ BARRERA FUERA DE SERVICIO"</strong> en ámbar. En el paso 3, arriba en <strong>todos</strong> los rojos. En el paso 4, <strong>"Equipo: la barrera ya estaba como lo pidió: no se cambió nada."</strong> En el paso 5, <strong>"Equipo: barrera EN SERVICIO otra vez..."</strong> y la pluma baja a los <strong>3 s</strong>. En el paso 6, se queda arriba mientras la cámara vea algo. En Tramas <code>$ACK,CMD:SET_BARRERA_SERVICIO:OFF,RESULT:OK</code> y luego <code>...:ON,RESULT:OK</code>.</div>
+  <div class="espera">Se espera: en el paso 1, antes de confirmar, <strong>"Solo si la barrera está rota. El brazo sube AHORA y se queda arriba también con la luz en rojo..."</strong>; al confirmar, la pluma <strong>sube en ese momento</strong> (J15 conduce). En Eventos <strong>"Equipo: barrera FUERA DE SERVICIO..."</strong>; en Tráfico <strong>"▲ BARRERA FUERA DE SERVICIO"</strong> en ámbar. En el paso 3, arriba en <strong>todos</strong> los rojos. En el paso 4, <strong>"Equipo: la barrera ya estaba como lo pidió: no se cambió nada."</strong> En el paso 5, <strong>"Equipo: barrera EN SERVICIO otra vez..."</strong> y la pluma baja a los <strong>3 s</strong>. En el paso 6, al volver a sacarla, <strong>"Equipo: barrera FUERA DE SERVICIO..."</strong> otra vez (no &laquo;ya estaba&raquo;); al ponerla en servicio con el objeto delante, la pluma se queda arriba mientras la cámara vea algo y baja cuando se quita. En Tramas <code>$ACK,CMD:SET_BARRERA_SERVICIO:OFF,RESULT:OK</code> y luego <code>...:ON,RESULT:OK</code>.</div>
   <div class="horas">
     <label class="campo">Aviso antes de confirmar (copie) <input type="text" id="h14a" class="hora"></label>
     <label class="campo">Paso 1: ¿subió en el acto en rojo? (sí/no) <input type="text" id="h14b" class="hora"></label>
@@ -614,10 +614,10 @@ button#btnPdf{
     <li>Quite la alimentación del Poste 1 durante <strong>1 minuto</strong>. Mire la pluma durante el corte.</li>
     <li>Devuelva la alimentación y ponga el cronómetro. Anote a qué segundo vuelve a subir la pluma (J15 conduce) y a qué segundo se enciende la primera luz.</li>
     <li>Conéctese con la app y mire Tráfico: fila CÁMARAS y fila de la pluma.</li>
-    <li>Busque el aviso de arranque: en Eventos, en Tramas (<code>INTERRUPTOR</code>) o, si la app no estaba conectada al arrancar, en el registro exportado (Diario de órdenes). Copie la frase.</li>
+    <li>Busque el aviso de arranque. Sale al encender, antes de que el celular vuelva a conectarse, así que <strong>no</strong> lo va a ver en Tramas en vivo ni en el Diario de órdenes: lo guarda el puente. Búsquelo en <strong>Eventos</strong>, en la línea <strong>gris</strong> que empieza por <strong>"Equipo [LOG]"</strong>, y en el archivo exportado (Tramas &rarr; "Diario de órdenes" &rarr; "Exportar todo como archivo"), en la parte <strong>"IOT-VIAL - REGISTRO DEL EQUIPO"</strong>. Copie la línea.</li>
     <li>Si el poste no vuelve a dar ciclos solo, <strong>VOLVER AL MENÚ</strong> y <strong>AUTOMÁTICO</strong>. Después devuelva el veto y ponga la barrera en servicio.</li>
   </ol>
-  <div class="espera">Se espera: tras el corte, <strong>los dos siguen puestos</strong>: cámaras <strong>SIN VETO</strong> y <strong>"▲ BARRERA FUERA DE SERVICIO"</strong>, y la pluma arriba también en rojo. En Tramas un evento <code>INTERRUPTOR</code> con <code>ARRANQUE_CAM_NOVETO_Y_BARRERA_FUERA</code>, una sola vez. La frase de la app para la barrera: <strong>"Al arrancar, este poste sigue con la barrera FUERA DE SERVICIO..."</strong>; la del veto, <strong>anote lo que salga</strong>. Lo que hace el brazo durante el corte y el tiempo hasta que vuelve a subir: <strong>anote lo medido</strong>.</div>
+  <div class="espera">Se espera: tras el corte, <strong>los dos siguen puestos</strong>: cámaras <strong>SIN VETO</strong> y <strong>"▲ BARRERA FUERA DE SERVICIO"</strong>, y la pluma arriba también en rojo. En Eventos, una línea gris <strong>"Equipo [LOG] ..."</strong> con <code>INTERRUPTOR</code> y <code>ARRANQUE_CAM_NOVETO_Y_BARRERA_FUERA</code>, <strong>una sola vez</strong> por arranque, y la misma en la parte REGISTRO DEL EQUIPO del archivo exportado. Si el celular llegara a estar conectado en el arranque, la app lo traduce con dos frases fijas: <strong>"Al arrancar, este poste sigue con las cámaras FUERA DEL VETO: la barrera baja aunque haya algo debajo. Si la cámara ya ve bien, devuelva el veto desde Diagnóstico."</strong> y <strong>"Al arrancar, este poste sigue con la barrera FUERA DE SERVICIO: el brazo está arriba también en rojo. Si ya está reparada, póngala en servicio desde Diagnóstico."</strong> Lo que hace el brazo durante el corte y el tiempo hasta que vuelve a subir: <strong>anote lo medido</strong>.</div>
   <div class="horas">
     <label class="campo">Pluma durante el corte (arriba/bajó/a medias) <input type="text" id="h15a" class="hora"></label>
     <label class="campo">Segundo en que volvió a subir la pluma <input type="text" id="h15b" class="hora"></label>
@@ -643,12 +643,12 @@ button#btnPdf{
   </ul></div>
   <ol>
     <li>Con el Poste 1 <strong>apagado</strong>, quite la pila. Encienda el poste sin pila.</li>
-    <li>Pulse <strong>Sacar las cámaras del veto</strong>, confirme y meta el PIN. Copie lo que dice.</li>
-    <li>Pulse <strong>Sacar la barrera de servicio</strong>, confirme y meta el PIN. Copie lo que dice y mire la pluma.</li>
+    <li>El poste arranca en ámbar intermitente, y en ámbar la pluma ya está arriba por la luz. Pulse <strong>VOLVER AL MENÚ</strong> (rojo fijo) y espere a que la pluma <strong>baje</strong> (a los 3 s, J15 deja de conducir). Pulse <strong>Sacar las cámaras del veto</strong>, confirme y meta el PIN. Copie lo que dice.</li>
+    <li>Siga en el menú, con la pluma abajo. Pulse <strong>Sacar la barrera de servicio</strong>, confirme y meta el PIN. Copie lo que dice y mire la pluma.</li>
     <li>Pulse <strong>Poner la barrera en servicio</strong>. Copie lo que dice.</li>
     <li>Con el poste encendido, ponga la pila. Apáguelo y enciéndalo <strong>una vez</strong>. Repita el paso 2 y, si lo acepta, devuelva el veto.</li>
   </ol>
-  <div class="espera">Se espera: en los pasos 2 y 3, el interruptor <strong>no se pone</strong>: <strong>"El equipo NO lo puso: al arrancar encontró perdido lo que guarda con la pila..."</strong>; en Tramas <code>$ERR,CMD:SET_VETO_CAMARA:OFF,DESC:RESPALDO_INVALIDO</code> y <code>$ERR,CMD:SET_BARRERA_SERVICIO:OFF,DESC:RESPALDO_INVALIDO</code>. La pluma <strong>no sube</strong> por el interruptor. En el paso 4, <strong>"Equipo: la barrera ya estaba como lo pidió: no se cambió nada."</strong> En el paso 5, tras el reinicio con la pila puesta, se acepta: <strong>"Equipo: las cámaras de este poste quedan FUERA DEL VETO..."</strong>.</div>
+  <div class="espera">Se espera: en los pasos 2 y 3, el interruptor <strong>no se pone</strong>: <strong>"El equipo NO lo puso: al arrancar encontró perdido lo que guarda con la pila..."</strong>; en Tramas <code>$ERR,CMD:SET_VETO_CAMARA:OFF,DESC:RESPALDO_INVALIDO</code> y <code>$ERR,CMD:SET_BARRERA_SERVICIO:OFF,DESC:RESPALDO_INVALIDO</code>. La pluma <strong>sigue abajo</strong> (en el menú, en rojo): no sube por el interruptor, y en Tráfico la pluma dice <strong>"▼ PLUMA ABAJO"</strong>, no "▲ BARRERA FUERA DE SERVICIO". En el paso 4, <strong>"Equipo: la barrera ya estaba como lo pidió: no se cambió nada."</strong> En el paso 5, tras el reinicio con la pila puesta, se acepta: <strong>"Equipo: las cámaras de este poste quedan FUERA DEL VETO..."</strong>.</div>
   <div class="horas">
     <label class="campo">Paso 2: frase de la app (copie) <input type="text" id="h16a" class="hora"></label>
     <label class="campo">Paso 3: frase de la app y pluma (arriba/abajo) <input type="text" id="h16b" class="hora"></label>
