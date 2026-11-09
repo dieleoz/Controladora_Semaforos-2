@@ -39,7 +39,7 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 | Maestro `179DB0` (El Sisga) | `7ff7d12` `SIN_BANCO`, probado despues `b354fe9`. Ninguno lleva el veto de camara a la pluma (`363e375`, `D-33`): `Camaras_Sisga_4x.html` se corrige en la MISMA visita en que se cargue un firmware posterior | cinta y diario en `evidencia/` |
 | Esclavo del Sisga | sin medir | su cinta no se ha traido |
 | Maestro `4D2007` y Esclavo `38EB53` (Marco, banco) | `6bd1e4f` en controlador y puente, medido: `$ACK,CMD:VERSION` el 01/10 | `evidencia/011020260934/` |
-| paquete para Marco | RETENIDO: `Paquete_Semaforos_2026-10-16_0fe782f_SIN_BANCO` (zip `b5018718...`, APK `df02795d...`, `.bin` con `FW:0fe782f`, hoja de 45 casos); el de `ad74390` (`c68f11f0...`) queda sustituido. Sale uno solo, tras el punto 1 | `entregas/` |
+| paquete para Marco | `Paquete_Semaforos_2026-11-09_db74195_SIN_BANCO` (zip `20d12dbe...`, APK `3bc6dfc8...`, hoja de 24 pruebas: barrera con puente H, 4 camaras, interruptores, radios, El Sisga y calle); los anteriores en `RETIRADOS/` | `entregas/` |
 
 ## Verificacion en escritorio
 

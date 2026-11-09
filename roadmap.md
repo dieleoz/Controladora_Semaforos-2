@@ -222,14 +222,20 @@ se MIDE en la visita (equipo, `VERSION`, `CONSULTA_NOCHE` y cinta de un sabado),
 | X | worktree | `respaldo.cpp`, despachador `bluetooth.cpp`, pluma y camaras de Maestro y Esclavo, su arnes | `D-94`..`D-97` || hecho, `bd16447`: 99/99, 184/184, 158/158; flash 80,2 % / 66,8 % |
 | AP | worktree | `app.js` (dos copias), `index.html`, sus pruebas | Interruptores de `D-94` || hecho, `bd16447`: DOM 842/842 (aviso de arranque con literal inventado: rojo visto y corregido) |
 | H | arbol principal | `05_Funcional/Hoja_Marco_<fecha>.html` | Hoja: barrera, 4 camaras, camara caida, interruptores, fin de semana, radios, calle con mensula; `D-22`, `D-124` || hecho: `Pruebas_Funcional_2026-11-09.html`, 24 pruebas, `acd7f6e` |
-| F, Q, P | orquestador | como `N-181` | Integrar, compuerta, arquitecto y QA una vez, APK, `.bin`, UN `.zip`; `0fe782f` a `RETIRADOS/` || compuerta sobre `acd7f6e` 1513/1514 (solo `D-22`); paquete `8f8dd7e` en `entregas/` (zip `75861ee5...`, APK `c7b38cc2...`, sin telefono); arquitecto APTO CON CONDICIONES (cond. 3 en `3fa3614`, cond. 2 abajo); QA en curso |
+| F, Q, P | orquestador | como `N-181` | Integrar, compuerta, arquitecto y QA una vez, APK, `.bin`, UN `.zip`; `0fe782f` a `RETIRADOS/` || hecho: paquete `db74195` (zip `20d12dbe...`, APK `3bc6dfc8...`), compuerta sobre `c94a6cb` 1518/1519 (solo `D-22`); arquitecto y QA con condiciones cerradas; hoja corregida por QA y alineada con U; sin telefono |
 
-**Siguiente de `N-182` (09/11):** tras U, una tanda: (1) `NO_QUEDO_PUESTO` en la app (condicion 2 del arquitecto:
-`Interruptores.RECHAZOS` y caso en `dom_interruptores.js` con el literal del firmware, visto en rojo); (2) las
-condiciones de QA; (3) compuerta, APK, telefono a 320 px y paquete nuevo que sustituye a `8f8dd7e`. Hueco medido:
-tras un corte con la barrera fuera, la pluma sube en la siguiente escritura de la luz, no al arrancar. Riesgo medido
-en el fuente (C5): la camara no frena una bajada ya ordenada, y Marco cuenta ~60 s de recorrido con final de carrera;
-se cronometra en banco antes de decidir.
+**`N-182` cerrado en teclado (09/11):** U construido (`4105ba3`, `4c709fd`, `c94a6cb`; D-141..D-145), interruptores
+(`bd16447`), `NO_QUEDO_PUESTO` traducido. Sin medir: el telefono (scroll a 360x640, 320 px, 48 px). Hueco medido: tras
+un corte con la barrera fuera, la pluma sube en la siguiente escritura de la luz, no al arrancar. Riesgo medido en el
+fuente (C5): la camara no frena una bajada ya ordenada, y Marco cuenta ~60 s de recorrido con final de carrera; se
+cronometra en banco antes de decidir. Auditoria aparte en la rama `auditoria/n182` (otra sesion).
+
+**`N-183` (09/11): SPEC_4 contra la app.** Las marcas de SPEC_4 §7 y §9 envejecen («HUECO hasta N-181 B/D», «Sin
+construir» de los interruptores, §9.14 «NO construido» con G1 hecho). Dos lectores con el mismo encargo clasifican cada
+apartado (construido, a medias, sin construir) citando el simbolo; donde difieren, un tercero abre el fuente. Despues un
+constructor corrige las marcas y construye lo que falte con prueba en rojo; lo que decide el responsable (`D-82`, rotulo
+oculto a <= 400 px) va como pregunta. Faltan conocidos: tandas de `D-98`, textos crudos (`FLASH_NO_RELEE`, `NO_CABE`,
+`RESULT` desconocido de `FORZAR_ROJO`), §9.2 con «Diagnostico»/«Depuracion». Numeros reservados: `D-156`..`D-162`.
 
 Abierto, para el responsable (no se construye en `N-182`): «inhibir UNA camara o dos» (hoy `D-94` es un solo
 interruptor y SPEC_8 §2 dice que las dos entradas hacen lo mismo) y «barrera ABAJO» desde la app (`D-96` solo da
