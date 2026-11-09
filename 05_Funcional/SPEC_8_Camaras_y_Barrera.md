@@ -190,13 +190,13 @@ separados en el modo administrador de la app, uno por poste**. No se pueden junt
 falla no es lo mismo y lo que queda funcionando tampoco. **No son interruptores fisicos** (`D-94`): no hay
 entrada libre decidida —`J14`/`PB0` reservada al fin de carrera (`D-46`), `J16` p5/p8 vacios y sin cablear
 (`D-44`)— y un interruptor que el telefono no puede ver puesto es peor que ninguno. Lo que el responsable dejo
-abierto el 14/09 lo cerro Fable por delegacion el 14/10 (`D-94`..`D-97`); **sin tarjeta con barrera y pila
-medidas no hay codigo** (`CLAUDE.md` §3, `roadmap.md` `N-178` M12): este apartado es la spec de lo NO construido.
+abierto el 14/09 lo cerro Fable por delegacion el 14/10 (`D-94`..`D-97`); construido el 09/11 (`N-182`), sin banco:
+lo que pide tarjeta con barrera y pila esta en §7 (filas 4, 5 y 7).
 
 | el interruptor | cuando se usa | que hace el equipo despues |
 |---|---|---|
 | **Sacar la camara del veto** | la camara esta averiada o mal apuntada y **no deja bajar la barrera** | la barrera **vuelve a trabajar**: sube con el verde y baja tras el rojo, con su retardo. Lo unico que se pierde es que la camara pueda retenerla. Saca del veto a **las dos camaras del poste** (una por poste, como se decidio el 14/09; no por camara) |
-| **Sacar la barrera de servicio** | la barrera esta **rota de verdad** —brazo partido, actuador atascado— | **SUSPENDIDO (6.3):** el brazo se queda **arriba** y deja de obedecer a la luz. El cruce sigue funcionando **solo con el semaforo** |
+| **Sacar la barrera de servicio** | la barrera esta **rota de verdad** —brazo partido, actuador atascado— | el brazo se queda **arriba**, tambien en rojo (6.3, `D-96`), y deja de obedecer a la luz. El cruce sigue funcionando **solo con el semaforo** |
 
 ## 6.1 Las ordenes (`D-94`)
 
@@ -205,12 +205,12 @@ medidas no hay codigo** (`CLAUDE.md` §3, `roadmap.md` `N-178` M12): este aparta
   **No viajan por radio:** el Poste 2 recibe la suya por su propio Bluetooth, como `SET_MODO`. El Maestro no la reenvia.
 - Tras la clave de administracion de la app (`D-56`, que las suma a su lista) **y el PIN del equipo**, como toda orden.
   Viven en Diagnostico, no en la pantalla del operario (`D-80`); antes de enviar `OFF` la app dice la consecuencia con
-  las palabras de la tabla de arriba y, para la barrera, **«el brazo sube AHORA, tambien con la luz en rojo»**
-  (frase pendiente de la fila de 6.3).
+  las palabras de la tabla de arriba y, para la barrera, **«el brazo sube AHORA, tambien con la luz en rojo»**.
 - **Molde `SET_TIEMPOS`** (`CLAUDE.md` §2): ya en ese estado, `RESULT:SIN_CAMBIO` sin tocar nada (`D-65`); otro texto,
   `$ERR ... DESC:FORMATO_INVALIDO`; con el respaldo perdido en este arranque, `$ERR ... DESC:RESPALDO_INVALIDO`
-  (abajo). Si no, se escribe la bandera, **la orden vuelve a pasar por la puerta** (6.3) y `$ACK,CMD:<orden>,RESULT:OK`
-  solo si lo leido DESPUES es lo pedido (`D-149`): el getter de la bandera y, para la barrera, `semaforo_plumaFuera()`
+  (abajo); si lo releido despues no es lo pedido, `$ERR ... DESC:NO_QUEDO_PUESTO`, que la app traduce.
+  Si no, se escribe la bandera, **la orden vuelve a pasar por la puerta** (6.3) y `$ACK,CMD:<orden>,RESULT:OK` solo si
+  lo leido DESPUES es lo pedido (`D-149`): el getter de la bandera y, para la barrera, `semaforo_plumaFuera()`
   (6.4). Releer el registro solo no basta: un registro recien escrito devuelve siempre lo escrito.
 - **Que es «respaldo invalido» (`D-148`):** `respaldo_valido()` no sirve: `respaldo_setup()` acaba siempre en
   `sellar()`, que pone `contenidoValido = true`, tambien tras `respaldo_borrar()`. El criterio es una bool en RAM que
