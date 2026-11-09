@@ -245,6 +245,15 @@ Para la rama `auditoria/n182`: el recorrido del menu de `dom_simulador.js` empar
 (`SET_DEG_AUTO:1`, `CONSULTA_NOCHE`, `SET_TIEMPOS:5,5,30` saldrian «sin respuesta»), y el juez de vocabulario no ve
 las tramas que el firmware arma con `snprintf` (interruptores).
 
+**`N-184` (09/11): la radio del banco de Marco se cae al cambiar o dar una orden, a 5 m.** Medido en sus capturas
+(`evidencia/091120261523`, 10:35): E90-DTU leida como `433C37`, UART 1200, aire 1,2 k, modo Fixed, 37 dBm; SPEC_6
+B.2 pide 9600 / 2,4 k / Transparent. El manual del modelo comprado, E90-DTU (433L37)-V8 (LoRa, mismo directorio),
+dice en §6 que el modo NORMAL es M1=ON, M0=ON y que OFF/OFF es el de configuracion: lo CONTRARIO de SPEC_6 B.1 (2) y
+`CLAUDE.md` §3, escritos para un modelo sin confirmar (SPEC_6 B.5). Sin medir en sus radios: modelo de la etiqueta
+y posicion de los interruptores (pedido a Marco con la configuracion de las dos). Si se confirma: SPEC_6 B.1-B.3,
+`CLAUDE.md` §3 y la hoja cambian en el mismo commit. Manual transcrito a `.md` (fuente de trabajo). Despues, si
+sigue cayendo bien configurada: `RTT:` frente a las esperas del protocolo (LoRa, semiduplex, paquetes de 58 B).
+
 Abierto, para el responsable (no se construye en `N-182`): «inhibir UNA camara o dos» (hoy `D-94` es un solo
 interruptor y SPEC_8 §2 dice que las dos entradas hacen lo mismo) y «barrera ABAJO» desde la app (`D-96` solo da
 fuera de servicio = arriba; abajo forzada en verde no tiene fila).
