@@ -268,6 +268,14 @@ tramos de 30 s sin un byte. Firma de radio fuera de modo normal o a otra velocid
 Fixed), no de tiempos del protocolo. Exportado antes de reconfigurar. Paso a paso de configuracion enviado a Marco
 (SPEC_6 B.3 y manual §6-§7.2); se cierra con «tramas buenas» > 0 y `RTT:` medido. Si no: cableado 485 y masa comun.
 
+**`N-184`, decision (responsable, 16:20):** Marco no puede escribir en las radios (programa V1.9 lee «Version 0,0» y
+modelo `433C37`; SetParam en gris). «Baja la tasa, que funcione desde firmware» (`D-159`): entorno de compilacion
+aparte para radios a UART 1200 / Fixed (cabecera de destino con fuente de Ebyte; presupuesto de tiempos con sus
+`static_assert`; el binario por defecto, identico por sha256), en worktree, con arquitecto antes de entregar.
+Prueba simple de las radios sin controlador: LEDs `TXD`/`RXD` de las cajas con los dos postes encendidos (cada
+latido, 3 s), y PC con dos USB-RS485 y un terminal a 1200 8N1 en cada radio (sin cable cruzado: A con A, B con B).
+Hechos tambien: `N-185` (`15c5fe6`), `D-98` tanda 3 (`8ac39f4`), `D-158` (`955d2c7`).
+
 **Pendiente (09/11, mientras Marco prueba):** teclado: `N-185` Repetidor (en curso, worktree); merge de
 `auditoria/n182` tras su runbook; tandas 3+ de `D-98`. Del responsable: §7.1 (cuatro ordenes sin PIN), §7.5 (Modo
 Alcance), C5 (camara en bajada) tras cronometrar la pluma. De banco: radios ON/ON y `RTT:`, puente H, 4 camaras,
