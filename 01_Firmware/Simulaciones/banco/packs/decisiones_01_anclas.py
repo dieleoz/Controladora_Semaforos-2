@@ -46,7 +46,7 @@ import re
 NOMBRE = "decisiones_01_anclas"
 DESCRIPCION = "cada D-x VIGENTE tiene ancla en el fuente; cada DEROGADO, ninguna"
 
-PUNTAS = ("Maestro", "Esclavo", "Repetidor", "ESP32_Expansion")
+PUNTAS = ("Maestro", "Esclavo", "ESP32_Expansion")  # el Repetidor salio con D-157
 CARPETAS = ("src", "include")
 RX_FILA = re.compile(r"\*\*(D-\d+(?:\.bis)?)\*\*")
 RX_ANCLA = re.compile(r"\bD-(\d+(?:\.bis)?)\b")

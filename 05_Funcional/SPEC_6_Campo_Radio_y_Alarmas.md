@@ -186,10 +186,10 @@ su cobre es SPEC 5. *(SPEC 2 §8 remitia «los parametros del modulo» a SPEC 5,
    `Esclavo/src/main.cpp`: un `CMD_GO_GREEN` ajeno lo pone en verde (**dos verdes en el carril**); un `CMD_PING` ajeno
    renueva `tUltimoComando` y **tapa la orfandad** (SFTY-6) aunque su Maestro haya muerto; PING, GO_RED o GO_GREEN
    ajenos lo sacan del Degradado. El Maestro acepta igual los `ACK_*` y `PONG` del Esclavo ajeno (`coordinador.cpp`).
-   **Barrera vigente (`D-124`): un canal por pareja, distinto del de todo otro grupo de la obra** (dos con repetidor,
-   B.4), comprobado con las casillas y la prueba de puesta en marcha de B.3. El filtro de pareja en la trama es
-   **mejora sin desarrollar** y **riesgo de seguridad abierto**, no comodidad: cuesta regrabar a la vez Maestro,
-   Esclavo y Repetidor (`TAM_TRAMA = 4` en el Repetidor) y la matricula de `SFTY-27`, que es diseno. Falta MEDIR:
+   **Barrera vigente (`D-124`): un canal por pareja, distinto del de todo otro grupo de la obra**,
+   comprobado con las casillas y la prueba de puesta en marcha de B.3. El filtro de pareja en la trama es
+   **mejora sin desarrollar** y **riesgo de seguridad abierto**, no comodidad: cuesta regrabar a la vez Maestro
+   y Esclavo y la matricula de `SFTY-27`, que es diseno. Falta MEDIR:
    en banco, dos parejas encendidas a la vez, en el mismo canal, en canales contiguos y en canales separados,
    anotando que hace cada Esclavo (`evidencia/<fecha>_campo_dos_parejas.txt`).
 
@@ -197,7 +197,7 @@ su cobre es SPEC 5. *(SPEC 2 §8 remitia «los parametros del modulo» a SPEC 5,
 
 | parametro | valor | quien lo puede contradecir |
 |---|---|---|
-| **UART** | `9600`, `8N1` | 🟢 **el FIRMWARE**: abre el bus de radio a esa velocidad en **las dos puntas**, y el Repetidor abre sus dos radios igual, `8N1` explicito. **Si la radio no esta a esa velocidad, no hay enlace posible** |
+| **UART** | `9600`, `8N1` | 🟢 **el FIRMWARE**: abre el bus de radio a esa velocidad en **las dos puntas**. **Si la radio no esta a esa velocidad, no hay enlace posible** |
 | **Air Data Rate** · **Potencia** · **FEC** · **Transmission Mode** · **Canal** | `2.4 kbps` · la maxima del modulo · activado · `Transparent` *(fixed-point desactivado)* · **el MISMO en las dos puntas** | 🔴 **nadie**: viven en la NVM del modulo y ningun instrumento de aqui los lee |
 
 > 🔴 **NINGUN INSTRUMENTO DE ESTE REPOSITORIO LEE LA CONFIGURACION DE UNA RADIO.** La compuerta no la ve, el firmware
@@ -222,7 +222,7 @@ su cobre es SPEC 5. *(SPEC 2 §8 remitia «los parametros del modulo» a SPEC 5,
 
 **Casillas antes de cerrar los gabinetes:** ⬜ misma Air Data Rate en las dos ⬜ mismo canal ⬜ `M0`/`M1` en `ON` en
 las dos ⬜ antena conectada en las dos ⬜ apuntado en el parte **que radio quedo con que canal**, leido con `Read
-Option` ⬜ **ese canal no lo usa ningun otro grupo de la obra** (`D-124`; dos canales por grupo con repetidor).
+Option` ⬜ **ese canal no lo usa ningun otro grupo de la obra** (`D-124`).
 
 **Prueba de puesta en marcha (`D-124`), con los demas grupos de la obra ENCENDIDOS:** se apaga el Maestro propio y el
 Esclavo tiene que pasar a ambar intermitente antes de ~30 s (SFTY-6); despues al reves, apagando el Esclavo. **Si no cae
@@ -231,17 +231,14 @@ repite cada vez que se cambia un modulo de radio.
 
 ## B.4 Topologia: hoy son DOS radios en enlace directo
 
-El repetidor **no esta montado** y es reinstalable. **El firmware no cambia** al pasar de dos a cuatro: las puntas son
-agnosticas a la topologia y **lo unico que cambia es el CANAL**.
+**No hay repetidor en esta arquitectura** (`D-157`): Maestro y Esclavo, una radio cada uno, en el mismo canal. Su
+firmware salio del arbol vivo (`01_Firmware/historico/Repetidor`) y la compuerta ya no lo compila.
 
-> 🔴 **LA TRAMPA ESTA EN RETIRARLO, NO EN PONERLO.** Con repetidor, las dos puntas quedan en canales DISTINTOS a
-> proposito —si no, el repetidor se oye a si mismo—. **Quitar el repetidor sin devolver la radio del Esclavo al
-> canal del Maestro deja las dos puntas en frecuencias distintas**: no se comunican y **las dos caen a ambar
-> intermitente** al vencer el silencio de radio. Parece radio rota.
+> 🔴 **Un poste que aun lleve el repetidor de antes:** las dos puntas estaban en canales DISTINTOS a proposito. Quitarlo
+> sin devolver la radio del Esclavo al canal del Maestro las deja sin enlace y **las dos caen a ambar intermitente** al
+> vencer el silencio de radio. Parece radio rota: se lee el canal de las dos con `GetParam` (B.3).
 
-**Varios grupos en la misma obra (`D-124`):** un grupo con repetidor ocupa **dos** canales, y el repetidor reenvia toda
-trama valida que oiga, sin filtro: ninguno de sus dos canales lo usa otro grupo. El canal que sugiere el texto de
-arranque del Repetidor es un ejemplo, no una asignacion: copiarlo en todos los montajes los pone a todos en el mismo.
+**Varios grupos en la misma obra (`D-124`):** cada grupo ocupa **un** canal, y ninguno lo comparte con otro grupo.
 **Sin medir:** cuanta separacion entre canales hace falta (rechazo de canal adyacente) y cuantos canales caben dentro
 de la banda de la antena (B.5); los dos salen del acta de dos parejas (B.1 (4)).
 
@@ -277,7 +274,7 @@ PERDIDOS**, que no los cuenta nadie: si una sesion los necesita, **pregunta para
 
 **`$ALARM` es la Caja Negra**: sale **en el instante** en que pasa algo y **solo lo ve quien esta conectado entonces**
 (quien llegue despues lo lee en el `$STATUS` o en el Diario; formato en SPEC 4 §5). **Las emiten las DOS puntas y nadie
-mas**: medido, el puente ESP32 **no origina ninguna** —solo retransmite— y el Repetidor no emite tramas. **El campo
+mas**: medido, el puente ESP32 **no origina ninguna** —solo retransmite—. **El campo
 `ACCION` dice lo que el equipo HIZO, no lo que deberia hacerse.**
 
 | `EVENTO` | `CAUSA` | `ACCION` | quien | que la dispara | **que hace el tecnico** |

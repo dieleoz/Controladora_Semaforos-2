@@ -1,7 +1,7 @@
 # ===== empaquetar_funcional.py =====
 #
 # Arma el .zip que va al funcional (receta: .claude/particularidades/entregar.md §4):
-# 01_Firmware/ (fuente PlatformIO de las cuatro puntas, con FW_HASH.txt = <commit>), la APK,
+# 01_Firmware/ (fuente PlatformIO de las tres puntas -sin Repetidor, D-157-, con FW_HASH.txt = <commit>), la APK,
 # App_Web/ (www/) y la hoja de pruebas .html con el codigo de version puesto. Sin LEEME ni guia del PC.
 # Un paquete, un commit (D-84): todo sale de `git show <commit>:`; sin [commit], HEAD. El commit es
 # ancestro de HEAD, su firmware es el del acta (leida de HEAD:<acta>) y la hoja esta en el.
@@ -21,7 +21,7 @@ FECHA, HTML, ACTA = sys.argv[1], sys.argv[2], sys.argv[3]
 C = sys.argv[4] if len(sys.argv) == 5 else "HEAD"
 APK_SRC = os.path.join(REPO, r"05_Funcional\App_Semaforo\android\app\build\outputs\apk\debug\app-debug.apk")
 WWW = "05_Funcional/App_Semaforo/www/"
-FW4 = ["01_Firmware/Maestro", "01_Firmware/Esclavo", "01_Firmware/Repetidor", "01_Firmware/ESP32_Expansion"]
+FW3 = ["01_Firmware/Maestro", "01_Firmware/Esclavo", "01_Firmware/ESP32_Expansion"]
 
 
 def git(*a):
@@ -53,7 +53,7 @@ if rc("merge-base", "--is-ancestor", h, "HEAD") != 0:
 acta = git("show", "HEAD:" + ACTA).decode("utf-8", "replace")
 hash_acta = [l.split(":")[1].split()[0] for l in acta.splitlines() if l.startswith("HEAD")][0]
 # El firmware de <commit> es el que midio el acta.
-dif = git("diff", "--name-only", hash_acta, h, "--", *FW4).decode().split()
+dif = git("diff", "--name-only", hash_acta, h, "--", *FW3).decode().split()
 if dif:
     sys.exit("ABORTA: firmware cambio desde el acta %s: %s" % (hash_acta, dif))
 if HTML not in lista(HTML):
@@ -82,7 +82,7 @@ with zipfile.ZipFile(apk_dst) as za:
         sys.exit("ABORTA: falta bluetoothSerial.js")
 sha_apk = hashlib.sha256(open(apk_dst, "rb").read()).hexdigest()
 
-fw = [r for r in lista(*FW4) if not r.endswith("README.md")]
+fw = [r for r in lista(*FW3) if not r.endswith("README.md")]
 html = show(HTML).decode("utf-8")
 n_x = html.count("XXXXXXX")
 html = re.sub(r"Paquete_Semaforos_\d{4}-\d\d-\d\d_XXXXXXX", "Paquete_Semaforos_%s_XXXXXXX" % FECHA, html)
@@ -94,7 +94,7 @@ zpath = os.path.join(ENT, nombre + ".zip")
 with zipfile.ZipFile(zpath, "w", zipfile.ZIP_DEFLATED) as z:
     for r in fw:
         z.writestr(r, show(r))
-    for p in FW4:
+    for p in FW3:
         if p + "/platformio.ini" in fw:
             z.writestr(p + "/FW_HASH.txt", h + "\n")
     for r in www:

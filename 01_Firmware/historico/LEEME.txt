@@ -1,0 +1,10 @@
+FIRMWARE E INSTRUMENTOS RETIRADOS (D-157)
+
+Nada de esta carpeta se compila, se simula ni se empaqueta: compuerta.py y
+herramientas/entrega/empaquetar_funcional.py no la miran, y el trinquete la excluye.
+No se borro nada: git mv, historia intacta.
+
+Repetidor/              - puente ESP32 de radio (topologia de 4 radios). Sale con D-157:
+                          la arquitectura es de dos radios en enlace directo.
+simulador_repetidor.py  - modelo puro de su logica (fila "simulador de repetidor", 10/10).
+                          Importa simulador_sistema_v7_6 de Simulaciones/: aqui no corre.

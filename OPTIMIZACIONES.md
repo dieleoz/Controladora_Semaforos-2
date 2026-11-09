@@ -8,7 +8,8 @@ nada:** las 2.310 líneas que tenía el 12/09/2026 están íntegras en
 **Manda la SPEC (`05_Funcional/SPEC_0..8`; [`DECISIONES.md`](DECISIONES.md) es su indice); el hardware medido,
 desde `05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md`. Las dos GANAN a este fichero.**
 
-**Ecosistema:** Firmware STM32 + Repetidor ESP32 + Radio LoRa E90-DTU.
+**Ecosistema:** Firmware STM32 (Maestro y Esclavo) + ESP32 de expansion + Radio LoRa E90-DTU en enlace directo (sin
+repetidor, D-157).
 **Velocidades, que no son la misma:** el puerto serie al módulo va a **9600 bps**
 (`Bus.begin(9600)`, `*/src/protocolo.cpp`); la **tasa aérea** es de **2,4 kbps**, que es la que
 determina el coste de la ráfaga de SFTY-11 y el peor caso de reintentos de SFTY-7.
@@ -17,14 +18,16 @@ determina el coste de la ráfaga de SFTY-11 y el peor caso de reintentos de SFTY
 
 ## 📌 Reglas de Seguridad Inquebrantables (SFTY-1 a SFTY-18)
 
-- **SFTY-1:** Watchdog Timer IWDG activo a **4.0s** en Maestro y Esclavo STM32 (`IWatchdog.begin(4000000)`), con refresco obligatorio en `loop()`. *El Repetidor ESP32 no implementa watchdog.*
+- **SFTY-1:** Watchdog Timer IWDG activo a **4.0s** en Maestro y Esclavo STM32 (`IWatchdog.begin(4000000)`), con
+  refresco obligatorio en `loop()`.
 - **SFTY-2:** Enclavamiento por hardware/software que prohíbe luz Verde y Rojo simultáneas en la misma cara.
 - **SFTY-3:** Suma de verificación polinomial **CRC-8 Maxim (`0x31`)** en todos los paquetes RF.
 - **SFTY-4:** Lógica de despeje **All-Red (Rojo Fijo en ambos semáforos)** con tiempo configurable de **10 a 90 s**. El piso de **10 s** es inquebrantable por software —`modoAutomatico_fijarTiempos()` hace `return false` fuera de rango, venga del menú o de la radio— así que no es posible configurar despeje nulo. El par vive una sola vez, en `Maestro/src/modo_automatico.cpp:34` (`DESPEJE_SEG_MIN = 10, DESPEJE_SEG_MAX = 90`), y lo releen `documentos_04_cifras_sin_vigilante` y el arnés del automático en cada corrida. *Estuvo publicado aquí como ~~«5 a 999s», con piso de 5s~~ hasta el 31/08/2026: el piso era la mitad del real, el techo once veces el real, y **999 no cabía siquiera en el `uint8_t` que transporta el valor** — ninguna versión del firmware pudo aceptarlo nunca.*
 - **SFTY-5:** Transición de luz legal en Colombia (Res. 2024): Verde $\rightarrow$ Rojo Directo (0s); Rojo $\rightarrow$ Amarillo Fijo (4.0s) $\rightarrow$ Verde.
 - **SFTY-6:** Timeout de fallback a **25.0s** sin PONG/PING para entrar a **🟡 Amarillo Intermitente** en ambos lados. El umbral vive una sola vez, en `*/include/protocolo.h` (`SFTY6_SILENCIO_MS = 25000UL`, idéntico en las dos puntas). *Estuvo publicado aquí como **12.0s** hasta el 31/08/2026: era el valor anterior a **N-71**, y esa cifra es justamente la que no cabía por encima de los reintentos.*
 - **SFTY-7:** Reintento automático de órdenes ACK cada **3.5s** (`TIMEOUT_ACK_MS`), **validado en campo el 31/07/2026** con la tasa aérea a 2.4 kbps. El fallback de seguridad de 25.0s (SFTY-6) es el **techo** de la ventana, y la cuenta que lo sostiene sale del C++: los **5 reintentos** de `CICLO_MAX_REINTENTOS` a 3.5s (≈3.56s con el aire de la ráfaga), más los 3.0s de cadencia del latido, dan **~20,8s de peor caso** bajo un techo de 25.0s. **Con el techo de 12.0s que se publicaba antes de N-71 sólo cabían 2 o 3: los reintentos 4 y 5 eran código muerto**, porque el ámbar por orfandad saltaba primero. La desigualdad la recalcula `costura_09_presupuesto_radio` desde las constantes en cada corrida, en vez de vivir en esta frase. *No se sube "por si acaso" ante mayor distancia: la distancia aumenta la probabilidad de pérdida, no la latencia, y contra una trama perdida sirve repetir, no esperar.*
-- **SFTY-8:** Repetidor ESP32 asíncrono. *Desde V8.3 la liberación del bus ya no es por ventana de silencio de 5 ms sino inmediata al terminar cada trama — ver SFTY-16.*
+- **SFTY-8:** El emisor espera el bit de STOP del CRC antes de soltar el bus (`delayMicroseconds(1200)` en
+  `*/src/protocolo.cpp`). *La parte del Repetidor ESP32 salio con el (D-157).*
 - **SFTY-9:** **Self-Healing Autónomo**: Reconexión de red sin reinicio manual, antecedida por 15s de All-Red de seguridad.
 - **SFTY-10:** Ventana deslizante (`memmove`) para rescatar paquetes RF en ambientes con ruido eléctrico o pérdida de bytes.
 - **SFTY-11:** Transmisión en ráfaga configurable vía `RF_BURST_COPIES` (`protocolo.h`), **fijada en 3 copias**. El coste de la ráfaga lo determina la **tasa aérea**, no el protocolo: a 2.4 kbps son ~0.13s de aire (despreciable), mientras que a 0.3 kbps eran ~2.2s y ahí sí saturaban el canal. Con la tasa corregida la redundancia vuelve a ser barata, y es **la palanca correcta frente a distancias variables** en equipos móviles.
@@ -32,8 +35,16 @@ determina el coste de la ráfaga de SFTY-11 y el peor caso de reintentos de SFTY
 - **SFTY-13:** **Supresión Anti-Colisión de PING**: Suprime el Heartbeat PING durante espera de ACK para evitar colisiones RS485.
 - **SFTY-14 (V8.1):** **Telemetría de calidad de enlace**. Sobre el latido de 3 s que ya existe se mide si hubo respuesta y cuánto tardó, en ventana deslizante de 10 latidos. Se expone en los modos de operación (`RF:100% 340ms`) y en la pantalla **PRUEBA ALCANCE**. Solo se acepta como respuesta el comando que corresponde (`PONG` a un `PING`, `ACK_RED` a un `GO_RED`): aceptar cualquier paquete falsearía la medida al alza. No requiere soporte de la radio ni cambios de protocolo.
 - **SFTY-15 (V8.3):** **Diagnóstico de línea**. `protocolo.cpp` cuenta bytes recibidos, tramas válidas y tramas descartadas por CRC. La pantalla **PRUEBA ALCANCE** los muestra en su fila inferior, separando tres fallos que antes se veían todos como "no hay comunicación": `RX 0 - nada llega` (cobertura, canal o antena), `RX 4k - BASURA` (llegan bytes pero ninguna trama válida: cableado, línea flotando o radio atascada) y `RX 36 9 tr` (enlace correcto). Los contadores se ponen a cero al entrar a la pantalla.
-- **SFTY-16 (V8.3):** **Puente que valida antes de retransmitir**. El repetidor ESP32 dejó de ser un passthrough ciego: ahora reconoce el formato (4 bytes con CRC-8 Maxim) y **solo relaya tramas válidas**. Si el par RS485 de entrada queda flotando, el ruido se descarta dentro del ESP32 y no llega al aire. Antes, ese ruido mantenía la transmisión permanentemente activa y la radio de salida saturaba el canal (fallo de campo del 31/07: LED TX fijo en B2). Además la transmisión solo se activa cuando hay algo real que enviar, no ante el primer byte. Compilar con `-D PUENTE_TRANSPARENTE` revierte al comportamiento anterior.
-- **SFTY-17 (V8.4):** **Retardo de cortesía del Esclavo antes de responder** (`RETARDO_RESPUESTA_MS = 200`). En modo repetidor hay una radio intermedia (B2) que acaba de **transmitir** la orden y necesita tiempo para volver a **recepción**. Si el Esclavo contesta de inmediato, su respuesta sale mientras B2 sigue conmutando y **B2 no la oye**: el enlace funciona en un sentido y no vuelve nada. Observado en campo el 31/07 con el contador del puente marcando `C<-Esclavo = 1 byte` en dos minutos mientras la ida fluía. La respuesta se **programa**, no se bloquea el bucle, así que el parpadeo de ámbar y el watchdog siguen atendidos. En enlace directo es inofensivo: el Maestro espera hasta 3.500 ms.
+- **SFTY-16 (V8.3):** Retirada con el Repetidor ESP32 (D-157): era el puente que validaba el CRC antes de retransmitir.
+  Su fuente queda en `01_Firmware/historico/Repetidor`.
+- **SFTY-17 (V8.4):** **Retardo de cortesía del Esclavo antes de responder** (`RETARDO_RESPUESTA_MS = 200`). En modo
+  repetidor hay una radio intermedia (B2) que acaba de **transmitir** la orden y necesita tiempo para volver a
+  **recepción**. Si el Esclavo contesta de inmediato, su respuesta sale mientras B2 sigue conmutando y **B2 no la oye**:
+  el enlace funciona en un sentido y no vuelve nada. Observado en campo el 31/07 con el contador del puente marcando
+  `C<-Esclavo = 1 byte` en dos minutos mientras la ida fluía. La respuesta se **programa**, no se bloquea el bucle, así
+  que el parpadeo de ámbar y el watchdog siguen atendidos. En enlace directo es inofensivo: el Maestro espera hasta
+  3.500 ms. **Sin repetidor (D-157) pierde su motivo original, pero queda: es coordinacion de radio y se revisa con el
+  RTT medido en banco (N-184), no antes.**
 - **SFTY-18 (V8.5):** **Reloj de tiempo real con hora declarada no fiable por defecto**. El Maestro usa el RTC interno
   del STM32 con el cristal `Y2` de 32.768 kHz que la tarjeta ya traía y una pila CR2032 en `VBAT` (ver
   [`05_Funcional/historico/MAPEO_TARJETA_KICAD.md`](05_Funcional/historico/MAPEO_TARJETA_KICAD.md) §4). No ocupa ningún
@@ -76,7 +87,7 @@ que no la comprueba es **peor** que una fila vacía, porque la vacía al menos n
 |---|---|---|
 | SFTY-1 | `Maestro/src/main.cpp` · `Esclavo/src/main.cpp` | — |
 | SFTY-2 | `Maestro/src/semaforo.cpp` · `Esclavo/src/semaforo.cpp` | ✅ `barrera_01_pines_de_luz` · `barrera_02_dos_puntas` · `esclavo_06_no_abre_paso` · `maestro_09_test_leds` |
-| SFTY-3 | `*/src/protocolo.cpp` · `Repetidor/src/main.cpp` | — |
+| SFTY-3 | `*/src/protocolo.cpp` | — |
 | SFTY-4 | `Maestro/src/coordinador.cpp` · `Maestro/src/modo_automatico.cpp` | — |
 | SFTY-5 | `Maestro/src/semaforo.cpp` · `Esclavo/src/semaforo.cpp` · SPEC: `SPEC_1` §3.2-§3.3 (`D-45`, `D-53`); el texto de la regla (verde a rojo directo) esta superado | ✅ `Validacion_Automatico/arnes_automatico.cpp` — **arnés C++, invisible para el censo de packs**, ver abajo |
 | **SFTY-6** | `*/include/protocolo.h` *(el umbral)* · `Maestro/src/coordinador.cpp` · `Esclavo/src/main.cpp` | ✅ `costura_08_silencio` · `costura_09_presupuesto_radio` · `costura_13_ambar_ordenado` · `maestro_04_sync_horaria` |
@@ -89,7 +100,7 @@ que no la comprueba es **peor** que una fila vacía, porque la vacía al menos n
 | SFTY-13 | `Maestro/src/coordinador.cpp` | — |
 | SFTY-14 | `Maestro/src/coordinador.cpp` · SPEC: `SPEC_4` §5 (`RF`/`RTT` del `$STATUS`) y §9.11 | — |
 | SFTY-15 | `*/src/protocolo.cpp` (D-63: PRUEBA ALCANCE ya no los pone a cero) | — |
-| SFTY-16 | `Repetidor/src/main.cpp` · SPEC: `SPEC_2` §1 (puente con validacion de CRC) | — |
+| SFTY-16 | retirada con el Repetidor (D-157) | — |
 | SFTY-17 | `Esclavo/src/main.cpp` | — |
 | **SFTY-18** | `Maestro/src/reloj.cpp` · `Maestro/include/reloj.h` · `ESP32_Expansion` *(el reloj del puente)* · SPEC: `SPEC_3` §1, §4 y §5 (la hora la siembra el ESP32, `D-20`) | ✅ `esp32_04_osf` · ✅ `esp32_11_bien_formada_no_es_cierta` |
 | **SFTY-19** | **— solo diseño, ver abajo.** La única mención en el código es una advertencia en `reloj.h` aclarando que este modo **no** se apoya en el RTC · SPEC: la sustituye `SFTY-21` (`SPEC_2` §7); la entrada automatica volvio en §7.ter (`A-15`) | — |

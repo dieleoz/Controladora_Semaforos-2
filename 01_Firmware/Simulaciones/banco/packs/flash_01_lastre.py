@@ -46,7 +46,7 @@ import re
 NOMBRE = "flash_01_lastre"
 DESCRIPCION = "no se enlaza el I2C ni el SPI por hardware mientras ninguna punta los use"
 
-PUNTAS = ("Maestro", "Esclavo", "Repetidor")
+PUNTAS = ("Maestro", "Esclavo")  # el Repetidor salio con D-157: quedan las dos STM32
 
 BANDERAS = ("U8X8_NO_HW_I2C", "U8X8_NO_HW_SPI")
 
@@ -116,8 +116,8 @@ def correr(b, fw):
     #   - Los bloques 1 y 2 recorren `con_pantalla`. Vacia -> cero comprobaciones, y no
     #     por un `if` que las salte sino porque no hay sujeto que recorrer.
     #   - El bloque 3 -"si una punta empieza a usar I2C de verdad, la bandera tiene que
-    #     SALIR"- sigue recorriendo las TRES puntas: es el que sirve el dia del PCF8574.
-    #   - El bloque 4 pasa de mirar una punta a mirar las TRES: ninguna tiene pantalla,
+    #     SALIR"- sigue recorriendo todas las PUNTAS: es el que sirve el dia del PCF8574.
+    #   - El bloque 4 pasa de mirar una punta a mirar todas: ninguna tiene pantalla,
     #     asi que NINGUNA puede llevar U8X8_NO_HW_I2C ni U8X8_NO_HW_SPI. Eso es mas
     #     vigilancia que antes, no menos, y es exactamente lo que caza el .ini copiado
     #     que devolveria el lastre.
@@ -186,7 +186,7 @@ def correr(b, fw):
                 "fuera el transporte que el firmware si necesita" % (punta, bus, bandera))
 
     # ---- 4. La punta sin pantalla no arrastra la decision por copia ----
-    # El Repetidor no depende de U8g2, asi que estas banderas no le hacen nada. Que
+    # Una punta sin U8g2 no gana nada con estas banderas. Que
     # las llevara seria senal de que alguien copio un .ini sin leerlo, y ese es
     # exactamente el movimiento que hace volver el lastre a las otras dos.
     for punta in PUNTAS:

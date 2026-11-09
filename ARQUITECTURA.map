@@ -21,7 +21,6 @@ graph TD
     FW["FIRMWARE (categoria firmware)<br/>01_Firmware/"]
     MAE["Maestro<br/>01_Firmware/Maestro/src/main.cpp:50 setup()"]
     ESC["Esclavo<br/>01_Firmware/Esclavo/src/main.cpp:170 setup()"]
-    REP["Repetidor<br/>01_Firmware/Repetidor/src/main.cpp:121 setup()"]
     ESP["ESP32_Expansion<br/>01_Firmware/ESP32_Expansion/src/main.cpp:124 setup()"]
     PROTO["PROTOCOLO (categoria protocolo)<br/>01_Firmware/Maestro/include/protocolo.h:155 SFTY6_SILENCIO_MS"]
     APP["APP (categoria app)<br/>05_Funcional/App_Semaforo/js/bluetooth_driver.js:52 connect()"]
@@ -35,7 +34,6 @@ graph TD
 
     FW --> MAE
     FW --> ESC
-    FW --> REP
     FW --> ESP
     MAE -- "radio, protocolo.h" --> PROTO
     ESC -- "radio, protocolo.h" --> PROTO
@@ -136,7 +134,7 @@ Quien cita la transcripcion: `SPEC_1_Ciclo_y_Luces.md:109` (§2 y §5), `SPEC_1:
 - Packs vivos: **70** (`ls 01_Firmware/Simulaciones/banco/packs/*.py | grep -v __init__ | wc -l`). Retirados a
   `banco/historico/`: 10 mas `LEEME.txt`.
 - Modelos: `01_Firmware/Simulaciones/banco/modelos/{costura,esclavo,maestro}.py`; leen constantes en el import.
-- La guarda de rutas solo censa tuplas `("Maestro"|"Esclavo"|"Repetidor"|"ESP32_Expansion", "src"|"include", ...)` y el
+- La guarda de rutas solo censa tuplas `("Maestro"|"Esclavo"|"ESP32_Expansion", "src"|"include", ...)` y el
   par M+E.
   NO vigila: contenido mudado de fichero, documentos, la app, ni un rol nuevo.
 - [CADUCO] `compuerta.py:802` describe el STM32 con `mando.cpp` compilado; `mando.cpp` salio con D-30 (`ba6faab`,
@@ -165,17 +163,16 @@ Antes de conectar un arnes se inyecta un defecto en el `.cpp` real y se exige qu
 
 ## 5. LAS FILAS DE LA COMPUERTA
 
-`[MEDIDO 14/10 - evidencia/2026-10-14_compuerta.txt, lineas 12-32]`. **Son DIECINUEVE.** Los numeros son los de la acta.
+`[MEDIDO 14/10 - evidencia/2026-10-14_compuerta.txt, lineas 12-32]`. **Eran DIECINUEVE**;
+con `D-157` salen la 4 y la 7 (Repetidor): son diecisiete. Los numeros son los de la acta.
 
 | fila | acta:linea | que mide | cifra |
 |---|---|---|---|
 | 1 `guarda de rutas` | :12 | rutas que los instrumentos abren existen | 61 rutas, todas existen |
 | 2 `compila maestro` | :13 | PlatformIO sobre `Maestro/` | 70,7 % (45.580 de 64.512 B) |
 | 3 `compila esclavo` | :14 | PlatformIO sobre `Esclavo/` | 62,8 % (40.496 de 64.512 B) |
-| 4 `compila repetidor` | :15 | PlatformIO sobre `Repetidor/` | 20,6 % |
 | 5 `compila esp32` | :16 | PlatformIO sobre `ESP32_Expansion/` | 35,7 % |
 | 6 `simulador funcional` | :17 | `simulador_sistema_v7_6.py` | 9/9 |
-| 7 `simulador de repetidor` | :18 | `simulador_repetidor.py` | 10/10 |
 | 8 `simulador de app y bluetooth` | :19 | `simulador_app_bluetooth.py` | 12/12 |
 | 9 `test funcional de la app` | :20 | `05_Funcional/App_Semaforo/test_funcional_app.py` | 70/70 |
 | 10 `test unitarios de la app` | :21 | `05_Funcional/App_Semaforo/test_unitarios_app.js` | 63/63 |

@@ -109,11 +109,11 @@ RUTAS_MINIMAS_ESPERADAS = 45
 # Y EL NOMBRE SE ELIGE UNA VEZ. La guarda vigila ficheros que desaparecen, NO contenido
 # que se muda de fichero: renombrar este directorio mas adelante dejaria a los packs
 # buscando un patron que ya no esta y acusando al firmware de un defecto que no tiene.
-_ROLES = ("Maestro", "Esclavo", "Repetidor", "ESP32_Expansion")
+_ROLES = ("Maestro", "Esclavo", "ESP32_Expansion")  # Repetidor fuera: D-157
 
 # ("Maestro", "src", "mando.cpp") — admite saltos de linea dentro de la llamada.
 _RE_TRIPLE = re.compile(
-    r'["\'](Maestro|Esclavo|Repetidor|ESP32_Expansion)["\']\s*,\s*'
+    r'["\'](Maestro|Esclavo|ESP32_Expansion)["\']\s*,\s*'
     r'["\'](src|include)["\']\s*,\s*'
     r'["\']([A-Za-z0-9_]+\.(?:h|cpp|ini))["\']', re.S)
 
@@ -871,11 +871,8 @@ def main():
         print("\n-- Compilacion --")
         compilar("maestro", "Maestro")
         compilar("esclavo", "Esclavo")
-        compilar("repetidor", "Repetidor")
-        # ESP32 de expansion: el puente de J17 mas el reloj DS3231. NO es el Repetidor
-        # -aquel es el puente de radio de la topologia de 4 radios, que esta fuera de la
-        # configuracion vigente-, y por eso son dos proyectos y dos filas distintas.
-        #
+        # ESP32 de expansion: el puente de J17 mas el reloj DS3231. El Repetidor salio
+        # de la arquitectura (D-157) con sus dos filas; su fuente, en 01_Firmware/historico.
         # Se compila desde el primer dia. Los packs del banco son Python que parsea
         # texto: valen para las propiedades estructurales y NO prueban que el codigo
         # compile. Un firmware que no compila con nueve packs en verde es exactamente el
@@ -884,7 +881,6 @@ def main():
 
     print("\n-- Modelos de comportamiento --")
     correr_python("simulador funcional", "simulador_sistema_v7_6.py")
-    correr_python("simulador de repetidor", "simulador_repetidor.py")
     # N-62: existia desde el 26/08 y NO estaba aqui. "Un instrumento que no esta en la
     # compuerta no mide nada, y no deja rastro de que falta": la lista de la sesion de
     # banco lo daba por hecho -"simulador_app_bluetooth.py en 5/5 PASS"- y el acta no

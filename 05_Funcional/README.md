@@ -233,7 +233,7 @@ que es donde se anotan las medidas.
    / **`4_Manual_Configuracion_Radios.docx`**  
    Configuración de radios industriales **E90-DTU** con `RF_Setting4.6.exe` y DIP switches `M0`/`M1`.
 5. 📘 **[5_Manual_Puente_ESP32.md](historico/5_Manual_Puente_ESP32.md)** / **`5_Manual_Puente_ESP32.docx`**  
-   Instrucciones para la instalación del puente repetidor con ESP32 (Modo 4 Radios para curvas ciegas).
+   Puente repetidor con ESP32 (Modo 4 Radios). **Retirado** (`D-157`): la arquitectura es de 2 radios en enlace directo.
 6. 📘 **[6_Preguntas_Diseno_Funcional.md](historico/6_Preguntas_Diseno_Funcional.md)**
    / **`6_Preguntas_Diseno_Funcional.docx`**  
    Cuestionario y parámetros de diseño de obra, y la **detección vehicular por contacto seco**.

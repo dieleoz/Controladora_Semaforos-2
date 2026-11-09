@@ -105,9 +105,8 @@ publicaba 32 rutas y 86,4 % de flash cuando el acta que ella misma citaba medía
 |---|---|---|
 | guarda de rutas de los instrumentos | ✅ | 64 rutas parseadas, todas existen |
 | banco por packs *(70 packs)* | 🔴 **FALLA** | **1519/1520 comprobaciones en 70 packs** — 69 PASS, **1 FALLA**. `decisiones_01_anclas` acusa a **`D-22`** (necesita una tarjeta delante); no se decora (`CLAUDE.md` §1) |
-| compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **80.2 %** · 66.8 % · 20.6 % · 35.8 % — *el Maestro ocupa **50948 de 63488 B** (las dos ultimas paginas quedan para las franjas de noche, `D-108`, y el testigo de `D-35`); el Esclavo, **41468 B**. Bajo al quitar la libreria RTC (`N-172`) y subio con la salida programada (`D-52`) y el verde del testigo (`D-59`)* |
+| compila Maestro / Esclavo / ESP32 | ✅ | **80.2 %** · 66.8 % · 35.8 % — *el Maestro ocupa **50948 de 63488 B** (las dos ultimas paginas quedan para las franjas de noche, `D-108`, y el testigo de `D-35`); el Esclavo, **41468 B**. Bajo al quitar la libreria RTC (`N-172`) y subio con la salida programada (`D-52`) y el verde del testigo (`D-59`)* |
 | simulador funcional | ✅ | 9/9 — eran 20, y 11 de aquellas no medían nada: se retiraron una a una con su evidencia |
-| simulador de repetidor | ✅ | 10/10 |
 | compila ESP32 | ✅ | 35.8 % — 1126409 de 3.145.728 B |
 | simulador del puente ESP32 | ✅ | **159/159** — las tres puntas: `bluetooth.cpp` compilado, la app en jsdom, y solo el ESP32 modelado |
 | simulador de app y bluetooth | ✅ | **12/12** — estuvo en `ABORTADO` unas horas el 05/09: **N-149** le añadió el campo `ESC` al `$STATUS` y el instrumento no supo con qué compararlo. Se enseñó a leerlo el mismo día. Queda escrito porque **mientras duró, todo lo que vigilaba entró sin mirar** (`CLAUDE.md` §1) |
@@ -341,10 +340,6 @@ seis.**
 - 🟠 **Sin pantalla, `$STATUS` es el único tablero que existe** — y hoy trae `BAT:--` porque
   **no hay un solo `analogRead` en `src/`**. Un campo que no se mide se retira o se marca; no se
   deja con aspecto de medida.
-- 🟠 **El ESP32 de este proyecto no tiene watchdog en el Repetidor** *(los dos STM32 sí: 4 s; el
-  ESP32 de expansión también, desde `vigilante.cpp`)*, y hay precedente escrito de uno clavado
-  tumbando el enlace. Con la pantalla y el mando retirados, un ESP32 colgado deja el equipo **sin
-  ninguna superficie de mando**.
 
 **El plano de conexiones que se entrega —`J17`, `J16`, `PB6`/`PB7`, el `DS3231` y el SWD— es
 [`05_Funcional/Montaje_Campo_2026-10-05.html`](05_Funcional/Montaje_Campo_2026-10-05.html)**,
@@ -363,7 +358,7 @@ con el cobre medido en `17_...` y SPEC_5.
 | 2 | [`2_Manual_Hardware_y_Pruebas`](05_Funcional/historico/2_Manual_Hardware_y_Pruebas.md) | Hardware, borneras y ensamblaje STM32 |
 | 3 | [`3_Protocolo_Pruebas_Rigurosas`](05_Funcional/historico/3_Protocolo_Pruebas_Rigurosas.md) | Protocolo de auditoría funcional. ⚠️ **reescrito**: cada prueba lleva su marca `SE REESCRIBE` / `SE RETIRA` / `SE APLAZA` |
 | 4 | [`4_Manual_Configuracion_Radios`](05_Funcional/historico/4_Manual_Configuracion_Radios.md) | E90-DTU (2.4 kbps / 30 dBm / FEC) |
-| 5 | [`5_Manual_Puente_ESP32`](05_Funcional/historico/5_Manual_Puente_ESP32.md) | Puente repetidor V7.6 — **fuera de la configuración vigente** |
+| 5 | [`5_Manual_Puente_ESP32`](05_Funcional/historico/5_Manual_Puente_ESP32.md) | Puente repetidor V7.6 — **retirado** (`D-157`) |
 | 6 | [`6_Preguntas_Diseno_Funcional`](05_Funcional/historico/6_Preguntas_Diseno_Funcional.md) | Decisiones de diseño cerradas |
 | 7 | [`7_Especificacion_Antenas`](05_Funcional/historico/7_Especificacion_Antenas.md) | Antenas y línea de vista |
 | 8 | [`8_Procedimiento_Modo_Degradado`](05_Funcional/historico/8_Procedimiento_Modo_Degradado.md) | Operación de emergencia por reloj sin radio |
@@ -397,9 +392,8 @@ cerrar.)*
   Bluetooth.
 - [`01_Firmware/ESP32_Expansion`](01_Firmware/ESP32_Expansion): El módulo de expansión —reloj
   `DS3231` y Bluetooth—, **con watchdog** (`vigilante.cpp`).
-- [`01_Firmware/Repetidor`](01_Firmware/Repetidor): Puente ESP32 back-to-back. ⚠️ **Fuera de la
-  configuración vigente** y **sin watchdog**: es el mismo firmware que se quedó clavado tumbando el
-  enlace el 31/07. **No es el ESP32 de expansión.**
+- [`01_Firmware/historico/Repetidor`](01_Firmware/historico/Repetidor): el puente ESP32 de radio, **retirado**
+  (`D-157`): la arquitectura es de dos radios en enlace directo. No se compila ni se empaqueta.
 - [`01_Firmware/Simulaciones/`](01_Firmware/Simulaciones): simuladores y `banco/` con sus
   packs *(cuántos, en el acta)*.
 - [`01_Firmware/Validacion_LCD/`](01_Firmware/Validacion_LCD) · `_Ciclo/` · `_Respaldo/` ·

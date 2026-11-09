@@ -100,7 +100,7 @@ DESCRIPCION = "ninguna SPEC niega un simbolo que existe ni promete uno que no es
 # EL CORPUS DEL PRODUCTO
 # ---------------------------------------------------------------------------------
 
-PUNTAS = ("Maestro", "Esclavo", "Repetidor", "ESP32_Expansion")
+PUNTAS = ("Maestro", "Esclavo", "ESP32_Expansion")  # el Repetidor salio con D-157
 CARPETAS = ("src", "include")
 
 # La app canonica. Se excluyen por PREFIJO los ficheros que no son producto: los

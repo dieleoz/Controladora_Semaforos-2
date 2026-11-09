@@ -56,8 +56,7 @@ el Maestro es el unico que ordena verde, el Esclavo obedece y acusa (`SPEC_2` §
 | **radio E90-DTU** | bornera `J12` | el **unico** vinculo entre los dos postes: no hay cable entre ellos |
 
 **El STM32 es el controlador y el ESP32 un accesorio colgado de un puerto serie (`J17`): no manda sobre las luces** (`SPEC_5`
-§1). **Repetidor: OPCIONAL y hoy NO montado** (`SPEC_6` B.4) — ⚠️ **y no es otro STM32: es un ESP32**
-(`Repetidor/platformio.ini`), dos radios espalda con espalda que validan CRC y **no originan ni una trama**.
+§1). **No hay repetidor**: las dos radios van en enlace directo (`D-157`, `SPEC_6` B.4).
 
 🔴 **UN TELEFONO CON LA APP ES LA UNICA FORMA DE OPERARLO** (`D-16`): no hay pantalla (`D-17.bis`), no hay pulsadores (`D-2`)
 y el mando de reles no tiene receptor montado (`D-1`). **Sin telefono no se arranca el cruce, ni se para, ni se pone en

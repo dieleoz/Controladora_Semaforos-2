@@ -16,7 +16,7 @@ el firmware lo tocan otros agentes.
 |---|---|
 | **Poste 1 (Maestro)** | El ÚNICO que ordena verde. Su máquina de estados vive en el coordinador (`Maestro/src/coordinador.cpp`) |
 | **Poste 2 (Esclavo)** | Obedece y ACUSA. No tiene coordinador: su lado de la radio es una cadena de condiciones en su bucle principal, **único lector de radio** de esa punta |
-| **Repetidor** | Puente transparente con validación de CRC: **no origina ni una trama** |
+| **Radio** | Enlace directo entre las dos puntas, sin repetidor (`D-157`) |
 
 **La única excepción a «el Maestro ordena» es el Modo Degradado** (§7): allí no hay radio y cada punta decide su luz
 por reloj. Es el único modo que enciende un verde **sin confirmación del otro extremo**, y por eso es el que más
@@ -191,7 +191,7 @@ anclas se desfasaban por el otro lado: ~~el Maestro cuenta desde lo último que 
 - **El Maestro no entrega la orden de verde sin una RESPUESTA de la otra punta en el último latido** —en esa espera el
   latido es simple, así que lo que abre la puerta es su `CMD_PONG`; hasta 1.49c valía cualquier trama—, así que el
   desfase entre anclas queda dentro de ese margen. El viaje de ida tiene que caber en la diferencia entre el plazo del acuse y
-  la cadencia del latido: **premisa escrita junto a la constante, no medida con repetidor**.
+  la cadencia del latido: **premisa escrita junto a la constante, sin RTT medido en banco**.
 - **Al oír ese aviso con el cruce quieto, el Maestro reanuda por la misma puerta de `N-163`**: rojo, acuse, despeje, y
   su propio verde.
 - **Con la subida Esclavo→Maestro muerta y la bajada viva, la suelta del verde del Poste 2 la hace el Poste 1**
@@ -931,8 +931,8 @@ con el Esclavo contestando—. Lo exige un `static_assert` junto a `SYNC_MAX_INT
 ARRANQUE de la suelta (un `AMARILLO_MS` antes del rojo), y `costura_09` lo recalcula. **El tiempo de aire** —las
 copias de la ráfaga por la tasa aérea— **está escrito A MANO en el coordinador como tiempo de cable y NO se deriva de
 ningún parámetro de la radio** (`ENVIO_TRAMA_MS`); `costura_09` lleva el mismo valor a la vista y por el mismo motivo.
-Los parámetros del módulo son de **SPEC 6 §B**, y aquí sólo se exige que las dos puntas y el repetidor estén
-configurados igual o el CRC no casa. **Subir el umbral de silencio sin mover los reintentos por su plazo ensancha el
+Los parámetros del módulo son de **SPEC 6 §B**, y aquí sólo se exige que las dos radios estén
+configuradas igual o el CRC no casa. **Subir el umbral de silencio sin mover los reintentos por su plazo ensancha el
 HUECO 5** — el compromiso que `T-2` resolvió en campo: **SPEC 6 D.**
 
 ## 10. QUIÉN EJERCE CADA BARRERA DE ESTE DOCUMENTO
@@ -971,7 +971,7 @@ el mismo hueco visto tres veces.
 3. ⚠️ **El acuse de rojo no lleva a qué orden contesta** —escrito en el propio coordinador—: un acuse retenido en el
    aire y soltado tras una orden de rojo perdida **sería indistinguible del bueno**, y la marca de rojo confirmado
    acota el caso pero no lo cierra. Sin decisión. Y **la rama del latido entrante del Maestro no tiene emisor**: el
-   Esclavo sólo contesta latidos y nunca los origina, y el Repetidor no origina tramas — inofensivo para la luz.
+   Esclavo sólo contesta latidos y nunca los origina — inofensivo para la luz.
 4. ⚠️ **La pieza de la decisión del reloj que avisa de pila perdida sigue sin construir: ese bit del RTC no llega al
    STM32** (`D-21`), y el Degradado se autoriza sobre una comprobación que no lo ve (**SPEC 3, H-2**). Y **nada de este
    capítulo ha visto una tarjeta**: el acuse del aviso, el salto de hora por rojo, el evento periódico y el ancla de

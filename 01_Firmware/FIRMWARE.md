@@ -21,10 +21,6 @@ El firmware está organizado en ~~**3**~~ **4** proyectos PlatformIO independien
 │   ├── platformio.ini      # [env:esclavo] (genericSTM32F103C8)
 │   └── src/                # main.cpp, protocolo.cpp, semaforo.cpp, mando.cpp,
 │                           #   modo_degradado.cpp, bluetooth.cpp, reloj.cpp, ...
-├── Repetidor/              # Proyecto PlatformIO para ESP32 (Repetidor de Radio RS485/LoRa)
-│   ├── platformio.ini      # [env:repetidor] (espressif32 / esp32dev)
-│   ├── include/            # pines_repetidor.h
-│   └── src/                # main.cpp (Passthrough Asincrono V7.6)
 └── ESP32_Expansion/        # 🆕 Modulo de J17: reloj DS3231 con pila, puente Bluetooth
     ├── platformio.ini      # [env] ESP32
     ├── include/            # contrato.h (LATIDO_MS), reloj_ds3231.h, despachador.h, ...
@@ -46,7 +42,6 @@ El firmware está organizado en ~~**3**~~ **4** proyectos PlatformIO independien
 | **Coordinador** | `Maestro/src/coordinador.cpp` | Cerebro del ciclo de paso (`QV_MASTER` ↔ `QV_ESCLAVO`). PING rutinario a 3.0s ~~(0.3k)~~ **(2.4 kbps)**, timeout ACK de ~~5.0s~~ **3.5s**, fallback a ~~12.0s~~ **25.0s** y gestión del Menú Seguro e independizado. |
 | **Protocolo Binario V8.0** | `protocolo.cpp` (Maestro y Esclavo) | **CRC-8 Maxim (`0x31`)** bit a bit, **ráfaga configurable `RF_BURST_COPIES` (~~=1~~ **=3**) + Ventana Deslizante**, `msgID` acotado a 1..255, `protocolo_resetReplayProtection()` y retardo `delayMicroseconds(1200)` tras `Bus.flush()`. |
 | **Hardware Abstraction** | `semaforo.cpp/h`, `pines.h` | Control de MOSFETs (`ROJO1`, `VERDE1`, etc.). Enclavamiento anti-verde simultáneo (`SFTY-2`) y secuencia vial Colombia 2024 (Rojo $\rightarrow$ Amarillo 4s $\rightarrow$ Verde). |
-| **Repetidor ESP32 V7.6** | `Repetidor/src/main.cpp` | Reenvío bidireccional asíncrono sub-milisegundo entre `RadioA` y `RadioC` sin `delay(5)` ni impresiones bloqueantes. |
 
 ### 🔴 Los modos son OCHO, no cuatro — y la UI en ST7920 ya no existe (05/09/2026)
 
@@ -92,10 +87,10 @@ $ grep -n "MENU\|MODO_" 01_Firmware/Maestro/include/modos.h
 > vivo del reloj es Bluetooth**: `CMD:SET_RTC` y `CMD:LEER_RTC` contra el ESP32 de `J17`, que es
 > donde está el reloj con pila. La pantalla `AJUSTAR HORA` ya no es una vía: es código sin puerta.
 
-### ⚠️ Falta un cuarto proyecto: `ESP32_Expansion`
+### `ESP32_Expansion`
 
-El árbol de §1 lista tres proyectos y en `01_Firmware/` hay **cuatro** que van al equipo:
-`Maestro/`, `Esclavo/`, `Repetidor/` y **`ESP32_Expansion/`** —el módulo de `J17` que trae el
+En `01_Firmware/` hay **tres** proyectos que van al equipo (el Repetidor salió, `D-157`):
+`Maestro/`, `Esclavo/` y **`ESP32_Expansion/`** —el módulo de `J17` que trae el
 reloj DS3231, el puente Bluetooth y el latido `LATIDO_MS` que sostiene los contadores de silencio
 de `bluetooth.cpp`—. No es un accesorio: **es donde vive el único camino vivo para poner la hora.**
 

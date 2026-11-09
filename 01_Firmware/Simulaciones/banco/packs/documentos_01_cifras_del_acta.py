@@ -40,9 +40,8 @@ CIFRAS = (
     ("guarda de rutas",        r"(\d+) rutas parseadas",    "rutas censadas por la guarda"),
     ("compila maestro",        r"([\d.]+)%",                "flash del Maestro"),
     ("compila esclavo",        r"([\d.]+)%",                "flash del Esclavo"),
-    ("compila repetidor",      r"([\d.]+)%",                "flash del Repetidor"),
     ("simulador funcional",    r"(\d+/\d+) PASS",           "simulador funcional"),
-    ("simulador de repetidor", r"(\d+/\d+) PASS",           "simulador de repetidor"),
+    # D-157: fuera "compila repetidor" y "simulador de repetidor"; el Repetidor salio.
     # OJO CON LAS DOS DE ABAJO: el banco se estaria midiendo a si mismo. La linea de
     # "banco por packs" del acta la escribe esta misma corrida, asi que su NUMERADOR
     # cambia con que un solo pack falle -y entonces el README nunca podria cuadrar:
@@ -76,7 +75,7 @@ CIFRAS = (
 # exige que las que publica sean las mismas.
 # D-32 (1), 13/09: fuera "pantalla, total". ESTADO.md tiene que dejar de publicarla
 # en su cabecera, y ese fichero esta fuera del alcance de este cambio: queda reportado.
-EN_ESTADO = ("flash del Maestro", "flash del Esclavo", "flash del Repetidor",
+EN_ESTADO = ("flash del Maestro", "flash del Esclavo",
              "total de comprobaciones del banco",
              # La cabecera de ESTADO.md publica las tres de la app -"32 unitarios +
              # 61 jsdom + 58 funcional"- y llevaba dos viejas encima. Si un dia deja
@@ -97,8 +96,7 @@ EN_ESTADO = ("flash del Maestro", "flash del Esclavo", "flash del Repetidor",
 # en una; escribirlos a mano es deliberado, porque una comprobacion nueva en la
 # compuerta sin fila en el README tiene que salir en ROJO, no colarse.
 ALIAS_FILA = {
-    "compila esclavo":   "compila maestro / esclavo / repetidor",
-    "compila repetidor": "compila maestro / esclavo / repetidor",
+    "compila esclavo":   "compila maestro / esclavo",
 }
 
 _RE_LINEA_LAXA = re.compile(r"^ {2}(?:PASS|FALLA|ABORTADO)\s", re.M)
