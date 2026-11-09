@@ -230,12 +230,20 @@ un corte con la barrera fuera, la pluma sube en la siguiente escritura de la luz
 fuente (C5): la camara no frena una bajada ya ordenada, y Marco cuenta ~60 s de recorrido con final de carrera; se
 cronometra en banco antes de decidir. Auditoria aparte en la rama `auditoria/n182` (otra sesion).
 
-**`N-183` (09/11): SPEC_4 contra la app.** Las marcas de SPEC_4 §7 y §9 envejecen («HUECO hasta N-181 B/D», «Sin
-construir» de los interruptores, §9.14 «NO construido» con G1 hecho). Dos lectores con el mismo encargo clasifican cada
-apartado (construido, a medias, sin construir) citando el simbolo; donde difieren, un tercero abre el fuente. Despues un
-constructor corrige las marcas y construye lo que falte con prueba en rojo; lo que decide el responsable (`D-82`, rotulo
-oculto a <= 400 px) va como pregunta. Faltan conocidos: tandas de `D-98`, textos crudos (`FLASH_NO_RELEE`, `NO_CABE`,
-`RESULT` desconocido de `FORZAR_ROJO`), §9.2 con «Diagnostico»/«Depuracion». Numeros reservados: `D-156`..`D-162`.
+**`N-183` (09/11): SPEC_4 contra la app.** Hecho en `f41caf8`: dos lectores (52 apartados, 11 conciliados), 24 marcas
+caducadas al construido, nueve rechazos con frase llana, `D-156`; QA con condiciones cerradas (jsdom 921/921). Fuera:
+tandas 3+ de `D-98` (traslado que rompe instrumentos por ruta) y lo de firmware (§7.2, §7.7, §7.8, §7.11 (b)).
+Para el responsable: §7.1 (cuatro ordenes sin PIN; propuesto aceptarlas y cerrar el emparejamiento abierto del
+puente, `spp.begin` sin clave, como tarea de firmware) y §7.5 (Modo Alcance sin medida propia: retirar o medir).
+
+**En curso (09/11, tras el simulador `666d904`):** (1) `app_07` en rojo por la forma de `interruptores()` del
+simulador, con SPEC_4 §9.10 en el mismo cambio; (2) pasada de coherencia de todas las SPEC, DECISIONES,
+`ARQUITECTURA.map` y `OPTIMIZACIONES.md` contra lo de hoy (solo lectura, ediciones exactas); (3) despues: cifras,
+compuerta, APK y paquete que sustituye a `db74195`. Regla desde hoy: cada cambio de codigo lleva su spec en el mismo
+commit y un grep de lo nuevo en SPEC y DECISIONES antes de comitear.
+Para la rama `auditoria/n182`: el recorrido del menu de `dom_simulador.js` empareja mal respuesta y orden
+(`SET_DEG_AUTO:1`, `CONSULTA_NOCHE`, `SET_TIEMPOS:5,5,30` saldrian «sin respuesta»), y el juez de vocabulario no ve
+las tramas que el firmware arma con `snprintf` (interruptores).
 
 Abierto, para el responsable (no se construye en `N-182`): «inhibir UNA camara o dos» (hoy `D-94` es un solo
 interruptor y SPEC_8 §2 dice que las dos entradas hacen lo mismo) y «barrera ABAJO» desde la app (`D-96` solo da
