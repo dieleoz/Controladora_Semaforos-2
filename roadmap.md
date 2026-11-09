@@ -210,16 +210,17 @@ Hallazgo de fuente, sin medir (09/11): «en modo local va bien hasta el viernes;
 programarlo». (1) El Sisga (`7ff7d12`/`b354fe9`) es anterior al modo noche (`8526f84`): no tiene horario. (2) Con HEAD
 tampoco cabe un fin de semana continuo: franja < 24 h (`inicio == fin` = apagada, `D-108`) y la franja que empieza
 al acabar otra se salta (`FRANJA_SALTADA`, `D-115`, puesto a proposito contra «24 h de ambar de dia»). (3) `-e all`
-borra las franjas en cada carga. Criterio del responsable: que nadie tenga que ir al poste el fin de semana.
+borra las franjas en cada carga. Responsable, 09/11: el fin de semana sigue como esta, sin cambio de firmware; cree
+que no se marcaron sabado y domingo. Pero `7ff7d12` no tiene dias (solo `reloj_ajustarFranjaNocturna` por horas):
+se MIDE en la visita (equipo, `VERSION`, `CONSULTA_NOCHE` y cinta de un sabado), en la hoja H.
 
 | # | quien | ficheros (solo esos) | que | estado |
 |---|---|---|---|---|
 | M | 2 agentes, solo lectura, mismo encargo | firmware de camaras, pluma y respaldo | Que hace HOY el equipo con una camara caida, las dos, la barrera sin final de carrera; se comparan: donde difieren se abre el fuente | |
 | R | 2 revisores, solo lectura, mismo encargo | `D-94`..`D-97`, `D-115`, SPEC_8 §6, SPEC_0 §5.10 | `CLAUDE.md` §11.7 ANTES de construir: modo de fallo de cada barrera que se retira (veto de camara, `FRANJA_SALTADA`); se comparan | |
-| S2 | 1 agente, tras M y R | SPEC_0 §5.10, SPEC_8 §6, `DECISIONES.md` | Fin de semana continuo programable (`D-148`..), condiciones de R a la spec | |
+| S2 | 1 agente, tras M y R | SPEC_8 §6, `DECISIONES.md` | Condiciones de R a la spec antes de construir X (`D-148`..) | |
 | X | worktree | `respaldo.cpp`, despachador `bluetooth.cpp`, pluma y camaras de Maestro y Esclavo, su arnes | `D-94`..`D-97` | |
-| N | worktree | `modo_noche.cpp`, `noche_flash.*`, su arnes | Lo de S2 | |
-| AP | worktree | `app.js` (dos copias), `index.html`, sus pruebas | Interruptores de `D-94` y franjas de fin de semana | |
+| AP | worktree | `app.js` (dos copias), `index.html`, sus pruebas | Interruptores de `D-94` | |
 | H | arbol principal | `05_Funcional/Hoja_Marco_<fecha>.html` | Hoja: barrera, 4 camaras, camara caida, interruptores, fin de semana, radios, calle con mensula; `D-22`, `D-124` | |
 | F, Q, P | orquestador | como `N-181` | Integrar, compuerta, arquitecto y QA una vez, APK, `.bin`, UN `.zip`; `0fe782f` a `RETIRADOS/` | |
 
