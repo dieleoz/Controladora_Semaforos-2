@@ -42,6 +42,8 @@ scratch/
 # dentro. Versionarlas duplicaria el arbol entero y ademas quedan colgadas de una
 # rama, asi que un `git checkout` de esa rama falla mientras exista la carpeta.
 .claude/worktrees/
+# Estado efimero del hook de rondas: sin ignorarlo, git status sale CON CAMBIOS y el sello pasa a +SUCIO.
+.claude/rondas.json
 
 # --- Legado: fuera de git entero (decision del responsable, 02/10/2026) -------
 # Desde el 12/09 solo se versionaban su LEEME.md y su .gitignore. Ya no: la carpeta
@@ -75,8 +77,6 @@ package-lock.json
 # Cache de footprints de KiCad: 3,9 MB por copia, se regenera solo al abrir el
 # proyecto. Habia cinco copias en el arbol.
 fp-info-cache
-
-node_modules/
 
 # --- Clones de terceros anidados ------------------------------------------
 # `deep_sort` es la libreria de seguimiento del experimento de YOLO, que es el
