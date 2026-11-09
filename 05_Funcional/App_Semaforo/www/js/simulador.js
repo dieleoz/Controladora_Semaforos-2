@@ -190,11 +190,11 @@ const Simulador = (() => {
       const valor = a.slice(cmd.length + 1), puesto = valor === 'OFF', clave = esVeto ? 'vetoOff' : 'barreraFuera';
       if (!puesto && valor !== 'ON') return '$ERR,CMD:' + cmd + ',DESC:FORMATO_INVALIDO';   // OFF: interruptor PUESTO
       const enEstado = () => !!p[clave] === puesto;
-      const r = (cola) => (cola[0] === 'D' ? '$ERR' : '$ACK') + ',CMD:' + cmd + ':' + valor + ',' + cola;
-      if (enEstado()) return r('RESULT:SIN_CAMBIO');
-      if (puesto && p.respaldoPerdido) return r('DESC:RESPALDO_INVALIDO');
+      const c = cmd + ':' + valor;
+      if (enEstado()) return '$ACK,CMD:' + c + ',RESULT:SIN_CAMBIO';
+      if (puesto && p.respaldoPerdido) return '$ERR,CMD:' + c + ',DESC:RESPALDO_INVALIDO';
       p[clave] = puesto;
-      return r(enEstado() ? 'RESULT:OK' : 'DESC:NO_QUEDO_PUESTO');
+      return enEstado() ? '$ACK,CMD:' + c + ',RESULT:OK' : '$ERR,CMD:' + c + ',DESC:NO_QUEDO_PUESTO';
     }
     // ---- respuestas comunes a las dos puntas ----
     const version = (p) => (p.sellado ? '$ACK,CMD:VERSION,RESULT:OK,NODE:' + p.nodo + ',FW:' + p.fw

@@ -1223,6 +1223,8 @@ referencia para `tests/dom_simulador.js`, que las compara con el simulador (§9.
 cinta como siempre (`-->`) y la pasa al simulador, que contesta a los `RESPUESTA_MS` (100 ms) segun su estado: el
 mismo `$ACK` o `$ERR` que daria el firmware. Una orden que el firmware no contesta queda sin acuse, igual que en la
 app con un equipo. El PIN se pide igual (§4) y viaja igual; `juzgarTrama()` juzga cada trama como a las de un equipo.
+`SET_VETO_CAMARA` y `SET_BARRERA_SERVICIO` (`D-94`) se contestan como `interruptores_orden()`, con estado por poste, y
+su `$STATUS` publica `PLUMA:FUERA` y `CAM:NOVETO` (`D-150`, `D-151`).
 
 **(d) Marcas y registros (`D-89`).** Con `Practica.activa()`: `Exportar.nombreFichero()` da
 `IOTVIAL_SIMULADO_<serie>_...txt`; la cabecera de la cinta (`Exportar.textoCinta()`) y la del diario
