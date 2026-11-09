@@ -83,19 +83,18 @@ python 01_Firmware/Simulaciones/banco/correr.py   # solo los packs. Sirve para i
 
 ## 0. Lo que esta abierto de verdad, en cinco lineas
 
-### ORDEN DE TRABAJO (09/11, 18:15): esto manda; lo de debajo es el detalle de cada `N-x`
+### ORDEN DE TRABAJO (09/11, 19:00; «construir todo, que no falte nada»): esto manda; el detalle, en cada `N-x`
 
 | # | que | quien / donde | estado |
 |---|---|---|---|
-| 1 | `N-186` paquete para Marco: firmware (3 puntas, sin Repetidor ni 1200), APK de hoy, hoja del 10/11 | QA -> `.zip` | QA en curso; compuerta 16/17 (solo `D-22`) |
-| 2 | Marco 10/11: radio ya enlaza (`D-160`); mide cobertura en metros, puente H de 10 s, 4 camaras, C5 | banco | pendiente |
-| 3 | Sus registros: `RTT:` con LoRa, tiempos de la pluma, respuesta de camaras -> se leen enteros (§7) | orquestador | esperando |
-| 4 | `N-187` camaras y barrera parametrizables desde la app: SPEC_8 §7 + `D-161`.. (especialista) | spec | en curso |
-| 5 | `N-187` construir con los rangos medidos en 3: firmware + app + simulador + arneses, arquitecto antes | worktrees | tras 3 |
-| 6 | SPEC_4 y `ROADMAP_APP.md` reescritas desde el fuente (eran legacy) | spec | en curso |
-| 7 | Decisiones del responsable: §7.5 Modo Alcance (retirar, recomendado); cuando baja la pluma (N-187) | Diego | abiertas |
-| 8 | El Sisga: cargar el firmware actual (sin tope de 48 h con testigo) SOLO tras pasar el banco de Marco | campo | tras 2-3 |
-| 9 | Version siguiente: `D-98` tandas 4 y ultima, emparejamiento BT con clave (`D-158`), `D-22`, `D-124` | — | — |
+| 1 | `N-186` paquete para Marco `db07446` (3 puntas, APK de hoy, hoja del 10/11 de lo pendiente) | `entregas/` | HECHO, QA APTO |
+| 2 | `N-187` construir: NA/NC por camara y retardo de bajada 3..5 s (fabrica = hoy), flash propia, app, simulador | worktrees | SIGUIENTE (ESTADO punto 2) |
+| 3 | Runbook de `N-187`: arquitecto antes, compuerta x2, QA, APK, telefono, UN `.zip` nuevo | orquestador | tras 2 |
+| 4 | Registros de Marco del 10/11: `RTT:`, cobertura, tiempo del brazo, camaras, C5 -> rangos desde la app | orquestador | esperando |
+| 5 | Version siguiente: `D-98` tandas 4 y ultima, BT con clave (`D-158`), §7.5 Alcance, El Sisga tras banco | — | — |
+
+Decidido el 09/11 con simulacion (dos modelos + arbitro): la pluma sube con el verde, baja solo tras el rojo (3..5 s),
+arriba en ambar intermitente; nada de eso es parametro salvo el retardo. Medir el recorrido del brazo manda sobre todo.
 
 Regla desde el 09/11: cada cambio lleva su spec en el MISMO commit y un grep de lo nuevo en SPEC y DECISIONES.
 

@@ -3226,3 +3226,17 @@ es lo mismo que "3.7 existe".
   El responsable decidio canal por pareja con prueba de puesta en marcha (`D-124`) y el filtro de pareja a mejoras.
 - **Lo que se concluyo mal:** numere `D-122` a mano mientras el decisor del workflow abria el mismo numero (renumerado
   a `D-124`); y escribi una superficie «hoja de montaje» que el indice no admite (ABORTADO de `decisiones_01`).
+
+## 14. Sesion del 09/11/2026: paquete de Marco, radio LoRa resuelta y parametros de barrera
+
+- Marco pidio version para radios y camaras. Se construyeron los interruptores de camara y barrera (`D-94`..`D-97`,
+  `D-148`..`D-152`; dos arquitectos, uno NO APTO, `D-96` ARRIBA confirmado por el responsable), el bloque U de la app
+  (`D-141`..`D-145`), N-183 (SPEC_4 contra la app, dos lectores) y la coherencia de todas las specs.
+- La radio «se caia al cambiar»: el registro dio 0 % de latidos y 505 sin respuesta; nunca enlazo. Se sospecho de la
+  configuracion (el programa V1.9 leia 1200/1.2k/Fixed) y se construyo un firmware a 1200 (`D-159`); con RF_Setting
+  4.6 las radios resultaron de fabrica a 9600/Transparent. La causa era M0/M1 en OFF/OFF (modo de configuracion del
+  433L37-V8): la regla de SPEC_6 y CLAUDE.md era de otro modelo. Con ON/ON: 100 % de latidos. `D-160`; `D-159` se
+  retiro. Lo que se concluyo mal: diagnosticar la radio por la lectura de un programa no verificado.
+- El Repetidor salio de la arquitectura (`D-157`). El Degradado con testigo se probo 72 h en el arnes (fin de semana).
+- Cuando bajar la pluma se decidio simulando: dos modelos independientes y un arbitro. Bajar antes del rojo multiplica
+  por 600-900 el riesgo; el tiempo real del brazo manda. Paquete `db07446` para el 10/11; `N-187` queda por construir.
