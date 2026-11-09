@@ -276,10 +276,12 @@ Prueba simple de las radios sin controlador: LEDs `TXD`/`RXD` de las cajas con l
 latido, 3 s), y PC con dos USB-RS485 y un terminal a 1200 8N1 en cada radio (sin cable cruzado: A con A, B con B).
 Hechos tambien: `N-185` (`15c5fe6`), `D-98` tanda 3 (`8ac39f4`), `D-158` (`955d2c7`).
 
-**Pendiente (09/11, mientras Marco prueba):** teclado: `N-185` Repetidor (en curso, worktree); merge de
-`auditoria/n182` tras su runbook; tandas 3+ de `D-98`. Del responsable: §7.1 (cuatro ordenes sin PIN), §7.5 (Modo
-Alcance), C5 (camara en bajada) tras cronometrar la pluma. De banco: radios ON/ON y `RTT:`, puente H, 4 camaras,
-banderas tras corte, `FLASH_NO_RELEE`, `D-22`, `D-124`, El Sisga. Telefono: 360x640 y 320 px de la APK `277fb72`.
+**Pendiente (09/11, 16:40):** EN CURSO: firmware para radios a 1200/Fixed (`D-159`, worktree) -> arquitecto ->
+integrar -> compuerta completa sin el Repetidor (17 filas, dos pasadas) -> cifras -> QA -> APK -> `.zip` para Marco.
+ESPERANDO: veredictos del runbook de `auditoria/n182` (otra sesion) para su merge. DEL RESPONSABLE: §7.5 (retirar el
+Modo Alcance, recomendado). DE BANCO: M0/M1 en ON y LEDs `TXD`/`RXD`; enlace y `RTT:` con el firmware nuevo; puente H;
+4 camaras y C5 (prueba 12, caso 2); banderas tras corte; `FLASH_NO_RELEE`; `D-22`; `D-124`; El Sisga. TELEFONO:
+360x640 y 320 px. CONGELADO: el «simulador funcional» aun modela un repetidor (se toca al descongelar).
 
 **Rama `auditoria/n182` (otra sesion, 09/11):** 7 commits de instrumentos sobre `7f4a502` (rondas.json ignorado,
 lista cerrada en `barrera_03`, ABORTADO en `Validacion_Respaldo`, D-94 por el despachador real del Maestro en el
