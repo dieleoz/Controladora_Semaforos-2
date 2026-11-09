@@ -43,15 +43,15 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 
 ## Verificacion en escritorio
 
-Cifras copiadas del acta [`evidencia/2026-10-16_compuerta.txt`](evidencia/2026-10-16_compuerta.txt), que dice en su
+Cifras copiadas del acta [`evidencia/2026-11-09_compuerta.txt`](evidencia/2026-11-09_compuerta.txt), que dice en su
 cabecera con que HEAD y que arbol se midio; las comprueba `documentos_01` en cada corrida.
 
 | | |
 |---|---|
-| Flash | Maestro **78.8 %** · Esclavo **65.3 %** · Repetidor **20.6 %** · ESP32 **35.8 %** |
-| Banco por packs | **1492/1497 comprobaciones** en **70 packs**, 1 FALLA: `D-22` pide una tarjeta delante; `D-94`..`D-97` sin construir (`CLAUDE.md` §1) |
-| Arneses de C++ real | 88/88 automatico · 78/78 ciclo · 175/175 dos puntas · 158/158 Degradado a dos puntas |
-| App y puente | **802/802** jsdom · **70/70** funcional · **67/67** unitarios · 87/87 TDD · puente 159/159 |
+| Flash | Maestro **80.2 %** · Esclavo **66.8 %** · Repetidor **20.6 %** · ESP32 **35.8 %** |
+| Banco por packs | **1513/1514 comprobaciones** en **70 packs**, 1 FALLA: `D-22` pide una tarjeta delante (`CLAUDE.md` §1) |
+| Arneses de C++ real | 99/99 automatico · 78/78 ciclo · 184/184 dos puntas · 158/158 Degradado a dos puntas |
+| App y puente | **842/842** jsdom · **70/70** funcional · **70/70** unitarios · 87/87 TDD · puente 159/159 |
 ## BLOQUEANTES: lo que no se cierra con teclado (roadmap §1 y §4)
 
 | bloqueo | referencia |
