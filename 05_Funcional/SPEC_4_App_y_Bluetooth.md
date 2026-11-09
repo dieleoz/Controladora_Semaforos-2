@@ -598,7 +598,7 @@ que no se mezclan: **rol visible** (clave de administracion de la app) y **autor
 equipo, §4; `state.pinVerificado`, `CMD:PIN:`). Ninguno arma al otro.
 - **Sin clave de administracion** el tecnico ve Trafico (estado, luces de los dos postes, ROJO TOTAL, AMBAR
   EMERGENCIA, la botonera), Eventos, exportar y **«Prueba de focos»**, que pasa a Trafico y sigue pidiendo el PIN.
-  DEBE (`D-141`, `D-143`; §9.9 (f), NO construido): Prueba de focos plegada en «Mas» de Trafico, y un solo
+  Construido (`4105ba3`; `D-141`, `D-143`, §9.9 (f)): Prueba de focos plegada en «Mas» de Trafico, y un solo
   «Exportar registro» en Eventos (el `.txt` de «Exportar todo»).
 - **Con la clave** se ven ademas Tiempos, Diagnostico (Degradado: testigo, eleccion del automatico, salida `D-52`;
   hora y Courier; mandos directos) y Depuracion, y la tarjeta que pide la eleccion del automatico al conectar.
@@ -940,7 +940,7 @@ HUECO hasta banco: (a) y (e) se miden en la tarjeta (`CRC` del `$ACK` antes y de
 tras un corte); `FECHA:`/`HORA:` con el DS3231 en hora; el lote con la app en segundo plano. Medida de §8: ~350 lineas
 de producto en `ESP32_Expansion` (no cuentan en el numerador, §9.7) contra ~80 de test DOM y ~10 de pack: no sube.
 
-### 9.9 La pantalla del operario (`N-178` M7; `D-80`..`D-83`) — decidido el 14/10, NO construido
+### 9.9 La pantalla del operario (`N-178` M7; `D-80`..`D-83`) — decidido el 14/10; (f)-(i) construido en `4105ba3`
 
 Fuente: `ROADMAP_APP.md` 2-3 y la revision del 09/10; lo que la app DEBE hacer. Decidido por Fable por delegacion del
 responsable, 14/10, y `D-101` el 15/10. Sin arnes nuevo (`CLAUDE.md` §4): `tests/dom_*.js` sobre el `app.js` real;
@@ -1047,11 +1047,11 @@ lineas de producto contra ~70 de test DOM; la razon instrumentos/producto no sub
 manual, no firmware. Sin medir hasta el telefono: contraste del gris `sindato` a pleno sol y la cabecera con fuente
 de reserva sin red.
 
-**(f) Menos pantalla (`N-181` U, `D-141`..`D-145`; 09/11, NO construido).** Orden del responsable (27/10): «no es
+**(f) Menos pantalla (`N-181` U, `D-141`..`D-145`; 09/11, construido).** Orden del responsable (27/10): «no es
 usable, tantas funciones que no se entienden». Criterio, de Pasos Peatonales (`ROADMAP_APP.md`): antes de un texto,
 aviso o modo, ¿lo necesita el operario para operar? Si no, plegado (`<details>`) o fuera. Ocultar tras la clave no
 basto alli, y aqui la lista de la clave es cerrada (`D-56`, `D-123`): **nada nuevo pasa tras la clave**; lo que sobra
-se pliega o sale. Lo de abajo es lo que DEBE hacer; lo construye U-B con la prueba en rojo primero.
+se pliega o sale. Lo de abajo es lo que hace (`4105ba3`, U-B); lo ejerce el bloque «K» de `tests/dom_usabilidad.js`.
 
 Medido el 09/11 sobre `8f8dd7e` (jsdom con el `index.html` y el `app.js` reales; Chrome sin cabeza con el doble de
 `bluetoothSerial`, `$STATUS` Maestro `ROJO`, `ESC:VERDE`, `PLUMA:ABAJO`, `CAM:OK`, `RF:97`, `BAT:12.9`). Trafico sin
@@ -1073,7 +1073,7 @@ Inventario y destino (QUEDA · PLEGADO · FUERA; «clave» = ya estaba tras ella
 | Trafico | `#btn-ir-al-esclavo` desde el Maestro | PLEGADO en «Mas» |
 | Trafico | `.pad-header` «MANDOS DE CAMPO» y `#pad-poste` | FUERA: el poste ya esta en la cabecera |
 | Trafico | AUTOMATICO, DAR PASO, AMBAR, ROJO TOTAL, AMBAR EMERGENCIA, RETIRAR AMBAR, VOLVER AL MENU | QUEDA |
-| Trafico | `#emergencia-hint` | QUEDA sin poste identificado y con el POSTE 1 en Degradado; con otro poste, FUERA (repite el rotulo) |
+| Trafico | `#emergencia-hint` | QUEDA sin poste, con el POSTE 2 y con el POSTE 1 en Degradado; si no, FUERA |
 | Trafico | las tres tarjetas de radio, bateria y camaras | una linea `#resumen-equipo`; las tarjetas, PLEGADO en «Detalle» con la nota junto a su barra (a) 3 |
 | Trafico | Prueba de focos | PLEGADO en «Mas», sin clave y con PIN (§9.2) |
 | Trafico, Esclavo | lista «Si publica / NO publica» y contadores de linea | PLEGADO en «Que se ve desde este poste» |
@@ -1099,6 +1099,9 @@ Construido (`4105ba3`, U-B): `#emergencia-hint` sigue a la vista con el POSTE 1 
 (`app.js`, junto a `TextosSpec4.emergenciaMaestro()`). Por que: alli ROJO TOTAL deja en rojo fijo SOLO este poste y el
 otro sigue alternando por su reloj; el `<small>` que lo dice esta apagado por CSS en pantallas de menos de 740 px de
 alto (todos los telefonos), asi que la linea es el unico sitio donde el operario lo lee antes de pulsar.
+Por lo mismo, con el POSTE 2 la linea dice «ÁMBAR EMERGENCIA abre la talanquera.» y el `<small>` del boton se
+apaga, porque ella lo sustituye (QA de U, C1, 09/11: antes salia y el operario del Esclavo no leia en ningun sitio
+que el brazo sube). Con ella Trafico del Esclavo da 80 palabras, el tope de (g) 2.
 
 **(g) Cifras de la principal (`D-142`).** Trafico sin clave, con todo `<details>` cerrado, en tres fotos (sin enlace;
 Maestro como arriba; Esclavo `SUBORDINADO`):
@@ -1115,8 +1118,9 @@ Maestro como arriba; Esclavo `SUBORDINADO`):
    `#degauto-sinradio`) muestra UNA frase «<sintoma>: <que hacer>.», <= 120 caracteres, sin `JERGA`; medida,
    limite y causa van en su `<details>` «Detalle». **Sin emparejar** (lo que alli era `SIN_PAREJA`): si el enlace
    con un equipo «sin emparejar» falla, el aviso dice «No se pudo conectar: este telefono no esta emparejado con el
-   poste.» y lleva el boton «Emparejar y conectar», que repite `abrirEnlace()` con la misma MAC (Android pide
-   vincular); no hace volver a la hoja.
+   poste.» y lleva el boton «Emparejar y conectar», que repite la conexion con la misma MAC por la puerta de
+   siempre, `cambiarDeEquipo()` (Android pide vincular); no hace volver a la hoja. El aviso es del intento que
+   fallo: lo retiran elegir otro equipo, soltar el enlace y una conexion que sale bien (QA de U, D3).
    Construido (09/11): la frase la escribe cada modulo (`frase` de `AvisoCamaraPluma.vigente()`, `AvisoCorte.FRASE`,
    `frase` de cada fila de `CartelesEquipo.ENTRADAS`, `DegAutoEleccion.textoCartel()`); «Los postes no coinciden» sale
    de la tarjeta del automatico (tras la clave) y va a `#degauto-sinradio`, con «este poste ON, el otro OFF» en su

@@ -87,14 +87,15 @@ def main():
         ("btn-sync-rtc", "Sincronizacion Horaria"),
         ("btn-courier-capture", "Courier Paso 1 (Captura)"),
         ("btn-courier-inject", "Courier Paso 2 (Inyeccion)"),
-        ("btn-share-whatsapp", "Reporte WhatsApp"),
-        ("btn-export-csv", "Exportar Log CSV")
+        ("btn-exportar-todo", "Exportar registro (D-143: sustituye a WhatsApp y CSV)")
     ]
     for btn_id, desc in expected_buttons:
         if f'id="{btn_id}"' in html_content:
             test_passed(f"Elemento UI: {desc} (#{btn_id})", "Presente en interfaz")
         else:
             test_failed(f"Elemento UI: {desc} (#{btn_id})", "No existe en el DOM")
+    for btn_id in ("btn-share-whatsapp", "btn-export-csv"):   # INVERTIDAS (CLAUDE.md 9): D-143 las saco de Eventos
+        (test_passed if f'id="{btn_id}"' not in html_content else test_failed)(f"Retirado (D-143): #{btn_id}", "debe faltar")
 
     # 1.3 Verificar Modal PIN y Modal Bluetooth
     if 'id="pin-modal"' in html_content and 'class="pin-pad"' in html_content:
@@ -106,7 +107,6 @@ def main():
         test_passed("Modal Bluetooth Estilo Baliza", "Selector de PIN (1234/0000) y lista presentes")
     else:
         test_failed("Modal Bluetooth", "Falta el modal o selector de PIN")
-
 
     print_header("SUITE FUNCIONAL 2: LOGICA JAVASCRIPT, NAVEGACION Y EVENTOS (app.js)")
     

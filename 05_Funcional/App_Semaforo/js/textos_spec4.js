@@ -19,8 +19,8 @@ const TextosSpec4 = {
       toast: 'Prueba de LEDs en marcha' },
     // SPEC_6 PARTE C: REINICIAR_RELOJ borra hora, ciclo y autorizacion; el cristal arranca y cuenta, falta la hora.
     'REINICIAR_RELOJ|CRISTAL_OK_PONGA_LA_HORA': { tono: 'amber',
-      texto: 'Equipo: el reloj ARRANCO y cuenta, pero SIN HORA: PONGA LA HORA ahora (pestana Tecnico, ' +
-             'Sincronizar). El reinicio borro hora, ciclo y autorizacion.',
+      texto: 'Equipo: el reloj ARRANCO y cuenta, pero SIN HORA: PONGA LA HORA ahora (con la clave: ' +
+             'Ajustes > Sincronizar). El reinicio borro hora, ciclo y autorizacion.',
       toast: 'Reloj en marcha: falta poner la hora' },
     'DEMANDA|REGISTRADA': { tono: 'cyan',
       texto: 'Equipo: demanda REGISTRADA. Queda pedida; el paso llega cuando el modo la atienda, no al instante.',

@@ -317,6 +317,13 @@ const viejos = conHora.filter(x => !x || /T[eé]cnico( >|, (boton )?Sincronizar)
   !/Ajustes/.test(x.texto));
 assert(viejos.length === 0 && /\(con la clave: Ajustes > Sincronizar\)$/.test(conHora[0].toast),
   `D-101: avisos de hora con la ruta de hoy (Ajustes > Sincronizar): ${viejos.length} viejos; toast "${conHora[0] && conHora[0].toast}"`);
+// D-101/D-145 en Eventos: los textos que mandan a una pestana nombran «Ajustes», no «Tecnico» ni «Diagnostico».
+const TextosSpec4 = require('../js/textos_spec4.js'), Interruptores = require('../js/interruptores.js');
+const conRuta = [TextosSpec4.ACK['REINICIAR_RELOJ|CRISTAL_OK_PONGA_LA_HORA'].texto,
+  Interruptores.ORDENES.SET_VETO_CAMARA.arranque, Interruptores.ORDENES.SET_BARRERA_SERVICIO.arranque];
+const rutaVieja = conRuta.filter(t => /pesta[nñ]a T[eé]cnico|Diagn[oó]stico/.test(t) || !/Ajustes/.test(t));
+assert(rutaVieja.length === 0 && /Ajustes > Sincronizar/.test(conRuta[0]),
+  `D-101: Eventos con la ruta de hoy (Ajustes): ${rutaVieja.map(t => t.slice(0, 90)).join(' | ')}`);
 
 const salto = AvisosEquipo.traducirEvento(
   NMEAParser.camposDeTrama('$EVENT,NODE:MAESTRO,ORIGEN:DEGRADADO,DETALLE:SALTO_DE_HORA_POR_ROJO,HORA:18:07:00'.split(',')));

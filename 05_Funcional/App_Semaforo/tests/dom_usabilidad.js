@@ -261,6 +261,11 @@ async function tareas(montarAppLimpia, assert) {
     assert(c.botones <= 6 && c.summary <= 2 && c.palabras <= 80,
       `K (D-142) ${n}: ${c.botones} botones (<= 6), ${c.summary} summary (<= 2), ${c.palabras} palabras (<= 80)`);
   }
+  // K (9.9 (f), QA de U C1): con el POSTE 2 una frase a la vista dice que AMBAR EMERGENCIA abre la talanquera;
+  // el <small> del boton esta apagado por CSS por debajo de 740 px de alto (style.css), o sea en el telefono.
+  { const a = app(); a.entra(E); await micro(); const h = a.t('emergencia-hint');
+    assert(a.ve('emergencia-hint') && /ÁMBAR EMERGENCIA/.test(h) && /abre la talanquera/i.test(h) && h.length <= 60 && !JERGA.test(h),
+      `K (9.9 (f)) Esclavo: AMBAR EMERGENCIA abre la talanquera, a la vista: "${a.ve('emergencia-hint') ? h : '(oculto)'}"`); }
   // K (D-141, D-143, D-145; 9.9 (f), (g) 6, (h)): lo plegado, lo que sale, los rotulos y un nombre con su frase.
   {
     const a = app(), rol = a.d.getElementById('btn-toggle-role');
@@ -325,6 +330,22 @@ async function tareas(montarAppLimpia, assert) {
     `T1: sin emparejar, el aviso dice sintoma y que hacer: "${frase}"`);
   b1.pulsa('Emparejar y conectar');
   assert(macs.length === 2 && macs[1] === 'AA:BB' && !b1.ve('aviso-pareja'), `T1: «Emparejar y conectar» repite connect con la misma direccion: ${macs}`);
+  // T1 (QA de U, D3; 9.9 (g) 5): el aviso es del intento que acaba de fallar. Elegir otro equipo o pulsar el boton
+  // de enlace de la hoja lo retira; «Emparejar y conectar» va al ULTIMO elegido y lo deja como el equipo de la app.
+  { const c = app(), btc = c.w.bluetoothSerial, mc = []; let pend = false;
+    c.d.getElementById('btn-bt-disconnect').click();
+    btc.list = (ok) => ok([{ name: 'SEM-B1-M', id: 'BB:CC', address: 'BB:CC' }]);
+    btc.discoverUnpaired = (ok) => ok([{ name: 'SEM-A1-M', id: 'AA:BB', address: 'AA:BB' }]);
+    btc.connect = (mac, ok, ko) => { mc.push(mac); if (!pend) ko('fallo ' + mac); };
+    c.d.getElementById('btnDevice').click(); c.pulsa('Buscar'); c.pulsa('SEM-A1-M'); await micro();
+    const v1 = c.ve('aviso-pareja'); c.d.getElementById('btnDevice').click(); c.pulsa('SEM-B1-M'); await micro();
+    assert(v1 && !c.ve('aviso-pareja'), `T1 (D3): elegir otro equipo retira el aviso del anterior: ${v1} / ${c.ve('aviso-pareja')} / ${mc}`);
+    c.d.getElementById('btnDevice').click(); c.pulsa('SEM-A1-M'); await micro(); c.pulsa('Emparejar y conectar'); await micro();
+    const txt = c.t('btn-bt-disconnect');
+    assert(mc.join(',') === 'AA:BB,BB:CC,AA:BB,AA:BB' && /Reconectar con SEM-A1-M/.test(txt) && c.ve('aviso-pareja'),
+      `T1 (D3): «Emparejar y conectar» repite el ULTIMO elegido: ${mc} / "${txt}"`);
+    pend = true; c.d.getElementById('btn-bt-disconnect').click(); await micro();
+    assert(!c.ve('aviso-pareja') && mc[mc.length - 1] === 'AA:BB', `T1 (D3): el boton de enlace retira el aviso viejo: ${mc}`); }
 
   // F (D-144, 9.9 (g) 5): cada cartel de la franja, sin clave, UNA frase «<sintoma>: <que hacer>.» <= 120 sin JERGA;
   // medida, limite y causa en su <details> «Detalle». Frase = texto visible del cartel sin botones ni <summary>.

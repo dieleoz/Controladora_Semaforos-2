@@ -46,7 +46,7 @@ const Interruptores = {
         texto: 'Equipo: el veto de las cámaras ya estaba como lo pidió: no se cambió nada.',
         toast: 'Ya estaba así: nada que cambiar' },
       arranque: 'Al arrancar, este poste sigue con las cámaras FUERA DEL VETO: la barrera baja aunque ' +
-                'haya algo debajo. Si la cámara ya ve bien, devuelva el veto desde Diagnóstico.'
+                'haya algo debajo. Si la cámara ya ve bien, devuelva el veto desde Ajustes.'
     },
     'SET_BARRERA_SERVICIO': {
       dialogo: {
@@ -70,7 +70,7 @@ const Interruptores = {
         texto: 'Equipo: la barrera ya estaba como lo pidió: no se cambió nada.',
         toast: 'Ya estaba así: nada que cambiar' },
       arranque: 'Al arrancar, este poste sigue con la barrera FUERA DE SERVICIO: el brazo está arriba ' +
-                'también en rojo. Si ya está reparada, póngala en servicio desde Diagnóstico.'
+                'también en rojo. Si ya está reparada, póngala en servicio desde Ajustes.'
     }
   },
 

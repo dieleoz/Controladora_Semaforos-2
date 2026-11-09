@@ -1525,7 +1525,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (roleLabelEl) roleLabelEl.textContent = 'Técnico';
       adminTabs.forEach(t => t.style.display = 'flex');
       showToast('🛡️ Técnico: Tiempos, Ajustes y Tramas a la vista');
-      addEvent('cyan', 'Sesion: clave de administracion puesta. Las ordenes siguen pidiendo el PIN del equipo.');
+      addEvent('cyan', 'Sesion: clave de tecnico puesta. Las ordenes siguen pidiendo el PIN del equipo.');
     } else {
       if (btnToggleRole) btnToggleRole.classList.remove('admin');
       if (roleIconEl) roleIconEl.textContent = '👷';
@@ -2035,14 +2035,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // de los mandos estan APAGADOS por CSS en cualquier pantalla de menos de 740 px de
     // alto -o sea en todos los telefonos-, asi que cuando se ensenan las dos
     // emergencias esta linea es el UNICO sitio donde se dice cual es de cada poste.
-    // D-141: con el poste identificado sale (repite el rotulo), salvo el POSTE 1 en Degradado: ahi
-    // el rojo es solo de ESTE poste y el <small> que lo dice no se ve en el telefono.
-    emergenciaHintEl.hidden = !!punta && !(punta === 'MAESTRO' && state.modo === 'DEGRADADO');
-    if (punta === 'MAESTRO') {
-      emergenciaHintEl.textContent = emM.hint;
-    } else if (!punta) {
-      emergenciaHintEl.textContent = 'ROJO TOTAL es del POSTE 1; ÁMBAR EMERGENCIA, del POSTE 2.';   // D-142
-    }
+    // 9.9 (f): con el POSTE 1 sale (repite el rotulo), salvo en Degradado: ahi el rojo es solo de ESTE poste. Con el
+    // POSTE 2 queda una frase (QA de U, C1): el <small> no se ve en el telefono; ella lo sustituye, sin repetirlo.
+    emergenciaHintEl.hidden = punta === 'MAESTRO' && state.modo !== 'DEGRADADO';
+    if (emergenciaSubEsclavoEl) emergenciaSubEsclavoEl.hidden = punta === 'ESCLAVO';
+    if (punta === 'MAESTRO') emergenciaHintEl.textContent = emM.hint;
+    else emergenciaHintEl.textContent = punta ? 'ÁMBAR EMERGENCIA abre la talanquera.'
+      : 'ROJO TOTAL es del POSTE 1; ÁMBAR EMERGENCIA, del POSTE 2.';   // D-142
   }
 
   // =========================================================================
@@ -3269,7 +3268,7 @@ document.addEventListener('DOMContentLoaded', () => {
       ' enviada a ' + state.deviceMac + ': sin acuse en esa conexion, mire la consulta');
   }
   function olvidarEnlace() {
-    state.connected = false; soltarEsperaDegAuto(); revisarGrupo();
+    state.connected = false; soltarEsperaDegAuto(); revisarGrupo(); PantallaOperario.sinPareja(null);   // QA de U, D3
     state.node = null; state.firmware = {}; renderLights();   // sin enlace: «SIN ENLACE», no la frase de antes
     // D-23: los contadores de radio son de UN poste y arrancan con su micro. Si no se
     // olvidan al soltar el enlace, la primera muestra del SIGUIENTE poste se resta contra
@@ -3392,8 +3391,8 @@ document.addEventListener('DOMContentLoaded', () => {
           // NO CONECTAR NO ES CONECTAR. Se dice, y se deja el estado en falso: pintar
           // "Enlazado" sobre un socket que no abrio es lo que hizo que el banco
           // gastara cuatro pasos buscando el fallo en el modulo.
-          // D-144 (SPEC_4 9.9 (g) 5): sin emparejar, el aviso ofrece emparejar ahi mismo (misma MAC; Android pide vincular).
-          if (emparejada) showToast('❌ No se pudo conectar'); else PantallaOperario.sinPareja(() => abrirEnlace(mac, name, false));
+          // D-144 (9.9 (g) 5): sin emparejar, el aviso reintenta ESTE equipo por cambiarDeEquipo(); emparejado, no hay aviso.
+          if (emparejada) showToast('❌ No se pudo conectar'); PantallaOperario.sinPareja(emparejada ? null : () => cambiarDeEquipo(mac, name, false, ''));
           addEvent('red', `Bluetooth NO conectado a ${name} (${mac}): ${err}. ` +
                           (emparejada
                             ? 'Comprueba que el equipo este encendido y a la vista.'
@@ -3412,7 +3411,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // la app cuando el equipo se reinicia solo: sabia con quien HABIA hablado pero no
     // si aquella fila estaba emparejada, que es lo que decide si Android va a pedir
     // vinculacion al reintentar.
-    state.ultimoEquipo = { mac: mac, name: name, emparejada: !!emparejada };
+    state.ultimoEquipo = { mac: mac, name: name, emparejada: !!emparejada }; PantallaOperario.sinPareja(null);   // el aviso era del anterior
 
     // SE DESCONECTA SIEMPRE QUE HAYA HABIDO UN ENLACE ANTES, aunque la app ya lo de por
     // caido. Y ese "aunque" es el bloqueo de campo del 04/09, no una precaucion:

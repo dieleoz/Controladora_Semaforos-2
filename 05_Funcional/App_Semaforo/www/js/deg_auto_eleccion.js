@@ -68,11 +68,11 @@ const DegAutoEleccion = {
     if (el.irTestigo) el.irTestigo.addEventListener('click', () => this.irATestigo());
   },
 
-  // La tarjeta del testigo esta en Diagnostico, que solo se ve con la clave de administracion (D-56).
+  // La tarjeta del testigo esta en Ajustes, que solo se ve con la clave de tecnico (D-56, D-145).
   irATestigo() {
     const nav = document.querySelector('.nav-item[data-tab="tab-diag"]');
     if (!nav || nav.style.display === 'none') {
-      this.ctx.showToast('Ponga la clave de administracion (boton de arriba) y abra Diagnostico: Degradado con testigo');
+      this.ctx.showToast('Pulse «Operario» arriba, ponga la clave y abra Ajustes: Degradado con testigo');
       return;
     }
     nav.click();
