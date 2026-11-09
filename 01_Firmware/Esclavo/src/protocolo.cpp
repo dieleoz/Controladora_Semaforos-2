@@ -46,7 +46,11 @@ void protocolo_setup() {
   // corre despues, que es exactamente lo que pasaba antes. El comportamiento
   // del pin no cambia.
 
+#ifdef RADIO_1200_FIJA
+  Bus.begin(RADIO_BUS_BAUDIOS);   // N-184: solo el entorno radio_1200_fija (protocolo.h)
+#else
   Bus.begin(9600);
+#endif
 }
 
 // SFTY-3: Polinomio CRC-8 Maxim/Dallas (0x31) bit a bit
@@ -81,6 +85,13 @@ void protocolo_enviarPaquete(uint8_t cmd, uint8_t param) {
   // El coste de la ráfaga depende de la TASA AEREA, no del protocolo: a 2.4 kbps son
   // ~0.13s de aire, a 0.3 kbps eran ~2.2s y ahí saturaba el canal (fallo N-1 en campo).
   // Con la tasa corregida la redundancia vuelve a ser barata y se mantiene en 3.
+#ifdef RADIO_1200_FIJA
+  // N-184: UNA cabecera por rafaga, no por copia. Las copias salen seguidas y la radio las
+  // toma como UN paquete serie; una cabecera en medio llegaria al otro lado como carga.
+  static const uint8_t cabecera[RADIO_FIJA_CABECERA_BYTES] = {
+      RADIO_FIJA_ADDH, RADIO_FIJA_ADDL, RADIO_FIJA_CANAL};
+  Bus.write(cabecera, sizeof(cabecera));
+#endif
   for (uint8_t r = 0; r < RF_BURST_COPIES; r++) {
     Bus.write((const uint8_t*)&pkt, sizeof(RF_Packet));
   }

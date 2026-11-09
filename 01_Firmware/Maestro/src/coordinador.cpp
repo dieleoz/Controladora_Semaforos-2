@@ -263,17 +263,17 @@ const uint8_t CICLO_MAX_REINTENTOS = 5;
 // que NO es tiempo de aire -es el margen con el que esta punta suelta el verde ANTES-, y
 // suma en SERIE porque las dos cosas las hace el mismo extremo. El aviso lo manda el
 // OTRO: sus esperas corren EN PARALELO a las del ciclo y lo unico que se serializa en el
-// aire medio duplex es el tiempo de cable, 2 x ENVIO_TRAMA_MS. El borde de costura_09 es
+// aire medio duplex es el tiempo de cable, 2 x ENVIO_RAFAGA_MS. El borde de costura_09 es
 // el que acota lo que este aviso puede gastar, y es el que el responsable tuvo delante.
-//
-// ENVIO_TRAMA_MS: su valor NO SE DERIVA de ninguna otra
-// constante del firmware. Es tiempo de CABLE -4 tramas x 3 copias de rafaga a 9600
-// baudios mas la conmutacion del MAX485-, o sea una medida de fuera, y por eso se escribe
-// aqui a la vista en vez de dentro de una suma; costura_09 lleva el mismo 0,06 s escrito
-// por el mismo motivo. Un numero que viene de fuera se ESCRIBE; lo que no se hace es
-// negar la constante que lo guarda.
-static constexpr unsigned long ENVIO_TRAMA_MS = 60;
-static constexpr unsigned long PASO_RADIO_MS = TIMEOUT_ACK_MS + ENVIO_TRAMA_MS;
+// ENVIO_RAFAGA_MS: el bloqueo de UN protocolo_enviarPaquete() -delay(2) + bytes x 10 / baudios + 1,2 ms-
+// mas 10 ms de conmutacion; ENVIO_SYNC_MS, el cuarteto de enviarHoraCompleta(). N-184: baudios y cabecera
+// Fixed salen de protocolo.h (26 ms a 9600, 139 a 1200); costura_09 lleva 0,06 s: cubre la rafaga, no el cuarteto.
+static constexpr unsigned long RAFAGA_US = 2000UL + 1200UL +
+    (RADIO_FIJA_CABECERA_BYTES + RF_BURST_COPIES * sizeof(RF_Packet)) * 10000000UL / RADIO_BUS_BAUDIOS;
+static constexpr unsigned long ENVIO_RAFAGA_MS = (RAFAGA_US + 999UL) / 1000UL + 10UL;
+static constexpr unsigned long ENVIO_SYNC_MS = 4UL * ENVIO_RAFAGA_MS;
+static constexpr unsigned long PASO_RADIO_MS = TIMEOUT_ACK_MS + ENVIO_RAFAGA_MS;
+static constexpr unsigned long PASO_SYNC_MS = TIMEOUT_ACK_MS + ENVIO_SYNC_MS;
 // D-45/D-48 (02/10): EL AMARILLO DE CIERRE DEL ESCLAVO ENTRA UNA VEZ EN EL PEOR CASO. El
 // ACK_RED de un verde llega tras AMARILLO_SEG (Esclavo/src/main.cpp acusa el ROJO ENCENDIDO),
 // y la primera espera de C_ESPERANDO_ACK_RED lo incluye para no gastar un reintento en el.
@@ -314,7 +314,7 @@ static_assert(AVISO_AMBAR_TIMEOUT_MS == TIMEOUT_ACK_MS,
 //             en cada corrida, y es el que el responsable tuvo delante al decidir. El otro
 //             borde de este fichero -el de N-163, mas abajo- NO sirve aqui, y por que no
 //             esta cuatro parrafos mas arriba.
-//   el coste  2 x ENVIO_TRAMA_MS por intento, y solo eso: la ida del CMD_AMBAR_ESCLAVO y
+//   el coste  2 x ENVIO_RAFAGA_MS por intento, y solo eso: la ida del CMD_AMBAR_ESCLAVO y
 //             la vuelta del CMD_ACK_AVISO_AMBAR. Las ESPERAS no se cobran porque corren en
 //             paralelo -el aviso no bloquea, medido arriba en bluetooth.cpp-; el cable si,
 //             porque el medio es semiduplex y ahi nadie mas puede hablar.
@@ -322,11 +322,11 @@ static_assert(AVISO_AMBAR_TIMEOUT_MS == TIMEOUT_ACK_MS,
 //             aire. Contar solo los reintentos fue la otra mitad del defecto del 12/09, y
 //             ademas dejaba a este fichero contando distinto que el arnes de las dos
 //             puntas, que ya cuenta 1 + N (dos_puntas/orquestador.cpp).
-//   hoy       (1 + 3) x 2 x 60 ms = 480 ms contra 4.200 ms libres. Cabe de sobra, y esa
+//   hoy       (1 + 3) x 2 x 26 ms = 208 ms contra 4.370 libres (1.112 contra 3.805 a 1200). Esa
 //             holgura ES la razon por la que el aire no es lo que acota este numero.
 // Si alguien sube los reintentos del aviso, el latido o los del ciclo hasta que no quepa,
 // esto NO COMPILA y el diseno vuelve al responsable: no se recorta el techo.
-static_assert((AVISO_AMBAR_REINTENTOS + 1) * (2 * ENVIO_TRAMA_MS) <= PRESUPUESTO_LIBRE_MS,
+static_assert((AVISO_AMBAR_REINTENTOS + 1) * (2 * ENVIO_RAFAGA_MS) <= PRESUPUESTO_LIBRE_MS,
               "el AIRE de los (1 + AVISO_AMBAR_REINTENTOS) intentos del aviso de ambar "
               "(D-31, D-32) no cabe en PRESUPUESTO_LIBRE_MS: el diseno vuelve al "
               "responsable, no se recorta SFTY6_SILENCIO_MS");
@@ -470,7 +470,7 @@ static const unsigned long BACKOFF_SYNC_MS = 60000UL;
 // verde con el Esclavo contestando.
 // D-45: aqui el borde es el ARRANQUE de la suelta, que empieza un AMARILLO_MS antes: el
 // intercambio puede correr con el verde propio puesto.
-static_assert(LATIDO_MS + SYNC_MAX_INTENTOS * PASO_RADIO_MS + TIMEOUT_ACK_MS + AMARILLO_MS <=
+static_assert(LATIDO_MS + SYNC_MAX_INTENTOS * PASO_SYNC_MS + TIMEOUT_ACK_MS + AMARILLO_MS <=
                   SFTY6_SILENCIO_MS,
               "1.49c: un intercambio de sincronizacion entero no cabe antes del punto de "
               "suelta del verde (SFTY6_SILENCIO_MS - TIMEOUT_ACK_MS - AMARILLO_MS)");
@@ -1373,7 +1373,7 @@ void coordinador_actualizar() {
                     "del margen con que cada una suelta su verde");
       // LA PREMISA QUE ESTE static_assert NO PUEDE COMPROBAR, escrita al lado (CLAUDE.md 7):
       // que el viaje de ida del GO_GREEN quepa en TIMEOUT_ACK_MS - LATIDO_MS (500 ms). Es
-      // tiempo de aire y de repetidor, una medida de FUERA como ENVIO_TRAMA_MS, y por eso
+      // tiempo de aire y de repetidor, una medida de FUERA (el cable si se calcula), y por eso
       // no se deriva aqui de nada.
       if (millis() - tRef >= tiempoDespejeMs && tUltimaRespuestaEsclavo > 0 &&
           millis() - tUltimaRespuestaEsclavo <= LATIDO_MS) {
