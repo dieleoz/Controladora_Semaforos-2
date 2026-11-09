@@ -1,4 +1,4 @@
-# Compila el arnes de respaldo.cpp para el PC.
+﻿# Compila el arnes de respaldo.cpp para el PC.
 #
 # Requiere gcc/g++ de host (MinGW-w64). Se instala con:
 #   winget install --id BrechtSanders.WinLibs.POSIX.UCRT
@@ -22,9 +22,11 @@ $RAIZ = Split-Path -Parent $AQUI                      # 01_Firmware
 $MAESTRO = Join-Path $RAIZ 'Maestro'
 $ESCLAVO = Join-Path $RAIZ 'Esclavo'
 $SALIDA = Join-Path $AQUI 'build'
+$TOOLCHAIN = 'D:\toolchain\mingw64\bin'
+if (Test-Path (Join-Path $TOOLCHAIN 'g++.exe')) { $env:Path = "$TOOLCHAIN;$env:Path" }
 
-if (-not (Get-Command gcc -ErrorAction SilentlyContinue)) {
-    Write-Error "No hay gcc de host en el PATH. Sin el, esto NO puede correr: es ABORTADO, no PASS."
+if (-not (Get-Command g++ -ErrorAction SilentlyContinue)) {
+    [Console]::Error.WriteLine("[ABORTADO] No hay g++ de host en el PATH (tampoco en $TOOLCHAIN)."); exit 2
 }
 
 # La identidad entre puntas no es un detalle de organizacion: si respaldo.cpp
@@ -64,18 +66,14 @@ $incluye = @("-I$AQUI", "-I$MAESTRO\include", "-I$MAESTRO\src")
 $exe = Join-Path $SALIDA 'arnes_respaldo.exe'
 Write-Host "Compilando respaldo.cpp (el MISMO que va a la tarjeta) y el arnes..." -ForegroundColor Cyan
 & g++ -O1 -w @incluye (Join-Path $AQUI 'arnes_respaldo.cpp') -o $exe
-if ($LASTEXITCODE -ne 0) { Write-Error "Fallo compilando el arnes de respaldo" }
+if ($LASTEXITCODE -ne 0) { [Console]::Error.WriteLine("[ABORTADO] Fallo compilando el arnes de respaldo"); exit 2 }
 
-# N-43: sin esto, PowerShell 5.1 mete un BOM UTF-8 (EF BB BF) delante de "PING"
-# al escribir en la tuberia de un proceso nativo -pwsh 7 y bash no-, el strncmp
-# del arnes no casa y contesta ERROR. El arnes ya descarta el BOM por su cuenta;
-# esto arregla la otra punta, para que lo que se le manda sea lo que se cree.
+# N-43: evita el BOM UTF-8 (EF BB BF) que PowerShell 5.1 antepone en tuberias nativas.
 $OutputEncoding = New-Object System.Text.UTF8Encoding $false
 
-# Prueba de vida. Un binario que compila pero no contesta dejaria al validador
-# midiendo el vacio, que es la forma de perder cobertura sin enterarse.
+# Prueba de vida: un binario que no responde al PING es ABORTADO, no FALLA.
 $respuesta = "PING" | & $exe
-if ($respuesta -ne 'PONG') { Write-Error "El arnes compila pero no responde al PING: '$respuesta'" }
+if ($respuesta -ne 'PONG') { [Console]::Error.WriteLine("[ABORTADO] El arnes no responde al PING: '$respuesta'"); exit 2 }
 
 # D-62: prioridad WATCHDOG > SOFTWARE > CORTE > PIN > OTRA sobre anotarArranque() REAL.
 # Los bits son los de RCC_CSR del manual de referencia del F1 (RM0008 §7.3.10), NO las
