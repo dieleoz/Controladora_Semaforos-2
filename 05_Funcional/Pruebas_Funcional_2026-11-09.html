@@ -157,7 +157,7 @@ button#btnPdf{
 </div>
 
 <div class="nota">
-  <strong>Dónde se mira cada cosa en la app.</strong> En <strong>Tráfico</strong>: la pluma sale como <strong>"▲ PLUMA ARRIBA"</strong> o <strong>"▼ PLUMA ABAJO"</strong>, y las cámaras como <strong>OK</strong>, <strong>SIN COMPROBAR</strong>, <strong>CIEGA</strong> o <strong>PEGADA</strong> (es la peor de las dos cámaras de ese poste). En <strong>Eventos</strong>, los avisos traducidos. En <strong>Tramas</strong>, lo que manda el poste tal cual: ahí se buscan las palabras en <code>esta letra</code>. Ojo: <strong>"PLUMA ARRIBA" es lo que el poste MANDA, no donde está el brazo.</strong> El poste no tiene final de carrera y no sabe dónde está la pluma: lo que se ve con los ojos es lo que vale.
+  <strong>Dónde se mira cada cosa en la app.</strong> En <strong>Tráfico</strong>: la pluma sale como <strong>"▲ PLUMA ARRIBA"</strong> o <strong>"▼ PLUMA ABAJO"</strong>, y las cámaras en la línea de resumen, como <strong>"Cámaras bien"</strong>, <strong>"sin comprobar"</strong>, <strong>"ciega"</strong>, <strong>"pegada"</strong> o <strong>"sin veto"</strong> (es la peor de las dos cámaras de ese poste); en el Poste 1 la tarjeta <strong>CÁMARAS</strong> del plegado <strong>"Detalle"</strong> lo dice en mayúsculas, <strong>OK</strong>, <strong>SIN COMPROBAR</strong>, <strong>CIEGA</strong>, <strong>PEGADA</strong> o <strong>SIN VETO</strong>, que es como lo escribe esta hoja. Tiempos, Ajustes y Tramas solo salen con la clave de técnico: pulse la pastilla <strong>&laquo;Operario&raquo;</strong> (arriba; en pantalla estrecha solo se ve el icono 👷). En <strong>Eventos</strong>, los avisos traducidos. En <strong>Tramas</strong>, lo que manda el poste tal cual: ahí se buscan las palabras en <code>esta letra</code>. Ojo: <strong>"PLUMA ARRIBA" es lo que el poste MANDA, no donde está el brazo.</strong> El poste no tiene final de carrera y no sabe dónde está la pluma: lo que se ve con los ojos es lo que vale.
 </div>
 
 <div class="parte">
@@ -178,7 +178,7 @@ button#btnPdf{
     <li>En cada tarjeta, <strong>antes de cargar</strong>, guarde lo que tiene:<br><code>STM32_Programmer_CLI -c port=SWD mode=UR -u 0x08000000 65536 leido_poste1.bin</code> (y <code>leido_poste2.bin</code> en la otra). Guarde los dos archivos y mándelos con este PDF.</li>
     <li>Abra en PlatformIO <strong>01_Firmware/Maestro</strong>, compile y cargue el <strong>Poste 1</strong> por SWD (Upload). Haga lo mismo con <strong>01_Firmware/Esclavo</strong> en el <strong>Poste 2</strong>. La carga usa la configuración que trae el <code>platformio.ini</code> de cada proyecto (<code>mode=UR</code> con <code>-e all</code>): <strong>no la cambie</strong>. Si falla, <strong>reintente igual</strong>, con <code>mode=UR</code>: no cambie a otro modo. Abra el proyecto desde la carpeta del .zip, con su FW_HASH.txt al lado: de ahí sale el código de versión.</li>
     <li>Abra <strong>01_Firmware/ESP32_Expansion</strong> en PlatformIO y cargue el <strong>puente</strong> de los dos postes por USB, como siempre.</li>
-    <li>Pulse &laquo;Operario&raquo;, ponga la clave de administración y, en cada poste: pestaña Técnico &rarr; <strong>"Consultar version del firmware"</strong>. Lea Eventos y, en Tramas, la línea que empieza por <code>$ACK,CMD:VERSION</code>.</li>
+    <li>Pulse la pastilla &laquo;Operario&raquo;, ponga la clave de técnico y, en cada poste: pestaña Ajustes &rarr; &laquo;Soporte&raquo; &rarr; <strong>"Consultar version del firmware"</strong>. Lea Eventos y, en Tramas, la línea que empieza por <code>$ACK,CMD:VERSION</code>.</li>
     <li>Ponga la hora en cada poste desde la app.</li>
   </ol>
   <div class="espera">Se espera: en Eventos, <strong>"Version cargada - Controlador MAESTRO: FW XXXXXXX"</strong> en el Poste 1, <strong>"Version cargada - Controlador ESCLAVO: FW XXXXXXX"</strong> en el Poste 2 y <strong>"Version cargada - Puente (ESP32): FW XXXXXXX"</strong> en los dos. En Tramas, <code>$ACK,CMD:VERSION,RESULT:OK,NODE:MAESTRO,FW:XXXXXXX</code> (y <code>NODE:ESCLAVO</code> en el Poste 2). <strong>El mismo código en los cuatro</strong>, igual al del nombre del .zip, sin +SUCIO. Si alguno no coincide, no siga y avise. Al terminar, el Poste 1 queda en ámbar intermitente, como tras cualquier arranque: sale con <strong>VOLVER AL MENÚ</strong> y <strong>AUTOMÁTICO</strong>.</div>
@@ -459,7 +459,7 @@ button#btnPdf{
     <li>Deje el puente puesto <strong>22 minutos</strong> desde la hora anotada. Lea el estado de cámaras y Eventos.</li>
     <li>Quite el puente. Anote la hora y mire qué hace la pluma y qué dice la app.</li>
   </ol>
-  <div class="espera">Se espera: con el puente puesto y la pluma abajo, <strong>no sube</strong> hasta el verde (en AUTOMÁTICO la pluma sube solo con el verde). Tras ese verde, <strong>no vuelve a bajar</strong> en ningún rojo. En Tramas, en cada rojo <code>VETO_ACTUADO_N:</code> y, cada 90 s de pluma retenida, <code>VETO_SOSTENIDO_S:</code> con los segundos que lleva. En la app, a los 90 s, el cartel <strong>"LA CÁMARA TIENE LA BARRERA RETENIDA"</strong> con <strong>"La barrera está ARRIBA y no va a bajar sola. Mire debajo del brazo antes de tocar nada. Si no hay nada, revise el apunte y la configuración de la cámara."</strong> A los <strong>20 min</strong> de puente: en Tramas <code>CAM_PEGADA</code> con <code>CAM_C_CONTACTO_FIJO</code>, y cámaras <strong>PEGADA</strong> en Tráfico. Al quitar el puente: la pluma <strong>baja en ese momento</strong> si está en rojo; en Tramas <code>CAM_C_RECUPERADA</code>; el cartel cambia a <strong>"LA BARRERA YA HA BAJADO — el aviso queda por lo que la dejó arriba"</strong> y no se va solo.</div>
+  <div class="espera">Se espera: con el puente puesto y la pluma abajo, <strong>no sube</strong> hasta el verde (en AUTOMÁTICO la pluma sube solo con el verde). Tras ese verde, <strong>no vuelve a bajar</strong> en ningún rojo. En Tramas, en cada rojo <code>VETO_ACTUADO_N:</code> y, cada 90 s de pluma retenida, <code>VETO_SOSTENIDO_S:</code> con los segundos que lleva. En la app, a los 90 s, el aviso <strong>"⛔ La cámara retiene la barrera ARRIBA: mire debajo del brazo antes de tocar nada."</strong> y, en su plegado <strong>"Detalle"</strong>, <strong>"LA CÁMARA TIENE LA BARRERA RETENIDA"</strong> con <strong>"La barrera está ARRIBA y no va a bajar sola. Mire debajo del brazo antes de tocar nada. Si no hay nada, revise el apunte y la configuración de la cámara."</strong> A los <strong>20 min</strong> de puente: en Tramas <code>CAM_PEGADA</code> con <code>CAM_C_CONTACTO_FIJO</code>, y cámaras <strong>PEGADA</strong> en Tráfico. Al quitar el puente: la pluma <strong>baja en ese momento</strong> si está en rojo; en Tramas <code>CAM_C_RECUPERADA</code>; el cartel cambia a <strong>"LA BARRERA YA HA BAJADO — el aviso queda por lo que la dejó arriba"</strong> y no se va solo.</div>
   <div class="horas">
     <label class="campo">Hora en que puso el puente <input type="text" id="h10a" class="hora"></label>
     <label class="campo">¿Subió antes del verde? (sí/no) <input type="text" id="h10b" class="hora"></label>
@@ -533,7 +533,7 @@ button#btnPdf{
 <div class="parte">
   <h2>Parte 4 (pruebas 13 a 16): interruptores de administrador</h2>
   <div class="alto"><strong>Solo en banco, nunca en vía.</strong> Con la <strong>barrera fuera de servicio</strong> la pluma se queda <strong>arriba también con la luz en rojo</strong>. En carril único, si la otra punta está en verde, quedan <strong>las dos bocas abiertas</strong>, sin tope de tiempo y aunque se vaya la luz y vuelva. Al terminar cada prueba, deje los dos interruptores <strong>en su sitio normal</strong> (veto devuelto, barrera en servicio).</div>
-  Dónde están: en la app, con la <strong>clave de administración</strong>, pestaña <strong>Diagnóstico</strong>, recuadro <strong>"Cámaras y barrera de este poste"</strong>. Cuatro botones: <strong>Sacar las cámaras del veto</strong>, <strong>Devolver el veto</strong>, <strong>Sacar la barrera de servicio</strong> y <strong>Poner la barrera en servicio</strong>. Piden el <strong>PIN</strong> del equipo. Mandan <strong>solo en el poste al que está conectado</strong> (no van por radio): pruebe en el Poste 1 y repita en el Poste 2. Lo que dice cada uno en <strong>Tráfico</strong>: cámaras <strong>SIN VETO</strong> (en ámbar) y pluma <strong>"▲ BARRERA FUERA DE SERVICIO"</strong> (en ámbar).
+  Dónde están: en la app, con la <strong>clave de técnico</strong>, pestaña <strong>Ajustes</strong>, plegado <strong>"Averías: cámaras y barrera"</strong> (se abre solo, en ámbar, si alguno está puesto). Cuatro botones: <strong>Sacar las cámaras del veto</strong>, <strong>Devolver el veto</strong>, <strong>Sacar la barrera de servicio</strong> y <strong>Poner la barrera en servicio</strong>. Piden el <strong>PIN</strong> del equipo. Mandan <strong>solo en el poste al que está conectado</strong> (no van por radio): pruebe en el Poste 1 y repita en el Poste 2. Lo que dice cada uno en <strong>Tráfico</strong>: cámaras <strong>SIN VETO</strong> (en ámbar) y pluma <strong>"▲ BARRERA FUERA DE SERVICIO"</strong> (en ámbar).
 </div>
 
 <section class="prueba" id="p13">
@@ -546,7 +546,7 @@ button#btnPdf{
   <ol>
     <li>En un rojo, deje el objeto delante de la cámara hasta que la pluma quede retenida arriba (como en la prueba 12).</li>
     <li>Con la pluma retenida, pulse <strong>Sacar las cámaras del veto</strong>. Copie el aviso que sale <strong>antes</strong> de confirmar; confirme y meta el PIN. Mire la pluma.</li>
-    <li>Copie lo que dice Eventos y la fila <strong>CÁMARAS</strong> de Tráfico.</li>
+    <li>Copie lo que dice Eventos y lo que dice <strong>Cámaras</strong> en Tráfico.</li>
     <li>Con el objeto delante, espere al siguiente rojo y cronometre desde que se pone rojo hasta que la pluma empieza a bajar.</li>
     <li>Pulse <strong>Sacar las cámaras del veto</strong> otra vez y copie lo que dice.</li>
     <li>Pulse <strong>Devolver el veto</strong>. En el siguiente rojo, con el objeto delante, mire si la pluma vuelve a quedarse arriba.</li>
@@ -555,7 +555,7 @@ button#btnPdf{
   <div class="horas">
     <label class="campo">Aviso antes de confirmar (copie) <input type="text" id="h13a" class="hora"></label>
     <label class="campo">Paso 2: ¿bajó la pluma retenida? (sí/no) <input type="text" id="h13b" class="hora"></label>
-    <label class="campo">Fila CÁMARAS en Tráfico, sin veto <input type="text" id="h13c" class="hora"></label>
+    <label class="campo">Cámaras en Tráfico, sin veto <input type="text" id="h13c" class="hora"></label>
     <label class="campo">Paso 4: segundos del rojo hasta que empezó a bajar <input type="text" id="h13d" class="hora"></label>
     <label class="campo">Paso 6: con el veto devuelto, ¿se quedó arriba? (sí/no) <input type="text" id="h13e" class="hora"></label>
     <label class="campo">Poste 2: lo mismo (sí/no y qué cambió) <input type="text" id="h13f" class="hora"></label>
@@ -613,11 +613,11 @@ button#btnPdf{
   <ol>
     <li>Quite la alimentación del Poste 1 durante <strong>1 minuto</strong>. Mire la pluma durante el corte.</li>
     <li>Devuelva la alimentación y ponga el cronómetro. Anote a qué segundo vuelve a subir la pluma (J15 conduce) y a qué segundo se enciende la primera luz.</li>
-    <li>Conéctese con la app y mire Tráfico: fila CÁMARAS y fila de la pluma.</li>
-    <li>Busque el aviso de arranque. Sale al encender, antes de que el celular vuelva a conectarse, así que <strong>no</strong> lo va a ver en Tramas en vivo ni en el Diario de órdenes: lo guarda el puente. Búsquelo en <strong>Eventos</strong>, en la línea <strong>gris</strong> que empieza por <strong>"Equipo [LOG]"</strong>, y en el archivo exportado (Tramas &rarr; "Diario de órdenes" &rarr; "Exportar todo como archivo"), en la parte <strong>"IOT-VIAL - REGISTRO DEL EQUIPO"</strong>. Copie la línea.</li>
+    <li>Conéctese con la app y mire Tráfico: Cámaras y fila de la pluma.</li>
+    <li>Busque el aviso de arranque. Sale al encender, antes de que el celular vuelva a conectarse, así que <strong>no</strong> lo va a ver en Tramas en vivo ni en el Diario de órdenes: lo guarda el puente. Búsquelo en <strong>Eventos</strong>, en la línea <strong>gris</strong> que empieza por <strong>"Equipo [LOG]"</strong>, y en el archivo exportado (Eventos &rarr; "Exportar registro"), en la parte <strong>"IOT-VIAL - REGISTRO DEL EQUIPO"</strong>. Copie la línea.</li>
     <li>Si el poste no vuelve a dar ciclos solo, <strong>VOLVER AL MENÚ</strong> y <strong>AUTOMÁTICO</strong>. Después devuelva el veto y ponga la barrera en servicio.</li>
   </ol>
-  <div class="espera">Se espera: tras el corte, <strong>los dos siguen puestos</strong>: cámaras <strong>SIN VETO</strong> y <strong>"▲ BARRERA FUERA DE SERVICIO"</strong>, y la pluma arriba también en rojo. En Eventos, una línea gris <strong>"Equipo [LOG] ..."</strong> con <code>INTERRUPTOR</code> y <code>ARRANQUE_CAM_NOVETO_Y_BARRERA_FUERA</code>, <strong>una sola vez</strong> por arranque, y la misma en la parte REGISTRO DEL EQUIPO del archivo exportado. Si el celular llegara a estar conectado en el arranque, la app lo traduce con dos frases fijas: <strong>"Al arrancar, este poste sigue con las cámaras FUERA DEL VETO: la barrera baja aunque haya algo debajo. Si la cámara ya ve bien, devuelva el veto desde Diagnóstico."</strong> y <strong>"Al arrancar, este poste sigue con la barrera FUERA DE SERVICIO: el brazo está arriba también en rojo. Si ya está reparada, póngala en servicio desde Diagnóstico."</strong> Lo que hace el brazo durante el corte y el tiempo hasta que vuelve a subir: <strong>anote lo medido</strong>.</div>
+  <div class="espera">Se espera: tras el corte, <strong>los dos siguen puestos</strong>: cámaras <strong>SIN VETO</strong> y <strong>"▲ BARRERA FUERA DE SERVICIO"</strong>, y la pluma arriba también en rojo. En Eventos, una línea gris <strong>"Equipo [LOG] ..."</strong> con <code>INTERRUPTOR</code> y <code>ARRANQUE_CAM_NOVETO_Y_BARRERA_FUERA</code>, <strong>una sola vez</strong> por arranque, y la misma en la parte REGISTRO DEL EQUIPO del archivo exportado. Si el celular llegara a estar conectado en el arranque, la app lo traduce con dos frases fijas: <strong>"Al arrancar, este poste sigue con las cámaras FUERA DEL VETO: la barrera baja aunque haya algo debajo. Si la cámara ya ve bien, devuelva el veto desde Ajustes."</strong> y <strong>"Al arrancar, este poste sigue con la barrera FUERA DE SERVICIO: el brazo está arriba también en rojo. Si ya está reparada, póngala en servicio desde Ajustes."</strong> Lo que hace el brazo durante el corte y el tiempo hasta que vuelve a subir: <strong>anote lo medido</strong>.</div>
   <div class="horas">
     <label class="campo">Pluma durante el corte (arriba/bajó/a medias) <input type="text" id="h15a" class="hora"></label>
     <label class="campo">Segundo en que volvió a subir la pluma <input type="text" id="h15b" class="hora"></label>
@@ -678,8 +678,8 @@ button#btnPdf{
   </ul></div>
   <ol>
     <li>Anote lo que leyó con Read Option en cada radio.</li>
-    <li>Conectado al <strong>Poste 1</strong>, lea en Tráfico <strong>ENLACE RADIO</strong> (porcentaje) tres veces, una por minuto. Anote también la distancia entre las dos antenas.</li>
-    <li>Conéctese al <strong>Poste 2</strong> y copie lo que diga el recuadro del enlace.</li>
+    <li>Conectado al <strong>Poste 1</strong>, lea en Tráfico, plegado <strong>"Detalle"</strong>, la tarjeta <strong>ENLACE RADIO</strong> (porcentaje) tres veces, una por minuto. Anote también la distancia entre las dos antenas.</li>
+    <li>Conéctese al <strong>Poste 2</strong> y copie lo que diga, en Tráfico, el plegado <strong>"Qué se ve desde este poste"</strong> (radio de este poste, contadores de línea).</li>
   </ol>
   <div class="espera">Se espera: <strong>anote lo medido</strong>. Los dos postes alternan sin pasar a ámbar durante los 3 minutos.</div>
   <div class="horas">
@@ -687,7 +687,7 @@ button#btnPdf{
     <label class="campo">Radio Poste 2: tasa, canal, M0/M1 <input type="text" id="h17b" class="hora"></label>
     <label class="campo">ENLACE RADIO del Poste 1, tres lecturas <input type="text" id="h17c" class="hora"></label>
     <label class="campo">Distancia entre antenas (m) <input type="text" id="h17d" class="hora"></label>
-    <label class="campo">Poste 2: texto del recuadro del enlace <input type="text" id="h17e" class="hora"></label>
+    <label class="campo">Poste 2: texto de "Qué se ve desde este poste" <input type="text" id="h17e" class="hora"></label>
   </div>
   <div class="resultado">
     <label><input type="radio" name="r17" value="OK" data-txt="OK"> OK</label>
@@ -740,10 +740,10 @@ button#btnPdf{
   <h2>19. El Sisga: versión de cada poste y cómo trabaja entre semana</h2>
   <div class="porque"><b class="t">Por qué</b>Sin saber qué firmware hay en cada poste no se puede comparar con nada. Y para comprobar la sospecha de las 48 horas hace falta saber <strong>cuándo se puso el Degradado</strong> la última vez.</div>
   <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
-    <li>Un celular con la APK de este paquete (entiende también el firmware viejo) y la clave de administración puesta.</li>
+    <li>Un celular con la APK de este paquete (entiende también el firmware viejo) y la clave de técnico puesta.</li>
   </ul></div>
   <ol>
-    <li>En cada poste: pestaña Técnico &rarr; <strong>"Consultar version del firmware"</strong>. Copie lo que salga en Eventos y, en Tramas, la línea <code>$ACK,CMD:VERSION</code>. Si no contesta, anote &laquo;no contesta&raquo;.</li>
+    <li>En cada poste: pestaña Ajustes &rarr; &laquo;Soporte&raquo; &rarr; <strong>"Consultar version del firmware"</strong>. Copie lo que salga en Eventos y, en Tramas, la línea <code>$ACK,CMD:VERSION</code>. Si no contesta, anote &laquo;no contesta&raquo;.</li>
     <li>Anote la serie de cada poste, el modo en que está ahora y la luz de cada uno.</li>
     <li>Pregunte al ingeniero o al que lo atiende: en qué modo trabaja entre semana, <strong>qué día y a qué hora se puso el Degradado</strong> la última vez, y qué día y hora (aunque sea aproximada) lo encontraron en ámbar.</li>
   </ol>
@@ -777,7 +777,7 @@ button#btnPdf{
     <li>El viernes: abra la app, conéctese al <strong>Poste 1</strong> (y el otro celular al <strong>Poste 2</strong> si tiene dos). Anote la hora. Deje la app <strong>abierta delante</strong>, con el cargador.</li>
     <li>Si alguien pasa el domingo: anote si sigue conectada; <strong>cierre la app del todo, ábrala y vuelva a conectar</strong> (empieza un archivo nuevo, porque cada uno llega a unas 64 h).</li>
     <li>Si el par pasa a ámbar y alguien lo normaliza, anote la hora y qué hizo. <strong>No desconecte el celular.</strong></li>
-    <li>El lunes: exporte el registro (pestaña Tramas &rarr; "Diario de órdenes" &rarr; "Exportar todo como archivo") y mande también los archivos <strong>SESION_</strong> de <strong>Android/data/com.iotvial.semaforos/files/</strong>.</li>
+    <li>El lunes: exporte el registro (pestaña Eventos &rarr; "Exportar registro") y mande también los archivos <strong>SESION_</strong> de <strong>Android/data/com.iotvial.semaforos/files/</strong>.</li>
   </ol>
   <div class="espera">Se espera: <strong>anote lo medido</strong>. Si el archivo llegó a su tope, dentro dice <strong>"PARADO: llego al tope de ..."</strong> con la hora: no es un fallo, anote la hora. Si en Eventos sale algo sobre el límite del Degradado o sobre ámbar, cópielo tal cual.</div>
   <div class="horas">
@@ -917,7 +917,7 @@ button#btnPdf{
 </section>
 
 <div class="recordatorio">
-  <strong>Al terminar cada jornada:</strong> conéctese a <strong>cada</strong> poste, exporte su registro (pestaña Tramas &rarr; "Diario de órdenes" &rarr; "Exportar todo como archivo") y envíe este PDF con <strong>todos los archivos IOTVIAL_</strong>, uno de <strong>cada</strong> poste por jornada; los <strong>leido_poste1.bin</strong> y <strong>leido_poste2.bin</strong> de la prueba 1; los <strong>SESION_</strong> de El Sisga (prueba 20) y los vídeos de la calle (pruebas 21 y 22).
+  <strong>Al terminar cada jornada:</strong> conéctese a <strong>cada</strong> poste, exporte su registro (pestaña Eventos &rarr; "Exportar registro") y envíe este PDF con <strong>todos los archivos IOTVIAL_</strong>, uno de <strong>cada</strong> poste por jornada; los <strong>leido_poste1.bin</strong> y <strong>leido_poste2.bin</strong> de la prueba 1; los <strong>SESION_</strong> de El Sisga (prueba 20) y los vídeos de la calle (pruebas 21 y 22).
 </div>
 
 </main>
