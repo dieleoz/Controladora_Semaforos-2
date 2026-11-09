@@ -53,6 +53,13 @@ const TextosSpec4 = {
   SIN_CICLO: ['MENU', 'AMBAR', 'MANUAL', 'ALCANCE'],
   sinCiclo(modo) { return this.SIN_CICLO.indexOf(modo) >= 0; },
   tiempos(clave, modo) {
+    // N-183: ultimo eslabon de la cadena de app.js, asi que solo llega lo que ninguna tabla nombra. Un RESULT nuevo de
+    // la parada de emergencia no sale en verde como «ACEPTADA (X)»: no se sabe si quedo en rojo (SPEC_4 7.16).
+    if (/^FORZAR_ROJO\|/.test(clave)) {
+      return { tono: 'red', toast: 'Parada de emergencia: respuesta desconocida, mire la luz',
+        texto: 'Equipo: contestó a la parada de emergencia con una respuesta que esta app no conoce (' +
+               clave.slice(12) + '). No dé por hecho el rojo: mire la luz y avise al técnico.' };
+    }
     if (clave !== 'SET_TIEMPOS|OK') return null;
     if (this.sinCiclo(modo)) {
       return { tono: 'red', toast: 'Tiempos guardados - el cruce no cicla hasta que arranque el ciclo',

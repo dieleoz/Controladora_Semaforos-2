@@ -242,7 +242,8 @@ const Testigo = {
                toast: 'Testigo rechazado: verde ' + this._min(pedido) + ' necesita firmware nuevo' };
     }
     const texto = this.MOTIVOS[desc];
-    return texto ? { texto, toast: 'Testigo rechazado: ' + data.DESC } : null;
+    return texto ? { texto, toast: 'Testigo rechazado: ' + (desc === 'FORMATO_INVALIDO'   // N-183: sin el codigo
+      ? 'el equipo no entendio la orden; no ha entrado, avise' : desc) } : null;
   },
 
   // ---- Pantalla ------------------------------------------------------------

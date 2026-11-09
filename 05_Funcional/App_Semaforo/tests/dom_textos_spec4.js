@@ -463,8 +463,8 @@ module.exports = async function pruebaTextosSpec4(montarAppLimpia, assert) {
     a.pulsa('btn-noche-f4-guardar');
     assert(!tx(a).some(x => /SET_NOCHE/.test(x)), `16 (h): inicio == fin no sale: ${JSON.stringify(tx(a))}`);
     for (const d of ['FORMATO_INVALIDO', 'RANGO', 'EN_NOCHE_SALGA_PRIMERO', 'FLASH_NO_RELEE']) {
-      const r = dice(M, 'AUTO', `ERR,CMD:SET_NOCHE,DESC:${d}`).t;
-      assert(!GENERICO.test(r) && /no ha cambiado|no se guard/i.test(r), `16 (h): SET_NOCHE|${d}: ${r.slice(0, 120)}`);
+      const { t: r, toast: q } = dice(M, 'AUTO', `ERR,CMD:SET_NOCHE,DESC:${d}`), f = d === 'FLASH_NO_RELEE';  // N-183
+      assert(!GENERICO.test(r) && !q.includes(d) && (f ? /no se guard/i.test(q) && /sin franjas/i.test(r) && !/no ha cambiado/i.test(r + q) : /no ha cambiado/i.test(r + q)), `16 (h): ${d}: ${r} / ${q}`);
     }
     const b = montar(E, 'SUBORDINADO'); b.admin(); b.tramas.length = 0; b.pulsa('btn-noche-f1-apagar');
     assert(!tx(b).some(x => /SET_NOCHE/.test(x)) && /POSTE 1/.test($(b, 'noche-estado').textContent),

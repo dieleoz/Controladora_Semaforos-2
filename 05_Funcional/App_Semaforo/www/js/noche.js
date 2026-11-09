@@ -36,8 +36,10 @@ const Noche = {
     RANGO: 'valor fuera de rango (franja 1 a 4, horas 00:00 a 23:59, todo-rojo 10 a 900 s). No ha cambiado nada.',
     EN_NOCHE_SALGA_PRIMERO: 'esa franja está en curso y no se cambia. Salga primero de la noche (con PIN) y ' +
       'repita. No ha cambiado nada.',
-    FLASH_NO_RELEE: 'el equipo no pudo guardarlo en su memoria. No se guardó: repita y, si vuelve, avise a ' +
-      'mantenimiento.',
+    // nocheFlash_escribir() borra la pagina antes de escribir: el equipo sigue con lo de antes hasta que se
+    // apague, y al arrancar modoNoche_cargar() no reconoce el registro y se queda sin franjas.
+    FLASH_NO_RELEE: 'el equipo no pudo guardarlo en su memoria. No se guardó: sigue con lo de antes, pero si ' +
+      'se apaga antes de repetir puede arrancar sin franjas de noche. Repita ya y, si vuelve, avise a mantenimiento.',
   },
 
   ctx: null,
@@ -152,7 +154,8 @@ const Noche = {
       return { texto: 'Este firmware no lleva el modo noche.', toast: 'Modo noche: no está en este firmware' };
     }
     if ((cmd === this.ORDEN || cmd === this.ORDEN_TR) && this.RECHAZO[desc]) {
-      return { texto: 'Modo noche: ' + this.RECHAZO[desc], toast: 'Modo noche: ' + desc };
+      return { texto: 'Modo noche: ' + this.RECHAZO[desc], toast: desc === 'FLASH_NO_RELEE'   // N-183
+        ? 'Modo noche: no se guardó y las franjas pueden haberse perdido; repita' : 'Modo noche: no ha cambiado nada' };
     }
     if (/^SET_MODO:/.test(cmd) && desc === 'EN_NOCHE_SALGA_PRIMERO') {   // DEG_T y AMBAR, SPEC_0 5.10 (f)
       return { texto: 'Modo noche: esta orden no se hace dentro de la noche. Salga primero (con PIN) a ' +

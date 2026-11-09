@@ -30,6 +30,17 @@ module.exports = async function pruebaDegFin(montarAppLimpia, assert) {
   entra('ACK,CMD:FORZAR_ROJO,RESULT:YA_EN_ROJO_FIJO');
   assert(!/ACEPTADA \(YA_EN/.test(ultimo()) && /ya estaba en rojo fijo/i.test(ultimo()),
     `A1: YA_EN_ROJO_FIJO dice "ya estaba en rojo fijo; nada cambia": "${ultimo().slice(0, 160)}"`);
+  // N-183 (SPEC_4 7.16): sin literal crudo. Un RESULT de FORZAR_ROJO que la tabla no nombra no sale en verde como
+  // "ACEPTADA (X)": pide mirar la luz. El NO_CABE de REINICIOS dice que no le cupo, sin el literal.
+  const toast = () => d.getElementById('toast-msg').textContent;
+  entra('ACK,CMD:FORZAR_ROJO,RESULT:LITERAL_NUEVO');
+  assert(!/ACEPTADA/.test(ultimo()) && /mire la luz/i.test(ultimo()) && !/LITERAL_NUEVO/.test(toast()),
+    `N-183: FORZAR_ROJO con un RESULT desconocido tiene frase: "${ultimo().slice(0, 160)}" / "${toast()}"`);
+  const borde = d.querySelector('#event-feed .event-item').getAttribute('style') || '';
+  assert(/--red-lamp/.test(borde), `N-183 (D-156): FORZAR_ROJO con un RESULT desconocido va en rojo: "${borde}"`);
+  entra('ERR,CMD:REINICIOS,DESC:NO_CABE,NODE:MAESTRO');
+  assert(!/NO_CABE/.test(ultimo().split('->').pop() + toast()) && /no le cab/i.test(ultimo()),   // la cabecera lo cita
+    `N-183: REINICIOS|NO_CABE en frase llana: "${ultimo().slice(0, 160)}" / "${toast()}"`);
 
   // A2 + A3: el boton "Programar salida" existe en las DOS pantallas y manda DEG_FIN con el vale UNA vez.
   const relojReal = a.w.Date; let corrimientoMs = 0;
@@ -107,4 +118,16 @@ module.exports = async function pruebaDegFin(montarAppLimpia, assert) {
   assert(/salida programada en el Maestro; FALTA el Esclavo/i.test(pagina()),
     'A4: si la app programo el Maestro y no consta el Esclavo, el cartel dice "salida programada en el Maestro; ' +
     'FALTA el Esclavo" y se queda fijo');
+
+  // N-183 (SPEC_4 7.16): el toast de estos rechazos no lleva el codigo crudo; dice que paso y que hacer.
+  for (const [cmd, desc, re] of [
+    ['SET_MODO:DEG_T', 'FORMATO_INVALIDO', /no entendi.*no ha entrado.*avise/i],
+    ['SET_MODO:DEG_FIN', 'FORMATO_INVALIDO', /no entendi.*no ha cambiado.*avise/i],
+    ['SET_DEG_AUTO', 'FORMATO_INVALIDO', /no entendi.*no ha cambiado.*avise/i],
+    ['SET_DEG_AUTO', 'SIN_ENLACE_CON_EL_OTRO_POSTE', /sin radio.*no ha cambiado.*repita/i],
+    ['SET_DEG_AUTO', 'EN_DEGRADADO_SALGA_PRIMERO', /en degradado.*saquelo.*repita/i],
+    ['SET_DEG_AUTO', 'CAMBIADO_AQUI_SIN_ACUSE_DEL_OTRO_POSTE', /cambiado aqui.*no lo confirmo.*repita/i]]) {
+    entra(`ERR,CMD:${cmd},DESC:${desc},NODE:MAESTRO`);
+    assert(!toast().includes(desc) && re.test(toast()), `N-183: ${cmd}|${desc} en frase llana: "${toast()}"`);
+  }
 };

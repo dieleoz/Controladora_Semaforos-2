@@ -304,8 +304,11 @@ const DiagnosticoEnlace = {
     this._reiniciosEnCurso = false;
     return noLaLleva
       ? { texto: 'Este firmware no lleva REINICIOS.', toast: 'REINICIOS: no está en este firmware' }
-      : { texto: 'El equipo no pudo componer la respuesta de REINICIOS (' + (data.DESC || '?') +
-                 '): repórtelo.', toast: 'REINICIOS rechazado' };
+      : { texto: data.DESC === 'NO_CABE'   // N-183: sin el literal crudo
+          ? 'El equipo no pudo mandar su cuenta de reinicios: la respuesta no le cabía. El semáforo sigue igual; ' +
+            'avise a mantenimiento.'
+          : 'El equipo no pudo mandar su cuenta de reinicios (' + (data.DESC || '?') + '): avise a mantenimiento.',
+          toast: 'Reinicios: el equipo no pudo contestar' };
   },
 
   // ---- Derivadas para pintar --------------------------------------------

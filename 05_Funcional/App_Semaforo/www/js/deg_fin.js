@@ -176,7 +176,8 @@ const DegFin = {
       this.render();
     }
     const texto = this.MOTIVOS[desc];
-    return texto ? { texto, toast: 'Salida programada: ' + desc } : null;
+    return texto ? { texto, toast: 'Salida programada: ' + (desc === 'FORMATO_INVALIDO'   // N-183: sin el codigo
+      ? 'el equipo no entendio la hora; no ha cambiado nada, avise' : desc) } : null;
   },
 
   // $ALARM DEGRADADO,CAUSA:ROJO_TOTAL,ACCION:ROJO_FIJO: lo puso una persona; no es ROJO_SIN_HORA.

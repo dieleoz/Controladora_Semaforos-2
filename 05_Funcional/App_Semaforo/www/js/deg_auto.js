@@ -51,6 +51,13 @@ const DegAuto = {
       'ha acusado. Con el Maestro en MENU no hay acuse: ponga el Maestro en AUTO o ' +
       'INTELIGENTE, con radio, y repita.',
   },
+  // N-183: el toast, sin el codigo. SIN_ACUSE: guardado aqui, y el otro no lo reflejo en DEG_AUTO_ACUSE_MS (10 s).
+  RECHAZO_TOAST: {
+    'FORMATO_INVALIDO': 'el equipo no entendio la orden; no ha cambiado nada, avise',
+    'SIN_ENLACE_CON_EL_OTRO_POSTE': 'sin radio con el otro poste; no ha cambiado nada, repita con radio',
+    'EN_DEGRADADO_SALGA_PRIMERO': 'este poste esta en degradado; saquelo primero y repita',
+    'CAMBIADO_AQUI_SIN_ACUSE_DEL_OTRO_POSTE': 'cambiado aqui, el otro poste no lo confirmo; repita con radio',
+  },
 
   // CAUSA:AUTO_NO_<codigo>: nombreMotivo() del Maestro y nombreRechazo() del Esclavo, los
   // mismos codigos en las dos puntas (cortos: la CAUSA del $ALARM cabe en 19, esp32_07).
@@ -202,7 +209,7 @@ const DegAuto = {
     if (data.CMD !== this.ORDEN) return null;
     this._fin();
     const t = this.RECHAZO[String(data.DESC || '')];
-    return t ? { texto: t, toast: 'Degradado automatico: ' + data.DESC } : null;
+    return t ? { texto: t, toast: 'Degradado automatico: ' + this.RECHAZO_TOAST[String(data.DESC)] } : null;
   },
 
   // ---- Pantalla ------------------------------------------------------------

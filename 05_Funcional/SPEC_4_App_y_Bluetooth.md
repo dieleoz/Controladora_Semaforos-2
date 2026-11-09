@@ -505,10 +505,11 @@ en `js/diagnostico_enlace.js` y `renderDiagnosticoEnlace()` lo pinta en la venta
 
 🟢 **4 · CERRADO por `D-65` (§9.5):** `SET_MODO:ALCANCE`/`INTELIGENTE` repetidos contestan `RESULT:SIN_CAMBIO`.
 
-⚠️ **5 · El Modo Alcance no tiene superficie.** Todo lo que ese modo produce sale por
-`lcd_dibujarAlcance()`, y **el LCD se retiro** (`D-17.bis`). Desde el telefono, `MODO:ALCANCE` ensena el mismo
-`RF:`/`RTT:` que cualquier otro modo —vienen de la ventana de latidos del coordinador, **no** de los contadores que ese
-modo pone a cero—. Es un modo de medida sin nadie que lea la medida, y es `D-16` en su forma mas simple.
+⚠️ **5 · El Modo Alcance no tiene medida propia** (a medias, `cd437b2`). Sin LCD (`D-17.bis`) y sin
+`lcd_dibujarAlcance()` en el fuente, `modoAlcance_setup()` solo llama a `coordinador_forzarMenu()`: desde `D-63` no
+pone ningun contador a cero. La app, con `MODO:ALCANCE`, abre una caja (`pintarCajaAlcance()`) con el `RF:`/`RTT:`
+del mismo `$STATUS` que cualquier otro modo, la ventana de latidos del coordinador. **Pendiente del responsable**
+(`D-16`): retirar el modo o darle medida propia.
 
 🟢 **6 · CERRADO POR `D-44` (`f9cad1f`):** `menu_setup()` sigue llamando a `coordinador_forzarMenu()` (§3.1, hueco 1).
 
@@ -522,26 +523,44 @@ del puente, porque el otro no existe, **pero la trama no lo dice**. Residual dec
 
 🟢 **9 · CERRADO — construido en `f57a401`.** Lo que la app hace con la barrera retenida esta en §6.
 
-🟡 **10 · Los dos interruptores de administrador no existen; como se publican quedo DECIDIDO el 14/10 (`D-97`).**
+🟢 **10 · Los dos interruptores de administrador: construidos en `bd16447` (09/11), sin banco** (`D-97`).
 *Sacar la camara del veto* y *sacar la barrera de servicio*, uno por poste, sobreviviendo a un corte de luz:
 la conducta entera es SPEC 8 §6. El obstaculo medido sigue siendo cierto —al `$STATUS` del poste 1 le sobran
 3 B de 155 y un campo nuevo no cabe—, y por eso **no entra campo ni byte**: el estado viaja como VALOR de dos
 campos que ya tienen su ancho, `PLUMA:FUERA` (5 <= 6) y `CAM:NOVETO` (6 <= 6), en las dos puntas; el recorte
 de `HORA:` se queda sin gastar. La app los pinta en ambar con su frase (`D-83`, `D-80`) desde `PLUMA_LEYENDA` y
 `CAM_LEYENDA`, que `app_04_valores_de_status` compara con el C++ en los dos sentidos. Las ordenes van tras la
-clave de administracion (`D-56`) y el PIN, locales al poste conectado (`D-94`). **Sin construir**: sin tarjeta
-con barrera y pila medidas no hay codigo (SPEC 8 §6, `N-178` M12).
+clave de administracion (`D-56`) y el PIN, locales al poste conectado (`D-94`). Firmware: `interruptores.cpp` de las
+dos puntas (`SET_VETO_CAMARA`, `SET_BARRERA_SERVICIO`); app: `js/interruptores.js`; lo ejercen
+`tests/dom_interruptores.js` y `app_04_valores_de_status`. Falta la tarjeta con barrera y pila (SPEC 8 §6).
 
 ⚠️ **11 · Lo que 1.49 dejo a medias** (`622a20b`). **(a)** cerrado (§9.6, SPEC 6 C.1). **(b)** El acuse diferido de
 `REINICIAR_RELOJ` (§3.1) no lo recorre ningun arnes en el tiempo: solo packs de texto (`reloj_01`, `app_08`).
 
-⚠️ **12 · «Exportar todo como archivo» en la APK: construido, SIN PROBAR EN UN TELEFONO.** `@capacitor/filesystem` y
-`@capacitor/share` 6.0.4 (el WebView de `@capacitor/android` 6.2.1 no descarga `<a download>`), medidos solo contra
-dobles (`tests/test_unitarios.js` §12, `test_dom_execution.js`). Sin medir: que la APK compile y publique los dos en
-`window.Capacitor.Plugins`, el `FileProvider` y que WhatsApp reciba el `.txt` como adjunto. Si falla, se copia el texto.
+🟡 **12 · «Exportar todo como archivo» en la APK: construido; en telefono, a medias.** `js/exportar.js` escribe con
+`Filesystem.writeFile` a `CACHE` y comparte con `Share.share` (`@capacitor/filesystem` y `@capacitor/share` 6.0.4;
+`FileProvider` en el manifiesto); lo ejercen `tests/test_unitarios.js` §12 y `tests/dom_exportar.js`. Medido en
+telefono (`evidencia/2026-10-14_telefono_d55.txt`, APK `96c3d32`): la APK publica `Filesystem` y escribe en
+`EXTERNAL`. Sin medir: la hoja de compartir y que WhatsApp reciba el `.txt`. Si falla, se copia el texto.
 
 🟢 **13 · 14 · 15 · CERRADOS, construidos, sin banco ni telefono:** testigo (§3.ter, `11b57b3`), Degradado automatico
 (§3.ter.bis, `js/deg_auto.js`) y salida programada con el rojo total (§3.ter.ter, `js/deg_fin.js`).
+
+🟢 **16 · Nueve rechazos que llegaban crudos tienen frase (`N-183`, sin telefono).** El toast ya no lleva el codigo:
+1. `SET_NOCHE`/`SET_NOCHE_TR` con `FLASH_NO_RELEE`: «no se guardo y las franjas pueden haberse perdido; repita»; la
+   linea de Eventos dice que sigue con lo de antes y que, si se apaga antes de repetir, puede arrancar sin franjas
+   (`nocheFlash_escribir()` borra la pagina; `modoNoche_cargar()` no reconoce el registro). Los otros tres `DESC` de
+   `SET_NOCHE` dicen «Modo noche: no ha cambiado nada» (`js/noche.js`).
+2. `REINICIOS` con `NO_CABE`: la respuesta no le cabia y el semaforo sigue igual (`js/diagnostico_enlace.js`).
+3. Un `RESULT:` de `FORZAR_ROJO` que ninguna tabla nombra sale en rojo, «mire la luz», no en verde como «ACEPTADA (X)»
+   (`D-156`; `TextosSpec4.tiempos()`, ultimo eslabon de la cadena).
+4. `SET_MODO:DEG_T` y `SET_MODO:DEG_FIN` con `FORMATO_INVALIDO`: no entendio la orden, no ha entrado o no ha cambiado
+   nada, avise (`js/testigo.js`, `js/deg_fin.js`).
+5. `SET_DEG_AUTO` con `FORMATO_INVALIDO`, `SIN_ENLACE_CON_EL_OTRO_POSTE`, `EN_DEGRADADO_SALGA_PRIMERO` y
+   `CAMBIADO_AQUI_SIN_ACUSE_DEL_OTRO_POSTE` (guardado aqui; el otro no lo reflejo en `DEG_AUTO_ACUSE_MS`):
+   `DegAuto.RECHAZO_TOAST` (`js/deg_auto.js`).
+
+El literal sigue en la cabecera de Eventos. Lo ejercen `tests/dom_deg_fin.js` y `tests/dom_textos_spec4.js` 16 (h).
 
 ---
 
@@ -561,7 +580,7 @@ dobles (`tests/test_unitarios.js` §12, `test_dom_execution.js`). Sin medir: que
 | §4 **el VALE DE VIA (`viaConfirmadaVigente()`)** y el `bool` de `enviarComandoFirmware()` | ✅ **fila 12** |
 | §3.3 **el despachador del ESP32** — `D-15`, `esParaElPuente()`, los siete `$ERR` de `LEER_RTC` | 🔴 **NADIE.** `ESP32_Expansion/src/despachador.cpp` **no lo compila ningun arnes**: solo lo cruza PlatformIO, y la fila 20 **lo modela en Python** (`ARQUITECTURA.map` §5) |
 | §1 **`transporte_escribir()` mira `hasClient()`** y no espera con el SPP congestionado (§9.7) | 🟡 **texto** (`esp32_06_no_parte_tramas` bloque 5, 14/10); nadie compila `X:transporte_app.cpp` |
-| §9.8 **el registro del puente** (`registro.cpp`, `CMD:LOG,DESDE:<N>`, `LOG:` en el parte) | 🟡 **texto** (`esp32_05` `EMITE_HACIA_LA_APP`, `esp32_10` el parte con `LOG:`, `decisiones_01` las anclas) y ✅ `tests/dom_registro_sesion.js` bloque 9.8 sobre la app real en jsdom; construido, sin banco (`D-100`: no). El C++ del puente sigue sin ejecutarse en el PC |
+| §9.8 **el registro del puente** (`registro.cpp`, `CMD:LOG,DESDE:<N>`, `LOG:` en el parte) | 🟡 **texto** (`esp32_05` `EMITE_HACIA_LA_APP`, `esp32_10` el parte con `LOG:`, `decisiones_01` las anclas) y ✅ `tests/dom_registro_sesion.js` bloque 9.8 sobre la app real en jsdom; construido con `D-100` (`cd437b2`), sin banco. El C++ del puente sigue sin ejecutarse en el PC |
 | §1 **`TRAMA_MAX_UTIL` y `BUF_ENTRADA_STM32`** | 🟡 **texto** (`esp32_06_no_parte_tramas`, `esp32_09_contrato_de_bytes`, `esp32_07_presupuesto_bytes`) |
 | §1 **la rama del latido que sale sin contestar** | 🟡 **texto** (`esp32_08_silencio_no_es_orden`, y el censo de la fila 20, que la excluye por nombre) |
 | §1 **`sellarHoraSiFaltaba()`**, la unica trama que el puente modifica | 🟡 **texto** (`esp32_13_siembra_de_hora`, `reloj_02_siembra_que_miente`); nadie compila `X:siembra.cpp` |
@@ -600,10 +619,11 @@ equipo, §4; `state.pinVerificado`, `CMD:PIN:`). Ninguno arma al otro.
   EMERGENCIA, la botonera), Eventos, exportar y **«Prueba de focos»**, que pasa a Trafico y sigue pidiendo el PIN.
   Construido (`4105ba3`; `D-141`, `D-143`, §9.9 (f)): Prueba de focos plegada en «Mas» de Trafico, y un solo
   «Exportar registro» en Eventos (el `.txt` de «Exportar todo»).
-- **Con la clave** se ven ademas Tiempos, Diagnostico (Degradado: testigo, eleccion del automatico, salida `D-52`;
-  hora y Courier; mandos directos) y Depuracion, y la tarjeta que pide la eleccion del automatico al conectar.
-  DEBE (`D-145`): la pastilla dice «Operario» o «Tecnico» y la pestana Diagnostico se rotula «Ajustes»; la lista de
-  lo que ensena la clave no crece (`D-141`).
+- **Con la clave** se ven ademas Tiempos, Ajustes (Degradado: testigo, eleccion del automatico, salida `D-52`;
+  hora y Courier; mandos directos) y Tramas, y la tarjeta que pide la eleccion del automatico al conectar.
+  Construido (`D-145`, `4105ba3`): la pastilla dice «Operario» o «Tecnico» y la pestana `#tab-btn-diag` se rotula
+  «Ajustes» (lo ejercen `tests/dom_claves.js` y `tests/dom_usabilidad.js` K); la lista de lo que ensena la clave no
+  crece (`D-141`).
   Quien hace Degradado lleva las dos claves (SPEC_6 A.1).
 - **El PIN no cambia:** cada orden que lo pide abre el teclado del PIN, tambien con la clave puesta. Tiempos y las
   dos de hora no salen sin el: el emisor las frena (al diario como no salidas) y abre el teclado; tecleado, se
@@ -812,7 +832,7 @@ cinco minutos, cinta despues: el contador por el LOG de M5, o un parte sin `OTRO
 de pack contra 0 en el numerador (`ESP32_Expansion` no cuenta en el): la razon instrumentos/producto sube por eso, y
 se declara en vez de esconderse; el arnes que `ROADMAP_APP.md` 13 pedia es mas grande y esta prohibido (§4).
 
-### 9.8 Registro en el puente (`N-178` M5; `D-55`, `D-72`..`D-75`) — construido, sin banco; `D-100` (15/10), no
+### 9.8 Registro en el puente (`N-178` M5; `D-55`, `D-72`..`D-75`, `D-100`) — construido en `cd437b2`, sin banco
 
 Por que (medido): §9.3 guarda en el telefono lo que la app VE; lo que pasa sin telefono no lo guarda nadie: el parte
 de arranque del puente solo sale al conectar (`vigilante_declarar()`), los `$ALARM` del limite se repiten mientras
@@ -940,25 +960,26 @@ HUECO hasta banco: (a) y (e) se miden en la tarjeta (`CRC` del `$ACK` antes y de
 tras un corte); `FECHA:`/`HORA:` con el DS3231 en hora; el lote con la app en segundo plano. Medida de §8: ~350 lineas
 de producto en `ESP32_Expansion` (no cuentan en el numerador, §9.7) contra ~80 de test DOM y ~10 de pack: no sube.
 
-### 9.9 La pantalla del operario (`N-178` M7; `D-80`..`D-83`) — decidido el 14/10; (f)-(i) construido en `4105ba3`
+### 9.9 La pantalla del operario (`N-178` M7; `D-80`..`D-83`) — construido, sin telefono; (g) 3 sin medir
 
-Fuente: `ROADMAP_APP.md` 2-3 y la revision del 09/10; lo que la app DEBE hacer. Decidido por Fable por delegacion del
-responsable, 14/10, y `D-101` el 15/10. Sin arnes nuevo (`CLAUDE.md` §4): `tests/dom_*.js` sobre el `app.js` real;
-`www/` identica.
+Fuente: `ROADMAP_APP.md` 2-3 y la revision del 09/10. Decidido por Fable por delegacion del responsable, 14/10, y
+`D-101` el 15/10. Lo que la app HACE: (a)-(e) construidos en `cd437b2` (15/10), (f)-(i) en `4105ba3`, `4c709fd` y
+`c94a6cb` (09/11); falta medir (g) 3 en el telefono. Sin arnes nuevo (`CLAUDE.md` §4): `tests/dom_*.js` sobre el
+`app.js` real; `www/` identica.
 
 **(a) Dos zonas, y la jerga solo en una (`D-80`).** Zona del operario: la cabecera, Trafico (`#tab-estado` entero,
 con la ventana del Poste 2 y la reja de telemetria), el toast y todo modal o cartel (`.modal-overlay`,
 `js/aviso_corte.js`, `js/aviso_camara_pluma.js`, `js/carteles_equipo.js`, la hoja de conexion). Zona tecnica: las
-pestanas con clave (`admin-only`: Tiempos, Diagnostico, Depuracion) y Eventos. Eventos queda en la tecnica a
+pestanas con clave (`admin-only`: Tiempos, Ajustes, Tramas) y Eventos. Eventos queda en la tecnica a
 proposito: cada linea lleva la orden y el motivo LITERAL del equipo porque es lo que se copia a la hoja de banco y al
 reporte (`CLAUDE.md` §7.2: el sintoma trae el numero); la frase de «Que falta:» va al lado, no en su lugar.
 Jerga = lo que casa con `JERGA` (una sola expresion, en el test, copiada aqui):
 `\bRSSI\b|\bRTT\b|\bMAC\b|\bNODE\b|\$STATUS|\$EVENT|\$ACK|\$ERR|\bCMD:|\bD-\d{1,3}\b|\bJ1[4-7]\b|OTRO_PERRO|_MUDO|`
 `SET_MODO|SET_DEG_AUTO|SET_RTC|no viaja en esta trama|ESP32|STM32|\b(RF|BAT|RTT|T):--`.
-`MAESTRO` y `ESCLAVO` no son jerga: §6 los pone en la cabecera junto a POSTE 1 / POSTE 2. Lo que cambia, medido
-sobre el fuente de hoy (cada uno con su texto nuevo; el literal del equipo sigue en Eventos):
+`MAESTRO` y `ESCLAVO` no son jerga: §6 los pone en la cabecera junto a POSTE 1 / POSTE 2. Lo que se cambio en
+`cd437b2` (cada uno con su texto nuevo; el literal del equipo sigue en Eventos):
 1. `#phase-desc` entre la conexion y el primer `$STATUS`: «EQUIPO SIN IDENTIFICAR - esperando su primer dato».
-2. `pintarAjeno()` contra el Esclavo: «SIN DATOS · se ve desde el POSTE 1» (hoy «no viaja en esta trama»).
+2. `pintarAjeno()` contra el Esclavo: «SIN DATOS · se ve desde el POSTE 1» (antes «no viaja en esta trama»).
 3. Reja de telemetria: la etiqueta `RTT` pasa a «respuesta»; la nota de la barra se queda en su SITIO (el comentario
    de `index.html` explica por que) y dice «% de latidos contestados entre postes. No es la potencia de la antena.»;
    «CÁMARAS J16» pasa a «CÁMARAS» (el conector esta en la guia de montaje y en SPEC 5).
@@ -988,17 +1009,18 @@ salio). Ambar: mirar antes de seguir (precaucion, aviso, acuse que no cambio nad
 sin accion (acuse OK, orden enviada): retirarlo es un rediseno sin medir en el telefono (contraste 6,52:1 del 09/10)
 y `style.css` ya razona por que DAR PASO no puede parecerse a una parada. Lo que cambia: ningun valor de Trafico que
 diga `--`, `-- V`, `SIN DATOS`, `NO SE SABE` o «Sin datos del equipo» lleva clase ni color rojo, ambar, verde o cyan
-(hoy `#rf-quality` y `#cam-estado` nacen `cyan`, y el anillo sin estado cae a `red` en `updateCountdownRing()`:
-pasa a una clase `sindato` gris en `.ring-fill` y `.ring-num`). `js/testigo.js` «Lleve el MISMO testigo...» sigue
-en rojo: es una accion.
+(antes `#rf-quality` y `#cam-estado` nacian `cyan` y el anillo sin estado caia a `red`; desde `cd437b2`
+`updateCountdownRing()` le pone la clase `sindato` gris, y el resumen `res-sindato`). `js/testigo.js` «Lleve el MISMO
+testigo...» sigue en rojo: es una accion.
 
 **(c) Una frase por estado.** `#phase-desc` = `<POSTE>: <frase> · <otro poste>`; la frase es UNA por `ESTADO:`,
-de `ESTADOS` (`app.js`), y esta tabla es el oraculo del test: `ROJO` «ROJO, este poste no da paso» · `ROJO+AMAR` «Rojo y
-amarillo: va a abrir el verde» · `VERDE` «VERDE, este poste da paso» · `AMARILLO` «AMARILLO, este poste está cerrando su
-paso» · `FALLO COM` «ámbar y pluma arriba: pasar con precaución», y con `MODO:AMBAR` la frase por ORIGEN de §9.11
-(`D-93`), que decide `_fraseDeEstadoLuces()`. Sin estado: «SIN ENLACE - sin datos del equipo», «EQUIPO SIN IDENTIFICAR -
-esperando su primer dato», «ESTADO no reconocido: "<literal>"». Ninguna otra funcion escribe `#phase-desc`; ninguna
-frase pasa de 60 caracteres sin el otro poste (lo que ya exige `tests/dom_cabecera_fase.js` para FALLO COM).
+de `ESTADOS` (`js/luces_tablas.js`), y esta tabla es el oraculo del test: `ROJO` «ROJO, este poste no da paso» ·
+`ROJO+AMAR` «Rojo y amarillo: va a abrir el verde» · `VERDE` «VERDE, este poste da paso» · `AMARILLO` «AMARILLO, este
+poste está cerrando su paso» · `FALLO COM` «ámbar y pluma arriba: pasar con precaución», y con `MODO:AMBAR` la frase por
+ORIGEN de §9.11 (`D-93`), que decide `_fraseDeEstadoLuces()` (`js/luces.js`). Sin estado: «SIN ENLACE - sin datos del
+equipo», «EQUIPO SIN IDENTIFICAR - esperando su primer dato», «ESTADO no reconocido: "<literal>"». Ninguna otra funcion
+escribe `#phase-desc`; ninguna frase pasa de 60 caracteres sin el otro poste (lo que ya exige
+`tests/dom_cabecera_fase.js` para FALLO COM).
 
 **(d) Cabecera legible a 360 px (`D-82`).** jsdom no mide pixeles y el recorte del 06/10 no se reprodujo en
 simulado (`ROADMAP_APP.md` 3): no se toca el reparto de `style.css` (N-75, §4.ter) ni las pastillas en emoji a
@@ -1010,9 +1032,9 @@ ABIERTO: desconectar a proposito o cambiar de poste apaga la telemetria viva y e
 no sale la alarma, no se anota CAIDA y el vigilante no corta el enlace nuevo (`desconectarEquipo()`; medido 16/10 en el
 telefono: alarma a los 3,5 s de desconectar, y el enlace con el Poste 2 cortado a 1 s de abrirlo).
 
-**(e) Un solo aviso al cambiar el verde con el Degradado en marcha (`D-81`), SIN retirar la barrera.** Hoy son dos:
-`Testigo._pulsar()` abre `Dialogo.confirmar(...)` («Paletero puesto: enviar», un toque) y despues, al enviar,
-`AvisoDegradado.permite()` abre el de paleteros (casilla + «Cambiar este poste»). Lo que DEBE hacer: en el caso
+**(e) Un solo aviso al cambiar el verde con el Degradado en marcha (`D-81`), SIN retirar la barrera.** Antes eran
+dos: `Testigo._pulsar()` abria `Dialogo.confirmar(...)` («Paletero puesto: enviar», un toque) y despues, al enviar,
+`AvisoDegradado.permite()` el de paleteros (casilla + «Cambiar este poste»). Lo que HACE (`cd437b2`): en el caso
 `_cambioEnCaliente()`, `_pulsar()` no abre el `Dialogo`: pide a `AvisoDegradado` el MISMO modal
 (`#aviso-deg-modal`, casilla `#chk-aviso-deg` y boton) con titulo «Cambio de tiempos con el Degradado en marcha» y
 cuerpo con lo que exigian los dos: «Hasta que el POSTE 2 acepte el MISMO testigo, los dos postes llevan ciclos
@@ -1026,7 +1048,7 @@ el vale se casa por nombre `SET_MODO:DEG_T` y en 30 s no cabe otra orden de ese 
 y el resto siguen con su aviso propio. Con los mismos verde y despeje que el guardado no hay cambio en caliente: el
 aviso de paleteros sale al enviar, como hoy (un aviso tambien).
 
-Quien lo ejerce (rojo hoy, todos sobre el `app.js` real):
+Quien lo ejerce (vistos en rojo antes de `cd437b2`, en verde desde entonces; todos sobre el `app.js` real):
 - `tests/dom_usabilidad.js`, bloque nuevo «J (D-80)»: clona `body`, quita `.admin-only`, `#tab-eventos`, `script`,
   `style`, y pasa `JERGA` sobre el texto en seis fotos: (1) tras conectar y antes del primer `$STATUS`; (2) Maestro
   `AUTO`; (3) Maestro `FALLO COM`, `RF:0`, `ESC:?`; (4) Esclavo `SUBORDINADO` con la ventana del Poste 2 y un
@@ -1108,10 +1130,12 @@ Maestro como arriba; Esclavo `SUBORDINADO`):
 1. **Botones**: <= 6 `<button>` visibles en `#tab-estado` y <= 2 `<summary>` («Detalle», «Mas»; con el Esclavo,
    «Que se ve desde este poste» ocupa el sitio de «Detalle»).
 2. **Palabras**: <= 80 en el texto visible de `#tab-estado` (tokens `[A-Za-z0-9%` y acentos`]+`; un `<details>`
-   cerrado cuenta solo su `<summary>`). Hoy 140, 136 y 329.
-3. **Sin scroll a 360x640**: el pie de `#tab-estado` no pasa del borde superior de la barra de pestanas (hoy 1166
-   contra 569); si no cabe, lo primero que tiene que caber es, en orden: luces y frase, los mandos, el resumen,
-   «Mas». **Sin scroll lateral a 320x640** (ancho del documento <= 320). Lo mide P en el telefono por CDP; jsdom no.
+   cerrado cuenta solo su `<summary>`). Antes de U, 140, 136 y 329 (sobre `8f8dd7e`); 1 y 2 los asevera el bloque
+   «K» de `tests/dom_usabilidad.js` en las tres fotos desde `4105ba3`.
+3. **Sin scroll a 360x640** (SIN MEDIR tras `4105ba3`: ningun acta en `evidencia/`; antes de U, 1166 contra 569):
+   el pie de `#tab-estado` no pasa del borde superior de la barra de pestanas; si no cabe, lo primero que tiene que
+   caber es, en orden: luces y frase, los mandos, el resumen, «Mas». **Sin scroll lateral a 320x640** (ancho del
+   documento <= 320). Lo mide P en el telefono por CDP; jsdom no.
 4. **Resumen** `#resumen-equipo`, una linea: «Radio entre postes: <BUENA|...> · Bateria <v> V · Camaras <bien|...>»,
    color de `D-83` por trozo, gris sin dato. No dice «antena» ni «senal»: la nota de (a) 3 va con la barra.
 5. **Franja de aviso**: cada cartel de arriba (`#aviso-camara-pluma`, `#aviso-corte`, `#carteles-equipo`,
@@ -1127,7 +1151,7 @@ Maestro como arriba; Esclavo `SUBORDINADO`):
    Detalle. Lo ejerce el bloque «F» de `tests/dom_usabilidad.js`.
 6. **Rotulos** (`D-145`): la pastilla dice «Operario» (manda el cruce) o «Tecnico» (ademas ajusta y diagnostica),
    en `#role-label` y en `title`/`aria-label`, que es lo que queda a <= 400 px mientras `D-82` mande. La pestana
-   «Tecnico» (`#tab-btn-diag`) pasa a «Ajustes», para que «Tecnico» nombre un modo y no una pestana.
+   `#tab-btn-diag` se rotula «Ajustes», para que «Tecnico» nombre un modo y no una pestana (construido, `4105ba3`).
 
 **(h) Un nombre llano y una frase por ajuste (`D-145`).** El `<label>` es el nombre; la frase, el `<small>` de al
 lado. Oraculo del test:
@@ -1167,13 +1191,13 @@ Ficheros, los de U-B (`roadmap.md` bloque U). Lo que jsdom no mide (scroll, 48 p
 
 ### 9.10 Practica sin poste (`N-178` M9; `D-58`, `D-86`..`D-89`) — construido, sin telefono
 
-Fuente: `D-58` y `ROADMAP_APP.md` 14. Lo que sigue es lo que la app HACE (`js/practica*.js`). Decidido por Fable
-por delegacion del responsable, 14/10. Es producto, en `js/` (copia identica en `www/js/`): el simulador de PC del
-repo sigue CONGELADO (`CLAUDE.md` §4) y no se toca. La barrera que esto roza es la de `N-75`: un tablero que pinta
+Fuente: `D-58` y `ROADMAP_APP.md` 14. Lo que sigue es lo que la app HACE (`js/practica.js`, `js/simulador.js`). Decidido
+por Fable por delegacion del responsable, 14/10. Es producto, en `js/` (copia identica en `www/js/`): el simulador de PC
+del repo sigue CONGELADO (`CLAUDE.md` §4) y no se toca. La barrera que esto roza es la de `N-75`: un tablero que pinta
 un cruce que no existe. Por eso la practica no pinta nada por su cuenta: entra por el cable falso y la app la trata
 como a un equipo, con la franja SIMULADO encima de todo.
 
-**(a) Donde esta y como se entra (`D-86`).** Un boton «Practicar sin poste» (`#btn-practica`) en Diagnostico
+**(a) Donde esta y como se entra (`D-86`).** Un boton «Practicar sin poste» (`#btn-practica`) en Ajustes
 (`#tab-diag`, `admin-only`): sin la clave de administracion (§9.2) no se ve ni entra (`Practica.entrar()` sin
 `body.admin` no hace nada). Entrar con un enlace abierto (`state.connected`, leido por `window.appEnlazada()`) se
 rechaza con toast y una linea en Eventos: la practica no desconecta a nadie. Sin pestana nueva: `test_dom_execution.js`
@@ -1189,28 +1213,16 @@ cuenta cinco pestanas y sigue contandolas.
 - Ningun id ni literal de la practica contiene `btn-sim`, `sim-btn-`, `field-sim-bar`, `runLocalTicker`,
   «SIMULADOR DE PRUEBAS» ni «DEMO EN VIVO»: `test_funcional_app.py` los busca en `index.html` y en `js/*.js`.
 
-**(b) La flota y sus cintas (`D-87`).** Una cinta por equipo en `js/practica_cinta_<n>.js` (<= 500 lineas cada
-una, cabecera con la ruta de `evidencia/` de origen, el firmware que llevaba el equipo y el tramo de horas). Cada
-linea es una trama `<--` copiada LITERAL de la cinta, con su checksum: la app la vuelve a juzgar. Ritmo: una linea
-por segundo en el orden de la cinta, y vuelve a empezar al acabar. Flota inicial, cuatro equipos con rotulo real
-`SEM-<serie>-M`/`-E` y direccion `SIM:<n>`:
-1. Poste 1 sin radio con el 2: `evidencia/061020261110/Tramas_KM_12_EL_SISGA_2026-10-06.txt` (d810f81, posterior
-   a `D-53`; `MENU`/`AMBAR`, `ESTADO:FALLO COM`).
-2. Poste 1 en ciclo: `evidencia/021020260914/Tramas_KM_12_EL_SISGA_2026-10-02.txt` (d3606be; `INTELIGENTE`,
-   `DEGRADADO`, `VERDE`/`ROJO`/`AMARILLO`). Es la unica anterior a `D-53` que se queda: no hay cinta con `ROJO+AMAR`
-   crudo; la primera que lo traiga la sustituye.
-3. Poste 2 en Degradado con testigo: `evidencia/2026-09-29_campo_testigo/IOTVIAL_38EB53_20260929-183728.txt`
-   (8974932, `NODE:ESCLAVO`, `MODO:DEGRADADO`).
-4. Poste 2 con alarma de radio: `evidencia/011020260934/IOTVIAL_38EB53_20261001-073243.txt` (`$ALARM FALLO_RF`,
-   `CAMBIO_A_AMBAR`).
-La cinta `2026-09-29_web_con_poste_simulado/` NO vale: viene de un poste simulado.
+**(b) La flota (`D-87`, sustituida por `D-120`/`D-121`).** `Practica.FLOTA` (`js/practica.js`) son once postes: cinco
+parejas, una por via, y uno sin matricula; cada uno lo contesta `Simulador.crear()` (`js/simulador.js`), un poste con
+estado que emite lo que emitiria su firmware, con checksum calculado y constantes que citan `archivo:simbolo` del C++
+(§9.14 (f)). Las cintas `js/practica_cinta_1..4.js` ya no se reproducen: `index.html` no las carga y quedan de
+referencia para `tests/dom_simulador.js`, que las compara con el simulador (§9.14 (g)).
 
-**(c) Las ordenes (`D-88`).** `write()` del puerto falso deja la orden en el diario y en la cinta como siempre
-(`-->`), y contesta a los 100 ms con el primer `$ACK` o `$ERR` de la cinta de ese equipo cuyo `CMD:` coincide,
-literal y con su checksum. Sin respuesta grabada, silencio: lo que el tecnico ve es el camino sin acuse de la app,
-no un acuse inventado. El PIN se pide igual (§4) y viaja igual. Ninguna trama de practica sale de un literal escrito
-a mano: `juzgarTrama()` rechazaria un checksum recalculado a mano y la propiedad de `app_04` (la app no habla el
-idioma de un simulador) se conserva porque todo lo que entra lo emitio un firmware.
+**(c) Las ordenes (`D-88`, sustituida por `D-120`).** `write()` del puerto falso deja la orden en el diario y en la
+cinta como siempre (`-->`) y la pasa al simulador, que contesta a los `RESPUESTA_MS` (100 ms) segun su estado: el
+mismo `$ACK` o `$ERR` que daria el firmware. Una orden que el firmware no contesta queda sin acuse, igual que en la
+app con un equipo. El PIN se pide igual (§4) y viaja igual; `juzgarTrama()` juzga cada trama como a las de un equipo.
 
 **(d) Marcas y registros (`D-89`).** Con `Practica.activa()`: `Exportar.nombreFichero()` da
 `IOTVIAL_SIMULADO_<serie>_...txt`; la cabecera de la cinta (`Exportar.textoCinta()`) y la del diario
@@ -1221,20 +1233,20 @@ practica, y al entrar se anota en Eventos. Un `.txt` con esa marca no se acepta 
 del equipo, el emparejado de Android y la radio entre postes.
 
 **Pruebas (vistas en rojo antes de construir).** `tests/dom_claves.js`, bloque «Practica»: (1) `#btn-practica`
-existe en `#tab-diag` y sin clave la practica no entra (`bluetoothSerial` identico, franja oculta); (2) con el
+existe en `#tab-diag` (Ajustes) y sin clave la practica no entra (`bluetoothSerial` identico, franja oculta); (2) con el
 enlace del arnes abierto, entrar se rechaza; (3) desconectado y con clave: franja visible, `body.simulado`, el
 modal lista >= 4 filas de `Practica.FLOTA`, y al pulsar la primera `#node-name` pasa a `MAESTRO` con `a.tramas` del
-mock original VACIO (nada llego al puerto real); (4) la `VERSION` que la app pide al enlazar recibe el `$ACK` de la
-cinta y Eventos ensena su `FW:`; (5) Salir devuelve el `bluetoothSerial` original y quita franja y clase; (6)
-campo nuevo: cada `CAMPO:` del literal `$STATUS` de `Maestro/src/bluetooth.cpp` esta en las cintas del Maestro, y
-cada uno del de `Esclavo/src/bluetooth.cpp` en las del Esclavo (un campo nuevo en el firmware deja esto en rojo
-hasta renovar la cinta). `tests/dom_exportar.js`: en practica, con plugins, `Filesystem.appendFile` no se llama y el
-nombre y la cabecera llevan SIMULADO. `test_funcional_app.py` sigue en verde con los literales de (a).
-Ficheros: `index.html`, `style.css`, `app.js` (solo `window.appEnlazada`), `js/practica.js`,
-`js/practica_cinta_1..4.js`, `js/exportar.js`, `js/depuracion.js`, los dos tests, y las copias en `www/`.
-`app.js`, `index.html`, `style.css` y `js/depuracion.js` no crecen en neto. Medida de §8: ~150 lineas de producto
-(sin contar las cintas, que son datos copiados) contra ~70 de test DOM; la razon instrumentos/producto no sube.
-Sin medir hasta el telefono: que la franja se lea sobre el modal del PIN y que el bucle de 300 tramas no caliente.
+mock original VACIO (nada llego al puerto real); (4) la `VERSION` que la app pide al enlazar, con el reloj
+inyectado, la contesta el simulador y Eventos ensena su `FW:`; (5) Salir devuelve el `bluetoothSerial` original y
+quita franja y clase; (6) campo nuevo: cada `CAMPO:` del literal `$STATUS` de `Maestro/src/bluetooth.cpp` y del de
+`Esclavo/src/bluetooth.cpp` esta en el `$STATUS` del simulador (un campo nuevo en el firmware lo deja en rojo).
+`tests/dom_exportar.js`: en practica, con plugins, `Filesystem.appendFile` no se llama y el nombre y la cabecera llevan
+SIMULADO. `test_funcional_app.py` sigue en verde con los literales de (a). Ficheros: `index.html`, `style.css`, `app.js`
+(solo `window.appEnlazada`), `js/practica.js`, `js/simulador.js`, `js/exportar.js`, `js/depuracion.js`, los dos tests, y
+las copias en `www/`. `app.js`, `index.html`, `style.css` y `js/depuracion.js` no crecen en neto. Medida de §8: ~150
+lineas de producto (sin contar las cintas, que son datos copiados) contra ~70 de test DOM; la razon
+instrumentos/producto no sube. Sin medir hasta el telefono: que la franja se lea sobre el modal del PIN y que el bucle
+de 300 tramas no caliente.
 
 ### 9.11 El origen del ambar del Poste 1 (`N-178` M11; SFTY-22; `D-91`..`D-93`) — construido, sin banco ni telefono
 
@@ -1301,7 +1313,7 @@ Ficheros: `Maestro/src/bluetooth.cpp`, `App_Semaforo/js/diagnostico_enlace.js`, 
 `App_Semaforo/tests/dom_cabecera_fase.js` y las copias en `www/`. Medida de §8: ~25 lineas de producto contra ~15 de
 test; la razon instrumentos/producto no sube.
 
-### 9.12 `app.js` en modulos, por tandas y con salida identica (`N-178` M13; `D-98`) — construido 15/10, sin telefono
+### 9.12 `app.js` en modulos, por tandas y con salida identica (`N-178` M13; `D-98`) — tandas 1 y 2 construidas
 
 Fuente: `ROADMAP_APP.md` 8. Decidido por Fable por delegacion del responsable, 14/10. Medido sobre el arbol del 14/10:
 `app.js` es UN cierre (`document.addEventListener('DOMContentLoaded', () => { ... })`) de 5860 lineas con 240 nombres
@@ -1337,6 +1349,8 @@ pintores a `js/luces.js` (`Luces.instalar(dep)`, 14 nombres del cierre; `renderL
 quedan de envoltorio en `app.js`), `app_04` lee los tres ficheros; TDD 87|4 antes, 91|0 despues; 3.a depuracion (241
 lineas, 13 nombres) con `D-72`..`D-75`; 4.a el enlace y los equipos (648 lineas, 21 nombres); la ULTIMA, los modales y
 el PIN (189 lineas): es la barrera de §4 y se mueve solo con `dom_claves.js` delante y `app_01`/`app_05` recontados.
+**Sin construir** (medido en `4da7574`, `app.js` de 4556 lineas): la 3.a, la 4.a y la ultima. Siguen en `app.js`
+`renderDepuracion()`, `abrirEnlace()`/`cambiarDeEquipo()`/`desconectarEquipo()` y `pinModal`/`pedirPin()`.
 
 ### 9.13 Firmware y APK del MISMO paquete, y la APK primero (`D-102`) — decidido el 15/10, regla de campo
 
@@ -1349,27 +1363,29 @@ celular con la APK anterior frente a un poste con la nueva. La hoja de campo lo 
 de la APK. Lo ejerce `test_unitarios_app.js` suite 8 (periodico sin `REIN` y sin `AMBAR` leido por la app nueva: ya
 existe); la APK anterior no se prueba, porque no se construye contra ella.
 
-### 9.14 Grupos por via y practica con estado (`N-180`; `D-117`..`D-121`) — decidido el 15/10, NO construido
+### 9.14 Grupos por via y practica con estado (`N-180`; `D-117`..`D-121`) — construido, sin telefono
 
 Fuente: el responsable, 15/10: «una via puede tener uno o varios grupos de semaforos» y «cada controlador tiene su
 direccion MAC y ... cuando se matricula se forman las parejas y se lleva un control de lo que seria un grupo».
-**Lo que hay hoy** (medido en `9f951c7`): la matricula del MODULO (el puente aprende serie y nodo del primer `$STATUS`
-y se anuncia `SEM-<serie>-M`/`-E`, virgen `ROTULO_PROVISIONAL`; la app separa la letra, `sufijoDeRotulo`, `N-129`);
-la de PAREJA no: `SFTY-27` es diseno, ningun `$STATUS` trae la serie del otro poste (`ESC:` es su estado) y `RF_Packet`
-no lleva pareja (SPEC 6 B.1 (4)). `js/site_manager.js` guarda «cruces» de texto libre (`iot_vial_cruces_v2`, con dos
-inventados de fabrica) y solo da el rotulo `state.site`, que nombra los ficheros exportados.
+Construido en `ac844b9` (15/10; `D-117`..`D-126`) y `b5bad6e` (27/10; `D-127`, `D-128`); lo ejercen
+`tests/dom_grupos.js` y `tests/dom_simulador.js`. **Lo que habia antes** (medido en `9f951c7`): la matricula del MODULO
+(el puente aprende serie y nodo del primer `$STATUS` y se anuncia `SEM-<serie>-M`/`-E`, virgen `ROTULO_PROVISIONAL`; la
+app separa la letra, `sufijoDeRotulo`, `N-129`); la de PAREJA no: `SFTY-27` es diseno, ningun `$STATUS` trae la serie
+del otro poste (`ESC:` es su estado) y `RF_Packet` no lleva pareja (SPEC 6 B.1 (4)). `js/site_manager.js` (retirado)
+guardaba «cruces» de texto libre (`iot_vial_cruces_v2`, con dos inventados de fabrica) y solo daba el rotulo
+`state.site`.
 **(a) Modelo.** Via → grupos (nombre, PR) → dos huecos, `MAESTRO` y `ESCLAVO`, cada uno {MAC, serie, FW, fecha}. La
 identidad es la MAC (`address` de `bt.list()`); serie y punta salen de `SERIE:`/`NODE:` y el FW del `$ACK` de `VERSION`:
 nada de eso se teclea, solo via, grupo y PR. Un grupo con un solo poste vale; una MAC esta en un grupo como mucho.
 Via, nombre y PR se recortan a 32 caracteres (`MAX_NOMBRE` de `js/grupos.js`), tambien en la migracion de (e); el PR
-puede quedar vacio (`D-127`; hoy el PR no tiene tope).
+puede quedar vacio (`D-127`).
 El FW del hueco es el campo `FW:` de la respuesta a `VERSION`, tambien la de `$ERR,...,DESC:SIN_SELLAR` (se guarda
 tal cual); sin respuesta, «sin leer», y ese hueco no entra en el aviso de FW de (c). Un transporte que solo da `id` y
 no `address` (Web Bluetooth, Web Serial) no matricula (`D-123`): el poste sale «SIN GRUPO» y la ficha dice por que.
 **(b) Matricular** (`D-118`; clave de administracion, §9.2, que lo muestra por `D-123`; sin PIN: no envia nada).
 Enlazado y leido el primer `$STATUS`, la app ofrece los grupos con ese hueco libre o «Grupo nuevo»; un hueco ocupado
 por otra MAC no se pisa («Quitar del grupo» primero, que deja el hueco libre); mover una MAC de grupo pide confirmar.
-Tambien piden confirmar, con `Dialogo.confirmar` y el mismo molde (`D-128`; hoy ninguno de los dos pregunta):
+Tambien piden confirmar, con `Dialogo.confirmar` y el mismo molde (`D-128`):
 «Quitar del grupo», «¿Quitar <PUNTA> <serie> de <via> · <grupo>? El hueco queda libre; no se envia nada al equipo»,
 y el cambio de hueco dentro del mismo grupo (la MAC matriculada en una punta se matricula en la otra porque su
 `NODE:` cambio), que nombra las dos puntas. Cancelar deja el almacen igual byte a byte.
@@ -1381,12 +1397,11 @@ sobrescribe sin matricular otra vez); `NODE:` distinto del hueco (rojo, la matri
 los dos postes del grupo (ambar, con los dos sellos: `D-102`); y una serie ya matriculada que llega por otra MAC
 (ambar, «¿modulo Bluetooth cambiado?», `D-123`): la MAC nueva queda «Sin grupo» hasta matricularla.
 Cada aviso sale una vez por CONEXION (`D-129`): la cuenta se vacia en cada enlace nuevo, tambien al reenlazar la
-misma MAC tras soltarla, y dentro del enlace un texto ya dado no se repite. Hoy la cuenta solo se vacia al cambiar
-de MAC, y quien suelta y reenlaza el mismo poste no vuelve a ver el aviso rojo.
+misma MAC tras soltarla, y dentro del enlace un texto ya dado no se repite (antes solo se vaciaba al cambiar de MAC).
 **(d) Lista de equipos** agrupada por via y grupo, con sus filas `-M`/`-E` (las no vistas en gris); al final «Sin
 grupo» con las MAC vistas sin matricular y el aviso de `N-129`. La busqueda filtra por via, grupo o serie.
-**(e) Sustituye a `site_manager.js` (`D-119`):** modulo en `js/` (molde §9.12). Migracion, una vez: un cruce de
-`iot_vial_cruces_v2` es de fabrica solo si su `id`, `nombre` y `ubicacion` son los de `CRUCES_DEFAULT` sin tocar
+**(e) Sustituye a `site_manager.js` (`D-119`), ya retirado:** `js/grupos.js` (molde §9.12). Migracion, una vez: un cruce
+de `iot_vial_cruces_v2` es de fabrica solo si su `id`, `nombre` y `ubicacion` son los de `CRUCES_DEFAULT` sin tocar
 (`D-123`); los demas, renombrados incluidos, pasan a un grupo sin postes en «Sin via». La clave vieja no se borra.
 **(f) Practica con estado** (`D-120`; sustituye a las cintas; boton, franja y marcas de `D-86`/`D-89`; en el sitio del
 puerto falso). Cada poste es un estado (modo, fase, tiempos, PIN, franjas de noche, `tr`, Degradado, radio, FW) que
@@ -1419,11 +1434,11 @@ se corrige el simulador, nunca la cinta.
 - **No crecen en neto** contra HEAD: `app.js`, `index.html`, `test_dom_execution.js` y `js/depuracion.js`; un modulo
   nuevo, 500 lineas como mucho. Copias identicas (`cmp`) en `js/`, `www/` y `android/app/src/main/assets/public/`; la
   razon instrumentos/producto del trinquete (`.githooks/trinquete.sh`) no pasa de su techo.
-**Pruebas, vistas en rojo antes de construir, cada una con su nombre:** `tests/dom_grupos.js`: matricular sin
-teclear serie, sin la clave no se ofrece y no envia ninguna trama; hueco ocupado no se pisa; una MAC en un solo
-grupo; mover pide confirmar; Quitar libera el hueco; los cuatro avisos de (c); transporte sin `address` no
-matricula; PR de 40 caracteres guardado en 32 (`D-127`); Quitar y cambio de hueco cancelados dejan el almacen
-igual (`D-128`); soltar y reenlazar la misma MAC repite el aviso rojo de `NODE:` (`D-129`); `state.site` es
+**Pruebas, vistas en rojo antes de construir y en verde desde `ac844b9`/`b5bad6e`, cada una con su nombre:**
+`tests/dom_grupos.js`: matricular sin teclear serie, sin la clave no se ofrece y no envia ninguna trama; hueco ocupado
+no se pisa; una MAC en un solo grupo; mover pide confirmar; Quitar libera el hueco; los cuatro avisos de (c); transporte
+sin `address` no matricula; PR de 40 caracteres guardado en 32 (`D-127`); Quitar y cambio de hueco cancelados dejan el
+almacen igual (`D-128`); soltar y reenlazar la misma MAC repite el aviso rojo de `NODE:` (`D-129`); `state.site` es
 `<via> · <grupo>` o «SIN GRUPO»; la ficha dice que la radio no la ve; lista agrupada,
 filas no vistas en gris y busqueda; migracion con un cruce de fabrica, uno renombrado y uno nuevo.
 `tests/dom_simulador.js`: el menu entero por los botones, reloj inyectado (360 px: telefono, `D-125`); cabezas
