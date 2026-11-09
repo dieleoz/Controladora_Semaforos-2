@@ -6,8 +6,8 @@
 // da un reloj inyectado. No pinta nada: lo usa js/practica.js en el sitio del puerto falso.
 // Lo que NO modela (y una respuesta que dependa de ello sale de la rama comun): la radio real entre postes, el reloj
 // de respaldo (REINICIAR_RELOJ contesta siempre que el cristal arranca), la flash (nunca FLASH_NO_RELEE ni
-// NO_GUARDADO), la transicion del ciclo (CAMBIAR_TURNO nunca EN_TRANSICION_REINTENTE), las camaras (CAM:?) y el
-// puente ESP32 (LEER_RTC, SET_RTC y LOG no se contestan: SPEC_4 3.3 es otra punta).
+// NO_GUARDADO), la transicion del ciclo (CAMBIAR_TURNO nunca EN_TRANSICION_REINTENTE), las camaras (CAM:? o NOVETO) y
+// el puente ESP32 (LEER_RTC, SET_RTC y LOG no se contestan: SPEC_4 3.3 es otra punta).
 // Verde en practica dice que la app pinta bien, no que el equipo lo haga: no es evidencia (D-121).
 const Simulador = (() => {
   // Cada constante, copiada del firmware, con su origen `archivo:simbolo` (tests/dom_simulador.js lo busca alli).
@@ -44,7 +44,6 @@ const Simulador = (() => {
     return p + '*' + c.toString(16).toUpperCase().padStart(2, '0');
   }
   const dd = (n) => String(n).padStart(2, '0');
-
   // El reloj: { ahora(), programar(fn, ms), cancelar(h) }. El real es el del telefono; la prueba inyecta otro.
   function relojReal() {
     return { ahora: () => Date.now(), programar: (fn, ms) => setTimeout(fn, ms), cancelar: (h) => clearTimeout(h) };
@@ -133,7 +132,9 @@ const Simulador = (() => {
     }
     const estadoLuz = (p) => (p.nodo === 'MAESTRO' ? luzMaestro(p).estado : luzEsclavo(p));
     const plumaArriba = (e) => ['VERDE', 'FALLO COM', 'AMARILLO', 'AMBAR_INT', 'ROJO_INT'].indexOf(e) >= 0;
-
+    // D-97/D-150: la barrera fuera publica FUERA, tambien en rojo. D-151: NOVETO solo con camaras sanas (aqui, CAM:?).
+    const plumaCam = (p, e) => ',PLUMA:' + (p.barreraFuera ? 'FUERA' : plumaArriba(e) ? 'ARRIBA' : 'ABAJO') + ',CAM:' +
+                               (p.vetoOff ? 'NOVETO' : '?');
     // ---- lo que pasa solo con el tiempo: modoNoche_loop/vigilar, salida del Degradado ----
     function setModo(p, m) {
       if (p.modo === 'NOCHE' && m !== 'NOCHE') { p.nocheActiva = -1; p.nocheFase = 'ENTRANDO'; }
@@ -154,9 +155,7 @@ const Simulador = (() => {
     function vigilarNoche(p) {
       const f = fecha(), m = Math.floor(reloj.ahora() / 60000);
       if (m === p.ultimoMinuto) return;
-      const primero = p.ultimoMinuto < 0;
-      p.ultimoMinuto = m;
-      if (primero) return;
+      const primero = p.ultimoMinuto < 0; p.ultimoMinuto = m; if (primero) return;
       const minDia = f.getHours() * 60 + f.getMinutes(), dia = (f.getDay() + 6) % 7;
       for (let i = 0; i < C.NOCHE_FRANJAS; i++) {
         const fr = p.franjas[i];
@@ -170,23 +169,33 @@ const Simulador = (() => {
         evento(p, 'NOCHE', 'FRANJA_SALTADA');
       }
     }
-
     // ---- $STATUS de cada punta (el snprintf de bluetooth.cpp, campo por campo) ----
     function status(p) {
       if (p.nodo === 'MAESTRO') {
         const l = luzMaestro(p);
         const rf = p.rf === null ? '--' : p.rf + '%', rtt = p.rf === null ? '--' : p.rtt + 'ms';
         return conCrc('$STATUS,NODE:MAESTRO,SERIE:' + p.serie + ',MODO:' + p.modo + ',ESTADO:' + l.estado + ',T:' +
-                      l.t +
-                      ',RF:' + rf + ',RTT:' + rtt + ',BAT:--,HORA:' + horaTxt(p) + ',ESC:' + l.esc + ',PLUMA:' +
-                      (plumaArriba(l.estado) ? 'ARRIBA' : 'ABAJO') + ',CAM:?');
+                      l.t + ',RF:' + rf + ',RTT:' + rtt + ',BAT:--,HORA:' + horaTxt(p) + ',ESC:' + l.esc +
+                      plumaCam(p, l.estado));
       }
       const e = luzEsclavo(p);
       return conCrc('$STATUS,NODE:ESCLAVO,SERIE:' + p.serie + ',MODO:' + p.modo + ',ESTADO:' + e +
-                    ',T:--,RF:--,RTT:--,BAT:--,HORA:' + horaTxt(p) + ',PLUMA:' + (plumaArriba(e) ? 'ARRIBA' : 'ABAJO') +
-                    ',CAM:?');
+                    ',T:--,RF:--,RTT:--,BAT:--,HORA:' + horaTxt(p) + plumaCam(p, e));
     }
-
+    // D-94: interruptores_orden() de {Maestro,Esclavo}/src/interruptores.cpp, identico en las dos puntas y local al
+    // poste (p.vetoOff, p.barreraFuera). Releido tras guardar (D-149); RESPALDO_INVALIDO con p.respaldoPerdido (D-148).
+    function interruptores(p, a) {
+      const esVeto = a.indexOf('SET_VETO_CAMARA:') === 0, cmd = esVeto ? 'SET_VETO_CAMARA' : 'SET_BARRERA_SERVICIO';
+      if (!esVeto && a.indexOf('SET_BARRERA_SERVICIO:') !== 0) return null;
+      const valor = a.slice(cmd.length + 1), puesto = valor === 'OFF', clave = esVeto ? 'vetoOff' : 'barreraFuera';
+      if (!puesto && valor !== 'ON') return '$ERR,CMD:' + cmd + ',DESC:FORMATO_INVALIDO';   // OFF: interruptor PUESTO
+      const enEstado = () => !!p[clave] === puesto;
+      const r = (cola) => (cola[0] === 'D' ? '$ERR' : '$ACK') + ',CMD:' + cmd + ':' + valor + ',' + cola;
+      if (enEstado()) return r('RESULT:SIN_CAMBIO');
+      if (puesto && p.respaldoPerdido) return r('DESC:RESPALDO_INVALIDO');
+      p[clave] = puesto;
+      return r(enEstado() ? 'RESULT:OK' : 'DESC:NO_QUEDO_PUESTO');
+    }
     // ---- respuestas comunes a las dos puntas ----
     const version = (p) => (p.sellado ? '$ACK,CMD:VERSION,RESULT:OK,NODE:' + p.nodo + ',FW:' + p.fw
                                       : '$ERR,CMD:VERSION,DESC:SIN_SELLAR,NODE:' + p.nodo + ',FW:' + C.FW_SIN_SELLO);
@@ -197,8 +206,7 @@ const Simulador = (() => {
       (p.otro && p.radio && p.otro.degAuto ? 'ON' : 'OFF') + '_APTO_' + (aptoPropio(p) ? 'SI' : 'NO');
     function consultaDegFin(p) {
       if (!p.salidaS) return '$ACK,CMD:CONSULTA_DEG_FIN,RESULT:NINGUNA';
-      let falta = (p.salidaS + 86400 - segDia()) % 86400;
-      if (falta > 43200) falta = 0;
+      let falta = (p.salidaS + 86400 - segDia()) % 86400; if (falta > 43200) falta = 0;
       const s = p.salidaS;
       return '$ACK,CMD:CONSULTA_DEG_FIN,RESULT:SALE_' + dd(Math.floor(s / 3600)) + dd(Math.floor(s / 60) % 60) +
              dd(s % 60) + '_FALTAN_' + falta + 'S_RESPALDADA';
@@ -215,8 +223,7 @@ const Simulador = (() => {
       if (!m || ahora < 0 || inicio < 0) return tx('$ERR,CMD:SET_MODO:DEG_T,DESC:FORMATO_INVALIDO');
       if (p.salidaS) return tx('$ERR,CMD:SET_MODO:DEG_T,DESC:Cancele antes la salida programada');
       const v = +m[3], d = +m[4], reloj0 = segDia();
-      let motivo = null;
-      const esM = p.nodo === 'MAESTRO';
+      let motivo = null; const esM = p.nodo === 'MAESTRO';
       const vencido = (inicio + 86400 - reloj0) % 86400 > C.TESTIGO_INICIO_MAX_S;
       const txtVencido = esM ? 'Inicio ya vencido' : 'Inicio ya vencido: repita el testigo en el Maestro';
       if (!p.enHora) motivo = 'Falta: reloj sin poner en hora';
@@ -274,7 +281,6 @@ const Simulador = (() => {
                          : '$ACK,CMD:SET_DEG_AUTO,RESULT:ON_FALTA_EL_OTRO_POSTE')),
         C.STATUS_MS);
     }
-
     // ---- Maestro: modoNoche_orden() y procesarComando(), en ese orden ----
     function contestarNoche(p, tx, cmd, err) {
       tx(err ? '$ERR,CMD:' + cmd + ',DESC:' + err : '$ACK,CMD:' + cmd + ',RESULT:OK');
@@ -298,14 +304,12 @@ const Simulador = (() => {
       } else return 'FORMATO_INVALIDO';
       if (n < 1 || n > C.NOCHE_FRANJAS) return 'RANGO';
       if (p.modo === 'NOCHE' && p.nocheActiva === n - 1) return 'EN_NOCHE_SALGA_PRIMERO';
-      p.franjas[n - 1] = f;
-      return null;
+      p.franjas[n - 1] = f; return null;
     }
     function fijarTr(p, a) {
       if (!/^[+-]?\d+$/.test(a)) return 'FORMATO_INVALIDO';
       if (+a < C.DESPEJE_SEG_MIN || +a > C.NOCHE_TR_MAX_S) return 'RANGO';
-      p.tr = +a;
-      return null;
+      p.tr = +a; return null;
     }
     function consultaNoche(p) {
       let s = '$ACK,CMD:NOCHE,RESULT:OK,TR:' + p.tr;
@@ -430,7 +434,7 @@ const Simulador = (() => {
         else { tx('$ACK,CMD:DEMANDA,RESULT:REGISTRADA'); ev('DEMANDA_LOCAL'); }
       } else if (a === 'REINICIOS') tx(reinicios(p));
       else if (a === 'VERSION') tx(version(p));
-      else tx('$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO');
+      else tx(interruptores(p, a) || '$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO');
     }
 
     // ---- Esclavo: procesarComando() de Esclavo/src/bluetooth.cpp ----
@@ -475,7 +479,7 @@ const Simulador = (() => {
       else if (a.indexOf('SET_DEG_AUTO:') === 0) setDegAuto(p, a.slice(13), tx);
       else if (a === 'TEST_LEDS') tx('$ERR,CMD:TEST_LEDS,DESC:NO_EN_SERVICIO_USE_EL_MAESTRO');
       else if (a === 'VERSION') tx(version(p));
-      else tx('$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO_EN_ESCLAVO');
+      else tx(interruptores(p, a) || '$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO_EN_ESCLAVO');
     }
 
     // La linea tal como la escribe la app (con su fin de linea): devuelve las respuestas inmediatas, con checksum.

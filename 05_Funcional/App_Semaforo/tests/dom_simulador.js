@@ -265,7 +265,7 @@ module.exports = async function pruebaSimulador(montarAppLimpia, assert) {
   const montar = () => {
     const a = montarAppLimpia();
     a.el = (id) => a.d.getElementById(id);
-    a.pulsa = (id) => { if (a.el(id)) a.el(id).click(); };
+    a.pulsa = (id) => { const e = a.el(id) || a.d.querySelector(`[data-interruptor="${id}"]`); if (e) e.click(); };
     a.activo = (id) => !!a.el(id) && a.el(id).classList.contains('active');
     a.pin = () => ['1', '2', '3', '4'].forEach(k => a.d.querySelector(`.pin-btn[data-key="${k}"]`).click());
     a.pulsa('btn-bt-disconnect');
@@ -363,7 +363,8 @@ module.exports = async function pruebaSimulador(montarAppLimpia, assert) {
     };
     const pasos = (m, ids) => { a.pulsa('btn-bt-disconnect'); a.pulsa('btnDevice'); a.enlazar(m); ids.forEach(pulsar); };
     pasos(mac(1), ['btn-degauto-on', 'btn-op-menu', 'btn-modo-alcance', 'btn-op-menu', 'btn-start-test-leds',
-                   'btn-leer-version', 'btn-op-auto', 'btn-op-step', 'btn-op-amber', 'btn-op-emergency', 'btn-op-menu']);
+                   'btn-leer-version', 'btn-op-auto', 'btn-op-step', 'btn-op-amber', 'btn-op-emergency', 'btn-op-menu',
+                   'SET_VETO_CAMARA:OFF', 'SET_VETO_CAMARA:ON', 'SET_BARRERA_SERVICIO:OFF', 'SET_BARRERA_SERVICIO:ON']);
     a.pulsa('tab-btn-tiempos');
     a.el('num-tiempo-verde').value = '5'; a.el('num-tiempo-rojo').value = '5'; a.el('num-tiempo-despeje').value = '30';
     pulsar('btn-aplicar-tiempos');
@@ -382,14 +383,45 @@ module.exports = async function pruebaSimulador(montarAppLimpia, assert) {
     const alSim = escritas.filter(o => !puente.test(o));
     const cmdDe = (o) => o.replace(/^CMD:(PIN:\d+:)?/, '').replace(/^MANUAL:/, '').split(':').slice(0, 2).join(':');
     const sinRespuesta = alSim.filter(o => !a.oidas.some(t => /^\$(ACK|ERR),CMD:/.test(t) &&
-      (t.indexOf('CMD:' + cmdDe(o)) >= 0 || /AUTH_FAILED|DESCONOCIDO/.test(t) ||
+      (t.indexOf('CMD:' + cmdDe(o)) >= 0 || (/AUTH_FAILED|DESCONOCIDO/.test(t) && !/SET_(VETO_CAMARA|BARRERA_SE)/.test(o)) ||
        (/SET_NOCHE/.test(o) && /CMD:SET_NOCHE/.test(t)) || (/DEG_T/.test(o) && /DEG_T/.test(t)))));
     const hechas = ['SET_MODO:MENU', 'SET_MODO:ALCANCE', 'TEST_LEDS', 'VERSION', 'SET_MODO:AUTO', 'CAMBIAR_TURNO',
                     'SET_MODO:AMBAR', 'FORZAR_ROJO', 'SET_TIEMPOS', 'SET_NOCHE', 'SET_NOCHE_TR', 'SET_DEG_AUTO',
-                    'SET_MODO:DEG_T', 'AMBAR_EMERGENCIA', 'CANCELAR_AMBAR'].filter(k => !alSim.some(o => o.includes(k)));
+                    'SET_MODO:DEG_T', 'AMBAR_EMERGENCIA', 'CANCELAR_AMBAR', 'SET_VETO_CAMARA', 'SET_BARRERA_SERVICIO']
+                    .filter(k => !alSim.some(o => o.includes(k)));
     assert(alSim.length >= 15 && hechas.length === 0 && sinRespuesta.length === 0 && a.tramas.length === 0,
       `Simulador: el menu entero por los botones (${alSim.length} ordenes) sin enlace real; sin pulsar: ` +
       `${hechas.join(',') || '-'}; sin respuesta: ${sinRespuesta.join(' | ') || '-'}; al puerto real: ${a.tramas.length}`);
+    P(a).salir();
+  }
+  {
+    // D-94: los botones de Ajustes > Averias contestan como interruptores_orden(), y el estado es de cada poste.
+    const a = montar();
+    const pulsa = (v) => {
+      a.pulsa(v);
+      if (a.activo('dialogo-modal')) a.pulsa('btn-dialogo-aceptar');
+      if (a.activo('pin-modal')) a.pin();
+      if (a.activo('dialogo-modal')) a.pulsa('btn-dialogo-aceptar');
+      a.r.avanzar(S.C.STATUS_MS);
+    };
+    const st = () => (a.oidas.filter(t => /^\$STATUS/.test(t)).pop() || '').replace(/\*..$/, '');
+    const pluma = () => (a.el('pluma-estado') ? a.el('pluma-estado').textContent : '');
+    P(a).entrar(); a.enlazar(mac(1));
+    ['SET_BARRERA_SERVICIO:OFF', 'SET_BARRERA_SERVICIO:OFF', 'SET_VETO_CAMARA:OFF'].forEach(pulsa);
+    const stM = st(), plM = pluma();
+    a.pulsa('btn-bt-disconnect'); a.pulsa('btnDevice'); a.enlazar(mac(2));
+    const stE0 = st();
+    pulsa('SET_BARRERA_SERVICIO:OFF');
+    const stE = st();
+    const acuses = a.oidas.filter(t => /CMD:SET_(BARRERA_SERVICIO|VETO_CAMARA)/.test(t)).map(t => t.replace(/\*..$/, ''));
+    const esperado = ['$ACK,CMD:SET_BARRERA_SERVICIO:OFF,RESULT:OK', '$ACK,CMD:SET_BARRERA_SERVICIO:OFF,RESULT:SIN_CAMBIO',
+                      '$ACK,CMD:SET_VETO_CAMARA:OFF,RESULT:OK', '$ACK,CMD:SET_BARRERA_SERVICIO:OFF,RESULT:OK'];
+    assert(acuses.join('|') === esperado.join('|') && /,PLUMA:FUERA,CAM:NOVETO$/.test(stM) &&
+           /BARRERA FUERA DE SERVICIO/.test(plM) && /,PLUMA:(ARRIBA|ABAJO),CAM:\?$/.test(stE0) &&
+           /,PLUMA:FUERA,CAM:\?$/.test(stE) && a.tramas.length === 0,
+      `Simulador: Averias en practica contesta como el firmware (acuses: ${acuses.join(' | ') || '-'}), el Maestro ` +
+      `publica PLUMA:FUERA y CAM:NOVETO (${stM.slice(-25) || '-'}), Trafico pinta «${plM || '-'}», y el Esclavo ` +
+      `no los hereda (${stE0.slice(-20) || '-'}) hasta su propia orden (${stE.slice(-20) || '-'})`);
     P(a).salir();
   }
 };
