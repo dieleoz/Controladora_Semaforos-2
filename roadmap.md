@@ -254,6 +254,21 @@ y posicion de los interruptores (pedido a Marco con la configuracion de las dos)
 `CLAUDE.md` §3 y la hoja cambian en el mismo commit. Manual transcrito a `.md` (fuente de trabajo). Despues, si
 sigue cayendo bien configurada: `RTT:` frente a las esperas del protocolo (LoRa, semiduplex, paquetes de 58 B).
 
+**`N-184` en curso (09/11):** manual transcrito (`fuentes/md/E90-DTU_433L37-V8_User_Manual.md`). Workflow: inventario
+de esperas y tramas del protocolo + experimento LoRa (retardo, semiduplex, subpaquetes de 58 B) sobre una COPIA del
+arnes de dos puntas en el scratchpad (el simulador del repo sigue congelado) -> arquitecto decide CAMBIAR / NO /
+MEDIR ANTES -> si CAMBIAR, firmware y SPEC_2 en worktree. La configuracion de las radios de Marco sigue sin medir.
+
+**Rama `auditoria/n182` (otra sesion, 09/11):** 7 commits de instrumentos sobre `7f4a502` (rondas.json ignorado,
+lista cerrada en `barrera_03`, ABORTADO en `Validacion_Respaldo`, D-94 por el despachador real del Maestro en el
+arnes del puente, intermitente D-78, `app_01` y `dom_simulador` con los interruptores). Merge cuando su arquitecto,
+QA y compuerta salgan; condicion: devolver el «NO CUBRE» de la cabecera de `escenario_p_salida.py`.
+
+**`N-185` (responsable, 09/11): el Repetidor sale de esta arquitectura.** No toca la caida de radio de Marco (dos
+postes directos). Alcance a recontar con grep antes (`CLAUDE.md` §14): filas de la compuerta (compila repetidor,
+simulador de repetidor), `01_Firmware/Repetidor` y su sitio en el paquete, SPEC_0/2/6, `ARQUITECTURA.map`, README;
+fila en DECISIONES al ejecutarlo; los instrumentos que leen sus rutas se retiran en el MISMO commit (`CLAUDE.md` §5).
+
 Abierto, para el responsable (no se construye en `N-182`): «inhibir UNA camara o dos» (hoy `D-94` es un solo
 interruptor y SPEC_8 §2 dice que las dos entradas hacen lo mismo) y «barrera ABAJO» desde la app (`D-96` solo da
 fuera de servicio = arriba; abajo forzada en verde no tiene fila).
