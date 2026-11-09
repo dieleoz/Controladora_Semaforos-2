@@ -262,6 +262,12 @@ cambio: a 2,4 k una rafaga ~0,15 s frente a ~1,35 s de borde; bajar reintentos n
 es el silencio de 28 s, `D-48`) y haria pisar `GO_RED` sobre `ACK_RED`. Se reabre solo con `RTT:` medido en su banco
 con las radios bien configuradas. Paquete vigente: `277fb72`.
 
+**`N-184`, segundo registro (15:39-15:54, `evidencia/091120261558`):** `RF:0%` en 260 `$STATUS`, 687 latidos sin
+respuesta; el diagnostico D-23 del Maestro: «33 bytes recibidos, 0 tramas buenas y 0 descartadas» (52 como maximo) y
+tramos de 30 s sin un byte. Firma de radio fuera de modo normal o a otra velocidad (UART 1200 frente a 9600, o
+Fixed), no de tiempos del protocolo. Exportado antes de reconfigurar. Paso a paso de configuracion enviado a Marco
+(SPEC_6 B.3 y manual §6-§7.2); se cierra con «tramas buenas» > 0 y `RTT:` medido. Si no: cableado 485 y masa comun.
+
 **Pendiente (09/11, mientras Marco prueba):** teclado: `N-185` Repetidor (en curso, worktree); merge de
 `auditoria/n182` tras su runbook; tandas 3+ de `D-98`. Del responsable: §7.1 (cuatro ordenes sin PIN), §7.5 (Modo
 Alcance), C5 (camara en bajada) tras cronometrar la pluma. De banco: radios ON/ON y `RTT:`, puente H, 4 camaras,
