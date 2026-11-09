@@ -227,6 +227,10 @@ const AvisoCamaraPluma = {
       fueraDeCota: c.fueraDeCota,
       hora: c.hora,
       bajada: c.bajada,
+      // D-144 (SPEC_4 9.9 (g) 5): lo unico a la vista; titulo, medida, accion y limite van en «Detalle».
+      frase: c.bajada
+        ? 'La barrera ya bajó: revise el apunte y la configuración de la cámara antes de irse.'
+        : 'La cámara retiene la barrera ARRIBA: mire debajo del brazo antes de tocar nada.',
       titulo: c.bajada
         ? 'LA BARRERA YA HA BAJADO — el aviso queda por lo que la dejó arriba'
         : 'LA CÁMARA TIENE LA BARRERA RETENIDA',

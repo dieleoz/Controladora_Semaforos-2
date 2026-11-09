@@ -83,6 +83,12 @@ const Interruptores = {
              'corte de luz. Compruebe la pila, reinicie el equipo una vez y repita.',
       toast: 'No se puso: revise la pila y reinicie el equipo'
     },
+    // SPEC_8 6.1 (D-149): escrito y releido, lo leido no es lo pedido. No es NO_QUEDO_PUESTA (reloj, textos_err.js).
+    NO_QUEDO_PUESTO: {
+      texto: 'El equipo NO lo dejó puesto: después de escribirlo lo volvió a leer y no es lo pedido. ' +
+             'Mire la barrera y las cámaras en la pantalla, repita la orden y, si vuelve a pasar, avise.',
+      toast: 'No quedó puesto: repita la orden y, si se repite, avise'
+    },
     FORMATO_INVALIDO: {
       texto: 'El equipo no entendió la orden y no se ejecutó nada. Si pasa siempre, la app y el ' +
              'equipo no hablan la misma versión: avise.',

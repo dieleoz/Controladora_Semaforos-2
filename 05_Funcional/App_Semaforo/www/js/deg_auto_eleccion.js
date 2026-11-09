@@ -4,9 +4,9 @@
 // al caer la radio, que va a pasar. No manda nada por si misma: las ordenes salen por
 // DegAuto._pulsar() (PIN, espera del $ACK diferido) y el estado es el de CONSULTA_DEG_AUTO.
 //
-//   linea      pantalla principal: "Si se cae la radio: ..." y, si ESTE y OTRO difieren,
-//              "Los postes no coinciden". OTRO es el ultimo APTO oido del otro poste
-//              (respaldo_otroApto() del firmware), no su opcion: lo dice la tarjeta.
+//   linea      tarjeta (tras la clave): "Si se cae la radio: ...". Si ESTE y OTRO difieren,
+//              "Los postes no coinciden" en la franja, sin clave (D-144). OTRO es el ultimo APTO
+//              oido del otro poste (respaldo_otroApto() del firmware), no su opcion.
 //   pide       al conectar, si la consulta no contesta o ESTE y OTRO difieren. Se pospone
 //              hasta la siguiente conexion (DegAuto.alStatus llama a olvidar()).
 //   sin radio  ESTADO:FALLO COM fuera de MODO:AMBAR, o RF medido al 0 %. Con la eleccion
@@ -22,13 +22,15 @@ const DegAutoEleccion = {
   LINEA_OFF: 'Si se cae la radio: AMBAR, ir con testigo',
   LINEA_ON: 'Si se cae la radio: DEGRADADO SOLO a los 5 min',
   NO_COINCIDEN: 'Los postes no coinciden',
-  CARTEL_OFF: 'Sin radio. Los postes quedan en AMBAR intermitente y NO arrancan solos: hay que ir ' +
-              'con el testigo (Degradado con testigo)',
+  // D-144 (SPEC_4 9.9 (g) 5): cada cartel, UNA frase «sintoma: que hacer.» <= 120; el motivo, en «Detalle».
+  CARTEL_OFF: 'Sin radio, quedan en AMBAR y NO arrancan solos: hay que ir con el testigo.',
+  FRASE_NO_COINCIDEN: 'Los postes no coinciden: el tecnico elige lo mismo en los dos (Si se cae la radio).',
   MOTIVO_DISTINTOS: 'Los postes no tienen la misma eleccion',
   MOTIVO_NO_APTO: 'Este poste no esta listo para entrar solo',
   MARGEN_MS: 60000,           // retraso con que la app ve FALLO COM respecto al reloj del firmware
-  CARTEL_NO_ENTRARON: 'No entraron solos: quedan en AMBAR. Hay que ir con el testigo',
-  CARTEL_DEG: 'En Degradado por reloj, sin radio',
+  CARTEL_NO_ENTRARON: 'No entraron solos: quedan en AMBAR; hay que ir con el testigo.',
+  CARTEL_DEG: 'En Degradado por reloj, sin radio: no cambie el modo de un poste sin paleteros en los dos extremos.',
+  _detalle: '',               // lo que va en «Detalle» del cartel (motivo), o ''
 
   ctx: null,
   _el: {},
@@ -53,7 +55,8 @@ const DegAutoEleccion = {
   iniciar(ctx) {
     this.ctx = ctx;
     const $ = (id) => document.getElementById(id);
-    this._el = { linea: $('degauto-linea'), lineaTxt: $('degauto-linea-txt'), difieren: $('degauto-linea-difieren'),
+    this._el = { linea: $('degauto-linea'), lineaTxt: $('degauto-linea-txt'),
+                 det: $('degauto-sinradio-det'), detTxt: $('degauto-sinradio-motivo'),
                  pide: $('degauto-pide'), pideMotivo: $('degauto-pide-motivo'), pideNota: $('degauto-pide-sin-radio'),
                  pideOff: $('btn-degauto-pide-off'), pideOn: $('btn-degauto-pide-on'), luego: $('btn-degauto-pide-luego'),
                  cartel: $('degauto-sinradio'), cartelTxt: $('degauto-sinradio-txt'), irTestigo: $('btn-degauto-ir-testigo') };
@@ -82,23 +85,29 @@ const DegAutoEleccion = {
     return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
   },
 
-  // Texto del cartel sin radio, o null si no toca.
+  // Frase del cartel de la franja, o null si no toca; el motivo queda en this._detalle.
   textoCartel(s, e, ahora) {
+    this._detalle = '';
     const sinRadio = this.sinRadio(s);
     if (s.modo === 'DEGRADADO' && (this._entrada || this._caidaMs !== null)) return this.CARTEL_DEG;
-    if (!sinRadio) { this._caidaMs = null; this._entrada = false; return null; }
+    if (!sinRadio) {
+      this._caidaMs = null; this._entrada = false;
+      if (!e || typeof e.otro !== 'boolean' || e.este === e.otro) return null;
+      this._detalle = this.NO_COINCIDEN + ': este poste ' + (e.este ? 'ON' : 'OFF') + ', el otro ' + (e.otro ? 'ON' : 'OFF') + '.';
+      return this.FRASE_NO_COINCIDEN;
+    }
     if (this._caidaMs === null) this._caidaMs = ahora;
-    if (!e) return 'Sin radio. No consta que hacen los postes sin radio: mire el modo de cada poste.';
+    if (!e) return 'Sin radio y sin eleccion que conste: mire el modo de cada poste.';
     // Cuenta solo si el firmware puede entrar: degAuto_loop() pide respaldo_otroApto() (OTRO) y
     // puertaAbierta(), y entrar() repite lo de degAuto_aptoPropio() (APTO). Si no, se queda en ambar.
-    if (e.este !== e.otro) return this.CARTEL_OFF + '. Motivo: ' + this.MOTIVO_DISTINTOS;
+    if (e.este !== e.otro) { this._detalle = 'Motivo: ' + this.MOTIVO_DISTINTOS + '.'; return this.CARTEL_OFF; }
     if (!e.este) return this.CARTEL_OFF;
-    if (!e.apto) return this.CARTEL_OFF + '. Motivo: ' + this.MOTIVO_NO_APTO;
+    if (!e.apto) { this._detalle = 'Motivo: ' + this.MOTIVO_NO_APTO + '.'; return this.CARTEL_OFF; }
     // El ECO (respaldo_aptoDado()) no llega a la app: si la cuenta vence y pasa el margen sin
     // AUTO_ENTRADA_INICIO ni MODO:DEGRADADO, no entraron.
     const resta = this.ESPERA_MS - (ahora - this._caidaMs);
     if (!this._entrada && resta < -this.MARGEN_MS) return this.CARTEL_NO_ENTRARON;
-    return 'Sin radio. Entran SOLOS en Degradado en aprox. ' + this._mmss(resta);
+    return 'Sin radio: espere, entran SOLOS en Degradado en aprox. ' + this._mmss(resta) + '.';
   },
 
   render() {
@@ -118,7 +127,6 @@ const DegAutoEleccion = {
         el.lineaTxt.textContent = DegAuto._sinOpcion ? 'Si se cae la radio: este firmware no trae la eleccion'
           : !e ? 'Si se cae la radio: consultando...' : (e.este ? this.LINEA_ON : this.LINEA_OFF);
       }
-      if (el.difieren) el.difieren.hidden = !difieren;
     }
 
     if (el.pide) {
@@ -139,6 +147,8 @@ const DegAutoEleccion = {
       const t = conectado ? this.textoCartel(s, e, ahora) : null;
       el.cartel.hidden = !t;
       if (el.cartelTxt) el.cartelTxt.textContent = t || '';
+      if (el.det) el.det.hidden = !t || !this._detalle;
+      if (el.detTxt) el.detTxt.textContent = t ? this._detalle : '';
       if (el.irTestigo) el.irTestigo.hidden = !t || (t.indexOf(this.CARTEL_OFF) !== 0 && t !== this.CARTEL_NO_ENTRARON);
     }
   },

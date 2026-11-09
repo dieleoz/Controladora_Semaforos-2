@@ -64,17 +64,20 @@
          NACE OCULTO y solo lo abre el equipo. El texto entero lo escribe
          renderAvisoCamaraPluma() desde js/aviso_camara_pluma.js: aqui no hay ni una
          frase, para que no haya dos copias de lo que el tecnico lee. -->
+    <!-- D-144 (SPEC_4 9.9 (g) 5): cada cartel de la franja, UNA frase «sintoma: que hacer.» a la vista; el resto en «Detalle». -->
     <div class="card card-camara-pluma" id="aviso-camara-pluma" hidden>
-      <strong class="camara-pluma-titulo" id="camara-pluma-titulo"></strong>
+      <strong class="camara-pluma-titulo" id="camara-pluma-frase"></strong>
+      <details><summary>Detalle</summary>
+      <p class="camara-pluma-medida" id="camara-pluma-titulo"></p>
       <p class="camara-pluma-medida" id="camara-pluma-medida"></p>
       <p class="camara-pluma-accion" id="camara-pluma-accion"></p>
-      <small class="camara-pluma-limite" id="camara-pluma-limite"></small>
+      <small class="camara-pluma-limite" id="camara-pluma-limite"></small></details>
     </div>
     <!-- N-170: parte de arranque del puente por subida de tension. Texto en js/aviso_corte.js. -->
     <div class="card card-camara-pluma" id="aviso-corte" hidden>
       <strong class="camara-pluma-titulo" id="aviso-corte-titulo"></strong>
-      <p class="camara-pluma-medida" id="aviso-corte-cuando"></p>
-      <p class="camara-pluma-accion" id="aviso-corte-accion"></p>
+      <details><summary>Detalle</summary><p class="camara-pluma-medida" id="aviso-corte-cuando"></p>
+      <p class="camara-pluma-accion" id="aviso-corte-accion"></p></details>
       <button type="button" class="btn-top" id="btn-aviso-corte-ok">Entendido</button>
     </div>
     <!-- D-144 (SPEC_4 9.9 (g) 5): sin emparejar se empareja aqui mismo; lo gobierna js/pantalla_operario.js. -->
@@ -95,6 +98,7 @@
     </div>
     <div class="card card-camara-pluma" id="degauto-sinradio" hidden>
       <strong class="camara-pluma-titulo" id="degauto-sinradio-txt"></strong>
+      <details id="degauto-sinradio-det" hidden><summary>Detalle</summary><p class="camara-pluma-medida" id="degauto-sinradio-motivo"></p></details>
       <button type="button" class="btn-degradado" id="btn-degauto-ir-testigo" hidden>Ir a Degradado con testigo</button>
     </div>
 
@@ -841,8 +845,8 @@
           <span class="badge badge-degradado">PELIGROSO</span>
         </div>
         <!-- 9.9 (f): la linea de la eleccion vive aqui, tras la clave (D-56); en Trafico sobraba. -->
-        <div class="pluma-estado" id="degauto-linea" hidden><span id="degauto-linea-txt"></span>
-          <strong id="degauto-linea-difieren" style="color: var(--red-lamp);" hidden> · Los postes no coinciden</strong></div>
+        <div class="pluma-estado" id="degauto-linea" hidden><span id="degauto-linea-txt"></span></div>
+        <!-- «Los postes no coinciden» se dice en la franja, sin clave (D-144): js/deg_auto_eleccion.js. -->
         <details><summary>Por qué</summary>
         <p class="card-sub"><strong>Con los dos postes en degradado sin radio, no cambie el modo de uno solo sin paleteros en los dos extremos.</strong></p>
         <p class="card-sub">Se elige al montar el equipo, con los dos postes enlazados por radio; el otro poste se entera por radio. Hay que elegirlo <strong>en los dos postes</strong>.</p>

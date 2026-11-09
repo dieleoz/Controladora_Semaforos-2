@@ -1,10 +1,9 @@
 // ===== tests/dom_interruptores.js =====
 // SPEC_8 6 en la APP (D-94, D-97, D-148, D-151, D-152; D-56 la clave, D-80 sin jerga, D-83 ambar = mirar).
-// Prueba ANTERIOR al codigo: los textos esperados salen de SPEC_8 6.1 y 6.4, no de la app.
-// El firmware de las ordenes no existe aun en este arbol: aqui se ejerce la app con tramas escritas
-// segun la spec. Dos cosas que la spec NO fija y esta prueba acepta en las dos formas:
-//   - el CMD del $ACK/$ERR con o sin el argumento (molde SET_TIEMPOS: sin argumento);
-//   - el literal del $EVENT de arranque de D-152: se reconoce por el NOMBRE de la bandera (D-95).
+// Los textos esperados salen de SPEC_8 6.1 y 6.4; las tramas, del firmware: interruptores_orden() de
+// {Maestro,Esclavo}/src/interruptores.cpp (responder(): "$ERR,CMD:<orden>:<valor>,DESC:..."; sin valor solo
+// FORMATO_INVALIDO) e interruptores_avisoArranque() para el $EVENT de D-152. Los $ACK se ejercen tambien sin
+// argumento: el firmware lo manda siempre, y esa forma ejerce el _pedido de js/interruptores.js.
 // Lo llama test_dom_execution.js, como dom_version.js.
 module.exports = async function pruebaInterruptores(montarAppLimpia, assert) {
   const JERGA = require('./dom_usabilidad.js').JERGA;
@@ -83,16 +82,20 @@ module.exports = async function pruebaInterruptores(montarAppLimpia, assert) {
 
   // I7 (D-148): cada $ERR con su frase llana; RESPALDO_INVALIDO dice pila y reiniciar.
   const ERRS = [
-    ['ERR,CMD:SET_BARRERA_SERVICIO,DESC:RESPALDO_INVALIDO', /pila/i],
-    ['ERR,CMD:SET_VETO_CAMARA,DESC:RESPALDO_INVALIDO', /pila/i],
-    ['ERR,CMD:SET_VETO_CAMARA,DESC:FORMATO_INVALIDO', /no se ejecut/i]
+    ['ERR,CMD:SET_BARRERA_SERVICIO:OFF,DESC:RESPALDO_INVALIDO', /pila/i],
+    ['ERR,CMD:SET_VETO_CAMARA:OFF,DESC:RESPALDO_INVALIDO', /pila/i],
+    ['ERR,CMD:SET_VETO_CAMARA,DESC:FORMATO_INVALIDO', /no se ejecut/i],
+    // SPEC_8 6.1 (condicion del arquitecto): lo releido tras escribir no es lo pedido. No es el
+    // NO_QUEDO_PUESTA del reloj (js/textos_err.js).
+    ['ERR,CMD:SET_BARRERA_SERVICIO:OFF,DESC:NO_QUEDO_PUESTO', /NO lo dej[oó] puesto/],
+    ['ERR,CMD:SET_VETO_CAMARA:ON,DESC:NO_QUEDO_PUESTO', /NO lo dej[oó] puesto/]
   ];
   ERRS.forEach(([carga, si]) => {
     entra(carga);
     assert(si.test(ultimo()) && !/sin traducir/i.test(ultimo()) && !JERGA.test(toast()),
       `I7: ${carga} -> "${ultimo().slice(0, 200)}" / toast "${toast()}"`);
   });
-  entra('ERR,CMD:SET_BARRERA_SERVICIO,DESC:RESPALDO_INVALIDO');
+  entra('ERR,CMD:SET_BARRERA_SERVICIO:OFF,DESC:RESPALDO_INVALIDO');
   assert(/reinici/i.test(ultimo()), `I7: RESPALDO_INVALIDO manda reiniciar con la pila buena: "${ultimo()}"`);
 
   // I8 (D-97, D-83, D-80): PLUMA:FUERA en ambar con su frase, tambien con la luz en VERDE.

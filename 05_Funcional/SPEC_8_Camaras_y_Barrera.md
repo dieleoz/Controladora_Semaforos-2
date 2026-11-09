@@ -208,7 +208,10 @@ lo que pide tarjeta con barrera y pila esta en §7 (filas 4, 5 y 7).
   las palabras de la tabla de arriba y, para la barrera, **«el brazo sube AHORA, tambien con la luz en rojo»**.
 - **Molde `SET_TIEMPOS`** (`CLAUDE.md` §2): ya en ese estado, `RESULT:SIN_CAMBIO` sin tocar nada (`D-65`); otro texto,
   `$ERR ... DESC:FORMATO_INVALIDO`; con el respaldo perdido en este arranque, `$ERR ... DESC:RESPALDO_INVALIDO`
-  (abajo); si lo releido despues no es lo pedido, `$ERR ... DESC:NO_QUEDO_PUESTO`, que la app traduce.
+  (abajo); si lo releido despues no es lo pedido, `$ERR ... DESC:NO_QUEDO_PUESTO`, que la app traduce
+  (`Interruptores.RECHAZOS`: «El equipo NO lo dejo puesto: ... repita la orden y, si vuelve a pasar, avise»; caso I7
+  de `tests/dom_interruptores.js` con el literal de `interruptores_orden()`).
+  No confundir con `NO_QUEDO_PUESTA` del reloj.
   Si no, se escribe la bandera, **la orden vuelve a pasar por la puerta** (6.3) y `$ACK,CMD:<orden>,RESULT:OK` solo si
   lo leido DESPUES es lo pedido (`D-149`): el getter de la bandera y, para la barrera, `semaforo_plumaFuera()`
   (6.4). Releer el registro solo no basta: un registro recien escrito devuelve siempre lo escrito.

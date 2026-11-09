@@ -326,6 +326,35 @@ async function tareas(montarAppLimpia, assert) {
   b1.pulsa('Emparejar y conectar');
   assert(macs.length === 2 && macs[1] === 'AA:BB' && !b1.ve('aviso-pareja'), `T1: «Emparejar y conectar» repite connect con la misma direccion: ${macs}`);
 
+  // F (D-144, 9.9 (g) 5): cada cartel de la franja, sin clave, UNA frase «<sintoma>: <que hacer>.» <= 120 sin JERGA;
+  // medida, limite y causa en su <details> «Detalle». Frase = texto visible del cartel sin botones ni <summary>.
+  const fraseF = (a, id) => { const c = a.d.getElementById(id); if (!c || oculto(c)) return null;
+    const w = a.d.createTreeWalker(c, 4); let t = '';
+    for (let x; (x = w.nextNode());) if (!oculto(x.parentElement) && !x.parentElement.closest('button, summary')) t += ' ' + x.textContent;
+    return t.replace(/\s+/g, ' ').trim(); };
+  const detalle = (a, id) => { const s = a.d.querySelector(`#${id} details > summary`);
+    return s && s.textContent.trim() === 'Detalle' ? s.parentElement.textContent.replace(/\s+/g, ' ') : ''; };
+  const franjaOk = (a, id, si, det) => { const f = fraseF(a, id) || '';
+    assert(f.length > 0 && f.length <= 120 && /^[^:]+: [^]+\.$/.test(f) && !JERGA.test(f) && si.test(f) && (!det || det.test(detalle(a, id))),
+      `F (D-144) ${id}: "${f}" (${f.length}) / detalle "${detalle(a, id).slice(0, 90)}"`); };
+  const f1 = app(); f1.entra(M); f1.entra('EVENT,NODE:MAESTRO,ORIGEN:CAMARA_PLUMA,DETALLE:VETO_SOSTENIDO_S:240,HORA:14:31:10');
+  franjaOk(f1, 'aviso-camara-pluma', /debajo del brazo/, /240 s[\s\S]*no ve imagen/);
+  f1.entra(M); franjaOk(f1, 'aviso-camara-pluma', /ya baj[oó]/, /estuvo retenida 240 s/);
+  f1.entra('EVENT,NODE:PUENTE,EVT:ARRANQUE,CAUSA:SUBIDA_DE_TENSION,ARRANQUES:3,PERRO:ARMADO,WDT_MS:2000');
+  franjaOk(f1, 'aviso-corte', /SIN LUZ[\s\S]*modo/, /No se sabe cuando fue[\s\S]*Ahora: POSTE 1/);
+  const f2 = app(); f2.entra(M.replace('MODO:AUTO', 'MODO:DEGRADADO'));
+  f2.entra('EVENT,NODE:MAESTRO,ORIGEN:DEGRADADO,DETALLE:ENLACE_DISPONIBLE,HORA:07:29:34');
+  franjaOk(f2, 'aviso-radio-deg', /VOLVER AL MENU/, /07:29:34/);
+  const f3 = app(); f3.entra(M); f3.entra('ACK,CMD:CONSULTA_DEG_AUTO,RESULT:ESTE_ON_OTRO_OFF_APTO_SI');
+  franjaOk(f3, 'degauto-sinradio', /no coinciden/, /este poste ON, el otro OFF/);
+  assert(!f3.d.body.classList.contains('admin'), 'F (D-144): «Los postes no coinciden» se ve sin la clave');
+  f3.entra(M.replace('ESTADO:ROJO', 'ESTADO:FALLO COM').replace('RF:97', 'RF:0'));
+  franjaOk(f3, 'degauto-sinradio', /NO arrancan solos[\s\S]*testigo/, /no tienen la misma eleccion/);
+  f3.entra(M); f3.entra('ACK,CMD:CONSULTA_DEG_AUTO,RESULT:ESTE_ON_OTRO_ON_APTO_SI');
+  assert(!f3.ve('degauto-sinradio'), 'F (D-144): con radio y la misma eleccion, la franja se va');
+  f3.entra(M.replace('ESTADO:ROJO', 'ESTADO:FALLO COM').replace('RF:97', 'RF:0'));
+  franjaOk(f3, 'degauto-sinradio', /SOLOS en Degradado en aprox\. 5:00/);
+
   // T3. Exportar el registro, sin clave, por la hoja de compartir (dobles de dom_exportar.js).
   const a3 = app(), llam = { write: [], share: [] };
   a3.w.Capacitor = { isNativePlatform: () => true, Plugins: {

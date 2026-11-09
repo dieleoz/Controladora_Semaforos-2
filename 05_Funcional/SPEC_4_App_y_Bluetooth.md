@@ -972,7 +972,8 @@ sobre el fuente de hoy (cada uno con su texto nuevo; el literal del equipo sigue
    `app.js` «revise J17»: el toast dice la consecuencia y el paso del operario («Este poste no tiene hora fiable:
    avise al tecnico»); el conector y el circuito siguen en la linea de Eventos, que no cambia. Oraculo (`D-101`):
    `J17_MUDO` y `RECHAZADA_FORMATO` «Este poste no tiene hora fiable: avise al tecnico (detalle en Eventos)»;
-   `SIN_HORA_DEL_ESP32` «Este poste no tiene hora: pongasela desde el telefono (Tecnico > Sincronizar)». Las pruebas
+   `SIN_HORA_DEL_ESP32` «Este poste no tiene hora: pongasela desde el telefono (con la clave: Ajustes > Sincronizar)»
+   (la ruta sigue a la pestana: «Tecnico» paso a «Ajustes» con `D-145`; igual en los textos de Eventos). Las pruebas
    que exigen «revise el circuito ESP32-STM32» en el toast (`test_unitarios_app.js` «Avisos D-26» J17_MUDO, 4.o
    aserto; `test_dom_execution.js` 15.2, ultimo aserto) celebran el defecto (`CLAUDE.md` §9) y se INVIERTEN: el toast
    no casa con `JERGA` y contiene «avise al tecnico»; los asertos sobre `texto` (REVISE EL CIRCUITO...) se CONSERVAN.
@@ -1072,19 +1073,20 @@ Inventario y destino (QUEDA · PLEGADO · FUERA; «clave» = ya estaba tras ella
 | Trafico | `#btn-ir-al-esclavo` desde el Maestro | PLEGADO en «Mas» |
 | Trafico | `.pad-header` «MANDOS DE CAMPO» y `#pad-poste` | FUERA: el poste ya esta en la cabecera |
 | Trafico | AUTOMATICO, DAR PASO, AMBAR, ROJO TOTAL, AMBAR EMERGENCIA, RETIRAR AMBAR, VOLVER AL MENU | QUEDA |
-| Trafico | `#emergencia-hint` | QUEDA sin poste identificado; con poste, FUERA (repite el rotulo) |
+| Trafico | `#emergencia-hint` | QUEDA sin poste identificado y con el POSTE 1 en Degradado; con otro poste, FUERA (repite el rotulo) |
 | Trafico | las tres tarjetas de radio, bateria y camaras | una linea `#resumen-equipo`; las tarjetas, PLEGADO en «Detalle» con la nota junto a su barra (a) 3 |
 | Trafico | Prueba de focos | PLEGADO en «Mas», sin clave y con PIN (§9.2) |
 | Trafico, Esclavo | lista «Si publica / NO publica» y contadores de linea | PLEGADO en «Que se ve desde este poste» |
 | Eventos | lista de eventos | QUEDA |
-| Eventos | Reporte WhatsApp, Exportar CSV, Exportar bitacora | FUERA: los sustituye «Exportar registro» (`D-143`) |
+| Eventos | Reporte WhatsApp, Exportar CSV | FUERA: los sustituye «Exportar registro» (`D-143`) |
+| Eventos | Exportar bitacora (CSV) | PLEGADO en «Bitacora del enlace»: lo exige el pack `app_09` (`D-143`) |
 | Eventos | Borrar bitacora | PLEGADO |
 | Eventos | tarjeta «Bitacora del enlace» | PLEGADO |
 | hoja de conexion | Buscar, lista, filtro, Desconectar | QUEDA |
 | hoja de conexion | PIN «1234 (unico aceptado)» y los dos parrafos de permiso y matricula | PLEGADO en «Si no aparece su equipo» (el pack `documentos_03` lee el selector: sigue en el DOM) |
 | Tiempos (clave) | verde, rojo, despeje, Aplicar; aviso de cruce parado | QUEDA, con nombre y frase (h) |
 | Tiempos (clave) | modo noche: distancia y todo-rojo | QUEDA |
-| Tiempos (clave) | las cuatro franjas | cada una PLEGADO; su `<summary>` dice dias, horas y color, o «sin usar» |
+| Tiempos (clave) | las cuatro franjas | cada una PLEGADO; su `<summary>` dice dias, horas y color, o «apagada» |
 | Ajustes (clave) | Practicar sin poste; Manual, Inteligente, Alcance | QUEDA |
 | Ajustes (clave) | interruptores de `D-94` | PLEGADO en «Averias: camaras y barrera»; abierto y en ambar si alguno esta fuera |
 | Ajustes (clave) | Pedir paso | solo con `MODO:INTELIGENTE`; en otro modo, FUERA de la vista |
@@ -1092,6 +1094,11 @@ Inventario y destino (QUEDA · PLEGADO · FUERA; «clave» = ya estaba tras ella
 | Ajustes (clave) | Sincronizar hora | QUEDA |
 | Ajustes (clave) | Courier, Consultar reloj, Consultar version, Reiniciar reloj y respaldo | PLEGADO en «Soporte» |
 | Tramas (clave) | diario y cinta | QUEDA; «Exportar todo» pasa a Eventos (`D-143`) |
+
+Construido (`4105ba3`, U-B): `#emergencia-hint` sigue a la vista con el POSTE 1 en `MODO:DEGRADADO`
+(`app.js`, junto a `TextosSpec4.emergenciaMaestro()`). Por que: alli ROJO TOTAL deja en rojo fijo SOLO este poste y el
+otro sigue alternando por su reloj; el `<small>` que lo dice esta apagado por CSS en pantallas de menos de 740 px de
+alto (todos los telefonos), asi que la linea es el unico sitio donde el operario lo lee antes de pulsar.
 
 **(g) Cifras de la principal (`D-142`).** Trafico sin clave, con todo `<details>` cerrado, en tres fotos (sin enlace;
 Maestro como arriba; Esclavo `SUBORDINADO`):
@@ -1110,6 +1117,10 @@ Maestro como arriba; Esclavo `SUBORDINADO`):
    con un equipo «sin emparejar» falla, el aviso dice «No se pudo conectar: este telefono no esta emparejado con el
    poste.» y lleva el boton «Emparejar y conectar», que repite `abrirEnlace()` con la misma MAC (Android pide
    vincular); no hace volver a la hoja.
+   Construido (09/11): la frase la escribe cada modulo (`frase` de `AvisoCamaraPluma.vigente()`, `AvisoCorte.FRASE`,
+   `frase` de cada fila de `CartelesEquipo.ENTRADAS`, `DegAutoEleccion.textoCartel()`); «Los postes no coinciden» sale
+   de la tarjeta del automatico (tras la clave) y va a `#degauto-sinradio`, con «este poste ON, el otro OFF» en su
+   Detalle. Lo ejerce el bloque «F» de `tests/dom_usabilidad.js`.
 6. **Rotulos** (`D-145`): la pastilla dice «Operario» (manda el cruce) o «Tecnico» (ademas ajusta y diagnostica),
    en `#role-label` y en `title`/`aria-label`, que es lo que queda a <= 400 px mientras `D-82` mande. La pestana
    «Tecnico» (`#tab-btn-diag`) pasa a «Ajustes», para que «Tecnico» nombre un modo y no una pestana.

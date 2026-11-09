@@ -1,7 +1,7 @@
 // ===== tests/dom_deg_eleccion.js =====
 // La eleccion del Degradado automatico (encargo C del orquestador, js/deg_auto_eleccion.js):
 // (1) pregunta con dos respuestas; (2) sin radio, desactivada y sin trama; (3) linea en la
-// pantalla principal y "Los postes no coinciden"; (5) aviso al conectar, posponible, que vuelve;
+// tarjeta y "Los postes no coinciden" en la franja (D-144); (5) aviso al conectar, posponible, que vuelve;
 // (6) cartel al caer la radio segun la eleccion. Todo sincrono (ver dom_deg_auto.js).
 module.exports = async function pruebaDegEleccion(montarAppLimpia, assert) {
   const xor = (s) => { let c = 0; for (const ch of s) c ^= ch.charCodeAt(0);
@@ -21,7 +21,7 @@ module.exports = async function pruebaDegEleccion(montarAppLimpia, assert) {
   st('AUTO', 'ROJO', '97');
   consulta('OFF', 'OFF');
   assert(ve('degauto-linea') && t('degauto-linea-txt') === 'Si se cae la radio: AMBAR, ir con testigo' &&
-         !ve('degauto-linea-difieren') && !ve('degauto-pide'),
+         !/no coinciden/.test(t('degauto-sinradio')) && !ve('degauto-pide'),
     `Eleccion: OFF/OFF, linea "${t('degauto-linea-txt')}" sin "no coinciden" ni aviso`);
   assert(/^\(a\) Ambar intermitente y voy con el testigo$/.test(t('btn-degauto-off')) &&
          /^\(b\) Entran solos en Degradado a los 5 min sin radio$/.test(t('btn-degauto-on')) &&
@@ -30,15 +30,15 @@ module.exports = async function pruebaDegEleccion(montarAppLimpia, assert) {
   assert(/Se elige al montar el equipo, con los dos postes enlazados por radio/.test(t('card-deg-auto')),
     'Eleccion: la tarjeta dice cuando se elige');
   consulta('ON', 'ON');
-  assert(t('degauto-linea-txt') === 'Si se cae la radio: DEGRADADO SOLO a los 5 min' && !ve('degauto-linea-difieren'),
+  assert(t('degauto-linea-txt') === 'Si se cae la radio: DEGRADADO SOLO a los 5 min' && !ve('degauto-sinradio'),
     `Eleccion: ON/ON, linea "${t('degauto-linea-txt')}"`);
 
-  // (3) y (5) ESTE y OTRO distintos: rojo en la linea y aviso que pide elegir; se pospone.
+  // (3) y (5) ESTE y OTRO distintos: la franja lo dice (D-144) y el aviso pide elegir; se pospone.
   consulta('ON', 'OFF');
-  assert(ve('degauto-linea-difieren') && ve('degauto-pide') && /no coinciden/.test(t('degauto-pide-motivo')),
+  assert(/^Los postes no coinciden: /.test(t('degauto-sinradio-txt')) && ve('degauto-pide') && /no coinciden/.test(t('degauto-pide-motivo')),
     `Eleccion: ON/OFF, "Los postes no coinciden" y aviso: "${t('degauto-pide-motivo')}"`);
   el('btn-degauto-pide-luego').click();
-  assert(!ve('degauto-pide') && ve('degauto-linea-difieren'), 'Eleccion: "Mas tarde" quita el aviso, no la linea');
+  assert(!ve('degauto-pide') && ve('degauto-sinradio'), 'Eleccion: "Mas tarde" quita el aviso, no la franja');
   // Vuelve en cada conexion: otro poste identificado reinicia el aviso.
   entra('STATUS,NODE:ESCLAVO,SERIE:SEM-E-01,MODO:SUBORDINADO,ESTADO:ROJO,T:--,RF:--,RTT:--,BAT:--,HORA:14:31:01');
   w.clearTimeout(w.DegAuto._timerConsulta);
@@ -89,11 +89,11 @@ module.exports = async function pruebaDegEleccion(montarAppLimpia, assert) {
   const c0 = eb('degauto-sinradio-txt').textContent;
   Eb._caidaMs -= 60000; Eb.render();
   const c1 = eb('degauto-sinradio-txt').textContent;
-  assert(/Entran SOLOS en Degradado en aprox\. 5:00$/.test(c0) && /aprox\. 4:00$/.test(c1) && !veB('btn-degauto-ir-testigo'),
+  assert(/entran SOLOS en Degradado en aprox\. 5:00\.$/.test(c0) && /aprox\. 4:00\.$/.test(c1) && !veB('btn-degauto-ir-testigo'),
     `Eleccion: con (b), cuenta aprox.: "${c0}" -> "${c1}"`);
   entraB('EVENT,NODE:MAESTRO,ORIGEN:DEGRADADO,DETALLE:AUTO_ENTRADA_INICIO_14:40:00,HORA:14:35:00');
   stB('DEGRADADO', 'ROJO', '0');
-  assert(eb('degauto-sinradio-txt').textContent === 'En Degradado por reloj, sin radio',
+  assert(/^En Degradado por reloj, sin radio: /.test(eb('degauto-sinradio-txt').textContent),
     `Eleccion: en Degradado, "${eb('degauto-sinradio-txt').textContent}"`);
   stB('AUTO', 'ROJO', '95');
   assert(!veB('degauto-sinradio'), 'Eleccion: de vuelta en AUTO con radio, el cartel se va');
@@ -104,9 +104,9 @@ module.exports = async function pruebaDegEleccion(montarAppLimpia, assert) {
     stB('AUTO', 'ROJO', '97');
     entraB(`ACK,CMD:CONSULTA_DEG_AUTO,RESULT:${carga}`);
     stB('AUTO', 'FALLO COM', '0');
-    const tx = eb('degauto-sinradio-txt').textContent;
+    const tx = eb('degauto-sinradio').textContent;   // el motivo, en el Detalle (D-144)
     assert(veB('degauto-sinradio') && /NO arrancan solos: hay que ir con el testigo/.test(tx) && motivo.test(tx) &&
-           !/Entran SOLOS/.test(tx) && veB('btn-degauto-ir-testigo'),
+           !/entran SOLOS/.test(tx) && veB('btn-degauto-ir-testigo'),
       `Eleccion: con ${nombre}, ambar y testigo con motivo: "${tx}"`);
   };
   sinCuenta('ESTE_ON_OTRO_OFF_APTO_SI', /Los postes no tienen la misma eleccion/, 'ESTE_ON_OTRO_OFF');
@@ -120,6 +120,6 @@ module.exports = async function pruebaDegEleccion(montarAppLimpia, assert) {
   const m0 = eb('degauto-sinradio-txt').textContent;
   Eb._caidaMs -= 2000; Eb.render();
   const m1 = eb('degauto-sinradio-txt').textContent;
-  assert(/Entran SOLOS/.test(m0) && m1 === 'No entraron solos: quedan en AMBAR. Hay que ir con el testigo' &&
+  assert(/entran SOLOS/.test(m0) && m1 === 'No entraron solos: quedan en AMBAR; hay que ir con el testigo.' &&
          veB('btn-degauto-ir-testigo'), `Eleccion: cuenta vencida +60 s: "${m0}" -> "${m1}"`);
 };

@@ -195,7 +195,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // El cartel de la barrera retenida por la camara (14/09). Vive FUERA de las pestanas:
   // ver el comentario de index.html y el de js/aviso_camara_pluma.js.
   const camPlumaEl = document.getElementById('aviso-camara-pluma');
-  const camPlumaTituloEl = document.getElementById('camara-pluma-titulo');
+  const camPlumaTituloEl = document.getElementById('camara-pluma-titulo'), camPlumaFraseEl = document.getElementById('camara-pluma-frase');
   const camPlumaMedidaEl = document.getElementById('camara-pluma-medida');
   const camPlumaAccionEl = document.getElementById('camara-pluma-accion');
   const camPlumaLimiteEl = document.getElementById('camara-pluma-limite');
@@ -2282,7 +2282,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // sigue arriba, y el color solo acompana. Un cartel que se distinguiera SOLO por el
     // color no le dice nada a quien lo mira con el sol de frente.
     camPlumaEl.className = 'card card-camara-pluma' + (v.bajada ? ' camara-pluma-bajada' : '');
-    if (camPlumaTituloEl) camPlumaTituloEl.textContent = (v.bajada ? '⚠️ ' : '⛔ ') + v.titulo;
+    camPlumaFraseEl.textContent = (v.bajada ? '⚠️ ' : '⛔ ') + v.frase; camPlumaTituloEl.textContent = v.titulo;   // D-144
     if (camPlumaMedidaEl) camPlumaMedidaEl.textContent = v.medida;
     if (camPlumaAccionEl) camPlumaAccionEl.textContent = v.accion;
     if (camPlumaLimiteEl) camPlumaLimiteEl.textContent = v.limite;

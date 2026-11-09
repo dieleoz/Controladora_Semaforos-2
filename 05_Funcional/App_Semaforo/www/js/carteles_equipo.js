@@ -7,7 +7,8 @@
 // toast y linea solo la PRIMERA vez por conexion. Molde: js/aviso_corte.js.
 //
 // UNA ENTRADA MAS = una fila en ENTRADAS, con la clave 'ORIGEN|DETALLE' de la trama:
-//   titulo, accion   texto del cartel (la hora del ultimo aviso la pone cartel())
+//   frase            lo unico a la vista, «sintoma: que hacer.» (D-144, SPEC_4 9.9 (g) 5)
+//   titulo, accion   el «Detalle» del cartel (la hora del ultimo aviso la pone cartel())
 //   toast, tono      lo que sale la primera vez por conexion (toast y linea de Eventos)
 //   modo             el cartel se quita cuando un $STATUS trae MODO distinto de este;
 //                    null = solo lo quita Entendido o soltar el enlace
@@ -19,6 +20,7 @@ const CartelesEquipo = {
     'DEGRADADO|ENLACE_DISPONIBLE': {
       id: 'aviso-radio-deg', modo: 'DEGRADADO', tono: 'red',
       toast: 'LA RADIO VOLVIO - siguen en Degradado',
+      frase: 'LA RADIO VOLVIO, siguen en Degradado: VOLVER AL MENU en el POSTE 1 y despues el modo que quiera.',
       titulo: 'LA RADIO VOLVIO entre los dos postes. Siguen en Degradado.',
       accion: 'Para volver al ciclo: VOLVER AL MENU en el POSTE 1 (el Poste 2 lo sigue ' +
               'solo por radio) y despues el modo que quiera.'
@@ -61,7 +63,7 @@ const CartelesEquipo = {
     return Object.keys(this._abiertos).filter(k => !this._abiertos[k].cerrado).map(k => {
       const e = this.ENTRADAS[k];
       const a = this._abiertos[k];
-      return { id: e.id, titulo: e.titulo, accion: e.accion,
+      return { id: e.id, frase: e.frase, titulo: e.titulo, accion: e.accion,
                cuando: 'Ultimo aviso del equipo' + (a.poste ? ' (' + a.poste + ')' : '') + ': ' +
                        (a.hora || 'la trama no trae hora') + '.' };
     });
@@ -86,14 +88,16 @@ const CartelesEquipo = {
       const caja = doc.createElement('div');
       caja.className = 'card card-camara-pluma';
       caja.id = c.id;
-      [['strong', 'camara-pluma-titulo', '⚠️ ' + c.titulo],
-       ['p', 'camara-pluma-medida', c.cuando],
-       ['p', 'camara-pluma-accion', c.accion]].forEach(([tag, cls, txt]) => {
+      const det = doc.createElement('details');
+      [[caja, 'strong', 'camara-pluma-titulo', '⚠️ ' + c.frase], [det, 'summary', '', 'Detalle'],
+       [det, 'p', 'camara-pluma-medida', c.titulo], [det, 'p', 'camara-pluma-medida', c.cuando],
+       [det, 'p', 'camara-pluma-accion', c.accion]].forEach(([padre, tag, cls, txt]) => {
         const el = doc.createElement(tag);
-        el.className = cls;
+        if (cls) el.className = cls;
         el.textContent = txt;
-        caja.appendChild(el);
+        padre.appendChild(el);
       });
+      caja.appendChild(det);
       const ok = doc.createElement('button');
       ok.type = 'button';
       ok.className = 'btn-top';

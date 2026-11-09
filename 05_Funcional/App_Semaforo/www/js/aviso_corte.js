@@ -33,6 +33,8 @@ const AvisoCorte = {
   CUANDO: 'No se sabe cuando fue: la trama no trae la hora, sale en cada conexion ' +
           'y tambien tras el primer encendido.',
   ACCION: 'Revise el modo en que quedo y de la orden.',
+  // D-144 (SPEC_4 9.9 (g) 5): la frase a la vista; TITULO, CUANDO y el modo de ahora, en «Detalle».
+  FRASE: 'ESTE POSTE SE QUEDO SIN LUZ: revise el modo en que quedo antes de dar la orden.',
 
   _visto: false,
   _cartel: false,
@@ -69,7 +71,7 @@ const AvisoCorte = {
     const ahora = poste
       ? 'Ahora: ' + poste + (modo ? ', modo ' + modo : ', modo sin dato') + '.'
       : 'Todavia no ha llegado el estado del poste: espere a ver el modo antes de dar la orden.';
-    return { titulo: this.TITULO, cuando: this.CUANDO, accion: this.ACCION + ' ' + ahora };
+    return { titulo: this.FRASE, cuando: this.TITULO + ' ' + this.CUANDO, accion: ahora };
   },
 
   cerrar() { this._cartel = false; },

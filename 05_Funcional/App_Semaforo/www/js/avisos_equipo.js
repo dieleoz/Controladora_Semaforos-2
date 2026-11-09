@@ -101,13 +101,13 @@ const AvisosEquipo = {
     'HORA_ESP32|SIN_HORA_DEL_ESP32': (data) => ({
       tono: 'red',
       texto: 'PONGALE LA HORA DESDE EL TELEFONO AQUI, EN EL GABINETE DE ESTE POSTE' +
-             _cual(data) + ': pestana Tecnico, boton Sincronizar. La ' +
+             _cual(data) + ': con la clave de tecnico, pestana Ajustes, boton Sincronizar. La ' +
              'controladora si oye a su modulo ESP32, pero el reloj del ESP32 no tiene una ' +
              'hora fiable que darle, y sin ella no le manda ninguna. ' + _mientrasTanto(data) +
              ' Si al sincronizar el equipo contesta con un rechazo del reloj, ese motivo dice ' +
              'que tocar (pila o modulo). Si la hora queda puesta y este aviso vuelve a salir, ' +
              'el ESP32 de este poste no esta mandando la hora: revise que firmware lleva.',
-      toast: 'Este poste no tiene hora: pongasela desde el telefono (Tecnico > Sincronizar)'   // D-101
+      toast: 'Este poste no tiene hora: pongasela desde el telefono (con la clave: Ajustes > Sincronizar)'   // D-101, D-145
     }),
     // D-38 (30/09): en Degradado la hora de esta punta llevo demasiado sin sembrarse y dejo
     // de poder decidir una luz: la punta queda en ROJO FIJO (antes ambar, D-21). NO vuelve
@@ -119,8 +119,8 @@ const AvisosEquipo = {
              'su hora llevaba demasiado tiempo sin llegarle de su modulo ESP32 ' +
              'y ya no es fiable para decidir los verdes. Casi siempre es el circuito ' +
              'ESP32-STM32 de este poste (la misma placa, cable interno J17): reviselo, y ' +
-             'ponga la hora desde el telefono en este gabinete (pestana Tecnico, boton ' +
-             'Sincronizar). NO vuelve a dar paso solo: cuando la hora vuelva a llegar, hay ' +
+             'ponga la hora desde el telefono en este gabinete (con la clave, pestana ' +
+             'Ajustes, boton Sincronizar). NO vuelve a dar paso solo: cuando la hora vuelva a llegar, hay ' +
              'que sacarlo del Modo Degradado y volver a entrar. Ojo: el otro poste puede ' +
              'seguir en Degradado dando verdes por su reloj.',
       toast: 'Degradado detenido: la hora de este poste caduco - en ROJO FIJO hasta que alguien lo atienda'
@@ -130,7 +130,7 @@ const AvisosEquipo = {
       tono: 'red',
       texto: 'ESTE POSTE' + _cual(data) + ' ESTA EN ROJO FIJO: perdio la hora en Degradado y ya ' +
              'no puede decidir los verdes. El otro poste puede seguir alternando. Revise el ' +
-             'cable interno J17 y ponga la hora (pestana Tecnico, Sincronizar); para salir: ' +
+             'cable interno J17 y ponga la hora (con la clave, Ajustes > Sincronizar); para salir: ' +
              'VOLVER AL MENU en el Poste 1 y repetir el testigo en los dos postes.',
       toast: 'ROJO FIJO: este poste perdio la hora en Degradado'
     }),
@@ -166,9 +166,9 @@ const AvisosEquipo = {
       tono: 'red',
       texto: (data && data.NODE === 'MAESTRO'
                ? 'VAYA AL GABINETE DEL ESCLAVO (poste 2), CONECTESE A EL Y PONGALE LA HORA ' +
-                 'DESDE EL TELEFONO: pestana Tecnico, boton Sincronizar. '
+                 'DESDE EL TELEFONO: con la clave de tecnico, pestana Ajustes, boton Sincronizar. '
                : 'PONGALE LA HORA DESDE EL TELEFONO AQUI, EN EL GABINETE DE ESTE POSTE' +
-                 _cual(data) + ': pestana Tecnico, boton Sincronizar. ') +
+                 _cual(data) + ': con la clave de tecnico, pestana Ajustes, boton Sincronizar. ') +
              'Se ha perdido la radio entre los dos postes: sin ella, el Esclavo ya no recibe ' +
              'la hora del Maestro y toma la de su propio ESP32, que es la que hay que dejar ' +
              'bien. Y revise la radio: el ultimo tramo que acompana a esta alarma dice como ' +

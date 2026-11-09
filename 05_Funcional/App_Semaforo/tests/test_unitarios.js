@@ -310,6 +310,14 @@ const sinNodo = AvisosEquipo.traducirAlarma({ EVENTO: 'HORA_ESP32', CAUSA: 'J17_
 assert(!!sinNodo && /la trama no dice cual/.test(sinNodo.texto) && !/MAESTRO|ESCLAVO/.test(cabeza(sinNodo.texto)),
   'Sin NODE en la trama no se adivina el poste: se dice que la trama no lo dice');
 
+// D-101 con D-145: la pestana «Tecnico» se llama «Ajustes»; el camino a Sincronizar es el que ve hoy el tecnico.
+const conHora = [['HORA_ESP32', 'SIN_HORA_DEL_ESP32'], ['HORA_ESP32', 'CADUCADA'], ['DEGRADADO', 'ROJO_SIN_HORA'],
+  ['FALLO_RF', 'X']].flatMap(([ev, ca]) => ['MAESTRO', 'ESCLAVO'].map(n => AvisosEquipo.traducirAlarma({ NODE: n, EVENTO: ev, CAUSA: ca })));
+const viejos = conHora.filter(x => !x || /T[eé]cnico( >|, (boton )?Sincronizar)|pesta[nñ]a T[eé]cnico/.test(x.texto + ' ' + (x.toast || '')) ||
+  !/Ajustes/.test(x.texto));
+assert(viejos.length === 0 && /\(con la clave: Ajustes > Sincronizar\)$/.test(conHora[0].toast),
+  `D-101: avisos de hora con la ruta de hoy (Ajustes > Sincronizar): ${viejos.length} viejos; toast "${conHora[0] && conHora[0].toast}"`);
+
 const salto = AvisosEquipo.traducirEvento(
   NMEAParser.camposDeTrama('$EVENT,NODE:MAESTRO,ORIGEN:DEGRADADO,DETALLE:SALTO_DE_HORA_POR_ROJO,HORA:18:07:00'.split(',')));
 assert(!!salto && /ROJO a proposito/.test(salto.texto) && !!salto.toast,
