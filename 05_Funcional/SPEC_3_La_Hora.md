@@ -179,6 +179,8 @@ Una siembra fresca no devuelve el modo. Si el poste estaba en verde al caer, el 
   `$ALARM ...CAUSA:RELOJ_NO_CUENTA,...,ACCION:CAMBIO_A_ROJO` y despues la de `ROJO_SIN_HORA`; el Esclavo, en
   `DEG_ENTRANDO` o `DEG_ACTIVO` y sin testigo, solo la de `ROJO_SIN_HORA`: **no dice que el cristal se paro**.
   `RELOJ_CRISTAL_SIN_CRISTAL` —el que no arranco— no entra en este camino. Lo ejerce la fila 19 (`G7.1`, `G7.2`).
+- **Fin de semana sin radio (72 h):** con testigo no cae (sin tope; aviso a los 28 dias); sin testigo, ambar a las
+  48 h. Lo ejerce el bloque L del arnes del Degradado (`L1` 72 h, `L2`, `L3`), visto en rojo mutando `if (testigo)`.
 
 **El salto de hora pasa por ROJO** (`D-26` (4)). Cada siembra mueve la fase de golpe lo que el oscilador
 derivo. El umbral **no se escogio: se deriva del despeje** —es el rojo que separa los dos verdes, menos un

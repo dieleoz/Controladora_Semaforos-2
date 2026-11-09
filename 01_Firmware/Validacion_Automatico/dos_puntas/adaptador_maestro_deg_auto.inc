@@ -157,6 +157,7 @@ static long arnesDegAuto_mando(const char* que, long arg) {
   if (!strcmp(que, "da_renovar"))     return g_daRenovar;
   if (!strcmp(que, "da_rojo_sin_hora")) return g_daRojoSinHora;
   if (!strcmp(que, "da_en_degradado")) return modoActual_get() == MODO_DEGRADADO ? 1 : 0;
+  if (!strcmp(que, "da_sync_vencida")) return modo_degradado_syncVencida() ? 1 : 0;   // bloque L: lo que publica la trama
   if (!strcmp(que, "da_ms_desde_respuesta")) return (long)coordinador_msDesdeRespuesta();
   // Bloque H, 29/09: lo mismo que pide a la otra punta (ver adaptador_esclavo_deg_auto.inc).
   if (!strcmp(que, "da_rendido_pila")) return respaldo_rendido() ? 1 : 0;

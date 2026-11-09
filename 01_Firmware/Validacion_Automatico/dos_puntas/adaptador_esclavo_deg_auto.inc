@@ -150,6 +150,7 @@ static long arnesDegAuto_mando(const char* que, long arg) {
   if (!strcmp(que, "da_renovar"))     return g_daRenovar;
   if (!strcmp(que, "da_rojo_sin_hora")) return g_daRojoSinHora;
   if (!strcmp(que, "da_en_degradado")) return degradado_gobiernaLuz() ? 1 : 0;
+  if (!strcmp(que, "da_sync_vencida")) return degradado_syncVencida() ? 1 : 0;   // bloque L: lo que publica la trama
   // Bloque H, 29/09: rendicion y su pila, el ambar por ESTADO (el pin del intermitente se
   // apaga la mitad del tiempo), la entrada a mano por testigo y la ACCION literal.
   if (!strcmp(que, "da_rojo_fijo"))   return degradado_estado() == DEG_ROJO_SIN_HORA ? 1 : 0;   // D-38

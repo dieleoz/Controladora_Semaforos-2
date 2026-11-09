@@ -280,12 +280,12 @@ Hechos tambien: `N-185` (`15c5fe6`), `D-98` tanda 3 (`8ac39f4`), `D-158` (`955d2
 433L37-V8; el V1.9 leia mal: «433C37», «Version 0,0», 1200/1.2k/Fixed) las DOS radios leen ID E90-DTU(433L37),
 version 7459-0-20, UART 9600 8N1, aire 2.4k, FEC Enable, Fixed Disable (= Transparent), canal 23, direccion 0,
 37 dBm: la configuracion de fabrica, que es la de SPEC_6 B.2. La unica causa que queda es M0/M1 en OFF/OFF. El
-entorno `radio_1200_fija` (`f3d893d`) no se usa; queda como entorno aparte sin efecto en el binario por defecto.
+entorno `radio_1200_fija` (`f3d893d`) se retiro despues (N-186), sin efecto en el binario por defecto.
 Se cierra con el registro de Marco con M0/M1 en ON: «tramas buenas» > 0 y `RTT:` medido.
 
 **`N-184` resuelto (17:24):** con M0/M1 en ON, «Enlace: 100 % de latidos contestados». Definido en `D-160`: RS485 a
-9600 transparente, sin cambio de firmware. Falta: los registros de los dos postes para medir `RTT:` con LoRa. Propuesto
-retirar el entorno `radio_1200_fija` (`D-159`), conservando el calculo de `ENVIO_RAFAGA_MS`/`ENVIO_SYNC_MS`.
+9600 transparente, sin cambio de firmware. Falta: registros de los dos postes para medir `RTT:` con LoRa. Retirado el
+entorno `radio_1200_fija` (`D-159` derogada); se conserva el calculo de `ENVIO_RAFAGA_MS`/`ENVIO_SYNC_MS`.
 
 **`N-186` (09/11, 17:45, responsable): UN `.zip` con firmware, APK y `.html` solo de lo que falta.** «No usar esa rama
 de LoRa»: sale el entorno `radio_1200_fija` (`D-159` derogada por `D-160`), se conserva el calculo de tiempos de envio.

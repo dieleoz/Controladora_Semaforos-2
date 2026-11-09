@@ -252,6 +252,7 @@ static void bloqueJ456(unsigned long) {
 #endif
 
 #include "orquestador_deg_verde.inc"   // BLOQUE K: D-59, el verde elegido del Degradado con testigo
+#include "orquestador_deg_finde.inc"   // BLOQUE L: el fin de semana (72 h) en Degradado, con y sin testigo
 
 static void bloqueJ(unsigned long despejeS) {
   std::printf("\n--- BLOQUE J: D-51 CORREGIDA, EL ROJO TOTAL DEL DEGRADADO (SPEC_2 7.quater) -\n");
@@ -320,4 +321,5 @@ static void bloqueJ(unsigned long despejeS) {
   }
   bloqueJ456(despejeS);
   bloqueK();
+  bloqueL();
 }
