@@ -1,8 +1,5 @@
-# Escenario P del simulador del puente: D-51 corregida y D-52 (SPEC_2 7.quater (i)). Importado por main() de
-# simulador_puente_esp32.py. Valores de SPEC_2 7.quater (b), (c) y las "Firmas" (g), nunca del firmware.
-# Maestro: los valores los manda el arnes (arnes_puente_salida.inc: FZR, REV, SAL). Esclavo: modo_degradado.cpp REAL.
-# NO CUBRE: DEG_T con salida en el Esclavo ni sus motivos de estado (hacen falta reloj y Degradado reales: Validacion_
-# Automatico/J4-J6). La SPEC dice RechazoSalida en (c) y MotivoSalida en las Firmas: aqui manda la lista de (c).
+# Escenario P del simulador del puente: D-51, D-52 (SPEC_2 7.quater (i)) y D-94 (SPEC_8 6.1).
+# Maestro: FZR/REV/SAL del arnes + interruptores.cpp REAL. Esclavo: modo_degradado.cpp + interruptores.cpp REALES.
 
 RRT = ["OK", "ROJO_FIJO_EN_ESTE_POSTE", "YA_EN_ROJO_FIJO", "SALIDA_YA_EN_CURSO",
        "OK_REANUDACION_CANCELADA"]   # RRT_* 0..4
@@ -43,6 +40,15 @@ def _comunes(t, c, punta, pr, pin):
     t.verificar(q == "$ACK,CMD:CONSULTA_DEG_FIN,RESULT:NINGUNA",
                 "P2 %s: CONSULTA_DEG_FIN sin PIN y sin salida -> RESULT:NINGUNA" % punta,
                 "P2 %s: CONSULTA_DEG_FIN contesta %s (esperado RESULT:NINGUNA)" % (punta, q))
+    # D-94 (SPEC_8 6.1): ordenes de interruptor por el despachador bluetooth.cpp REAL (con y sin PIN).
+    s_sp = _una(pr, "CMD:SET_BARRERA_SERVICIO:OFF")
+    s_ord = [_una(pr, pin + o) for o in ("SET_BARRERA_SERVICIO:OFF", "SET_BARRERA_SERVICIO:ON",
+                                         "SET_VETO_CAMARA:OFF", "SET_VETO_CAMARA:ON")]
+    s_esp = ["$ACK,CMD:SET_BARRERA_SERVICIO:OFF,RESULT:OK", "$ACK,CMD:SET_BARRERA_SERVICIO:ON,RESULT:OK",
+             "$ACK,CMD:SET_VETO_CAMARA:OFF,RESULT:OK", "$ACK,CMD:SET_VETO_CAMARA:ON,RESULT:OK"]
+    t.verificar(bool(s_sp) and "AUTH_FAILED" in s_sp and s_ord == s_esp,
+                "P6 %s: interruptores D-94 por bluetooth.cpp REAL (sin PIN -> AUTH_FAILED; OFF/ON -> RESULT:OK)" % punta,
+                "P6 %s: interruptores D-94 sin PIN=%s, con PIN=%s (esperado %s)" % (punta, s_sp, s_ord, s_esp))
 
 
 def escenario_p(t, c, maestro, esclavo, util_max):

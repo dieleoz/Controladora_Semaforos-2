@@ -36,12 +36,8 @@
 //   DEPU          abre la pestana de depuracion REAL, lee sus contadores -cuantas
 //                 tramas entraron, cuantas se rechazaron y con que motivo- y vuelve a
 //                 la de trafico. Es lo que ve el tecnico, no la estructura de datos.
-//   JUZGAR <hex>  pasa esos bytes por NMEAParser.validarTrama() REAL -la que desde el
-//                 31/08 llama juzgarTrama()- y devuelve su veredicto SIN entregar nada
-//                 por el canal. Existe para comparar la regla de CRC de la app con la
-//                 del puente: si las dos capas no juzgan igual, hay tramas que una pasa
-//                 y la otra rechaza, y eso es o un hueco o dos mensajes distintos al
-//                 operario por la misma trama.
+//   JUZGAR <hex>  pasa esos bytes por NMEAParser.validarTrama() REAL y devuelve su
+//                 veredicto SIN entregar nada por el canal.
 //   PIN           teclea 1234 en el teclado REAL si el modal esta abierto
 //   QUIT
 
@@ -49,14 +45,11 @@ const fs = require('fs');
 const path = require('path');
 
 const APP = path.join(__dirname, '..', '..', '..', '05_Funcional', 'App_Semaforo');
-
+const _rutaJsdom = path.join(APP, 'node_modules', 'jsdom');
 let JSDOM;
 try {
-  ({ JSDOM } = require(path.join(APP, 'node_modules', 'jsdom')));
+  ({ JSDOM } = require(fs.existsSync(_rutaJsdom) ? _rutaJsdom : 'jsdom'));
 } catch (e) {
-  // ABORTADO, no PASS: sin jsdom esta punta no puede ejercer nada, y decirlo es el
-  // trabajo del arnes. Un arnes que se callara dejaria al simulador midiendo media
-  // cadena y publicando una cuenta entera.
   process.stdout.write('ABORT no se pudo cargar jsdom desde App_Semaforo/node_modules: '
                        + e.message + '\n');
   process.exit(2);
