@@ -1,5 +1,7 @@
 # Escenario P del simulador del puente: D-51, D-52 (SPEC_2 7.quater (i)) y D-94 (SPEC_8 6.1).
 # Maestro: FZR/REV/SAL del arnes + interruptores.cpp REAL. Esclavo: modo_degradado.cpp + interruptores.cpp REALES.
+# NO CUBRE: DEG_T con salida en el Esclavo ni sus motivos de estado (hacen falta reloj y Degradado reales: Validacion_
+# Automatico/J4-J6). La SPEC dice RechazoSalida en (c) y MotivoSalida en las Firmas: aqui manda la lista de (c).
 
 RRT = ["OK", "ROJO_FIJO_EN_ESTE_POSTE", "YA_EN_ROJO_FIJO", "SALIDA_YA_EN_CURSO",
        "OK_REANUDACION_CANCELADA"]   # RRT_* 0..4
