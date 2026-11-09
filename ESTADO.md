@@ -33,7 +33,7 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 | Maestro `179DB0` (El Sisga) | `7ff7d12` `SIN_BANCO`, probado despues `b354fe9`. Ninguno lleva el veto de camara a la pluma (`363e375`, `D-33`): `Camaras_Sisga_4x.html` se corrige en la MISMA visita en que se cargue un firmware posterior | cinta y diario en `evidencia/` |
 | Esclavo del Sisga | sin medir | su cinta no se ha traido |
 | Maestro `4D2007` y Esclavo `38EB53` (Marco, banco) | `6bd1e4f` en controlador y puente, medido: `$ACK,CMD:VERSION` el 01/10 | `evidencia/011020260934/` |
-| paquete para Marco | `Paquete_Semaforos_2026-11-09_842c2c6_SIN_BANCO` (zip `9b152aaa...`, APK `cd1d8834...`, hoja de 24 pruebas); los anteriores en `RETIRADOS/` | `entregas/` |
+| paquete para Marco | `Paquete_Semaforos_2026-11-09_277fb72_SIN_BANCO` (zip `90063c81...`, APK `cd1d8834...`, hoja de 24 pruebas con M0/M1 en ON); en su banco hay `8f8dd7e` (mismo codigo de firmware), medido el 09/11 15:42; los anteriores en `RETIRADOS/` | `entregas/`, `evidencia/091120261545` |
 
 ## Verificacion en escritorio
 
