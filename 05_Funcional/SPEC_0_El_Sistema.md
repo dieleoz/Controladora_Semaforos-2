@@ -68,7 +68,7 @@ ambar.** Es una propiedad declarada del sistema, no una averia.
 > repite aqui. Donde el firmware no tiene camino, pone **HUECO**.
 
 **Paso 0 — antes de subir al poste.** Las radios de las dos puntas tienen que estar **configuradas IGUAL** (misma tasa, mismo
-canal, `M0`/`M1` en OFF, antena puesta): `SPEC_6` PARTE B. **Ningun instrumento de este repositorio verifica esa
+canal, `M0`/`M1` en ON, antena puesta; `D-160`): `SPEC_6` PARTE B. **Ningun instrumento de este repositorio verifica esa
 configuracion** (`SPEC_6` HUECO 3), y si no se hizo el sintoma no dira «radio mal configurada»: dira que el equipo se callo.
 
 1. **Encender los dos postes.** No hay interruptor de modo ni secuencia de arranque: se da energia.

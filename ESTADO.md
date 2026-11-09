@@ -21,7 +21,9 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 
 ## Frentes abiertos (tres como maximo)
 
-- **Banco de Marco** con el paquete de `N-182` (punto 1): barrera, camaras, interruptores y radios.
+- **Banco de Marco** con el paquete de `N-182` (punto 1): barrera, camaras e interruptores; radios a 9600 transparente
+  con M0/M1 en ON (`D-160`, 100 % de
+  latidos el 09/11), falta el alcance en metros.
 - **Campo** El Sisga: firmware por decidir; `N-172` sin medir en tarjeta.
 - **Orden del repo** (fase F). Fases 0-4 hechas con el arquitecto de plataforma; la 5 (`lib/`), tras banco.
 

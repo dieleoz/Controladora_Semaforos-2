@@ -112,7 +112,7 @@ Todo instrumento que compara contra un borde escribe al lado cual es y por que.
 ## 8. Lo que YO produzco es un instrumento
 
 Antes de un pack, informe, menu o encargo: «¿esto acerca una tarjeta cargada, o la sustituye?». La medida se recalcula:
-lineas de `{Maestro,Esclavo,Repetidor}/{src,include}` frente a `Simulaciones + Validacion_* + compuerta.py`.
+lineas de `{Maestro,Esclavo}/{src,include}` frente a `Simulaciones + Validacion_* + compuerta.py`.
 
 1. Un pack que certifica otra vez lo certificado sustituye (y hoy el simulador esta congelado, §4).
 2. Un menu de opciones sobre una causa sin medir blinda el error: se dice en la pregunta que no esta medido (`N-142`).

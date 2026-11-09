@@ -105,6 +105,7 @@ La comunicación utiliza tramas binarias compactas de 4 bytes (`RF_Packet`):
 - `crc` (1 byte): Polinomio **CRC-8 Maxim/Dallas (`0x31`)** que descarta cualquier corrupción por ruido RF.
 
 ### Handshake, Fallback y Self-Healing:
-- **Heartbeat:** Maestro envía PING (`0x04`) cada 3.0s a ~~300 bps~~ **2.4 kbps** (Air Data Rate vigente; `M0`/`M1` ambos en OFF). Esclavo responde PONG (`0x05`) tras `RETARDO_RESPUESTA_MS` (SFTY-17).
+- **Heartbeat:** Maestro envía PING (`0x04`) cada 3.0s a ~~300 bps~~ **2.4 kbps** (Air Data Rate vigente; `M0`/`M1`
+  ambos en ON, `D-160`). Esclavo responde PONG (`0x05`) tras `RETARDO_RESPUESTA_MS` (SFTY-17).
 - **Timeout de Caída:** Si pasan ~~12.0s~~ **25.0s** (`SFTY6_SILENCIO_MS`) sin comunicación durante un modo de operación, ambos nodos entran a `S_FALLO` (amarillo intermitente). **Ese número es el TECHO de la ventana de reintentos, no un ajuste suelto** — N-71: con 12.0s los reintentos 4 y 5 de `CICLO_MAX_REINTENTOS` eran código muerto. Lo recalcula `costura_09_presupuesto_radio` desde el C++ en cada corrida.
 - **Auto-Recuperación Real (Self-Healing):** Al recuperar el enlace, `protocolo_resetReplayProtection()` resetea los IDs de duplicados, envía `CMD_GO_RED` y fuerza Rojo Fijo de Despeje (All-Red de 15s) en ambos extremos antes de reanudar el flujo.

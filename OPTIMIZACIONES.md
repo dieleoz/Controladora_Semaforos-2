@@ -217,9 +217,11 @@ arreglar el radio.**
 
 ### 🛑 Límite duro: el Degradado debe rendirse solo
 
-**El estado seguro no puede depender de que alguien se acuerde.** Pasadas **48 h** sin
-resincronizar, el Degradado **cae solo a ámbar intermitente**. Construido en las dos puntas:
-`LIMITE_DURO_MS` en `*/src/modo_degradado.cpp` —**de ahí se lee, nunca de aquí**—, con el estado
+**El estado seguro no puede depender de que alguien se acuerde.** Pasadas **48 h** sin resincronizar, el Degradado **sin
+testigo** cae solo a ámbar intermitente; **con testigo no
+hay tope** (H9): a los 28 dias pide renovarlo (`RENOVAR_TESTIGO`) sin tocar la luz. Construido en las dos
+puntas: `LIMITE_DURO_MS` (Maestro) y `LIMITE_SIN_SYNC_MS` (Esclavo) en `*/src/modo_degradado.cpp` —**de ahí se lee,
+nunca de aquí**—, con el estado
 `DEG_RENDIDO`, el rechazo `DEG_RECHAZO_SYNC_VENCIDA` y un **latch de caducidad que no se baja hasta
 una sincronización nueva**, para que un corte de luz a las 47 h no regale otras 48, que es la trampa
 que convierte un límite en un botón de posponer. Lo vigila `costura_05_limite_48h`.

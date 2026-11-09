@@ -182,7 +182,8 @@ su cobre es SPEC 5. *(SPEC 2 §8 remitia «los parametros del modulo» a SPEC 5,
 4. 🔴 **HUECO MEDIDO (15/10, `9f951c7`, `N-180`): una punta no distingue su pareja de otra.** `RF_Packet` es
    `{msgID, command, param, crc}` en las dos puntas (`protocolo.h`), sin serie ni pareja, y
    `protocolo_hayPaqueteDisponible()` solo descarta por CRC y por `msgID` repetido. Dos grupos (SPEC 4 §9.14) al
-   alcance de radio (1 a 3 km) y en el mismo canal se oirian. Lo que hace el Esclavo con una trama ajena, leido en
+   alcance de radio (sin medir: prueba de cobertura del 10/11) y en el mismo canal se oirian. Lo que hace el Esclavo con
+   una trama ajena, leido en
    `Esclavo/src/main.cpp`: un `CMD_GO_GREEN` ajeno lo pone en verde (**dos verdes en el carril**); un `CMD_PING` ajeno
    renueva `tUltimoComando` y **tapa la orfandad** (SFTY-6) aunque su Maestro haya muerto; PING, GO_RED o GO_GREEN
    ajenos lo sacan del Degradado. El Maestro acepta igual los `ACK_*` y `PONG` del Esclavo ajeno (`coordinador.cpp`).
@@ -225,8 +226,8 @@ La variante a `1200`/Fixed (`D-159`) se retiro: `D-160`.
 > **daña el amplificador de salida**, y ese es el modo de averia que ya se pago una vez.
 
 **Casillas antes de cerrar los gabinetes:** ⬜ misma Air Data Rate en las dos ⬜ mismo canal ⬜ `M0`/`M1` en `ON` en
-las dos ⬜ antena conectada en las dos ⬜ apuntado en el parte **que radio quedo con que canal**, leido con `Read
-Option` ⬜ **ese canal no lo usa ningun otro grupo de la obra** (`D-124`).
+las dos ⬜ antena conectada en las dos ⬜ apuntado en el parte **que radio quedo con que canal**, leido con `GetParam` ⬜
+**ese canal no lo usa ningun otro grupo de la obra** (`D-124`).
 
 **Prueba de puesta en marcha (`D-124`), con los demas grupos de la obra ENCENDIDOS:** se apaga el Maestro propio y el
 Esclavo tiene que pasar a ambar intermitente antes de ~30 s (SFTY-6); despues al reves, apagando el Esclavo. **Si no cae
