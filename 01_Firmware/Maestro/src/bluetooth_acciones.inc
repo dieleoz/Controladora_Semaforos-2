@@ -339,10 +339,11 @@
     // porque haria falta un nombre para ese 160, y esp32_07 y esp32_09 leen esa
     // declaracion por TEXTO -"char tramaCompleta[(\d+)]"-: nombrarla los ABORTA a los dos
     // (CLAUDE.md 5).
+    // D-168: detras del sello, la polaridad de la barrera de ESTE binario (pines.h, fijada al compilar).
 #if FW_SELLADO
-    enviarTramaConCrc("$ACK,CMD:VERSION,RESULT:OK,NODE:MAESTRO,FW:" FW_TEXTO);
+    enviarTramaConCrc("$ACK,CMD:VERSION,RESULT:OK,NODE:MAESTRO,FW:" FW_TEXTO ",J15:" TALANQUERA_J15);
 #else
-    enviarTramaConCrc("$ERR,CMD:VERSION,DESC:SIN_SELLAR,NODE:MAESTRO,FW:" FW_SIN_SELLO);
+    enviarTramaConCrc("$ERR,CMD:VERSION,DESC:SIN_SELLAR,NODE:MAESTRO,FW:" FW_SIN_SELLO ",J15:" TALANQUERA_J15);
 #endif
     // NO se anota en el Diario. Preguntar la version no cambia el equipo, y una linea por
     // consulta inunda la bitacora donde hay que encontrar el fallo -es el umbral de J17 y

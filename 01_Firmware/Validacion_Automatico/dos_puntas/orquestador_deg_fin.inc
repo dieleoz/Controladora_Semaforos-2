@@ -254,6 +254,66 @@ static void bloqueJ456(unsigned long) {
 #include "orquestador_deg_verde.inc"   // BLOQUE K: D-59, el verde elegido del Degradado con testigo
 #include "orquestador_deg_finde.inc"   // BLOQUE L: el fin de semana (72 h) en Degradado, con y sin testigo
 
+// BLOQUE R - D-170 y D-171 (SPEC_4 3.1 y 6, responsable 10/11): el ROJO TOTAL con el Maestro en ambar, y ESC:? sin
+// dato fresco del otro poste. Escritas ANTES del codigo y vistas en rojo. Lo que se exige sale de la SPEC (rojo en los
+// dos, MODO_MANUAL, ESC); del fuente solo la posicion en el enum y SFTY6_SILENCIO_MS, el borde de la orfandad.
+static void bloqueR() {
+  std::printf("\n--- BLOQUE R: D-170 (ROJO TOTAL desde el ambar) y D-171 (ESC:? sin dato fresco) -\n");
+  const std::string MODOS = RAIZ + "/Maestro/include/modos.h";
+  const long MANUAL_V = posicionEnEnum(MODOS, "ModoSistema", "MODO_MANUAL");
+  const long AUTO_V = posicionEnEnum(MODOS, "ModoSistema", "MODO_AUTOMATICO");
+  const unsigned long SILENCIO_MS = leerNumero(RAIZ + "/Maestro/include/protocolo.h",
+                                               R"(#define\s+SFTY6_SILENCIO_MS\s+(\d+)UL)", "SFTY6_SILENCIO_MS");
+  // R1: Maestro en AMBAR pedido por la app, enlace vivo, y FORZAR_ROJO por la rama de bluetooth.cpp. Se mira cuatro
+  // veces la orfandad: el Esclavo no debe volver a ambar. Control sin la orden: el Esclavo sigue en ambar.
+  for (int conOrden = 1; conOrden >= 0; conOrden--) {
+    prepararSincronizadas(15, 8, 0, 0);
+    MAESTRO.orden("set_modo", MODO_AMBAR_V);
+    avanzar(10000);   // modo_ambar_setup(): GO_RED y GO_AMBAR; las dos en ambar
+    const bool enAmbar = ambarH(MAESTRO) && ambarH(ESCLAVO);
+    if (conOrden) MAESTRO.orden("forzar_rojo_app");
+    avanzar(5000);    // el GO_RED, la vuelta del flanco y el acuse
+    unsigned long noRojoM = 0, noRojoE = 0;
+    for (unsigned long h = 0; h < 4UL * SILENCIO_MS; h += PASO_MS) {
+      unTick();
+      if (!MAESTRO.rojo()) noRojoM += PASO_MS;
+      if (!ESCLAVO.rojo()) noRojoE += PASO_MS;
+    }
+    const long modo = MAESTRO.orden("modo_actual"), escRojo = MAESTRO.orden("esc_es:ROJO");
+    const std::string c = "sin rojo M " + std::to_string(noRojoM) + " ms, E " + std::to_string(noRojoE) + " ms de " +
+                          std::to_string(4UL * SILENCIO_MS) + " ms; modo " + std::to_string(modo) + " (MANUAL " +
+                          std::to_string(MANUAL_V) + "), ESC:ROJO " + std::to_string(escRojo);
+    if (!conOrden) {
+      comprobar(enAmbar && noRojoE > 0, "R1.0 (control): sin la orden las dos siguen en ambar (" + c + ")");
+      continue;
+    }
+    comprobar(enAmbar && noRojoM == 0 && noRojoE == 0 && modo == MANUAL_V && escRojo == 1,
+              "R1 (D-170): FORZAR_ROJO con el Maestro en AMBAR: rojo fijo en los DOS durante 4 x SFTY6_SILENCIO_MS, "
+              "modo Manual y ESC:ROJO (" + c + (enAmbar ? "" : "; EL AMBAR NO SE MONTO") + ")");
+    // R1b: de ahi se sale con otra orden; SET_MODO:AUTO vuelve a ciclar.
+    MAESTRO.orden("set_modo", AUTO_V);
+    const ObsJ o = observarJ(1800000UL);
+    comprobar(o.verdeM > 0 || o.verdeE > 0, "R1b (D-170): tras el rojo total, SET_MODO:AUTO vuelve a dar paso (" +
+                                                cifrasJ(o) + ")");
+  }
+  // R2: Maestro en MENU (menu_setup() real: C_MENU_IDLE) y la radio cae: pasado SFTY6_SILENCIO_MS, ESC:?.
+  {
+    prepararSincronizadas(15, 8, 0, 0);
+    MAESTRO.orden("forzar_menu");
+    avanzar(10000);
+    const long fresco = MAESTRO.orden("esc_es:ROJO");
+    g_enlace = false;
+    avanzar(SILENCIO_MS + 10000UL);
+    const long sinDato = MAESTRO.orden("esc_desconocido"), modo = MAESTRO.orden("modo_actual");
+    const bool ambarM = ambarH(MAESTRO);
+    g_enlace = true;
+    comprobar(fresco == 1 && modo == MENU_V && ambarM && sinDato == 1,
+              "R2 (D-171): MENU con radio publica ESC:ROJO (" + std::to_string(fresco) + "); sin radio " +
+              std::to_string(SILENCIO_MS + 10000UL) + " ms, Maestro en ambar (" + std::to_string(ambarM) +
+              ") y ESC:? (" + std::to_string(sinDato) + "), no el ultimo color");
+  }
+}
+
 static void bloqueJ(unsigned long despejeS) {
   std::printf("\n--- BLOQUE J: D-51 CORREGIDA, EL ROJO TOTAL DEL DEGRADADO (SPEC_2 7.quater) -\n");
   const unsigned long OBS = 600000UL;   // SPEC (i) J1: 600 s
@@ -322,4 +382,5 @@ static void bloqueJ(unsigned long despejeS) {
   bloqueJ456(despejeS);
   bloqueK();
   bloqueL();
+  bloqueR();
 }

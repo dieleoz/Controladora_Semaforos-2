@@ -266,11 +266,11 @@ bool nocheFlash_escribir(const NocheConfig*) { return true; }
 // lista sea la del C++ lo mide camara_03_vigilante.
 const char* camara_estado() { return "?"; }
 
-// D-33 (14/09/2026): sin camaras cableadas no hay presencia que vetar, por el mismo
-// motivo por el que camara_estado() de arriba contesta "?" y no "OK": aqui se mide el
-// puente del ESP32, no el veto de la pluma. Devolver true seria dejar la barrera arriba
-// en todo el arnes y medir otra cosa.
+// D-33: sin camaras no hay presencia (como camara_estado() da "?"): se mide el puente, no la pluma;
+// true dejaria la barrera arriba en todo el arnes. D-166/D-169: ninguna inhibida ni mala.
 bool camara_presenciaJ16(int) { return false; }
+bool camara_mira(int) { return true; } bool camara_malaRetienePluma() { return false; }
+char camara_letra(int) { return '?'; }
 #include "../../Validacion_Automatico/instalacion_dobles.inc"
 #if defined(PUNTA_MAESTRO)
 #include "reloj.h"   // struct RelojDiag: solo la declara el reloj.h del Maestro

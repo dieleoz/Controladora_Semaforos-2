@@ -628,7 +628,7 @@ static void vigilarOrden() {
     const bool r = p->rojo(), am = p->ambar(), v = p->verde();
     const int luz = v ? 2 : (r && am) ? 1 : (r && !am) ? 0 : 3;
     const int la = g_luzPinAnt[i];
-    if (luz == 1 && p->pin(MOTOR_TALANQUERA) == TALANQUERA_ABRIR) g_plumaEnRA++;
+    if (luz == 1 && p->pin(MOTOR_TALANQUERA) == TALANQUERA_ABRIR && !excepcionVetoOrq(i)) g_plumaEnRA++;   // D-169
     if (misma && la >= 0) {
       if (luz == 2 && la != 2) {
         const unsigned long d = g_t - g_tRADesde[i];
@@ -1357,26 +1357,25 @@ int main() {
   std::printf(" ambar de transicion del Esclavo = %lu ms.\n", AMBAR_ESCLAVO_MS_V);
 
   // --- Guarda de mapeo: comun/pines.h es UNO para las dos puntas ------------
-  // Este arnes usa un solo sustituto de pines.h. Vale porque los dos reales asignan
-  // los mismos puertos a las mismas luces; si eso dejara de ser cierto, el sustituto
-  // lo ESCONDERIA. Se comprueba aqui, antes de medir nada.
+  // Este arnes usa un solo sustituto de pines.h. Vale porque los dos reales asignan los mismos puertos a las mismas
+  // luces; si eso dejara de ser cierto, el sustituto lo ESCONDERIA. Se comprueba aqui, antes de medir nada. D-168: y
+  // los NIVELES de la pluma (TALANQUERA_*), que ademas son los del sustituto: las aserciones de abajo son simbolicas.
   {
     std::string pm = leerFuente(RAIZ + "/Maestro/include/pines.h");
     std::string pe = leerFuente(RAIZ + "/Esclavo/include/pines.h");
-    const char* luces[] = { "ROJO1", "AMARILLO1", "VERDE1", "ROJO2", "AMARILLO2",
-                            "VERDE2", "MOTOR_TALANQUERA" };
+    std::string ps = leerFuente(AQUI + "/comun/pines.h");
+    const char* luces[] = { "ROJO1", "AMARILLO1", "VERDE1", "ROJO2", "AMARILLO2", "VERDE2", "MOTOR_TALANQUERA",
+                            "TALANQUERA_ABRIR", "TALANQUERA_CERRAR" };
     for (const char* l : luces) {
       std::regex re(std::string("#define\\s+") + l + "\\s+(\\w+)");
-      std::smatch a, b;
-      if (!std::regex_search(pm, a, re) || !std::regex_search(pe, b, re)) {
-        abortar(std::string("no se encuentra ") + l + " en algun pines.h real: el "
-                "sustituto de este arnes no se puede dar por bueno");
-      }
-      if (a[1].str() != b[1].str()) {
-        abortar(std::string("el pin de ") + l + " DIFIERE entre puntas (" +
-                a[1].str() + " vs " + b[1].str() + "). El sustituto comun de este "
-                "arnes lo estaria escondiendo");
-      }
+      std::smatch a, b, s;
+      if (!std::regex_search(pm, a, re) || !std::regex_search(pe, b, re))
+        abortar(std::string("no se encuentra ") + l + " en algun pines.h real: el sustituto no se puede dar por bueno");
+      if (a[1].str() != b[1].str())
+        abortar(std::string("el pin de ") + l + " DIFIERE entre puntas (" + a[1].str() + " vs " + b[1].str() +
+                "). El sustituto comun de este arnes lo estaria escondiendo");
+      if (!std::strncmp(l, "TALANQUERA_", 11) && (!std::regex_search(ps, s, re) || s[1].str() != a[1].str()))
+        abortar(std::string("el NIVEL de ") + l + " de comun/pines.h no es el del real (" + a[1].str() + ")");
     }
   }
 

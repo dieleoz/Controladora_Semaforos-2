@@ -5,34 +5,16 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 
 ## Por donde se retoma, en este orden
 
-**Orden del responsable (09/11, 19:00): «construir todo, que no falte nada», hasta el `.zip` final; con subagentes y
-workflows en paralelo (ficheros disjuntos). Decisiones ya tomadas: no se vuelven a preguntar.**
+**Orden del responsable (10/11): «acaba todo», un solo `.zip` a Marco para probar sobre `main`.**
 
-1. **ENTREGABLE, con `N-187`:** `entregas/Paquete_Semaforos_2026-11-10_6ca489f_SIN_BANCO.zip` (zip `ae1c523f...`,
-   APK `87211871...`); arquitecto y QA APTO CON CONDICIONES, compuerta 16/17 (solo `D-22`), hoja del 10/11 con la
-   Parte 9 (pruebas 26-34) y Parte 10 (35-40, barrera arriba en reposo). Radio: `D-160`.
-2. **`N-187` CONSTRUIDO sin banco (09/11); arquitecto y QA APTO CON CONDICIONES (cerradas: D1 de QA).** Parametros
-   de camaras y barrera desde la app, en Ajustes con clave de tecnico y PIN: SPEC_8 §8 y `D-161`..`D-165`.
-   Decidido con la simulacion de dos modelos + arbitro (scratchpad `pluma/`, roadmap `N-187`):
-   - parametros: contacto **NA/NC** por camara (C y D), de fabrica NA; **retardo de bajada tras el rojo 3..5 s**, de
-     fabrica 3 (recomendado: con 2 s el brazo cae ~7 veces mas sobre quien cruza al final del amarillo). Si el
-     responsable dice 2..5, se cambia solo el rango y su prueba;
-   - fijos (no parametro): sube con el verde; nunca baja antes del rojo; arriba en ambar intermitente (cliente/PMT
-     27/08); J15 activa = subir y de NIVEL (sin pulso: J15 no tiene «parado» ni final de carrera leido);
-   - flash propia `0x0800F400` (molde `testigo_flash`), ordenes `SET_CAMARA`, `SET_PLUMA_RETARDO`,
-     `CONSULTA_INSTALACION` con molde `SET_TIEMPOS`; `$STATUS` no crece; simulador de Practica las contesta
-     (memoria: una orden nueva va al simulador); app en Ajustes > Averias / Instalacion.
-   - Workflow: arquitecto revisa SPEC_8 §8 ANTES (§11.7) -> firmware (worktree) + app y simulador (worktree) en
-     paralelo, prueba vista en rojo, arneses existentes (simulador congelado) -> integrar por el diff -> spec en el
-     MISMO commit (regla del 09/11).
-3. **Runbook completo:** compuerta en el arbol principal hasta dos pasadas iguales (17 filas; cifras a README y
-   ESTADO), arquitecto y QA una vez en contexto limpio, APK (JDK 21: `java-21-openjdk...` en Baliza), `npx cap copy
-   android` antes, telefono si esta conectado (adb + CDP), y UN `.zip` con la hoja del 10/11 + seccion de los
-   parametros nuevos (como se ponen y que se espera). El anterior a `RETIRADOS/`.
-4. **Cuando vuelvan los registros de Marco (10/11):** leerlos enteros y contando (`CLAUDE.md` §7): `RTT:` con LoRa,
-   cobertura en metros, tiempo real de subida y bajada del brazo (el que decide: con >10 s ningun retardo protege),
-   camaras y C5. Con eso se ajustan rangos de `N-187` desde la app, sin firmware.
-5. **Frentes:** banco de Marco (10/11), `N-187`, El Sisga tras banco. Version siguiente: `roadmap.md` orden, fila 6.
+1. **Version 11/11 integrada en `main`:** `D-170` (ROJO TOTAL sostenido desde ambar), `D-171` (`ESC:?` sin dato),
+   `D-166`/`D-169` (veto por camara, camaras malas), `D-168` (`J15` = BAJAR, arranque arriba) y la auditoria
+   `N-182`. Hoja: `05_Funcional/Novedades_y_Pruebas_2026-11-11.html`. Sin banco.
+2. **Al cargar `J15:BAJAR`:** central a «sin senal = subir» en la MISMA visita, `J15` suelta entre medias; se anota
+   aqui la polaridad por poste. Todos los equipos de la tabla llevan firmware anterior: `J15` conduce = SUBIR.
+3. **Con los registros de Marco:** leerlos enteros (`CLAUDE.md` §7): `RTT:`, cobertura, tiempo del brazo, camaras.
+4. **Abierto para el responsable:** FORZAR_ROJO en Automatico/Inteligente no es rojo fijo (el ciclo sigue).
+5. **Frentes:** banco de Marco, El Sisga tras banco, `D-158` tras medir telefonos. Version siguiente: `roadmap.md`.
 
 ## Que firmware hay en cada equipo (`CLAUDE.md` §0.2)
 
@@ -51,10 +33,10 @@ cabecera con que HEAD y que arbol se midio; las comprueba `documentos_01` en cad
 
 | | |
 |---|---|
-| Flash | Maestro **83.4 %** · Esclavo **70.4 %** · ESP32 **35.8 %** |
-| Banco por packs | **1516/1517 comprobaciones** en **70 packs**, 1 FALLA: `D-22` pide una tarjeta delante (`CLAUDE.md` §1) |
-| Arneses de C++ real | 109/109 automatico · 78/78 ciclo · 193/193 dos puntas · 161/161 Degradado a dos puntas |
-| App y puente | **947/947** jsdom · **71/71** funcional · **70/70** unitarios · 92/92 TDD · puente 164/164 |
+| Flash | Maestro **85.2 %** · Esclavo **72.1 %** · ESP32 **35.8 %** |
+| Banco por packs | **1524/1525 comprobaciones** en **70 packs**, 1 FALLA: `D-22` pide una tarjeta delante (`CLAUDE.md` §1) |
+| Arneses de C++ real | 115/115 automatico · 78/78 ciclo · 196/196 dos puntas · 165/165 Degradado a dos puntas |
+| App y puente | **959/959** jsdom · **71/71** funcional · **70/70** unitarios · 92/92 TDD · puente 167/167 |
 ## BLOQUEANTES (lo que no cierra el teclado): `roadmap.md` §1 y §4 (`N-108`, `N-120`, `C-6`, `N-116`, §0.2).
 
 ---|---|

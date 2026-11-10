@@ -11,10 +11,13 @@
 // del 10/11 (pruebas 26..33), no del fuente. Lo incluye orquestador.cpp antes de main().
 
 static bool g_vetoIEsperado = false;   // el bloque I pone presencia en una camara del Esclavo
+static bool g_malaIEsperada = false;   // D-169: el bloque I deja una camara del Esclavo en PEGADA
 // D-33 por NOMBRE: la pluma del Esclavo arriba en rojo porque SU camara la veta, solo dentro
 // del bloque I y con semaforo_plumaVetada() REAL diciendolo. Fuera del bloque no hay camaras.
+// D-169 por NOMBRE, aparte: arriba porque una camara MALA retiene (MALAx = ARRIBA), con la anotacion REAL.
 static bool excepcionVetoOrq(int i) {
-  return i == 1 && g_vetoIEsperado && ESCLAVO.orden("pluma_vetada") == 1;
+  return i == 1 && ((g_vetoIEsperado && ESCLAVO.orden("pluma_vetada") == 1) ||
+                    (g_malaIEsperada && ESCLAVO.orden("pluma_mala") == 1));
 }
 
 static const std::string I_PIN = "CMD:PIN:1234:";
@@ -49,7 +52,7 @@ static bool iPluma(Punta& p) { return p.pin(MOTOR_TALANQUERA) == TALANQUERA_ABRI
 
 // CORTE DE LUZ en una punta: el dominio de respaldo y (si conserva) la pagina de flash
 // sobreviven; la RAM no. Sin conservar, la pagina vuelve borrada: es la carga con `-e all`.
-// envenenar: antes del arranque, J15 en SUBIR y solo semaforo_setup() REAL (instalacion_mandos.inc).
+// envenenar: antes del arranque, J15 en BAJAR (D-168) y solo semaforo_setup() REAL (instalacion_mandos.inc).
 // Las entradas de camara del Esclavo quedan como estaban cableadas (nivelC, nivelD).
 static long iCorte(Punta& p, bool conserva, int nivelC = 0, int nivelD = 0, bool envenenar = false) {
   long pag[7], dom[PUNTA_DOMINIO_PALABRAS];
@@ -85,6 +88,93 @@ static long iBajada(Punta& p, unsigned long tope = 20000) {
 }
 static bool iCerca(long medido, unsigned long esperado) {   // un tick de margen por cada lado
   return medido >= (long)(esperado - PASO_MS) && medido <= (long)(esperado + 2 * PASO_MS);
+}
+
+// Del siguiente VERDE del Esclavo a su ROJO con `pin` en alto (NA: presencia) desde el verde; ms hasta que la
+// pluma baja (-1: no bajo en 8 s; -2/-3 como iBajada). Al acabar suelta el pin y espera a que baje.
+static long iBajadaCon(long pin) {
+  unsigned long h = 0;
+  while (!ESCLAVO.verde()) { iTick(); if ((h += PASO_MS) > 600000UL) return -2; }
+  ESCLAVO.entrada(pin, HIGH);
+  while (ESCLAVO.estado() != S_ROJO_V) { iTick(); if ((h += PASO_MS) > 600000UL) return -2; }
+  long r = iPluma(ESCLAVO) ? -1 : -3;
+  for (unsigned long m = 0; r == -1 && m <= 8000UL; m += PASO_MS) {
+    if (!iPluma(ESCLAVO)) r = (long)m; else iTick();
+  }
+  ESCLAVO.entrada(pin, LOW);
+  for (unsigned long k = 0; iPluma(ESCLAVO) && k < 8000UL; k += PASO_MS) iTick();
+  return r;
+}
+// Un flanco del Esclavo en `pin` (NA): cuantos CMD_DEMANDA salen por radio.
+static long iDemandasDe(long pin) {
+  iAvanzar(4000);   // fuera de la ventana de la anterior
+  const long d0 = g_iDemandas;
+  ESCLAVO.entrada(pin, HIGH);
+  iAvanzar(500);
+  ESCLAVO.entrada(pin, LOW);
+  iAvanzar(500);
+  return g_iDemandas - d0;
+}
+
+// BLOQUE I, segunda parte - D-166 y D-169 (SPEC_8 9) EN EL ESCLAVO REAL: botones.cpp, semaforo.cpp,
+// interruptores.cpp y respaldo.cpp, la orden por el bluetooth.cpp REAL. Datos ASIMETRICOS: C fuera y D ve, y
+// al reves, en el veto y en la demanda; y una camara PEGADA con MALA1 de fabrica (ARRIBA). Tramas de SPEC_8 9.5.
+static void bloqueCamarasDegradadas() {
+  std::printf("\n-- Bloque I (D-166, D-169): camaras degradadas en el Esclavo REAL --\n");
+  if (!iBt(I_PIN + "SET_VETO_CAMARA:C:OFF", "$ACK,CMD:SET_VETO_CAMARA:C:OFF,RESULT:OK")) {
+    iCorte(ESCLAVO, false, LOW, LOW);   // D-148: el primer arranque tras cargar la DLL no lo acepta
+    iAvanzar(3000);
+    iBt(I_PIN + "SET_VETO_CAMARA:C:OFF", "$ACK,CMD:SET_VETO_CAMARA:C:OFF,RESULT:OK");
+  }
+  g_vetoIEsperado = true;
+  const long cVeC = iBajadaCon(g_iPinC), cVeD = iBajadaCon(g_iPinD);
+  const long demC = iDemandasDe(g_iPinC), demD = iDemandasDe(g_iPinD);
+  const bool cambia = iBt(I_PIN + "SET_VETO_CAMARA:C:ON", "$ACK,CMD:SET_VETO_CAMARA:C:ON,RESULT:OK") &&
+                      iBt(I_PIN + "SET_VETO_CAMARA:D:OFF", "$ACK,CMD:SET_VETO_CAMARA:D:OFF,RESULT:OK");
+  const long dVeD = iBajadaCon(g_iPinD), dVeC = iBajadaCon(g_iPinC);
+  const long demD2 = iDemandasDe(g_iPinD), demC2 = iDemandasDe(g_iPinC);
+  char t9[460];
+  std::snprintf(t9, sizeof(t9), "I9 (D-166): en el Esclavo REAL, con C fuera la pluma baja a %ld ms con C viendo y D "
+                "viendo la retiene (%ld; -1 = no bajo); un flanco de C pide %ld demandas y uno de D %ld; con D fuera "
+                "(%d): D viendo baja a %ld, C viendo retiene (%ld), D pide %ld y C %ld", cVeC, cVeD, demC, demD,
+                cambia, dVeD, dVeC, demD2, demC2);
+  comprobar(iCerca(cVeC, g_retardoPlumaMs) && cVeD == -1 && demC == 0 && demD == 1 && cambia &&
+            iCerca(dVeD, g_retardoPlumaMs) && dVeC == -1 && demD2 == 0 && demC2 == 1, t9);
+
+  // -- I10: el aviso de arranque y la consulta, por camara (D-152, D-166) --------------------------------------
+  iCorte(ESCLAVO, true, LOW, LOW);
+  const bool aviso = ESCLAVO.orden("evento:ORIGEN:INTERRUPTOR,DETALLE:ARRANQUE_CAM_NOVETO_D") == 1;
+  iAvanzar(3000);
+  const bool cons = iBt("CMD:CONSULTA_VETO", "$ACK,CMD:CONSULTA_VETO,RESULT:C1?_D0?_M1A_M2A") &&
+                    iBt(I_PIN + "CONSULTA_VETO", "$ACK,CMD:CONSULTA_VETO,RESULT:C1?_D0?_M1A_M2A") &&
+                    iBt(I_PIN + "SET_VETO_CAMARA:D:ON", "$ACK,CMD:SET_VETO_CAMARA:D:ON,RESULT:OK");
+  comprobar(aviso && cons, "I10 (D-152, D-166): con D fuera, el arranque del Esclavo emite ARRANQUE_CAM_NOVETO_D, y "
+                           "CONSULTA_VETO, con y sin PIN, dice C1?_D0?_M1A_M2A (sin flancos tras el arranque)");
+
+  // -- I11: C PEGADA con D mirando: MALA1 de fabrica ARRIBA retiene sin veto; MALA1:BAJA la baja (D-169) -------
+  for (unsigned long h = 0; !ESCLAVO.verde() && h < 600000UL; h += PASO_MS) iTick();
+  ESCLAVO.entrada(g_iPinD, HIGH);   // D da un flanco: juzgable y mirando
+  iAvanzar(500);
+  ESCLAVO.entrada(g_iPinD, LOW);
+  ESCLAVO.entrada(g_iPinC, HIGH);   // C trabada: veta mientras no se declara, despues es MALA
+  g_malaIEsperada = true;
+  iAvanzar(1200000UL + 60000UL);
+  const bool peg = iBt("CMD:CONSULTA_VETO", "$ACK,CMD:CONSULTA_VETO,RESULT:C1P_D1O_M1A_M2A");
+  for (unsigned long h = 0; !ESCLAVO.verde() && h < 600000UL; h += PASO_MS) iTick();
+  for (unsigned long h = 0; ESCLAVO.estado() != S_ROJO_V && h < 600000UL; h += PASO_MS) iTick();
+  iAvanzar(g_retardoPlumaMs + 2000UL);
+  const bool retenida = iPluma(ESCLAVO) && ESCLAVO.rojo() && ESCLAVO.orden("pluma_mala") == 1 &&
+                        ESCLAVO.orden("pluma_vetada") == 0;
+  const bool baja = iBt(I_PIN + "SET_CAMARA_MALA:1:BAJA", "$ACK,CMD:SET_CAMARA_MALA:1:BAJA,RESULT:OK") &&
+                    !iPluma(ESCLAVO);
+  ESCLAVO.entrada(g_iPinC, LOW);
+  iAvanzar(1000);
+  const bool fab = iBt(I_PIN + "SET_CAMARA_MALA:1:ARRIBA", "$ACK,CMD:SET_CAMARA_MALA:1:ARRIBA,RESULT:OK");
+  g_malaIEsperada = g_vetoIEsperado = false;
+  comprobar(peg && retenida && baja && fab,
+            "I11 (D-169): en el Esclavo REAL, C trabada 21 min con D mirando queda PEGADA (C1P_D1O_M1A_M2A); en el "
+            "rojo siguiente la pluma sigue ARRIBA pasado R sin veto (MALA1 de fabrica), y SET_CAMARA_MALA:1:BAJA "
+            "contesta OK y la baja en la orden");
 }
 
 static void bloqueInstalacion() {
@@ -201,25 +291,31 @@ static void bloqueInstalacion() {
                 antes5, trasE, trasM, b5e, b5m);
   comprobar(antes5 && trasE && trasM && iCerca(b5e, 5000UL) && iCerca(b5m, 5000UL), t5);
 
-  // -- I6 (b): al encender, J15 en BAJAR antes que ninguna luz (SFTY-28, SPEC_8 tabla 8.4) ---
-  // Con C en NC y SIN puente (presencia desde el primer instante) la pluma tampoco sube: una
-  // camara no levanta una pluma (D-33), ni pide una demanda que nadie hizo (N-26: se siembra).
+  // -- I6 (b): al encender, J15 en ABRIR (nivel de reset) antes que ninguna luz, y la 1.a bajada tras R y el veto
+  // (D-168, SPEC_8 8.2/8.4). SE INVIERTE «J15 en BAJAR» (CLAUDE.md 9): era el arranque que baja sin R ni veto.
+  // Con C en NC y SIN puente (presencia desde el primer instante) la pluma no baja en R ni despues: la retiene C (en
+  // este arnes, como MALA con MALA1 de fabrica ARRIBA, D-169; o su veto, D-33), sin pedir una demanda que nadie hizo
+  // (N-26: se siembra); quitada la presencia, baja en el rojo.
   const long dI6 = g_iDemandas;
   const long envE = iCorte(ESCLAVO, true, LOW, LOW, true);
   const long envM = iCorte(MAESTRO, true, LOW, LOW, true);
-  bool abajo = !iPluma(ESCLAVO) && !iPluma(MAESTRO) && ESCLAVO.rojo();
-  for (unsigned long h = 0; h < 3000UL; h += PASO_MS) {
+  bool arriba = iPluma(ESCLAVO) && iPluma(MAESTRO) && ESCLAVO.rojo();
+  g_vetoIEsperado = g_malaIEsperada = true;   // tras R, la retencion de C es la razon nombrada en rojo
+  for (unsigned long h = 0; h < 8000UL; h += PASO_MS) {   // R = 5 s (I5) y 3 s mas de veto
     iTick();
-    abajo = abajo && (ESCLAVO.verde() || !iPluma(ESCLAVO));
+    arriba = arriba && iPluma(ESCLAVO);
   }
   const bool veC = ESCLAVO.orden("presencia", 0) == 1 && g_iDemandas == dI6;
   ESCLAVO.entrada(g_iPinC, HIGH);
-  char t6[360];
-  std::snprintf(t6, sizeof(t6), "I6 (SFTY-28, prueba 6): con J15 envenenado en SUBIR, semaforo_setup() REAL lo "
-                "deja en BAJAR con las seis luces apagadas (Esclavo %ld, Maestro %ld; 3 = las dos cosas); tras "
-                "el arranque la pluma sigue abajo en rojo aunque C (NC, sin puente) vea presencia, sin demanda (%d)",
-                envE, envM, veC);
-  comprobar(envE == 3 && envM == 3 && abajo && veC, t6);
+  g_vetoIEsperado = g_malaIEsperada = false;
+  iAvanzar(500);
+  const bool bajaI6 = ESCLAVO.rojo() && !iPluma(ESCLAVO);
+  char t6[420];
+  std::snprintf(t6, sizeof(t6), "I6 (D-168, prueba 6): con J15 envenenado en BAJAR, semaforo_setup() REAL lo deja "
+                "en ABRIR y anotado arriba con las seis luces apagadas (Esclavo %ld, Maestro %ld; 3 = las dos cosas); "
+                "tras el arranque la pluma sigue arriba en rojo 8 s (R y la retencion de C, NC sin puente: %d), sin "
+                "demanda (%d), y baja en rojo al irse la presencia (%d)", envE, envM, arriba, veC, bajaI6);
+  comprobar(envE == 3 && envM == 3 && arriba && veC && bajaI6, t6);
   iAvanzar(4000);
 
   // -- I7 (c): corte A MITAD de la escritura = FABRICA entera, nunca un retardo < 3 s ----------
@@ -288,5 +384,8 @@ static void bloqueInstalacion() {
   // Deja el banco como lo encuentra el siguiente: paginas borradas, sin puentes, sin cotas.
   iCorte(ESCLAVO, false, LOW, LOW);
   iCorte(MAESTRO, false);
+  avanzar(5000);
+  bloqueCamarasDegradadas();
+  iCorte(ESCLAVO, false, LOW, LOW);
   avanzar(5000);
 }

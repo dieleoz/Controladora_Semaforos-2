@@ -18,5 +18,8 @@ bool camara_leerPin(uint8_t pin, bool nc = false);   // N-187: firma de include/
 // camaras cableadas, o sea que la pluma sigue a la luz con su retardo y nada mas.
 bool camara_presenciaJ16(int cam = -1);   // N-187: firma de include/botones.h
 void camaras_sembrar();                   // N-187: la llama instalacion.cpp
+bool camara_mira(int i);              // D-166/D-169: firma de include/botones.h
+bool camara_malaRetienePluma();
+char camara_letra(int i);
 // SPEC_8 6 (D-151): interruptores.cpp REAL la lee; la define adaptador_esclavo_interruptores.inc.
 const char* camara_estado();

@@ -872,21 +872,21 @@ int main() {
   std::printf("   MODO_DEGRADADO = %d (posicion leida del enum, no escrita a mano)\n",
               MODO_DEGRADADO_V);
 
-  // --- Guarda de mapeo de pines: comun/pines.h es UNO para las dos puntas ---
+  // --- Guarda de pines y de NIVELES de la pluma (D-168): comun/pines.h es UNO para las dos puntas ---
   {
     std::string pm = leerFuente(RAIZ + "/Maestro/include/pines.h");
-    std::string pe = leerFuente(RAIZ + "/Esclavo/include/pines.h");
-    const char* luces[] = { "ROJO1", "AMARILLO1", "VERDE1", "ROJO2", "AMARILLO2", "VERDE2" };
+    std::string pe = leerFuente(RAIZ + "/Esclavo/include/pines.h"), ps = leerFuente(AQUI + "/comun/pines.h");
+    const char* luces[] = { "ROJO1", "AMARILLO1", "VERDE1", "ROJO2", "AMARILLO2", "VERDE2", "TALANQUERA_ABRIR",
+                            "TALANQUERA_CERRAR" };
     for (const char* l : luces) {
       std::regex re(std::string("#define\\s+") + l + "\\s+(\\w+)");
-      std::smatch a, b;
-      if (!std::regex_search(pm, a, re) || !std::regex_search(pe, b, re)) {
+      std::smatch a, b, s;
+      if (!std::regex_search(pm, a, re) || !std::regex_search(pe, b, re))
         abortar(std::string("no se encuentra ") + l + " en algun pines.h real");
-      }
-      if (a[1].str() != b[1].str()) {
-        abortar(std::string("el pin de ") + l + " DIFIERE entre puntas (" + a[1].str() +
-                " vs " + b[1].str() + "). El sustituto comun lo estaria escondiendo");
-      }
+      if (a[1].str() != b[1].str() ||
+          (!std::strncmp(l, "TALANQUERA_", 11) && (!std::regex_search(ps, s, re) || s[1].str() != a[1].str())))
+        abortar(std::string("el pin o nivel de ") + l + " DIFIERE entre puntas o contra comun/pines.h (" +
+                a[1].str() + " vs " + b[1].str() + "). El sustituto comun lo estaria escondiendo");
     }
   }
 

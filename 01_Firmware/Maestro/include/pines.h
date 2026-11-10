@@ -45,13 +45,24 @@
 // tiene el suyo (U13/Q8/J13) y la talanquera el suyo. Ver roadmap.md N-64.
 #define MOTOR_TALANQUERA   PB2  // -> opto U15 -> MOSFET Q10 -> bornera J15
 
-// SFTY-28/D-164: pluma activa = subir, de nivel, sin pulso. En LOW el MOSFET no conduce, el motor queda SIN
-// energia y la pluma se queda ABAJO. Ese es el fallo seguro y por eso el nivel de
-// reposo es el de cerrar: si el equipo se muere, la barrera no queda abierta.
-// La especificacion de compra pide ademas actuador con retorno por muelle o gravedad,
-// porque eso el software no lo puede garantizar.
+// SFTY-28/D-168 (responsable, 10/11; deroga el sentido de D-164): J15 de nivel, sin pulso, y CONDUCE = BAJAR. En
+// LOW el MOSFET no conduce: es el nivel de reset y de equipo muerto, y significa "sin orden de bajar"; la central
+// ("sin senal = subir", SPEC_5 4, pruebas 35-40) deja el brazo ARRIBA. La barrera es complemento: un equipo
+// muerto no cierra el paso. semaforo_setup() escribe ABRIR, asi que un reset tampoco la baja (SPEC_8 8.2).
+// POLARIDAD FIJADA AL COMPILAR, NUNCA PARAMETRO (un DR4 o una pagina de flash vuelven a fabrica en silencio y
+// la invertirian con uno de los dos tipos de central). El binario la dice en VERSION (TALANQUERA_J15). La vieja
+// (conduce = subir) solo para un equipo cuya central no cumpla, en la MISMA visita que la central:
+//     set PLATFORMIO_BUILD_FLAGS=-D TALANQUERA_POLARIDAD_VIEJA   y   pio run   (el binario contesta J15:SUBIR)
+// La rama de fabrica va PRIMERA: los instrumentos leen el primer #define (barrera_03, guarda de dos puntas).
+#ifndef TALANQUERA_POLARIDAD_VIEJA
+#define TALANQUERA_ABRIR   LOW
+#define TALANQUERA_CERRAR  HIGH
+#define TALANQUERA_J15     "BAJAR"
+#else
 #define TALANQUERA_ABRIR   HIGH
 #define TALANQUERA_CERRAR  LOW
+#define TALANQUERA_J15     "SUBIR"
+#endif
 
 // --- Camaras IA AcuSense (entradas de contacto seco) ---
 //

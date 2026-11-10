@@ -32,7 +32,8 @@ enumera sujetos tiene que comprobar que cada sujeto existe (`N-96`).
 13/09): *«un semáforo funciona sin pluma; si falla algo, ARRIBA»*. **La pluma REFUERZA la señal; no la
 sustituye** —quien regula es la lámpara—. De ahí las dos mitades que cuesta leer juntas: equipo **vivo que
 sabe que falló** ABRE —una barrera cerrada que nadie gobierna encierra el corredor de obra—; equipo **muerto**
-CIERRA, porque el pin cae a reposo. Y **ninguna avería de la pluma detiene el ciclo**: nadie se entera.
+tambien la deja ARRIBA desde `D-168` (10/11): el pin cae a reposo, que es «sin orden de bajar», y la central sube
+el brazo (`SPEC_5` §4). Y **ninguna avería de la pluma detiene el ciclo**: nadie se entera.
 
 1. **La puerta única de la lógica es una sola función** (`aplicarSalidas()`). Aplica el **enclavamiento**
    —nunca verde y rojo a la vez; **el rojo siempre gana**— y sólo después escribe los pines.
@@ -64,7 +65,7 @@ CIERRA, porque el pin cae a reposo. Y **ninguna avería de la pluma detiene el c
 | Verde y amarillo de test de lámparas | **ABAJO** (en el test `estado` sigue en `S_ROJO`) |
 | Fallo (ámbar intermitente) | **ARRIBA** |
 | Cualquier luz con la barrera fuera de servicio (`D-96`, SPEC 8 §6.3; sin banco) | **ARRIBA**, tambien en rojo |
-| Equipo sin energía | ABAJO (nivel de reposo del pin) |
+| Equipo sin energía, reset o carga | ARRIBA con la central viva (`D-168`: reposo del pin = sin orden de bajar; la 1.a bajada, tras R y el veto) |
 
 ⚠️ **Lo que la pluma NO tiene: realimentación.** No hay final de carrera —el responsable dejó `J14` sin
 cablear (`D-27`)—: el equipo sabe *«ordené abrir»*, nunca *«está abierta»*, y no finge lo contrario.
@@ -217,7 +218,7 @@ estado vive fuera de la pantalla, en su propio fichero, y se lee y escribe con u
 | modo | qué hace con las luces | cómo se llega hoy |
 |---|---|---|
 | Menú | **rojo fijo** en las dos puntas; ámbar intermitente si no hay enlace. **Sin navegación** (`D-44`); se queda así (`D-105`): de `menu.cpp` sólo queda `menu_setup()`. La cabecera de la app DEBE decir lo que hacen las luces, leído del `$STATUS` (`D-112`, construido): `ESTADO:ROJO` → «☰ MENÚ · ROJO FIJO EN LOS DOS POSTES»; `ESTADO:FALLO COM` o sin telemetría → «☰ MENÚ · ÁMBAR INTERMITENTE, SIN RADIO»; `AMARILLO`/`ROJO+AMAR` → «☰ MENÚ · PASANDO A ROJO» | `SET_MODO:MENU`; la salida de cada modo; el arranque sólo mientras espera la reanudación del Degradado (§4.1) |
-| Manual | todo-rojo al entrar y **ningún cambio programado**: la fase acaba cuando alguien pulsa | `SET_MODO:MANUAL`; también al cancelarse un ámbar del Poste 2 |
+| Manual | todo-rojo al entrar y **ningún cambio programado**: la fase acaba cuando alguien pulsa | `SET_MODO:MANUAL`; también al cancelarse un ámbar del Poste 2, y con `FORZAR_ROJO` desde Ámbar o Noche: rojo fijo sostenido en los dos (`D-170`, `D-111`; SPEC 4 §3.1) |
 | Automático | cicla por tiempo | `SET_MODO:AUTO` ~~; secuencia `A.A.A` del mando~~ *(salió el 14/09)* |
 | Inteligente | cicla por tiempo **con suelo y techo**, y las cámaras sólo pueden ALARGAR | `SET_MODO:INTELIGENTE` |
 | ~~Alcance~~ | salió con `D-167` (era Menú con otro rótulo); `SET_MODO:ALCANCE` contesta `COMANDO_NO_SOPORTADO` | — |

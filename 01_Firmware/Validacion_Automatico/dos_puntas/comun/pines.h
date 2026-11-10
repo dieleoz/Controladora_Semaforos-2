@@ -32,8 +32,10 @@
 // SFTY-28. La pluma entra por la misma puerta que las luces y queda grabada en
 // arnes_pines[] como cualquier lampara.
 #define MOTOR_TALANQUERA  10
-#define TALANQUERA_ABRIR  HIGH
-#define TALANQUERA_CERRAR LOW
+// D-168: los niveles de la rama de fabrica del real (J15 conduce = BAJAR); la guarda de dos puntas los compara.
+#define TALANQUERA_ABRIR  LOW
+#define TALANQUERA_CERRAR HIGH
+#define TALANQUERA_J15    "BAJAR"
 
 // El Esclavo declara ademas el control DE/~RE del MAX3485. No lo toca nada de lo que
 // aqui se compila -protocolo.cpp no entra-, pero el numero tiene que existir.

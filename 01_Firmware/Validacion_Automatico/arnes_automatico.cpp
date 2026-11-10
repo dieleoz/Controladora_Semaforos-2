@@ -216,7 +216,7 @@ static void vigilarApertura() {
     g_tRAUltima = ahora;
     if (pl && !g_prevPluma) g_plumaEnRA++;   // una SUBIDA abajo->arriba en R+A
     if (pl && ahora + 1 - g_tBajadaDesde > g_retardoPlumaMs + g_margenSenalMs &&
-        !(semaforo_plumaVetada() && camara_presenciaJ16())) g_plumaRAFueraCota++;
+        !(semaforo_plumaVetada() && camara_presenciaJ16()) && !excepcionMala()) g_plumaRAFueraCota++;
   }
   if (v && !g_prevV) {
     g_verdesVistos++;
@@ -240,7 +240,7 @@ static void vigilarEnclavamiento() {
   }
   // D-45: el amarillo de cierre es la otra luz que pide la pluma arriba (SPEC_8 1); la
   // ventana del retardo se abre con el ROJO. Que la pluma no baje ANTES lo mide el bloque A.
-  if (arnes_pines[MOTOR_TALANQUERA] == TALANQUERA_ABRIR && !excepcionBarreraFuera() &&
+  if (arnes_pines[MOTOR_TALANQUERA] == TALANQUERA_ABRIR && !excepcionBarreraFuera() && !excepcionMala() &&
       arnes_pines[VERDE1] != HIGH && arnes_pines[VERDE2] != HIGH &&
       semaforo_estado() != S_FALLO && semaforo_estado() != S_AMARILLO) {
     // D-33: la ventana se abre en el primer tick sin luz y se cierra sola. Se fecha con
@@ -497,7 +497,7 @@ static long bombear(unsigned long pasoMs, unsigned long presupuestoMs, Cond cond
 // puerta de entrada real al ciclo: si esto no llegase a CORRIENDO, ninguna
 // comprobacion posterior significaria nada.
 static void arrancarAutomaticoPorDefecto() {
-  coordinador_setup();
+  coordinador_setup(); g_plumaSinVerdeDesde = 0;   // D-168: un arranque deja la pluma arriba con R nuevo
   g_modoActual = MODO_AUTOMATICO;  // lo que main.cpp ya habria fijado al entrar
   // Limpia flancos de boton que hubieran quedado sin consumir. Desde el 05/09 esto
   // lo hace botones_setup() REAL, que es ademas lo que hace el equipo al arrancar: y
@@ -538,7 +538,7 @@ static bool configurarTiempos(int verdeMin, int rojoMin, int despejeSeg) {
 }
 
 static void arrancarInteligente() {
-  coordinador_setup();
+  coordinador_setup(); g_plumaSinVerdeDesde = 0;   // D-168, como arrancarAutomaticoPorDefecto()
   camaraJ14(false);
   cerrarContacto(CAM_C_PIN, false);
   cerrarContacto(CAM_D_PIN, false);
@@ -550,7 +550,7 @@ static void arrancarInteligente() {
 }
 
 static void arrancarAutomatico() {
-  coordinador_setup();
+  coordinador_setup(); g_plumaSinVerdeDesde = 0;   // D-168, idem
   botones_setup();
   g_modoActual = MODO_AUTOMATICO;
   modoAutomatico_setup();
@@ -695,17 +695,26 @@ int main() {
   std::printf("\n-- Bloque A: semaforo.cpp en aislamiento (SFTY-5) --\n");
   {
     semaforo_setup();
+    const unsigned long tSetup = arnes_millis_valor;
+    const bool arribaSetup = arnes_pines[MOTOR_TALANQUERA] == TALANQUERA_ABRIR && semaforo_plumaArriba();
+    arnes_millis_valor = tSetup + g_retardoPlumaMs - 1UL;
+    semaforo_actualizar();
+    const bool arribaR = arnes_pines[MOTOR_TALANQUERA] == TALANQUERA_ABRIR;
+    arnes_millis_valor = tSetup + g_retardoPlumaMs;
+    semaforo_actualizar();
+    comprobar(arribaSetup && arribaR && arnes_pines[MOTOR_TALANQUERA] == TALANQUERA_CERRAR,
+              "D-168 (SE INVIERTE el arranque que la cerraba): semaforo_setup() deja la pluma ARRIBA (ABRIR, nivel de "
+              "reset) y anotada; sigue arriba un ms antes de R y baja en el limite: la 1.a bajada pasa por R");
     arnes_millis_valor = 1000000UL;   // arranca lejos de 0 a proposito
     unsigned long t0 = arnes_millis_valor;
 
-    // D-45 (02/10): SE INVIERTE. Aqui se exigia rojo->AMARILLO->verde y verde->rojo directo,
-    // que es justo lo que la norma prohibe (4.4.3). Se mira el ORDEN entero, no el final:
-    // rojo -> verde directo; verde -> amarillo SOLO en la cara; el cierre no se reabre ni se
-    // reinicia; rojo al vencer AMARILLO_SEG; y la pluma arriba hasta el retardo DESDE EL ROJO.
-    // D-53 (05/10): SE INVIERTE OTRA VEZ, solo la apertura. "Rojo->Verde es DIRECTO" afirmaba
-    // dos cosas (CLAUDE.md 9): (1) sin AMARILLO SOLO antes del verde -> SE CONSERVA (el
-    // amarillo solo es cierre, D-45); (2) el verde llega en la misma llamada -> SE INVIERTE:
-    // primero ROJO+AMARILLO RA_MS, verde OFF, pluma ABAJO, no estable, $STATUS "ROJO+AMAR".
+    // D-45 (02/10): SE INVIERTE. Aqui se exigia rojo->AMARILLO->verde y verde->rojo directo, que es justo lo que
+    // la norma prohibe (4.4.3). Se mira el ORDEN entero: rojo -> verde directo; verde -> amarillo SOLO en la cara;
+    // el cierre no se reabre ni se reinicia; rojo al vencer AMARILLO_SEG; y la pluma arriba hasta el retardo DESDE
+    // EL ROJO. D-53 (05/10): SE INVIERTE OTRA VEZ, solo la apertura. "Rojo->Verde es DIRECTO" afirmaba dos cosas
+    // (CLAUDE.md 9): (1) sin AMARILLO SOLO antes del verde -> SE CONSERVA (el amarillo solo es cierre, D-45); (2) el
+    // verde llega en la misma llamada -> SE INVIERTE: primero ROJO+AMARILLO RA_MS, verde OFF, pluma ABAJO, no
+    // estable, $STATUS "ROJO+AMAR".
     semaforo_forzarVerde();
     vigilarEnclavamiento();
     comprobar(arnes_pines[ROJO1] == HIGH && arnes_pines[AMARILLO1] == HIGH &&
@@ -820,7 +829,7 @@ int main() {
 
   std::printf("\n-- Bloque A2: parpadeo de FALLO (ambar intermitente) --\n");
   {
-    semaforo_setup();
+    semaforo_setup(); g_plumaSinVerdeDesde = 0;   // D-168, idem
     arnes_millis_valor = 2000000UL;
     semaforo_iniciarFallo();
     unsigned long t0 = arnes_millis_valor;
@@ -1093,7 +1102,7 @@ int main() {
     g_modoEsclavo = ESC_CORRECTO;
     g_latenciaEsclavoMs = 50;
 
-    coordinador_setup();
+    coordinador_setup(); g_plumaSinVerdeDesde = 0;   // D-168, idem
     coordinador_configurar(0, 60000, 60000);
     coordinador_iniciarModo();
     vigilarEnclavamiento();
@@ -1101,19 +1110,16 @@ int main() {
               "con despeje=0 el arranque sigue empezando en ROJO, no salta directo a "
               "verde por tener el todo-rojo a cero");
 
-    // N-162 (bloque G del arnes de las dos puntas): ESTA LINEA AFIRMABA DOS COSAS y una era
-    // el defecto. Pedia el amarillo a <= 5 ms de coordinador_iniciarModo(), o sea el verde
-    // propio arrancando SIN esperar el ACK_RED de su GO_RED; con esa trama perdida y el
-    // Esclavo en verde eran 180 s de verde en las dos. Se REPARTE (CLAUDE.md 9): lo que
-    // sigue valiendo -no hay atajo que se salte el amarillo con el despeje a cero- se queda
-    // entero; el plazo se cuenta desde el ACK_RED, que el Esclavo simulado entrega a
-    // g_latenciaEsclavoMs, y se exige tambien que NO llegue antes.
-    // D-45: SE INVIERTE la primera mitad (el verde abre DIRECTO desde el ACK_RED, sin
-    // amarillo) y se REPARTE la segunda: con la configuracion imposible el amarillo de
-    // CIERRE sigue durando AMARILLO_SEG -el contrato no depende de que la UI valide-.
-    // D-53: SE INVIERTE la apertura otra vez y se CONSERVA el plazo desde el ACK_RED: lo
-    // que sale del rojo casi al instante es el ROJO+AMARILLO, y el VERDE llega RA_MS despues,
-    // al ms (paso de 1 ms). Ni la configuracion imposible se salta el R+A.
+    // N-162 (bloque G del arnes de las dos puntas): ESTA LINEA AFIRMABA DOS COSAS y una era el defecto. Pedia el
+    // amarillo a <= 5 ms de coordinador_iniciarModo(), o sea el verde propio arrancando SIN esperar el ACK_RED de su
+    // GO_RED; con esa trama perdida y el Esclavo en verde eran 180 s de verde en las dos. Se REPARTE (CLAUDE.md 9):
+    // lo que sigue valiendo -no hay atajo que se salte el amarillo con el despeje a cero- se queda entero; el plazo
+    // se cuenta desde el ACK_RED, que el Esclavo simulado entrega a g_latenciaEsclavoMs, y se exige tambien que NO
+    // llegue antes. D-45: SE INVIERTE la primera mitad (el verde abre DIRECTO desde el ACK_RED, sin amarillo) y se
+    // REPARTE la segunda: con la configuracion imposible el amarillo de CIERRE sigue durando AMARILLO_SEG -el
+    // contrato no depende de que la UI valide-. D-53: SE INVIERTE la apertura otra vez y se CONSERVA el plazo desde
+    // el ACK_RED: lo que sale del rojo casi al instante es el ROJO+AMARILLO, y el VERDE llega RA_MS despues, al ms
+    // (paso de 1 ms). Ni la configuracion imposible se salta el R+A.
     long msHastaVerdeDirecto = bombearGenerico(1, 200,
         [](){ coordinador_actualizar(); },
         [](){ return semaforo_estado() != S_ROJO; });
@@ -1152,19 +1158,16 @@ int main() {
   // BLOQUE E: EL MODO INTELIGENTE — modo_inteligente.cpp REAL, contra el Automatico
   // ===========================================================================
   //
-  // A-12 (05/09): este modo se fijaba sus tiempos y su Regla 1 cortaba un verde a los 15 s.
-  // LO QUE SE MIDE, que ningun pack puede: "con las camaras muertas hace exactamente lo que
-  // el Automatico" es comportamiento, y se afirma corriendo los dos modos con la misma
-  // configuracion y comparando las dos duraciones.
+  // A-12 (05/09): este modo se fijaba sus tiempos y su Regla 1 cortaba un verde a los 15 s. LO QUE SE MIDE, que
+  // ningun pack puede: "con las camaras muertas hace exactamente lo que el Automatico" es comportamiento, y se afirma
+  // corriendo los dos modos con la misma configuracion y comparando las dos duraciones.
   //
-  // 🔴 LO QUE ESTE BLOQUE NO EJERCE, ESCRITO PARA QUE NO SE LEA COMO APROBADO: la
-  // recuperacion PEREZOSA del respaldo. modoAutomatico_tiemposCiclo() llama a
-  // recuperarTiemposGuardados() la PRIMERA vez que alguien pregunta, para el equipo que
-  // vuelve de un corte y entra directo a Inteligente sin pasar por el Automatico. En
-  // este proceso los Bloques A-D ya han corrido modoAutomatico_setup() decenas de veces,
-  // asi que esa primera vez ya paso y aqui no se puede volver a provocar. Lo que SI se
-  // ejerce es recuperarTiemposGuardados() en si -por la puerta del setup()-; lo que no,
-  // es que el getter la dispare. Queda como residual de A-12.
+  // 🔴 LO QUE ESTE BLOQUE NO EJERCE, ESCRITO PARA QUE NO SE LEA COMO APROBADO: la recuperacion PEREZOSA del respaldo.
+  // modoAutomatico_tiemposCiclo() llama a recuperarTiemposGuardados() la PRIMERA vez que alguien pregunta, para el
+  // equipo que vuelve de un corte y entra directo a Inteligente sin pasar por el Automatico. En este proceso los
+  // Bloques A-D ya han corrido modoAutomatico_setup() decenas de veces, asi que esa primera vez ya paso y aqui no se
+  // puede volver a provocar. Lo que SI se ejerce es recuperarTiemposGuardados() en si -por la puerta del setup()-; lo
+  // que no, es que el getter la dispare. Queda como residual de A-12.
   std::printf("\n-- Bloque E: el Modo Inteligente sobre el C++ real (A-12) --\n");
   {
     // Las dos cifras que gobiernan el modo se releen del C++. Ni una escrita a mano: si
@@ -1931,24 +1934,21 @@ int main() {
   }
   g_aperturaEnPausa = true;   // los dos controles de abajo falsean el pin de verde
   {
-  // Control negativo del vigilante de la pluma: se falsea el pin a mano y se exige
-  // que el detector lo cace. Sin esto, el dia que MOTOR_TALANQUERA dejara de
-  // escribirse -o el arnes dejara de conocer el pin- la comprobacion de arriba
+  // Control negativo del vigilante de la pluma: se falsea el pin a mano y se exige que el detector lo cace. Sin esto,
+  // el dia que MOTOR_TALANQUERA dejara de escribirse -o el arnes dejara de conocer el pin- la comprobacion de arriba
   // seguiria en verde midiendo un pin que nadie toca.
   long antes = violacionesTalanquera;
-  // N-153: y tambien el contador de PLUMA. Falsear el pin a mano dispara los DOS
-  // vigilantes -el getter sigue diciendo lo que escribio el firmware, que es
-  // justamente lo que el otro invariante mide-, y dejarlo contado convertiria este
-  // control negativo en un fallo del vigilante de al lado. Medido: sin esta linea el
-  // arnes cae a 72/73 acusando a un firmware sano.
+  // N-153: y tambien el contador de PLUMA. Falsear el pin a mano dispara los DOS vigilantes -el getter sigue diciendo
+  // lo que escribio el firmware, que es justamente lo que el otro invariante mide-, y dejarlo contado convertiria
+  // este control negativo en un fallo del vigilante de al lado. Medido: sin esta linea el arnes cae a 72/73 acusando
+  // a un firmware sano.
   long antesPluma = discrepanciasPluma;
   int guardaP = arnes_pines[MOTOR_TALANQUERA];
   int guardaV1 = arnes_pines[VERDE1], guardaV2 = arnes_pines[VERDE2];
-  // D-33: Y LA VENTANA SE FALSEA VIEJA, que es la mitad nueva de este control. Con el
-  // reparto de la invariante, una pluma arriba sin verde RECIEN abierta esta justificada
-  // por el retardo; si este control se limitara a falsear el pin, dejaria de disparar y
-  // se habria convertido en un adorno que da verde el mismo dia del cambio. Se le
-  // envejece la ventana a proposito para ejercer el camino que SI tiene que contar.
+  // D-33: Y LA VENTANA SE FALSEA VIEJA, que es la mitad nueva de este control. Con el reparto de la invariante, una
+  // pluma arriba sin verde RECIEN abierta esta justificada por el retardo; si este control se limitara a falsear el
+  // pin, dejaria de disparar y se habria convertido en un adorno que da verde el mismo dia del cambio. Se le envejece
+  // la ventana a proposito para ejercer el camino que SI tiene que contar.
   unsigned long guardaVent = g_plumaSinVerdeDesde;
   unsigned long guardaPeor = g_peorVentanaPlumaMs;
   unsigned long guardaPeorSV = g_peorVentanaSinVetoMs;
@@ -2000,9 +2000,8 @@ int main() {
   g_peorVentanaPlumaMs = guardaPeor;
   g_peorVentanaSinVetoMs = guardaPeorSV;
   g_ventanasPluma = guardaNvent;
-  // Los dos contadores se restauran: falsear el pin puede disparar tambien el
-  // invariante de SFTY-28, y dejarlo contado convertiria este control en un fallo
-  // del otro.
+  // Los dos contadores se restauran: falsear el pin puede disparar tambien el invariante de SFTY-28, y dejarlo
+  // contado convertiria este control en un fallo del otro.
   discrepanciasPluma = antesD;
   violacionesTalanquera = antesT;
   comprobar(cazado,

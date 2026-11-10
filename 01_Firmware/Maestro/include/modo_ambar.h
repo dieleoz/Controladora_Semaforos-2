@@ -32,6 +32,8 @@
 
 void modo_ambar_setup();
 void modo_ambar_loop();
+// D-170: FORZAR_ROJO fuera del Degradado. Desde MODO_AMBAR pasa a MODO_MANUAL (rojo sostenido en los dos).
+void modo_ambar_forzarRojoTotal();
 
 // Motivo con el que arrancar el ambar, para que la pantalla no quede muda (el defecto
 // que senala SFTY-22). Se fija ANTES de entrar al modo.

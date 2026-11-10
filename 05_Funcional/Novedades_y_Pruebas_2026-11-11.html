@@ -1,0 +1,651 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Novedades y pruebas 11/11</title>
+<style>
+:root{
+  --papel:#f6f5f2; --tarjeta:#ffffff; --tinta:#17191c; --tinta-2:#55555a;
+  --linea:#dedcd5; --acento:#c4520c; --ok:#1d7a48; --alto:#b52b26;
+  --info-bg:#e3ecf3; --campo:#fffdf8;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0; padding:12px 12px 40px; background:var(--papel); color:var(--tinta);
+  font-family:"Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+  font-size:17px; line-height:1.45;
+}
+h1{font-size:22px; margin:4px 0 12px;}
+h2{font-size:19px; margin:0 0 8px;}
+section.prueba{
+  background:var(--tarjeta); border:1px solid var(--linea); border-radius:10px;
+  padding:14px; margin-bottom:14px;
+}
+header.datos{
+  background:var(--tarjeta); border:1px solid var(--linea); border-radius:10px;
+  padding:14px; margin-bottom:16px;
+}
+label.campo{display:block; margin-bottom:10px; font-weight:600; font-size:15px;}
+input[type=text], input[type=date], textarea{
+  width:100%; font-size:16px; padding:8px; margin-top:4px;
+  border:1px solid var(--linea); border-radius:6px; background:var(--campo); color:var(--tinta);
+  font-family:inherit;
+}
+textarea{min-height:60px; resize:vertical;}
+ol{padding-left:22px; margin:8px 0;}
+li{margin-bottom:6px;}
+.espera{
+  background:var(--info-bg); border-left:4px solid var(--acento);
+  padding:8px 10px; margin:10px 0; border-radius:6px; font-size:16px;
+}
+.nota{
+  background:#fdf3e3; border-left:4px solid var(--acento);
+  padding:8px 10px; margin:10px 0; border-radius:6px; font-size:15px;
+}
+.resultado{margin:10px 0;}
+.resultado label{
+  display:block; padding:8px 6px; border:1px solid var(--linea); border-radius:6px;
+  margin-bottom:6px; font-size:16px;
+}
+.resultado input{margin-right:8px; transform:scale(1.3);}
+.porque,.debever{
+  border-left:4px solid var(--linea); background:#f1f0ec; padding:8px 10px; margin:10px 0;
+  border-radius:6px; font-size:15px;
+}
+.debever{border-left-color:var(--ok); background:#e8f3ec;}
+.porque b.t,.debever b.t{display:block; margin-bottom:4px;}
+.debever ul{margin:4px 0 0; padding-left:20px;}
+.print-only{display:none;}
+.recordatorio{
+  background:#fdf3e3; border:1px solid var(--acento); border-radius:10px;
+  padding:14px; margin-bottom:16px; font-size:16px;
+}
+.alto{
+  background:#fbe9e8; border:2px solid var(--alto); border-radius:10px;
+  padding:14px; margin-bottom:16px; font-size:16px;
+}
+.parte{
+  background:var(--info-bg); border:2px solid var(--acento); border-radius:10px;
+  padding:14px; margin:22px 0 16px; font-size:16px;
+}
+.parte h2{margin-bottom:6px;}
+.indice{font-size:15px;}
+.indice ol{margin:4px 0;}
+.horas label.campo{font-weight:400;}
+code{font-family:Consolas, "Courier New", monospace; font-size:14px; background:#f1f0ec; padding:1px 4px; border-radius:4px; word-break:break-all;}
+footer{position:sticky; bottom:0; background:var(--papel); padding-top:10px;}
+button#btnPdf{
+  width:100%; font-size:18px; padding:14px; border:none; border-radius:8px;
+  background:var(--acento); color:#fff; font-weight:600;
+}
+.nota-impresion{font-size:14px; color:var(--tinta-2); text-align:center; margin:8px 0;}
+#estado{font-size:13px; color:var(--tinta-2); text-align:center;}
+@media print{
+  button#btnPdf, .nota-impresion, #estado{display:none;}
+  .resultado, textarea, .horas{display:none;}
+  .print-only{display:block; border:1px solid var(--linea); border-radius:6px; padding:8px; margin-top:8px; font-size:15px; background:#fafafa;}
+  section.prueba{break-inside:avoid; page-break-inside:avoid; border:1px solid #999;}
+  footer{position:static;}
+}
+</style>
+</head>
+<body>
+<div class="alto" id="sinbanco"><strong>SIN BANCO: no va a carretera hasta pasar banco.</strong> Esta versión solo se carga en los postes de banco. En El Sisga <strong>no se carga nada</strong>.</div>
+
+<header class="datos">
+  <h1>Novedades y pruebas en banco 11/11</h1>
+  <label class="campo">Fecha
+    <input type="date" id="fecha">
+  </label>
+  <label class="campo">Nombre de quien prueba
+    <input type="text" id="nombre">
+  </label>
+  <label class="campo">Nombre del paquete (.zip)
+    <input type="text" id="paquete">
+  </label>
+  <label class="campo">Serie del Poste 1 (Maestro)
+    <input type="text" id="serieM">
+  </label>
+  <label class="campo">Serie del Poste 2 (Esclavo)
+    <input type="text" id="serieE">
+  </label>
+</header>
+
+<main>
+
+<div class="alto">
+  <strong>Si ve los dos postes en VERDE a la vez, avise de inmediato</strong> y anote la hora.
+</div>
+
+<div class="alto">
+  <strong>La barrera cambia de sentido en esta versión.</strong> Con este firmware, <strong>J15 conduce = BAJAR</strong>; hasta ahora era SUBIR. La central o puente H se cambia a <strong>&laquo;sin señal = subir&raquo;</strong> <strong>en la misma visita</strong> en que se carga el firmware, y <strong>J15 va suelta</strong> desde antes de cargar hasta comprobar las dos cosas (pruebas 1 a 3). Firmware nuevo con central vieja, o al revés, deja la pluma <strong>al revés: abajo en verde y arriba en rojo</strong>, y el poste no se entera. <strong>Si en cualquier momento ve la pluma abajo con el verde, suelte J15 y avise.</strong>
+</div>
+
+<div class="alto">
+  En el conector <strong>J16</strong> la pata <strong>1</strong> lleva 12 V directos al micro: va <strong>tapada</strong>. Las patas <strong>5 y 8</strong> de J16 quedan <strong>vacías</strong>. <strong>J14 es una entrada</strong>: la barrera va a <strong>J15</strong>. <strong>Nunca</strong> encienda una radio sin su antena puesta. <strong>Nadie en el recorrido del brazo</strong> en ninguna prueba de barrera.
+</div>
+
+<div class="recordatorio">
+  <h2>Qué hay nuevo en esta versión</h2>
+  <ol>
+    <li><strong>La barrera queda ARRIBA en reposo y sin energía, y J15 es ahora la orden de BAJAR.</strong> Antes, J15 conduciendo mandaba subir y, sin orden o con el poste apagado, la pluma bajaba. Ahora es al revés: J15 conduce = <strong>bajar</strong>; sin señal (poste apagado, reinicio, carga, cable cortado) la central deja el brazo <strong>arriba</strong>. <em>Para qué:</em> que un controlador muerto o un cable cortado no cierren la vía. Al arrancar, el poste ya <strong>no baja</strong> la pluma: la primera bajada llega tras el rojo y su retardo, mirando las cámaras. A cambio, cada reinicio o carga sube la pluma, también en rojo. La app dice qué sentido lleva cada poste en la línea <strong>&laquo;Version cargada&raquo;</strong>: <strong>&laquo;Barrera: J15 manda BAJAR (sin senal, ARRIBA)&raquo;</strong>. <strong>Central y firmware se cambian en la misma visita, con J15 suelta entre medias</strong> (pruebas 1 a 3, en ese orden).</li>
+    <li><strong>ROJO TOTAL desde ÁMBAR deja los dos postes en rojo fijo, y se quedan.</strong> Antes, con el Poste 1 en ÁMBAR, el ROJO TOTAL ponía rojo en el Poste 1 pero el Poste 2 volvía solo a ámbar a los 28 s. Ahora el Poste 1 pasa a <strong>MANUAL</strong> y los dos quedan en rojo fijo hasta otra orden (VOLVER AL MENÚ, AUTOMÁTICO, ÁMBAR). <em>Para qué:</em> que ROJO TOTAL pare el tráfico en los dos lados también desde ámbar. Sin radio, o con el ámbar de emergencia del Poste 2 puesto, a los 28 s los dos caen a ámbar intermitente, como siempre.</li>
+    <li><strong>El Poste 1 ya no inventa la luz del Poste 2 sin radio.</strong> Si el Poste 2 no contesta o su última respuesta tiene más de 28 s, el Poste 1 publica <strong>&laquo;?&raquo;</strong> y la app dice <strong>&laquo;SIN DATO DEL POSTE 2 · el POSTE 1 no lo sabe&raquo;</strong>, en cualquier modo salvo ÁMBAR, también en MENÚ (antes, en MENÚ sin radio, decía rojo sin saberlo). <em>Para qué:</em> no fiarse de una luz que nadie ha confirmado.</li>
+    <li><strong>Cámaras: se puede sacar del veto la C, la D, las dos o ninguna.</strong> Antes un solo interruptor sacaba las dos. Una cámara sacada deja de retener la barrera y de pedir verde; la otra sigue mirando. Se guarda tras un corte de luz (con pila) y, al arrancar, el poste lo avisa. Está en Ajustes &rarr; <strong>&laquo;Averías: cámaras y barrera&raquo;</strong>, con PIN.</li>
+    <li><strong>Qué hace la barrera con una o dos cámaras malas.</strong> Cuando el poste detecta una cámara <strong>PEGADA</strong> o <strong>CIEGA</strong>, deja de hacerle caso (ni retiene la barrera ni pide verde) y lo dice la alarma. Dos ajustes en el mismo plegado: <strong>&laquo;1 mala&raquo;</strong> (una cámara mala y la otra sigue mirando) y <strong>&laquo;Ninguna&raquo;</strong> (no queda ninguna que mire: las dos malas, o una sacada y la otra mala). Cada uno en <strong>&laquo;arriba&raquo;</strong> (la pluma se queda arriba en el rojo hasta reparar; <strong>de fábrica</strong>) o <strong>&laquo;bajar&raquo;</strong> (baja tras el rojo y su retardo; con &laquo;1 mala&raquo;, si la buena no ve nada). Ojo: &laquo;1&raquo; no es la cámara 1, es &laquo;una mala&raquo;. Con las dos cámaras sacadas a mano, baja tras el rojo y su retardo, como antes. <em>Para qué:</em> que ninguna avería de cámara o barrera deje el paso sin funcionar; el semáforo sigue igual en todos los casos. La cámara mala se olvida tras un corte de luz y vuelve a detectarse; lo sacado a mano y los dos ajustes se guardan.</li>
+    <li><strong>Sale el Modo Alcance.</strong> Ya no hay botón &laquo;Prueba de Alcance&raquo;. El porcentaje de latidos y la respuesta de la radio se leen en la tarjeta <strong>ENLACE RADIO</strong> (Tráfico &rarr; &laquo;Detalle&raquo;) en cualquier modo.</li>
+  </ol>
+</div>
+
+<div class="recordatorio">
+  <strong>Esta hoja trae solo lo nuevo.</strong> Lo que quedó sin hacer en la hoja del 10/11 sigue valiendo, <strong>salvo el sentido de J15</strong>: con este paquete cargado, donde aquella hoja dice &laquo;J15 conduce = SUBIR&raquo; (pruebas 2 a 6 y 27, y el recuadro final de la Parte 10) ahora es <strong>BAJAR</strong>. Las pruebas 35 a 40 de aquella hoja (la central sola, con J15 suelta) van <strong>antes</strong> que la prueba 1 de esta. Anote la hora del celular de cada cosa que vea. Lea siempre el recuadro verde &laquo;Debe ver antes de empezar&raquo;; si lo que ve es otra cosa, <strong>no empiece</strong>. Donde dice <strong>&laquo;anote lo medido&raquo;</strong> no hay valor esperado: el valor es el suyo.
+</div>
+
+<div class="recordatorio indice">
+  <strong>Índice</strong>
+  <ol>
+    <li>Barrera: J15 suelta y la central a &laquo;sin señal = subir&raquo;</li>
+    <li>Guardar lo que hay, cargar y leer versión y sentido de J15</li>
+    <li>Comprobar que coinciden y conectar J15 y cámaras</li>
+    <li>Barrera: arriba en verde, abajo a los 3 s del rojo</li>
+    <li>Barrera: se suelta J15 con el brazo abajo</li>
+    <li>Barrera: poste sin energía y vuelta de la luz</li>
+    <li>Cámaras: sacar del veto solo la C, solo la D</li>
+    <li>Una cámara mala y la otra bien: &laquo;1 mala&raquo;</li>
+    <li>Ninguna cámara que mire: &laquo;Ninguna&raquo;</li>
+    <li>ROJO TOTAL desde ÁMBAR, 60 s cronometrados</li>
+    <li>Sin radio, el Poste 1 no inventa la luz del Poste 2</li>
+    <li>Sin Modo Alcance: la radio se lee en ENLACE RADIO</li>
+  </ol>
+</div>
+
+<div class="nota">
+  <strong>Dónde se mira cada cosa en la app.</strong> En <strong>Tráfico</strong>: la pluma como <strong>"▲ PLUMA ARRIBA"</strong> o <strong>"▼ PLUMA ABAJO"</strong> y las cámaras en la línea de resumen. Ajustes y Tramas solo salen con la clave de técnico: pulse la pastilla <strong>&laquo;Operario&raquo;</strong>. En <strong>Eventos</strong>, los avisos traducidos; en <strong>Tramas</strong>, lo que manda el poste tal cual (las palabras en <code>esta letra</code>). <strong>"PLUMA ARRIBA" es lo que el poste MANDA, no donde está el brazo:</strong> no hay final de carrera. Lo que se ve con los ojos es lo que vale.
+</div>
+
+<div class="parte">
+  <h2>Parte 1 (pruebas 1 a 3): la visita del cambio de J15, en este orden</h2>
+  Central y firmware se cambian <strong>juntos</strong>. J15 se suelta <strong>antes</strong> de tocar nada y no se vuelve a conectar hasta la prueba 3. Si la central de un poste <strong>no se puede</strong> poner en &laquo;sin señal = subir&raquo;, <strong>no cablee J15 en ese poste</strong> con este firmware y avise.
+</div>
+
+<section class="prueba" id="p1">
+  <h2>1. J15 suelta y la central a &laquo;sin señal = subir&raquo;</h2>
+  <div class="porque"><b class="t">Por qué</b>El firmware nuevo manda <strong>bajar</strong> conduciendo por J15 y deja de conducir para subir. La central tiene que hacer lo mismo: <strong>sin señal en su entrada, brazo arriba</strong>; con la orden, abajo. Si se carga el firmware con la central todavía en &laquo;sin señal = bajar&raquo;, la pluma queda al revés.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Los dos postes <strong>sin energía</strong>. Suelte los cables de <strong>J15</strong> en los dos y aíslelos. <strong>Nunca toque J16 pata 1.</strong></li>
+    <li>Las pruebas 35 a 38 de la hoja del 10/11 hechas con esta central (sin señal y sin alimentación, el brazo queda arriba). Si no están hechas, hágalas ahora.</li>
+    <li>El manual de la central o puente H, o el proveedor al teléfono (prueba 39 de la hoja del 10/11: qué entrada manda bajar y cómo).</li>
+  </ul></div>
+  <ol>
+    <li>Anote cómo está configurada ahora la central o puente H de cada poste (foto de puentes, interruptores o menú).</li>
+    <li>Configúrela para que <strong>sin señal en su entrada el brazo suba</strong> y <strong>con la entrada activada, baje</strong>, según su manual o el proveedor. Anote qué cambió.</li>
+    <li>Con J15 suelta y la central alimentada: espere 1 minuto y mire el brazo.</li>
+    <li>Active a mano la entrada de bajar (como diga el manual). Mire el brazo. Quite la orden y mire otra vez.</li>
+  </ol>
+  <div class="espera">Se espera: sin señal, brazo <strong>ARRIBA</strong> y quieto; con la orden de bajar, <strong>baja</strong>; al quitarla, <strong>sube</strong>. <strong>Anote lo medido</strong> (el tiempo de cada recorrido). Si sin señal baja o se queda abajo, <strong>NO OK</strong>: no siga con ese poste y avise.</div>
+  <div class="horas">
+    <label class="campo">Cómo estaba la central antes (Poste 1 / Poste 2) <input type="text" id="h1a" class="hora"></label>
+    <label class="campo">Qué cambió para &laquo;sin señal = subir&raquo; <input type="text" id="h1b" class="hora"></label>
+    <label class="campo">Sin señal, al minuto: dónde está el brazo (Poste 1 / Poste 2) <input type="text" id="h1c" class="hora"></label>
+    <label class="campo">Con la orden de bajar: ¿baja? tiempo (s) <input type="text" id="h1d" class="hora"></label>
+    <label class="campo">Al quitar la orden: ¿sube? tiempo (s) <input type="text" id="h1e" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r1" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r1" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r1" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v1" placeholder="Lo que vio distinto. Foto de la configuración antes y después"></textarea>
+  <div class="print-only" id="pr1"></div>
+</section>
+
+<section class="prueba" id="p2">
+  <h2>2. Guardar lo que hay, cargar y leer la versión y el sentido de J15</h2>
+  <div class="porque"><b class="t">Por qué</b>Sin saber qué firmware tiene dentro cada placa, nada de lo que se vea después se puede leer. Y en esta versión la misma línea de la versión dice el <strong>sentido de J15</strong>: es lo que se compara con la central antes de conectar. La carga se hace siempre igual: por SWD, en modo <strong>UR</strong> y con borrado completo (<code>-e all</code>), que borra también las franjas del modo noche y el testigo del Degradado guardado.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Prueba 1 en OK. <strong>J15 suelta</strong> en los dos postes. <strong>Sin cámaras</strong> conectadas todavía. Antenas puestas.</li>
+    <li>El PC con PlatformIO, STM32CubeProgrammer y el programador SWD, y el .zip de este paquete (código <strong>XXXXXXX</strong>) descomprimido: fuente de <strong>01_Firmware/Maestro</strong>, <strong>01_Firmware/Esclavo</strong> y <strong>01_Firmware/ESP32_Expansion</strong>, cada uno con su <strong>FW_HASH.txt</strong>. No trae ningún .bin.</li>
+    <li>La APK de este paquete (su nombre lleva <strong>XXXXXXX</strong> y acaba en <strong>_SIN_BANCO.apk</strong>) en <strong>todos</strong> los celulares que vayan a usar estos postes.</li>
+  </ul></div>
+  <ol>
+    <li>En cada tarjeta, <strong>antes de cargar</strong>, guarde lo que tiene:<br><code>STM32_Programmer_CLI -c port=SWD mode=UR -u 0x08000000 65536 leido_poste1.bin</code> (y <code>leido_poste2.bin</code> en la otra). Mándelos con este PDF.</li>
+    <li>Abra en PlatformIO <strong>01_Firmware/Maestro</strong>, compile y cargue el <strong>Poste 1</strong> por SWD (Upload); igual <strong>01_Firmware/Esclavo</strong> en el <strong>Poste 2</strong>. <strong>No cambie</strong> la configuración del <code>platformio.ini</code>; si falla, <strong>reintente igual</strong>, con <code>mode=UR</code>.</li>
+    <li>Cargue el <strong>puente</strong> (01_Firmware/ESP32_Expansion) de los dos postes por USB, como siempre.</li>
+    <li>Con la clave de técnico, en cada poste: Ajustes &rarr; &laquo;Soporte&raquo; &rarr; <strong>"Consultar version del firmware"</strong>. Lea Eventos y, en Tramas, la línea que empieza por <code>$ACK,CMD:VERSION</code>.</li>
+    <li>En cada poste: Ajustes &rarr; <strong>&laquo;Instalación: cámaras y barrera&raquo;</strong>; apunte Cámara C, Cámara D y Retardo de bajada. Abra también <strong>&laquo;Averías: cámaras y barrera&raquo;</strong> y copie la línea de estado de las cámaras.</li>
+    <li>Ponga la hora en cada poste desde la app.</li>
+  </ol>
+  <div class="espera">Se espera: en Eventos, <strong>"Version cargada - Controlador MAESTRO: FW XXXXXXX - Barrera: J15 manda BAJAR (sin senal, ARRIBA)"</strong> en el Poste 1, lo mismo con <strong>ESCLAVO</strong> en el Poste 2, y <strong>"Version cargada - Puente (ESP32): FW XXXXXXX"</strong> en los dos. En Tramas, <code>$ACK,CMD:VERSION,RESULT:OK,NODE:MAESTRO,FW:XXXXXXX,J15:BAJAR</code> (y <code>NODE:ESCLAVO</code> en el Poste 2). <strong>El mismo código en los cuatro</strong>, igual al del .zip, sin +SUCIO. Si dice <strong>"J15 manda SUBIR"</strong> o <strong>"firmware anterior al 10/11"</strong>, <strong>no conecte J15</strong> y avise. En Instalación, de fábrica: <strong>Cámara C NA, Cámara D NA, Retardo de bajada 3 s</strong>. En Averías, de fábrica: las dos cámaras <strong>con veto</strong>, &laquo;Con una cámara mala: barrera arriba · Sin ninguna: barrera arriba&raquo;.</div>
+  <div class="horas">
+    <label class="campo">Poste 1 - Controlador: línea $ACK,CMD:VERSION copiada <input type="text" id="h2a" class="hora"></label>
+    <label class="campo">Poste 2 - Controlador: línea $ACK,CMD:VERSION copiada <input type="text" id="h2b" class="hora"></label>
+    <label class="campo">Puentes: código Poste 1 / Poste 2 <input type="text" id="h2c" class="hora"></label>
+    <label class="campo">¿Guardó leido_poste1.bin y leido_poste2.bin? (sí/no) <input type="text" id="h2d" class="hora"></label>
+    <label class="campo">Reintentos en cada carga <input type="text" id="h2e" class="hora"></label>
+    <label class="campo">Instalación tras cargar, Poste 1 / Poste 2 (C, D, retardo) <input type="text" id="h2f" class="hora"></label>
+    <label class="campo">Averías: línea de estado de las cámaras, Poste 1 / Poste 2 <input type="text" id="h2g" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r2" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r2" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r2" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v2" placeholder="Lo que vio distinto. Si una carga falló, copie el mensaje del programador"></textarea>
+  <div class="print-only" id="pr2"></div>
+</section>
+
+<section class="prueba" id="p3">
+  <h2>3. Comprobar que coinciden y conectar J15 y las cámaras</h2>
+  <div class="porque"><b class="t">Por qué</b>Solo se conecta J15 cuando las dos mitades dicen lo mismo: el firmware, &laquo;J15 manda BAJAR&raquo;; la central, &laquo;sin señal = subir&raquo;. Las cámaras, después de cargar, como siempre.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Prueba 1 en OK (central &laquo;sin señal = subir&raquo;) y prueba 2 en OK con <strong>"J15 manda BAJAR"</strong> en <strong>los dos</strong> postes.</li>
+    <li>Los postes <strong>sin energía</strong> mientras conecta.</li>
+  </ul></div>
+  <ol>
+    <li>Marque en el campo de abajo las dos cosas por poste: lo que dice la versión y cómo quedó la central. Si alguna no casa, <strong>pare aquí</strong>.</li>
+    <li>Conecte J15 (pata 1 = 12 V, pata 2 = la salida del poste) a la entrada de bajar de la central o puente H, como en la prueba 1. Anote cómo.</li>
+    <li>Conecte las cámaras: <strong>cámara C</strong> entre <strong>J16 pata 9 y 10</strong>, <strong>cámara D</strong> entre <strong>J16 pata 11 y 12</strong>. Compruebe la pata 1 tapada y 5 y 8 vacías.</li>
+    <li>Dé energía. El poste arranca en ámbar intermitente: mire el brazo. Pase el Poste 1 a <strong>VOLVER AL MENÚ</strong> y <strong>AUTOMÁTICO</strong>. Con el voltímetro entre <strong>J15 pata 1 y pata 2</strong>, mida en verde y a los pocos segundos del rojo.</li>
+  </ol>
+  <div class="espera">Se espera: al arrancar, el brazo <strong>arriba</strong> (no baja). En verde J15 <strong>no conduce</strong>; tras el rojo y su retardo, <strong>conduce</strong> (bajar). Es lo contrario que con el firmware anterior: el 04/09 se midieron 12 V entre las patas con J15 conduciendo y 0 V sin conducir. <strong>Anote lo medido.</strong> Si la pluma está abajo en verde, suelte J15 y avise.</div>
+  <div class="horas">
+    <label class="campo">Poste 1: versión dice / central quedó <input type="text" id="h3a" class="hora"></label>
+    <label class="campo">Poste 2: versión dice / central quedó <input type="text" id="h3b" class="hora"></label>
+    <label class="campo">Cómo conectó J15 a la central <input type="text" id="h3c" class="hora"></label>
+    <label class="campo">Voltaje J15 p1-p2 en verde, Poste 1 / Poste 2 <input type="text" id="h3d" class="hora"></label>
+    <label class="campo">Voltaje J15 p1-p2 en rojo, Poste 1 / Poste 2 <input type="text" id="h3e" class="hora"></label>
+    <label class="campo">¿J16 pata 1 tapada y 5 y 8 vacías? (sí/no) <input type="text" id="h3f" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r3" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r3" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r3" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v3" placeholder="Lo que vio distinto. Foto del cableado de J15 y J16"></textarea>
+  <div class="print-only" id="pr3"></div>
+</section>
+
+<div class="parte">
+  <h2>Parte 2 (pruebas 4 a 6): la barrera con J15 = BAJAR</h2>
+  La cámara nunca sube la pluma: la pluma sube con el verde y baja tras el rojo y su retardo (3 s de fábrica). En ámbar intermitente, arriba. El poste no da pulso: deja la orden puesta. <strong>Nadie en el recorrido del brazo.</strong>
+</div>
+
+<section class="prueba" id="p4">
+  <h2>4. Arriba en verde, abajo a los 3 s del rojo</h2>
+  <div class="porque"><b class="t">Por qué</b>Es la prueba de que el sentido está bien de punta a punta: firmware, J15, central y brazo.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Prueba 3 en OK. Poste 1 en <strong>AUTOMÁTICO</strong>, dando ciclos con radio. Nada delante de las cámaras.</li>
+    <li>Cronómetro o vídeo; 10 minutos.</li>
+  </ul></div>
+  <ol>
+    <li>En el <strong>Poste 1</strong>, mire un ciclo entero: dónde está el brazo en verde, en amarillo y en rojo.</li>
+    <li>Cronometre desde que se pone el rojo hasta que el brazo empieza a bajar. Hágalo en tres rojos.</li>
+    <li>Haga lo mismo en el <strong>Poste 2</strong>.</li>
+  </ol>
+  <div class="espera">Se espera: brazo <strong>arriba</strong> en verde y amarillo; en rojo empieza a bajar a los <strong>3 s</strong> (el retardo de bajada) y queda <strong>abajo</strong> hasta el siguiente verde, en que sube. En la app, "▲ PLUMA ARRIBA" y "▼ PLUMA ABAJO" a la vez que el brazo.</div>
+  <div class="horas">
+    <label class="campo">Poste 1: segundos del rojo hasta bajar (tres veces) <input type="text" id="h4a" class="hora"></label>
+    <label class="campo">Poste 2: segundos del rojo hasta bajar (tres veces) <input type="text" id="h4b" class="hora"></label>
+    <label class="campo">¿Sube con el verde en los dos? (sí/no) <input type="text" id="h4c" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r4" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r4" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r4" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v4" placeholder="Lo que vio distinto"></textarea>
+  <div class="print-only" id="pr4"></div>
+</section>
+
+<section class="prueba" id="p5">
+  <h2>5. Se suelta J15 con el brazo abajo</h2>
+  <div class="porque"><b class="t">Por qué</b>Un cable de J15 cortado es &laquo;sin orden de bajar&raquo;: el brazo tiene que subir. Antes, en ese caso, bajaba.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Prueba 4 en OK. Poste 1 en AUTOMÁTICO. Nadie en el recorrido del brazo. Cronómetro o vídeo.</li>
+  </ul></div>
+  <ol>
+    <li>En un rojo, con el brazo <strong>abajo</strong>, desconecte el cable de la orden entre J15 y la central, del lado que le resulte seguro. <strong>No toque J16.</strong> Anote la hora y qué hace el brazo.</li>
+    <li>Deje pasar un ciclo entero con J15 suelta y mire el brazo.</li>
+    <li>Vuelva a conectar el cable con el poste en verde. Mire el siguiente rojo.</li>
+  </ol>
+  <div class="espera">Se espera: al soltar, el brazo <strong>sube</strong> y se queda arriba todo el ciclo, también en rojo. Al volver a conectar, el siguiente rojo lo <strong>baja</strong> a los 3 s, como en la prueba 4. El poste no lo ve (no hay final de carrera): en la app puede seguir saliendo "▼ PLUMA ABAJO" con el brazo arriba. <strong>Anote lo medido</strong> (tiempo de subida).</div>
+  <div class="horas">
+    <label class="campo">Qué hizo el brazo al soltar, y tiempo hasta arriba (s) <input type="text" id="h5a" class="hora"></label>
+    <label class="campo">Con J15 suelta, ¿bajó en algún momento? (sí/no) <input type="text" id="h5b" class="hora"></label>
+    <label class="campo">Reconectado: ¿bajó a los 3 s del siguiente rojo? (sí/no) <input type="text" id="h5c" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r5" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r5" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r5" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v5" placeholder="Lo que vio distinto. Vídeo del brazo al soltar"></textarea>
+  <div class="print-only" id="pr5"></div>
+</section>
+
+<section class="prueba" id="p6">
+  <h2>6. Poste sin energía y vuelta de la luz</h2>
+  <div class="porque"><b class="t">Por qué</b>Con el controlador apagado y la central viva, J15 deja de conducir: el brazo sube. Y al volver la luz, el poste <strong>ya no baja la pluma al arrancar</strong>: la primera bajada llega tras un rojo y su retardo.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Prueba 5 en OK, J15 conectada. Poste 1 en AUTOMÁTICO. La central con su alimentación aparte, que <strong>no</strong> se corta. Nadie en el recorrido del brazo.</li>
+  </ul></div>
+  <ol>
+    <li>En un rojo, con el brazo <strong>abajo</strong>, quite la energía del <strong>poste</strong> (solo el controlador). Anote qué hace el brazo. Espere 2 minutos.</li>
+    <li>Vuelva la energía. Mire el brazo durante el arranque y mientras el poste está en ámbar intermitente.</li>
+    <li>Pase el Poste 1 a <strong>VOLVER AL MENÚ</strong> y <strong>AUTOMÁTICO</strong>. Cronometre el primer rojo hasta que el brazo baje.</li>
+    <li>Repítalo en el <strong>Poste 2</strong>.</li>
+  </ol>
+  <div class="espera">Se espera: al cortar, el brazo <strong>sube</strong> y se queda arriba los 2 minutos. Al volver la energía <strong>no baja</strong> en ningún momento del arranque ni en ámbar. En el primer rojo de AUTOMÁTICO baja a los <strong>3 s</strong>. Cualquier bajada al arrancar, aunque sea corta, es <strong>NO OK</strong>.</div>
+  <div class="horas">
+    <label class="campo">Poste 1: qué hizo el brazo al cortar, y a los 2 minutos <input type="text" id="h6a" class="hora"></label>
+    <label class="campo">Poste 1: ¿se movió hacia abajo al volver la energía? (sí/no) <input type="text" id="h6b" class="hora"></label>
+    <label class="campo">Poste 1: primer rojo, segundos hasta bajar <input type="text" id="h6c" class="hora"></label>
+    <label class="campo">Poste 2: lo mismo (corte / arranque / primer rojo) <input type="text" id="h6d" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r6" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r6" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r6" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v6" placeholder="Lo que vio distinto. Vídeo del arranque"></textarea>
+  <div class="print-only" id="pr6"></div>
+</section>
+
+<div class="parte">
+  <h2>Parte 3 (pruebas 7 a 9): cámaras sacadas y cámaras malas</h2>
+  Todo en Ajustes &rarr; <strong>&laquo;Averías: cámaras y barrera&raquo;</strong>, con la clave de técnico y el PIN; vale solo para el poste conectado. Al abrir el plegado, la línea de estado dice cómo está cada cámara y los dos ajustes. Para simular que una cámara ve algo: un puente de cable entre <strong>J16 pata 9 y 10</strong> (cámara C) o <strong>11 y 12</strong> (cámara D), que es lo mismo que el relé cerrado. <strong>Nunca toque la pata 1.</strong> La cámara solo retiene la pluma pasados los 3 s del rojo.
+</div>
+
+<section class="prueba" id="p7">
+  <h2>7. Sacar del veto solo la cámara C, y solo la D</h2>
+  <div class="porque"><b class="t">Por qué</b>Con una cámara averiada ya no hace falta quitar las dos: se saca la mala y la otra sigue reteniendo la barrera si ve algo debajo.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Prueba 4 en OK. Poste 1 en <strong>AUTOMÁTICO</strong>, dando ciclos, app conectada al Poste 1 como técnico. Las dos cámaras con veto. Un puente de cable. Cronómetro.</li>
+  </ul></div>
+  <ol>
+    <li>Pulse <strong>Sacar la cámara C</strong>. Copie el aviso antes de confirmar; confirme y meta el PIN. Copie Eventos y la línea de estado del plegado.</li>
+    <li>Ponga el puente en <strong>C</strong> (pata 9-10). En el siguiente rojo, cronometre hasta que baje el brazo. Quite el puente.</li>
+    <li>Ponga el puente en <strong>D</strong> (pata 11-12). Mire el siguiente rojo. Quite el puente.</li>
+    <li>Quite la energía del poste y vuélvala. Copie el aviso de arranque de Eventos. Vuelva a <strong>VOLVER AL MENÚ</strong> y <strong>AUTOMÁTICO</strong>.</li>
+    <li>Pulse <strong>Devolver la C</strong>. Repita los pasos 1 a 3 con <strong>Sacar la cámara D</strong> (ahora el puente en D debe dejar bajar y en C retener). Pulse <strong>Devolver la D</strong>.</li>
+    <li>Repita en el <strong>Poste 2</strong> si tiene tiempo.</li>
+  </ol>
+  <div class="espera">Se espera: en el paso 1, <strong>"Equipo: la cámara C queda FUERA: no retiene la barrera ni pide verde; la D sigue mirando. Qué falta: reparar o reapuntar la C y devolverle el veto."</strong>, la línea de estado con <strong>"Cámara C: FUERA del veto"</strong> y <strong>"Cámara D: con veto"</strong>, y en Tráfico las cámaras <strong>"sin veto"</strong>. En el paso 2 el brazo <strong>baja a los 3 s</strong> del rojo con el puente en C. En el paso 3 el brazo <strong>se queda arriba</strong> mientras esté el puente en D, y baja al quitarlo. En el paso 4: <strong>"Al arrancar, este poste sigue con la cámara C FUERA DEL VETO: no retiene la barrera ni pide verde. Si ya ve bien, devuélvale el veto desde Ajustes."</strong> Al devolverla: <strong>"Equipo: la cámara C vuelve al veto y a pedir verde."</strong> Lo mismo, cambiando las letras, con la D. En Tramas, <code>$ACK,CMD:SET_VETO_CAMARA:C:OFF,RESULT:OK</code> y los demás.</div>
+  <div class="horas">
+    <label class="campo">Aviso antes de confirmar (copie) <input type="text" id="h7a" class="hora"></label>
+    <label class="campo">Línea de estado con la C fuera (copie) <input type="text" id="h7b" class="hora"></label>
+    <label class="campo">C fuera: puente en C, segundos del rojo hasta bajar <input type="text" id="h7c" class="hora"></label>
+    <label class="campo">C fuera: puente en D, ¿se quedó arriba? (sí/no) <input type="text" id="h7d" class="hora"></label>
+    <label class="campo">Aviso de arranque con la C fuera (copie) <input type="text" id="h7e" class="hora"></label>
+    <label class="campo">D fuera: puente en D baja (s) / puente en C retiene (sí/no) <input type="text" id="h7f" class="hora"></label>
+    <label class="campo">Poste 2: lo mismo (sí/no y qué cambió) <input type="text" id="h7g" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r7" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r7" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r7" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v7" placeholder="Copie los avisos de Eventos tal cual"></textarea>
+  <div class="print-only" id="pr7"></div>
+</section>
+
+<section class="prueba" id="p8">
+  <h2>8. Una cámara mala y la otra bien: &laquo;1 mala&raquo;</h2>
+  <div class="porque"><b class="t">Por qué</b>Una cámara con el contacto pegado retenía la barrera arriba para siempre. Ahora, cuando el poste la declara <strong>PEGADA</strong> (20 minutos de contacto fijo), deja de hacerle caso y hace lo que diga &laquo;1 mala&raquo;: <strong>arriba</strong> (de fábrica) o <strong>bajar</strong> si la otra no ve nada.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Prueba 7 hecha, las dos cámaras <strong>con veto</strong>. Poste 1 en <strong>AUTOMÁTICO</strong>, app conectada al Poste 1 como técnico. Nada delante de la cámara D.</li>
+    <li>Un puente de cable y <strong>40 minutos</strong> libres.</li>
+  </ul></div>
+  <ol>
+    <li>Pulse <strong>1 mala: bajar</strong> (confirme y PIN). Copie Eventos.</li>
+    <li>Ponga el puente en <strong>C</strong> (pata 9-10). Anote la hora. Mire los rojos: el brazo debe quedarse arriba (la C todavía retiene).</li>
+    <li>Espere <strong>22 minutos</strong> desde la hora anotada. Copie la alarma de Eventos y la línea de Tramas que trae <code>CAM_PEGADA</code>. Mire el brazo en los dos rojos siguientes.</li>
+    <li>Con el puente aún puesto, pulse <strong>1 mala: arriba</strong>. Mire los dos rojos siguientes.</li>
+    <li>Quite el puente. Copie Eventos y mire el siguiente rojo.</li>
+  </ol>
+  <div class="espera">Se espera: en el paso 1, <strong>"Equipo: con UNA cámara mala la barrera baja tras el rojo si la otra no ve nada."</strong> Hasta los 20 min, el brazo <strong>arriba</strong> en rojo (la C retiene). A los <strong>20 min</strong>, en Tramas <code>CAM_PEGADA</code> con <code>CAM_C_CONTACTO_FIJO</code> y <code>ACCION:IGNORA_CAMARA</code> (en Eventos, &laquo;(Accion: IGNORA_CAMARA)&raquo;), cámaras <strong>PEGADA</strong> en Tráfico, y el brazo <strong>baja</strong> (en ese momento si ya está en rojo, o a los 3 s del siguiente) aunque el puente siga. En el paso 4, <strong>"Equipo: con UNA cámara mala la barrera se queda arriba en el rojo (de fábrica) hasta reparar o sacar la cámara."</strong>: el brazo sube con el siguiente verde y <strong>se queda arriba</strong> en los rojos. En el paso 5, en Tramas <code>CAM_C_RECUPERADA</code> y el brazo vuelve a bajar a los 3 s del rojo.</div>
+  <div class="horas">
+    <label class="campo">Hora en que puso el puente <input type="text" id="h8a" class="hora"></label>
+    <label class="campo">Hora de la alarma PEGADA, y su ACCION <input type="text" id="h8b" class="hora"></label>
+    <label class="campo">&laquo;1 mala: bajar&raquo;: ¿bajó con el puente puesto? cuándo <input type="text" id="h8c" class="hora"></label>
+    <label class="campo">&laquo;1 mala: arriba&raquo;: ¿se quedó arriba en rojo? (sí/no) <input type="text" id="h8d" class="hora"></label>
+    <label class="campo">Al quitar el puente: qué dijo y qué hizo el brazo <input type="text" id="h8e" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r8" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r8" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r8" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v8" placeholder="Copie la alarma y los avisos tal cual (o capturas)"></textarea>
+  <div class="print-only" id="pr8"></div>
+</section>
+
+<section class="prueba" id="p9">
+  <h2>9. Ninguna cámara que mire: &laquo;Ninguna&raquo;</h2>
+  <div class="porque"><b class="t">Por qué</b>Con una cámara sacada y la otra mala (o las dos malas) no queda nadie mirando debajo del brazo. Manda &laquo;Ninguna&raquo;: <strong>arriba</strong> (de fábrica) o <strong>bajar sin mirar</strong>.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Prueba 8 hecha. &laquo;1 mala&raquo; en <strong>arriba</strong>. Poste 1 en AUTOMÁTICO, app como técnico. Un puente de cable y <strong>40 minutos</strong> libres.</li>
+  </ul></div>
+  <ol>
+    <li>Pulse <strong>Sacar la cámara D</strong> (confirme y PIN).</li>
+    <li>Ponga el puente en <strong>C</strong>. Anote la hora. Espere <strong>22 minutos</strong>, hasta la alarma PEGADA de la C. Copie la alarma. Mire los dos rojos siguientes.</li>
+    <li>Pulse <strong>Ninguna: bajar</strong>. Copie el aviso antes de confirmar; confirme. Mire los dos rojos siguientes.</li>
+    <li>Pulse <strong>Ninguna: arriba</strong>. Mire el siguiente verde y rojo.</li>
+    <li>Quite el puente. Pulse <strong>Devolver la D</strong>. Deje la línea de estado como de fábrica: las dos con veto, &laquo;1 mala&raquo; y &laquo;Ninguna&raquo; en arriba. Copie la línea.</li>
+  </ol>
+  <div class="espera">Se espera: tras la alarma PEGADA, con &laquo;Ninguna&raquo; en arriba, el brazo <strong>se queda arriba</strong> en el rojo. En el paso 3, el aviso <strong>"Sin ninguna cámara que mire, la barrera bajará tras el rojo SIN MIRAR lo que hay debajo."</strong>; luego <strong>"Equipo: sin ninguna cámara que mire la barrera baja tras el rojo sin mirar."</strong> y el brazo <strong>baja</strong> a los 3 s del rojo aunque el puente siga. En el paso 4, <strong>"Equipo: sin ninguna cámara que mire la barrera se queda arriba en el rojo (de fábrica)."</strong> y el brazo vuelve a quedarse arriba. <strong>Las luces no cambian en ningún paso:</strong> el semáforo sigue en AUTOMÁTICO.</div>
+  <div class="horas">
+    <label class="campo">Hora del puente y hora de la alarma PEGADA <input type="text" id="h9a" class="hora"></label>
+    <label class="campo">&laquo;Ninguna: arriba&raquo;: ¿se quedó arriba en rojo? (sí/no) <input type="text" id="h9b" class="hora"></label>
+    <label class="campo">&laquo;Ninguna: bajar&raquo;: segundos del rojo hasta bajar <input type="text" id="h9c" class="hora"></label>
+    <label class="campo">¿Cambió el semáforo en algún paso? (sí/no) <input type="text" id="h9d" class="hora"></label>
+    <label class="campo">Línea de estado final (copie) <input type="text" id="h9e" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r9" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r9" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r9" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v9" placeholder="Copie los avisos tal cual"></textarea>
+  <div class="print-only" id="pr9"></div>
+</section>
+
+<div class="parte">
+  <h2>Parte 4 (pruebas 10 a 12): luces y radio</h2>
+  Los dos postes encendidos, con radio, salvo donde la prueba dice apagar uno.
+</div>
+
+<section class="prueba" id="p10">
+  <h2>10. ROJO TOTAL desde ÁMBAR, 60 s cronometrados</h2>
+  <div class="porque"><b class="t">Por qué</b>Antes, con el Poste 1 en ÁMBAR, ROJO TOTAL ponía rojo solo en el Poste 1: el Poste 2 volvía a ámbar a los <strong>28 s</strong>. Ahora el Poste 1 pasa a MANUAL y los dos quedan en rojo fijo hasta otra orden. Se cronometran 60 s para pasar de largo los 28 s. Con el <strong>ÁMBAR EMERGENCIA del Poste 2</strong> puesto, el Poste 2 no obedece el rojo: no lo use en esta prueba.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Poste 1 en <strong>AUTOMÁTICO</strong>, dando ciclos con radio; app conectada al <strong>Poste 1</strong>. Nadie en el recorrido del brazo.</li>
+    <li>Cronómetro; si puede, alguien mirando el Poste 2 o vídeo de los dos.</li>
+  </ul></div>
+  <ol>
+    <li>Pulse <strong>ÁMBAR</strong> (el modo, no el de emergencia). Espere a ver los <strong>dos</strong> postes en ámbar intermitente.</li>
+    <li>Pulse <strong>ROJO TOTAL</strong>. Arranque el cronómetro.</li>
+    <li>Mire los dos postes durante <strong>60 s</strong>. Anote qué luz tiene cada uno a los 10, 30 y 60 s, y si alguno pasa por amarillo fijo antes del rojo.</li>
+    <li>Copie Eventos y la cabecera de la app. Mire el brazo de los dos postes.</li>
+    <li>Pulse <strong>VOLVER AL MENÚ</strong> y luego <strong>AUTOMÁTICO</strong>.</li>
+  </ol>
+  <div class="espera">Se espera: los <strong>dos postes en rojo fijo</strong> y <strong>siguen en rojo a los 60 s</strong> (antes, el Poste 2 volvía a ámbar a los 28 s). En Eventos, <strong>"Equipo: ROJO TOTAL ordenado. La via que estaba en verde pasa por 3 s de amarillo. En Manual y desde Ambar (pasa a Manual) el rojo se sostiene mientras el Poste 2 lo acuse; ..."</strong>; en Tramas <code>$ACK,CMD:FORZAR_ROJO,RESULT:OK</code>; la cabecera, <strong>"✋ MODO MANUAL"</strong>. El brazo, que estaba arriba en ámbar, <strong>baja a los 3 s</strong> del rojo en los dos postes. En el paso 5, MENÚ deja rojo fijo y AUTOMÁTICO vuelve a ciclar. Si a los 60 s algún poste no está en rojo, <strong>NO OK</strong>: anote a qué segundo cambió.</div>
+  <div class="horas">
+    <label class="campo">Poste 1: luz a los 10 / 30 / 60 s <input type="text" id="h10a" class="hora"></label>
+    <label class="campo">Poste 2: luz a los 10 / 30 / 60 s <input type="text" id="h10b" class="hora"></label>
+    <label class="campo">¿Pasó alguno por amarillo fijo? cuál y cuántos s <input type="text" id="h10c" class="hora"></label>
+    <label class="campo">Cabecera de la app tras ROJO TOTAL (copie) <input type="text" id="h10d" class="hora"></label>
+    <label class="campo">Brazo: segundos del rojo hasta bajar, Poste 1 / Poste 2 <input type="text" id="h10e" class="hora"></label>
+    <label class="campo">¿Volvió a ciclar con AUTOMÁTICO? (sí/no) <input type="text" id="h10f" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r10" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r10" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r10" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v10" placeholder="Lo que vio distinto. Vídeo de los dos postes si puede"></textarea>
+  <div class="print-only" id="pr10"></div>
+</section>
+
+<section class="prueba" id="p11">
+  <h2>11. Sin radio, el Poste 1 no inventa la luz del Poste 2</h2>
+  <div class="porque"><b class="t">Por qué</b>En MENÚ sin radio, el Poste 1 decía que el Poste 2 estaba en rojo sin saberlo. Ahora, si el Poste 2 no contesta en 28 s, dice que no lo sabe.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Los dos postes encendidos, con radio. App conectada al <strong>Poste 1</strong>, en Tráfico. Cronómetro.</li>
+  </ul></div>
+  <ol>
+    <li>Pulse <strong>VOLVER AL MENÚ</strong>. Anote lo que dice la columna del Poste 2.</li>
+    <li>Quite la energía del <strong>Poste 2</strong> (el poste entero). Cronometre hasta que cambie la columna del Poste 2. Anote qué luces tiene el Poste 1.</li>
+    <li>Vuelva la energía del Poste 2. Cronometre hasta que la columna vuelva a dar una luz.</li>
+    <li>Pase el Poste 1 a <strong>AUTOMÁTICO</strong>, espere a que cicle y repita los pasos 2 y 3.</li>
+  </ol>
+  <div class="espera">Se espera: con radio, en MENÚ, la columna dice <strong>"ROJO (ESPERA)"</strong>. Con el Poste 2 apagado, a los <strong>28 s</strong> como mucho: <strong>"SIN DATO DEL POSTE 2 · el POSTE 1 no lo sabe"</strong>, en MENÚ y en AUTOMÁTICO; nunca un rojo o un verde inventado. Al volver el Poste 2, la columna vuelve a dar su luz. En AUTOMÁTICO sin radio, el Poste 1 cae a ámbar intermitente, como siempre. <strong>Anote lo medido</strong> (los segundos y las luces del Poste 1 en MENÚ sin radio).</div>
+  <div class="horas">
+    <label class="campo">MENÚ: columna con radio (copie) <input type="text" id="h11a" class="hora"></label>
+    <label class="campo">MENÚ: segundos hasta cambiar y qué dijo <input type="text" id="h11b" class="hora"></label>
+    <label class="campo">MENÚ sin radio: luces del Poste 1 <input type="text" id="h11c" class="hora"></label>
+    <label class="campo">AUTOMÁTICO: segundos hasta cambiar y qué dijo <input type="text" id="h11d" class="hora"></label>
+    <label class="campo">Al volver el Poste 2: segundos hasta dar luz otra vez <input type="text" id="h11e" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r11" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r11" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r11" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v11" placeholder="Lo que vio distinto. Captura de la columna del Poste 2"></textarea>
+  <div class="print-only" id="pr11"></div>
+</section>
+
+<section class="prueba" id="p12">
+  <h2>12. Sin Modo Alcance: la radio se lee en ENLACE RADIO</h2>
+  <div class="porque"><b class="t">Por qué</b>El Modo Alcance era MENÚ con otro nombre. Sale de la app y del firmware; el porcentaje de latidos y la respuesta se leen siempre en la tarjeta ENLACE RADIO.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Los dos postes con radio. App conectada al Poste 1 como técnico.</li>
+  </ul></div>
+  <ol>
+    <li>Recorra Tráfico y Ajustes: ¿aparece en algún sitio &laquo;Prueba de Alcance&raquo; o &laquo;Alcance&raquo;?</li>
+    <li>En <strong>MENÚ</strong>, abra Tráfico &rarr; &laquo;Detalle&raquo; y espere 1 minuto: anote el % y la respuesta (ms) de <strong>ENLACE RADIO</strong>.</li>
+    <li>En <strong>AUTOMÁTICO</strong>, lo mismo.</li>
+  </ol>
+  <div class="espera">Se espera: <strong>ningún</strong> botón ni caja de Alcance. ENLACE RADIO da un porcentaje y una respuesta en ms en los dos modos (no <strong>--</strong>). <strong>Anote lo medido.</strong> Recuerde: es el % de latidos contestados, <strong>no</strong> la potencia de la antena.</div>
+  <div class="horas">
+    <label class="campo">¿Apareció Alcance en algún sitio? (sí/no, dónde) <input type="text" id="h12a" class="hora"></label>
+    <label class="campo">MENÚ: % y respuesta (ms) <input type="text" id="h12b" class="hora"></label>
+    <label class="campo">AUTOMÁTICO: % y respuesta (ms) <input type="text" id="h12c" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r12" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r12" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r12" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v12" placeholder="Lo que vio distinto"></textarea>
+  <div class="print-only" id="pr12"></div>
+</section>
+
+<section class="prueba" id="pF">
+  <h2>Algo más</h2>
+  <textarea id="vF" placeholder="Otra cosa que quiera anotar"></textarea>
+  <div class="print-only" id="prF"></div>
+</section>
+
+<div class="recordatorio">
+  <strong>Al terminar cada jornada:</strong> conéctese a <strong>cada</strong> poste, exporte su registro (pestaña Eventos &rarr; "Exportar registro") y envíe este PDF con <strong>todos los archivos IOTVIAL_</strong>, uno de <strong>cada</strong> poste por jornada; los <strong>leido_poste1.bin</strong> y <strong>leido_poste2.bin</strong> de la prueba 2, y las fotos y vídeos de la central y del brazo (pruebas 1, 3, 5, 6 y 10). Diga en el mensaje qué sentido de J15 quedó cargado en cada poste.
+</div>
+
+</main>
+
+<footer>
+  <button id="btnPdf">Guardar en PDF</button>
+  <p class="nota-impresion">Elija "Guardar como PDF" y envíelo por WhatsApp.</p>
+  <p id="estado"></p>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+  var estado = document.getElementById('estado');
+  var camposTexto = document.querySelectorAll('input[type=text], input[type=date], textarea');
+  var camposRadio = document.querySelectorAll('input[type=radio]');
+
+  function clave(id) { return 'pf1111_' + id; }
+
+  try {
+    camposTexto.forEach(function (el) {
+      var v = localStorage.getItem(clave(el.id));
+      if (v !== null) el.value = v;
+    });
+    camposRadio.forEach(function (el) {
+      var v = localStorage.getItem(clave(el.name + '_' + el.value));
+      if (v === '1') el.checked = true;
+    });
+  } catch (e) { /* sin almacenamiento: la hoja se sigue rellenando y se imprime igual */ }
+
+  function guardarTexto(el) {
+    try {
+      localStorage.setItem(clave(el.id), el.value);
+      if (estado) estado.textContent = 'guardado ' + new Date().toLocaleTimeString();
+    } catch (e) {
+      if (estado) estado.textContent = 'este teléfono no guarda: imprima antes de cerrar';
+    }
+  }
+
+  function guardarRadio(grupo) {
+    try {
+      Array.prototype.forEach.call(grupo, function (el) {
+        localStorage.setItem(clave(el.name + '_' + el.value), el.checked ? '1' : '0');
+      });
+      if (estado) estado.textContent = 'guardado ' + new Date().toLocaleTimeString();
+    } catch (e) {
+      if (estado) estado.textContent = 'este teléfono no guarda: imprima antes de cerrar';
+    }
+  }
+
+  camposTexto.forEach(function (el) {
+    el.addEventListener('input', function () { guardarTexto(el); refrescarImpresion(); });
+  });
+  camposRadio.forEach(function (el) {
+    el.addEventListener('change', function () {
+      guardarRadio(document.getElementsByName(el.name));
+      refrescarImpresion();
+    });
+  });
+
+  // Para cada prueba, arma en el recuadro de impresion el resultado elegido y lo
+  // escrito, en texto llano. Asi, al imprimir, se ve la respuesta aunque el
+  // telefono no dibuje los controles marcados. Las horas anotadas van tambien.
+  var ids = [];
+  for (var i = 1; i <= 12; i++) ids.push(String(i));
+  function refrescarImpresion() {
+    ids.forEach(function (n) {
+      var pr = document.getElementById('pr' + n);
+      if (!pr) return;
+      var marcado = document.querySelector('input[name=r' + n + ']:checked');
+      var resultado = marcado ? marcado.getAttribute('data-txt') : 'sin responder';
+      var texto = document.getElementById('v' + n);
+      var vio = (texto && texto.value.trim()) ? texto.value : '(sin escribir)';
+      var horas = '';
+      document.querySelectorAll('#p' + n + ' input.hora').forEach(function (h) {
+        var rot = h.parentNode.firstChild.textContent.trim();
+        horas += rot + ': ' + (h.value.trim() || '(vacío)') + '. ';
+      });
+      pr.textContent = horas + 'Resultado: ' + resultado + '. Qué vio: ' + vio;
+    });
+    var libre = document.getElementById('vF');
+    var prF = document.getElementById('prF');
+    if (prF) {
+      prF.textContent = (libre && libre.value.trim()) ? libre.value : '(sin escribir)';
+    }
+  }
+
+  window.addEventListener('beforeprint', refrescarImpresion);
+  document.getElementById('btnPdf').addEventListener('click', function () {
+    refrescarImpresion();
+    window.print();
+  });
+
+  refrescarImpresion();
+})();
+</script>
+</body>
+</html>

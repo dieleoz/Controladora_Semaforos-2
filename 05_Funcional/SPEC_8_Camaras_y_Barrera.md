@@ -14,8 +14,8 @@ la tabla de conectores, la cadena electrica y lo que no se ha medido del hardwar
 >
 > **EL FALLO SEGURO EN ESTADO DE AVERIA —que la barrera SUBA con el ambar intermitente— ES DE ESTE
 > FICHERO, §5**, porque lo decide una linea de `escribirPines()` y no el cobre. `SPEC_5` §4 deja su
-> puntero y se queda con la otra mitad, la que **no** es firmware: **hoy, sin energia el pin cae y el
-> brazo baja; el requisito del 10/11 lo deja ARRIBA (8.2, HUECO).** Las dos mitades se leen juntas o
+> puntero y se queda con la otra mitad, la que **no** es firmware: **sin energia el pin cae a `LOW`, que
+> desde `D-168` es «sin orden de bajar»: la central deja el brazo ARRIBA (8.2).** Las dos mitades se leen juntas o
 > ninguna protege a nadie.
 
 **De donde sale cada linea.** Manda esta spec; `DECISIONES.md` es su indice para no volver a preguntar; el
@@ -174,9 +174,9 @@ vez el extremo de la cadena electrica que vive en `SPEC_5` §4. **Es de aqui.**
   lo que un agente o un tecnico leeria mal manana: **no es una decision del firmware que se pueda
   cambiar midiendo**; para moverla hace falta una fila del responsable, y si se mueve se cambia
   **AQUI, en el comentario del fuente y en la tabla de SFTY-28**, los tres a la vez.
-- 🔴 **Lo que NO garantiza este apartado: que el brazo se quede arriba si se va la luz.** Hoy, sin
-  energia la salida cae y el brazo baja; el requisito del 10/11 (arriba sin energia) lo cumple la
-  central, no el software, y esta sin construir: `SPEC_5` §4, 8.2.
+- 🔴 **Lo que NO garantiza este apartado: que el brazo se quede arriba si se va la luz.** Sin energia
+  la salida cae a `LOW` = sin orden de bajar (`D-168`, 8.2); que el brazo suba y se quede lo hace la
+  central, no el software, y se acepta con las pruebas 35-40 de la hoja (`SPEC_5` §4).
 
 > 🔴 **Y lo que NO hace: no la levanta nada.** La camara solo puede retrasar o impedir la BAJADA
 > (`D-33`, §1). **`A-1.bis` sigue abierto en su otra mitad:** que hacer cuando el veto se
@@ -188,7 +188,8 @@ vez el extremo de la cadena electrica que vive en `SPEC_5` §4. **Es de aqui.**
 🔴 **La barrera fuera de servicio (6.3) la confirmo ARRIBA el responsable el 09/11 (`D-96`), con su modo de fallo.**
 
 Hay dos averias distintas que hoy dejan un poste sin salida, y llevan **dos interruptores
-separados en la app, tras la clave de tecnico (`D-56`, `D-145`), uno por poste**. No se pueden juntar en uno: lo que
+separados en la app, tras la clave de tecnico (`D-56`, `D-145`), por poste** (el de las camaras, por camara
+desde `D-166`: §9). No se pueden juntar en uno: lo que
 falla no es lo mismo y lo que queda funcionando tampoco. **No son interruptores fisicos** (`D-94`): no hay
 entrada libre decidida —`J14`/`PB0` reservada al fin de carrera (`D-46`), `J16` p5/p8 vacios y sin cablear
 (`D-44`)— y un interruptor que el telefono no puede ver puesto es peor que ninguno. Lo que el responsable dejo
@@ -197,7 +198,7 @@ lo que pide tarjeta con barrera y pila esta en §7 (filas 4, 5 y 7).
 
 | el interruptor | cuando se usa | que hace el equipo despues |
 |---|---|---|
-| **Sacar la camara del veto** | la camara esta averiada o mal apuntada y **no deja bajar la barrera** | la barrera **vuelve a trabajar**: sube con el verde y baja tras el rojo, con su retardo. Lo unico que se pierde es que la camara pueda retenerla. Saca del veto a **las dos camaras del poste** (una por poste, como se decidio el 14/09; no por camara) |
+| **Sacar la camara del veto** | la camara esta averiada o mal apuntada y **no deja bajar la barrera** | la barrera **vuelve a trabajar**: sube con el verde y baja tras el rojo, con su retardo. Lo unico que se pierde es que la camara pueda retenerla. **Por camara desde `D-166`** (C, D o las dos; §9): la orden sin camara saca a las dos |
 | **Sacar la barrera de servicio** | la barrera esta **rota de verdad** —brazo partido, actuador atascado— | el brazo se queda **arriba**, tambien en rojo (6.3, `D-96`), y deja de obedecer a la luz. El cruce sigue funcionando **solo con el semaforo** |
 
 ## 6.1 Las ordenes (`D-94`)
@@ -229,7 +230,7 @@ lo que pide tarjeta con barrera y pila esta en §7 (filas 4, 5 y 7).
   🔴 **Lo que NO detecta:** una pila que se agota con el equipo encendido. Mientras hay corriente el dominio de respaldo
   vive de `VDD`; el interruptor se pierde en el siguiente corte y vuelve a `ON` (6.2), y el arranque siguiente ya
   rechaza. Tras cambiar la pila, el primer arranque rechaza: se reinicia una vez.
-- **Una sola fuente:** las ordenes y `escribirPines()` leen el MISMO getter (`respaldo_vetoCamaraOff()`,
+- **Una sola fuente:** las ordenes y `escribirPines()` leen el MISMO getter (`respaldo_vetoCamaraOff(cam)`,
   `respaldo_barreraFuera()`), molde `respaldo_degAuto()`: pasan por `contenidoValido`, asi que antes de
   `respaldo_setup()` (en el Esclavo, `semaforo_setup()` va antes) y con `DR4` corrupto valen `ON`. Sin copia en RAM.
 - El `$ACK` queda en el registro del puente (`D-73`): es la huella de quien puso el interruptor y cuando.
@@ -237,7 +238,8 @@ lo que pide tarjeta con barrera y pila esta en §7 (filas 4, 5 y 7).
 ## 6.2 Sobreviven al corte: dos banderas en la casilla de indicadores (`D-95`)
 
 Las diez casillas del respaldo estan ocupadas; los dos interruptores caben **como dos banderas libres de `DR4`**
-(`REG_FLAGS`: hoy usa los bits 0..8, `FLAG_CICLO`..`FLAG_ROJO_SIN_HORA`): `FLAG_VETO_CAMARA_OFF` (`0x0200`) y
+(`REG_FLAGS`: usaba los bits 0..8, `FLAG_CICLO`..`FLAG_ROJO_SIN_HORA`): `FLAG_VETO_CAMARA_OFF` (`0x0200`, la C desde
+`D-166`; la D y `MALA1`/`MALA2` en `0x0800`..`0x2000`, §9.4) y
 `FLAG_BARRERA_FUERA` (`0x0400`), **dentro de la suma y con la misma `FIRMA`** (molde `FLAG_TESTIGO`, `D-61`): el
 formato no cambia y un firmware anterior las ignora. **Las baja solo su orden inversa o `respaldo_borrar()`** (pila
 agotada o contenido invalido al arrancar: los dos vuelven a `ON`, el lado seguro); `respaldo_guardarDegradado()` y
@@ -247,8 +249,8 @@ tras un corte real, con pila; el arnes de dos puntas solo mide que el reinicio s
 
 ## 6.3 Lo que hace el equipo (`D-96`)
 
-- **Camara fuera del veto:** `escribirPines()` no pregunta a `camara_presenciaJ16()`: `plumaVetada` no vale nunca
-  `true` y la pluma baja al cumplirse R (§8.3), como con las borneras vacias. El retardo no
+- **Camara fuera del veto:** `escribirPines()` no pregunta por ESA camara (§9.2): con las dos fuera `plumaVetada` no
+  vale nunca `true` y la pluma baja al cumplirse R (§8.3), como con las borneras vacias. El retardo no
   cambia (`D-33`, `D-42`). El vigilante de las camaras sigue contando y avisando (`CAM_PEGADA`, `CAM_CIEGA`, `D-24`):
   asi se sabe cuando la camara volvio a dar flancos y se puede devolver el veto.
 - 🔴 **Barrera fuera de servicio: ARRIBA, confirmado por el responsable el 09/11 (`D-96`).** `luzPideArriba` gana el
@@ -281,8 +283,9 @@ y ya tienen su ancho** (cota por buffer, `N-154`), en las dos puntas:
   `$STATUS` y el `$ACK` leen esa anotacion con `semaforo_plumaFuera()`, nunca la bandera del respaldo: si no, el
   `$STATUS` diria `FUERA` con el pin en `CERRAR` (antes de la reentrada de 6.3, o entre `semaforo_setup()` y
   `respaldo_setup()`). El arnes compara `PLUMA:` con el pin real (`discrepanciasPluma`) tambien con la bandera puesta.
-- **`CAM:NOVETO`** (6 <= 6 de `PEGADA`) **solo con el veto fuera Y `camara_estado()` en `OK` o `?` (`D-151`)**; si
-  diria `PEGADA` o `CIEGA`, se publica eso aunque el veto este fuera. Asi el campo sigue diciendo lo que 6.3 promete
+- **`CAM:NOVETO`** (6 <= 6 de `PEGADA`) **solo con alguna camara fuera Y `camara_estado()` en `OK` o `?` (`D-151`)**;
+  si diria `PEGADA` o `CIEGA`, se publica eso aunque el veto este fuera. Desde `D-166`, `camara_estado()` es la peor
+  de las camaras NO inhibidas (§9.5). Asi el campo sigue diciendo lo que 6.3 promete
   (cuando la camara vuelve a dar flancos): las alarmas de camara son de una vez (`$ALARM` al entrar, `$EVENT
   CAMARA_RECUPERADA` al salir) y el campo es lo unico que permanece. `NOVETO` se lee «camara sana y sin veto: devolver
   el veto». La prueba ejerce las dos lecturas con datos asimetricos (C en `PEGADA` y D en `OK`, y al reves).
@@ -319,7 +322,7 @@ la **4** (la concesion de paso por camara nunca se probo)—. Aqui, lo que falta
 | 1 | **NINGUNA DE ESTAS CONDUCTAS SE HA VISTO EN UNA TARJETA.** El retardo de 3 s y el veto son del 14/09, los parametros de §8 del 09/11, y estan **escritos y no cargados**; la instalacion **certificada** es la `V8.4`, anterior a todo ello. 🛑 **Que firmware hay hoy en cada equipo lo dice `ESTADO.md`, no este fichero** (`CLAUDE.md` §0.2) |
 | 2 | **Que una camara real cierre el contacto el tiempo suficiente para vetar.** El veto se apoya en `camara_presenciaJ16()`, cuya ventana la fija `demanda_ventanaMs()`; **con un contacto mas corto que la ventana el veto se sostiene, con uno mas largo tambien — y ninguno se ha medido con una camara puesta** |
 | 3 | **Que el aviso de pluma retenida llegue al telefono.** Sale por el mismo camino que el resto de `$EVENT` (`SPEC_6`), y **el Bluetooth no subio en toda la sesion de banco** (`SPEC_5` §6.17) |
-| 4 | **Los dos interruptores de §6: construidos el 09/11 (`interruptores.cpp` en las dos puntas, `js/interruptores.js`) y sin banco.** Tras un corte con la barrera fuera, la pluma vuelve a subir en la siguiente escritura de la luz, no al arrancar: lo mide el arnes de dos puntas (S3), sin fila que lo decida |
+| 4 | **Los dos interruptores de §6: construidos el 09/11 (`interruptores.cpp` en las dos puntas, `js/interruptores.js`) y sin banco.** Tras un corte con la barrera fuera, la pluma no baja: el arranque la deja arriba (`D-168`) y la reentrada del cierre la anota `FUERA` en el primer tick con la bandera leida: lo mide el arnes de dos puntas (S3) |
 | 5 | **Que las dos banderas de §6.2 sigan puestas tras un corte REAL, con pila** — HUECO en tarjeta, como `D-62`; el arnes de dos puntas solo simula el reinicio |
 | 6 | **La cinta de campo no ayuda:** 253 tramas del Sisga (10/09) y **las 253 dicen `CAM:?`** — en veinte minutos ninguna camara le dio un flanco al equipo (`SPEC_5` §6) |
 | 7 | **El recorrido real de la pluma:** ~60 s de subida segun Marco (06/10), sin cronometrar; la bajada, sin dato |
@@ -347,22 +350,26 @@ los numeros de apartado no se tocan, `CLAUDE.md` cabecera.)
 | contacto de la camara C (`J16` p10) | `NA` | `NA` / `NC` | la lectura de `CAM_C_PIN`, en un solo sitio (8.3) |
 | contacto de la camara D (`J16` p12) | `NA` | `NA` / `NC` | la de `CAM_D_PIN`, igual |
 | retardo de bajada tras el rojo | 3 s | 3..5 s, entero (P1, P3 decididas 09/11) | `PLUMA_RETARDO_BAJADA_MS` pasa a valor de fabrica |
-| sentido de `J15` | activa = subir (HUECO: activa = bajar) | **fijo al compilar, no es parametro** | `pines.h` (8.2) |
+| sentido de `J15` | activa = BAJAR (`D-168`) | **fijo al compilar, no es parametro** | `pines.h` (8.2) |
 | tipo de salida | nivel | **fijo, no es parametro** | nada (8.2) |
 | pluma en ambar intermitente / `S_FALLO` | ARRIBA | **fijo salvo fila (P2)** | nada (8.2) |
 
 ## 8.2 Por que tres candidatos se quedan fijos (`D-164`) — la premisa contraria esta en el fuente
 
 - **`J15` «activa = BAJAR»: SI, desde el 10/11** (responsable: «en reposo o sin energia, pluma arriba»; deroga el
-  «NO» de `D-164`; requisito de cobre en `SPEC_5` §4). **Lo que HACE hoy el equipo:** activa = subir
-  (`TALANQUERA_ABRIR HIGH`, `pines.h`), y cada corte, reinicio o carga baja la pluma. **Lo que DEBE hacer (HUECO, sin
-  construir):** (1) `TALANQUERA_CERRAR` = `HIGH`, `TALANQUERA_ABRIR` = `LOW`, el nivel de reset; (2) polaridad
-  **fijada al compilar**: un binario por polaridad, declarada en la respuesta de version o en el aviso de arranque
-  (`$STATUS` no crece, `D-60`), y `ESTADO.md` la lleva por poste. **Nunca parametro:** `DR4` con pila agotada vuelve
+  «NO» de `D-164`; requisito de cobre en `SPEC_5` §4). **Lo que HACE el equipo (`D-168`, construido sin banco):**
+  (1) `TALANQUERA_CERRAR` = `HIGH`, `TALANQUERA_ABRIR` = `LOW`, el nivel de reset (`pines.h`, las dos puntas);
+  (2) polaridad **fijada al compilar**: un binario por polaridad, declarada en la respuesta de version
+  (`$ACK,CMD:VERSION,...,FW:<hash>,J15:BAJAR`; la vieja, `J15:SUBIR`; `$STATUS` no crece, `D-60`), y `ESTADO.md` la
+  lleva por poste. De fabrica, la NUEVA; la vieja, solo para un equipo cuya central no cumpla, se compila con
+  `TALANQUERA_POLARIDAD_VIEJA` (la orden, en `pines.h`). Un binario de antes del 10/11 contesta sin `J15:`, y la app
+  lo dice como «activa = subir». **Nunca parametro:** `DR4` con pila agotada vuelve
   a fabrica en silencio y la pagina `0x0800F400` la borran `-e all` y el cambio de `VERSION`; cualquier fabrica
   invierte la pluma con uno de los dos tipos de central; (3) `semaforo_setup()` escribe `TALANQUERA_ABRIR` y deja
   `plumaAbierta = true` en las dos puntas: el arranque NO baja la pluma, y la primera bajada pasa por R y por el veto
-  (8.4); `camaras_sembrar()` corre antes del primer tick que pueda bajar.
+  (8.4); `camaras_sembrar()` corre antes del primer tick que pueda bajar (Maestro: `botones_setup()` va antes que
+  `coordinador_setup()`; Esclavo: R es >= 3 s y el bucle empieza tras los 2 s del arranque). Ejercido: I6 de dos
+  puntas, el arranque del bloque A de «automatico» y `barrera_03_talanquera`.
   **Modo de fallo que trae:** cada reset, carga o cuelgue SUBE la pluma, tambien en rojo (aceptado: la barrera es
   complemento); `Q10` u opto en corto la deja ABAJO fija con verde, en silencio (`SPEC_5` §4, sin aceptar ni medir);
   y la mezcla de firmware y central la invierte sin que nadie salvo el que mira el brazo lo note.
@@ -370,7 +377,7 @@ los numeros de apartado no se tocan, `CLAUDE.md` cabecera.)
   «firmware primero» de `CLAUDE.md` §3): `J15` suelta; central a «sin senal = subir» y comprobar que sube; carga SWD;
   leer la polaridad por la app; reconectar `J15`; casillas: verde = arriba, rojo tras R sin nadie = abajo, quitar
   `J15` = sube, reset = sube y vuelve a bajar tras R. El puente H del banco se reconfigura en la misma sesion.
-- **Salida por PULSO: NO en esta version.** `J15` es UNA salida con dos estados (hoy, 1 = subir y 0 = bajar). Un
+- **Salida por PULSO: NO en esta version.** `J15` es UNA salida con dos estados (1 = bajar y 0 = subir, `D-168`). Un
   pulso necesita un tercer estado (motor parado) o una central paso a paso, y una paso a paso que pierda un pulso
   queda **invertida para siempre** (arriba en rojo, abajo en verde) sin que el firmware lo sepa: no hay fin de carrera
   leido (`J14`/`PB0` reservada, `D-46`; libre, `D-27`). El puente H del funcional (10 s, con su final de carrera) es
@@ -423,20 +430,21 @@ la rama de bajada.
 | `S_FALLO`, `S_AMBAR_INT` | no cuenta | no cuenta | 1 | arriba | §5, cliente y PMT 27/08 (P2) |
 | `S_ROJO_INT` (noche) | no cuenta | no cuenta | 1 | arriba | `D-110` |
 | barrera fuera (`FLAG_BARRERA_FUERA`) | no cuenta | no cuenta | 1 | arriba | `D-96` |
-| camara fuera del veto | ignorada | 3..5 | 0 tras R | baja | `D-96` |
-| arranque, reset, corte, SWD: HOY | no cuenta | no cuenta | 0 | abajo | SFTY-28 de antes del 10/11 |
-| idem, DEBE (HUECO, 8.2) | no cuenta | no cuenta | 1 (`LOW`) | arriba con la central viva; corte general, lo que haga la central (`SPEC_5` §4, pruebas 36-37); 1.a bajada tras R y veto | 10/11 |
+| camara fuera del veto (las dos) | ignorada | 3..5 | 0 tras R | baja | `D-96`; una sola o camara mala: §9.3 |
+| camara mala (`CAM_PEGADA`/`CAM_CIEGA`), `MALAx=ARRIBA` (fabrica) | ignorada | no cuenta | 1 | arriba, `$ALARM` | `D-169`, §9.3 E2-E4 |
+| arranque, reset, corte, SWD | no cuenta | no cuenta | 1 (`LOW`) | arriba con la central viva; corte general, lo que haga la central (`SPEC_5` §4, pruebas 36-37); 1.a bajada tras R y veto | `D-168` |
 
 **Las cuatro comprobaciones, con lo que las garantiza:**
 1. **Pluma arriba en rojo solo en los casos ya aceptados.** Los parametros no tocan `luzPideArriba` ni la rama «ya
-   abajo»; solo cambian R (acotado a 5 s por la orden y por el `static_assert` de la cota) y que pin es presencia.
+   abajo»; cambian R (acotado a 5 s por la orden y el `static_assert` de la cota), que pin es presencia y, con
+   `D-169`, la camara mala con `MALAx=ARRIBA` (`plumaRetenidaMala`, solo en la rama de bajada: no sube una pluma abajo).
    🔴 **Lo nuevo:** un contacto mal declarado entra por el caso de veto (`D-33`, «ante error no baja y avisa»): ver 8.5.
 2. **Nunca baja sobre el amarillo ni dentro de R.** `S_AMARILLO` esta en `luzPideArriba`; R cuenta desde el rojo y su
    minimo es 3 s (P3).
 3. **Ningun pulso activo mas de su tiempo:** no hay pulso (8.2). En nivel, el tiempo de motor lo corta el final de
    carrera de la central o del puente H.
-4. **El reposo sin energia no depende de ningun parametro:** la polaridad de `J15` es de compilacion (8.2). Hoy el
-   reposo es abajo; el requisito (HUECO) es arriba, con el arranque escribiendo ABRIR y `plumaAbierta = true`.
+4. **El reposo sin energia no depende de ningun parametro:** la polaridad de `J15` es de compilacion (8.2). El
+   reposo es arriba (`D-168`), con el arranque escribiendo ABRIR y `plumaAbierta = true`.
 
 ## 8.5 El contacto mal declarado — se detecta
 
@@ -458,7 +466,8 @@ cambiar el contacto, comprobar `VE:0` y devolver el veto.
 
 ## 8.6 Donde se guarda, la orden y lo que publica
 
-- **Pagina de flash propia, molde `testigo_flash.cpp`/`noche_flash.cpp`:** `DR4` esta lleno (§6.2). Pagina de 1 KB en
+- **Pagina de flash propia, molde `testigo_flash.cpp`/`noche_flash.cpp`:** las diez casillas estan ocupadas (§6.2;
+  `DR4` tenia 5 bits libres, no estaba lleno: errata de esta frase, corregida con `D-166`). Pagina de 1 KB en
   `0x0800F400` en las dos puntas (fichero identico). `board_upload.maximum_size` = 62464 en los dos `platformio.ini`
   deja las TRES ultimas paginas fuera del enlazador: `0x0800F400` instalacion, `0x0800F800` noche (`noche_flash`,
   solo el Maestro; en el Esclavo queda reservada sin uso) y `0x0800FC00` testigo (`testigo_flash`); las tres las borra
@@ -505,15 +514,92 @@ cambiar el contacto, comprobar `VE:0` y devolver el veto.
   subir» y central «sin senal = bajar»; DEROGADO el 10/11 por el responsable: J15 activa = BAJAR, polaridad fijada al
   compilar (un binario por polaridad, declarada en la version), arranque que no baja la pluma, central «sin senal =
   subir» y firmware y central en la MISMA visita con `J15` suelta (8.2, `SPEC_5` §4).** Modo de fallo: sube con cada
-  corte o reinicio (aceptado) y baja fija con `Q10` en corto (sin aceptar). **HUECO: hasta construirlo, el equipo
-  hace lo de hoy (activa = subir).**
+  corte o reinicio (aceptado) y baja fija con `Q10` en corto (sin aceptar). **Construido sin banco (`D-168`).**
 
 **P1..P4 decididas el 09/11** (simulacion de dos modelos y arbitro): P1 y P4 como se recomienda, P2 ARRIBA fija,
 P3 3..5 s. Revision de arquitectura antes de construir: APTO CON CONDICIONES (C1..C5, cerradas en este apartado).
 🔴 **Sin banco.**
 
+# 9. 🟡 Camaras degradadas: veto POR CAMARA y camara mala — **CONSTRUIDO, SIN BANCO (`D-166`, `D-169`)**
+
+**Principio del responsable (10/11, `D-169`): ninguna averia de camara o barrera deja el paso semaforico
+inoperante; la barrera es complemento.** Con una camara mala el equipo alarma y sigue funcionando. Lo que sigue esta
+leido del fuente de las dos puntas (identico: `botones_vigilante.inc`, `interruptores.cpp`, `respaldo.cpp`).
+
+## 9.1 Definiciones
+
+- **Inhibida a mano** (`D-166`): bit por camara en `DR4`, puesto por `SET_VETO_CAMARA:C|D:OFF`. El firmware la ignora
+  del todo: **ni veto ni demanda**. La ve igual el vigilante (`CAM_PEGADA`/`CAM_CIEGA`) y el `VE:` de `SET_CAMARA`:
+  la mascara va en tres sitios por punta y solo ahi —el veto de `escribirPines()`, `demandaLocalS1`
+  (`modo_inteligente.cpp`, Maestro) y el flanco que llama a `demanda_solicitar()` (`camaras_actualizar()`; en el
+  Esclavo es el `CMD_DEMANDA`)—, nunca en `camara_presencia()` ni en `camara_presenciaJ16()`.
+- **Mala detectada:** `camEstado` en `CAM_PEGADA` o `CAM_CIEGA` (§3). La pone y la quita el vigilante solo
+  (`$ALARM` al entrar, `$EVENT ..._RECUPERADA` al salir). **Vive en RAM: un corte la olvida** y la `CIEGA` tarda otras
+  24 h de pluma arriba en volver a detectarse (Q5, aceptado); lo que dura es la inhibicion, que si se guarda.
+- **Mira** = ni inhibida ni mala (`camara_mira(i)`, `botones.h`). Una `?` (sin flanco nunca) mira: no se puede saber.
+- **Veto = OR de las que miran.** Una mala detectada deja de vetar y de pedir verde (Q4).
+
+## 9.2 El parametro `MALA1` / `MALA2` (`D-169`)
+
+`MALA1` rige si hay al menos una mala y queda una que mira; `MALA2`, si hay al menos una mala y no queda ninguna
+(dos malas, o una inhibida y otra mala: Q3). Valores `BAJA` (la mala se ignora; baja tras R si las que miran no ven)
+o `ARRIBA` («no hace nada»: la pluma se queda arriba en el rojo sin tope). **Fabrica: `ARRIBA` y `ARRIBA`.**
+`ARRIBA` entra en la RAMA DE BAJADA de `escribirPines()`, no en `luzPideArriba` (Q2): sube con el verde siguiente y no
+levanta una pluma ya abajo; se anota en `semaforo_plumaRetenidaMala()`, no en `plumaVetada` (no cuenta como veto, no
+lanza el aviso de 90 s ni el `PLUMA_VETADA` de `SET_CAMARA`). Dos inhibidas sin mala: baja tras R (`D-96`), sin
+leer `MALA2`. El Modo Inteligente no cambia de modo sin camaras (Q7, `CLAUDE.md` §2): sin demanda cae al suelo, que son
+los tiempos de Automatico.
+
+## 9.3 La tabla de estados — ROJO tras R, pluma arriba al entrar en rojo (el resto de luces, como §8.4)
+
+| estado | pluma | alarma / `CAM:` | demanda |
+|---|---|---|---|
+| E1 dos miran | baja si ninguna ve; retenida si alguna ve (`D-33`) | `CAM:` la peor | las dos |
+| E2 una mala, otra mira | `MALA1=BAJA`: la buena retiene si ve, si no baja. `MALA1=ARRIBA`: arriba | `$ALARM` con `ACCION:IGNORA_CAMARA` o `PLUMA_ARRIBA` | solo la buena |
+| E3 una inhibida, otra mira | la buena retiene si ve, si no baja | aviso de arranque; `CAM:NOVETO` si la otra esta sana | solo la buena |
+| E3b una inhibida, otra mala | `MALA2` | la `$ALARM` de la mala | ninguna camara |
+| E4 dos malas | `MALA2` | dos `$ALARM` | ninguna camara |
+| E5 dos inhibidas | baja tras R (`D-96`) | aviso de arranque; `CAM:NOVETO` | ninguna camara |
+
+Una camara inhibida que se declara mala alarma con `ACCION:NINGUNA`: ya estaba ignorada. La `ACCION:` se fija al
+alarmar con el parametro de ese instante (`camara_alarmar()`).
+
+## 9.4 Donde se guarda
+
+`DR4`, molde §6.2 (misma `FIRMA`, dentro de la suma, solo los baja su orden o `respaldo_borrar()`): `0x0200` C inhibida
+(el bit de `D-94`), `0x0800` D inhibida, `0x1000` `MALA1=BAJA`, `0x2000` `MALA2=BAJA`. **Bit a 0 = fabrica** (veto
+puesto, `ARRIBA`): con pila agotada todo vuelve a fabrica. Quedan libres `0x4000` y `0x8000`. Un equipo de campo con
+`0x0200` puesto («las dos fuera» con el firmware anterior) lo lee como «C fuera, D con veto»: mas veto, el lado
+seguro; el aviso de arranque lo dice por camara.
+
+## 9.5 Ordenes y publicacion (molde `SET_TIEMPOS`, `interruptores.cpp`)
+
+- `SET_VETO_CAMARA:ON|OFF` (las dos, como antes), `SET_VETO_CAMARA:C:ON|OFF`, `SET_VETO_CAMARA:D:ON|OFF`;
+  `SET_CAMARA_MALA:1|2:BAJA|ARRIBA` (sin coma: parte el campo `CMD`). Locales, tras clave de administracion y PIN.
+  `SIN_CAMBIO` si ya esta asi; `FORMATO_INVALIDO` sin valor en el `CMD`; `RESPALDO_INVALIDO` para el valor que no es de
+  fabrica (`OFF`, `BAJA`) con el respaldo perdido al arrancar (`D-148`); reentrada por `semaforo_reaplicarSalidas()` y
+  `RESULT:OK` solo si lo releido es lo pedido; si no, `NO_QUEDO_PUESTO` (`D-149`). La mas larga sigue siendo la de la
+  barrera, 56 B en `respuesta[64]`.
+- `CONSULTA_VETO`, sin PIN: `$ACK,CMD:CONSULTA_VETO,RESULT:C1O_D0P_M1A_M2A` (45 B): por camara, `1` con veto y `0`
+  inhibida, y su estado `O` (OK), `?`, `C` (CIEGA) o `P` (PEGADA); `M1`/`M2`, `A` (ARRIBA) o `B` (BAJA).
+- `$STATUS` sin crecer (`D-60`): `CAM:` es la peor de las camaras NO inhibidas (Q6); `NOVETO` si hay alguna inhibida y
+  las demas estan `OK` o `?`, y con las dos inhibidas.
+- Aviso de arranque (`D-152`): `ARRANQUE_CAM_NOVETO` (las dos), `ARRANQUE_CAM_NOVETO_C` o `ARRANQUE_CAM_NOVETO_D`, con
+  `_Y_BARRERA_FUERA` detras si toca; todos llevan el literal `CAM_NOVETO` que busca la app. Un parametro `MALAx=BAJA`
+  no es un interruptor puesto: no avisa.
+- **App:** Ajustes > «Averias: camaras y barrera» con un interruptor por camara (C, D) ademas del de las dos, y los
+  dos selectores `MALA1`/`MALA2`; cada acuse dice que queda y «Que falta». El simulador de Practica contesta las
+  mismas ordenes con los mismos literales (`js/sim_interruptores.js`).
+
+## 9.6 Lo que no se ha visto
+
+🔴 **Sin banco ni tarjeta.** El arnes del automatico (bloque I) y el de dos puntas (bloque I, Esclavo real) ejercen con
+datos asimetricos —C inhibida y D ve, y al reves— el veto y la demanda, y `MALA1`/`MALA2` con una `CAM_PEGADA`; la
+`CIEGA` real (24 h) no se ha ejercido nunca (`D-24`). Que los bits sigan tras un corte con pila: HUECO de §6.2.
+
 *Decisiones recogidas: `D-12`, `D-13` (lo no derogado), `D-24`, `D-25`, `D-27`, `D-33`, `D-39`, `D-42`, `D-54`,
-`D-94`..`D-97`, `D-148`..`D-152` (§6, construido sin banco) y `D-161`..`D-165` (§8, construido sin banco). Abiertas
+`D-94`..`D-97`, `D-148`..`D-152` (§6, construido sin banco), `D-161`..`D-165` (§8, construido sin banco) y
+`D-166`, `D-169` (§9, construido sin banco). Abiertas
 que nombra sin resolver: `A-1.bis`, `A-6`. La pluma ARRIBA en `S_FALLO`,
 del cliente y el PMT el 27/08/2026 (§5), tiene fila desde el 09/11: `D-164`. Manda esta spec;
 `DECISIONES.md` es su indice; el cobre, `17_...` y `SPEC_5`. Nacido el 14/09/2026 al

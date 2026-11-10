@@ -125,8 +125,12 @@ bool respaldo_rojoSinHora();
 // solo su orden inversa o respaldo_borrar(); guardarDegradado()/guardarTestigo() no los
 // tocan. Getters por contenidoValido, sin copia en RAM (D-149): antes de respaldo_setup()
 // valen false, que es ON, el lado seguro.
-void respaldo_guardarVetoCamaraOff(bool off);
-bool respaldo_vetoCamaraOff();
+// D-166 (SPEC_8 9.4): por camara, cam 0 = C (bit 9) y 1 = D (bit 11). true = inhibida.
+void respaldo_guardarVetoCamaraOff(int cam, bool off);
+bool respaldo_vetoCamaraOff(int cam);
+// D-169: n 1 = MALA1 (bit 12), 2 = MALA2 (bit 13). true = BAJA; false = ARRIBA, la fabrica.
+void respaldo_guardarMalaBaja(int n, bool baja);
+bool respaldo_malaBaja(int n);
 void respaldo_guardarBarreraFuera(bool fuera);
 bool respaldo_barreraFuera();
 // D-148: true si ESTE arranque encontro el respaldo invalido y lo borro. respaldo_valido()

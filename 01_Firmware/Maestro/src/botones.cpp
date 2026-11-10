@@ -5,6 +5,7 @@
 #include "semaforo.h"
 #include "bluetooth.h"
 #include "instalacion.h"   // N-187: el contacto NA/NC de cada camara
+#include "respaldo.h"      // D-166/D-169: camara inhibida y parametro MALA1/MALA2
 // D-33: de aqui sale el techo del despeje, contra el que se mide un veto sostenido.
 #include "limites_ciclo.h"
 
@@ -184,8 +185,8 @@ void camaras_sembrar() {
   const unsigned long ahora = millis();
   camTickAnt = ahora;
   // N-26 tambien aqui: un veto ya activo al encender no es un veto NUEVO. Hoy no puede
-  // estarlo -semaforo_setup() deja la pluma abajo y las dos banderas limpias-, y se
-  // siembra igual para que la siembra no dependa de que eso siga siendo cierto.
+  // estarlo -semaforo_setup() deja la pluma ARRIBA en su R (D-168) y el veto no cuenta en R-,
+  // y se siembra igual para que la siembra no dependa de que eso siga siendo cierto.
   camVetoAnt = semaforo_plumaVetada();
   camVetoDesde = ahora;
   camVetoAvisos = 0;
@@ -245,8 +246,8 @@ static void camaras_actualizar() {
   for (int i = 0; i < 2; i++) {
     const bool nivel = camara_leerPin(CAM_J16[i], instalacion_camaraNC(i));
     if (nivel && !camAnt[i]) {
-      demanda_solicitar();
-      vigilante_flanco(i, ahora);
+      vigilante_flanco(i, ahora);   // antes: un flanco devuelve a OK una CIEGA, y esa ya mira
+      if (camara_mira(i)) demanda_solicitar();   // D-166/D-169: inhibida o mala no pide (SPEC_8 9.1)
     }
     vigilante_nivel(i, nivel, ahora);
     camAnt[i] = nivel;

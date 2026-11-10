@@ -29,5 +29,7 @@
 // nivel queda grabado en arnes_pines[] como cualquier lampara: el invariante de abajo
 // la mide sobre lo que semaforo.cpp ESCRIBIO, no sobre lo que la logica pretendia.
 #define MOTOR_TALANQUERA  10
-#define TALANQUERA_ABRIR  HIGH
-#define TALANQUERA_CERRAR LOW
+// D-168: los niveles de la rama de fabrica del real (J15 conduce = BAJAR); la guarda de dos puntas los compara.
+#define TALANQUERA_ABRIR  LOW
+#define TALANQUERA_CERRAR HIGH
+#define TALANQUERA_J15    "BAJAR"

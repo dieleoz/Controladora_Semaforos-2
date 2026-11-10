@@ -208,8 +208,10 @@ void modoInteligente_loop() {
       //
       // ---- SENTIDO 2 (la otra punta) ----------------------------------------------
       //   La camara del Esclavo manda CMD_DEMANDA por radio -> demanda remota.
+      //   D-166/D-169 (SPEC_8 9.1): de J16 solo cuentan las camaras que MIRAN; una inhibida o mala no sostiene.
       const bool demandaLocalS1  = camara_leerPin(CAM_DEMANDA_PIN)
-                                   || camara_presenciaJ16()
+                                   || (camara_mira(0) && camara_presenciaJ16(0))
+                                   || (camara_mira(1) && camara_presenciaJ16(1))
                                    || demanda_hayLocal();
       const bool demandaRemotaS2 = coordinador_hayDemandaRemota();
 

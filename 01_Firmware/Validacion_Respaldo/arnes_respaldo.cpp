@@ -196,20 +196,20 @@ int main(void) {
       respaldo_setup();
       const int b = respaldo_perdidoAlArrancar() ? 1 : 0;
       respaldo_guardarBarreraFuera(true);
-      respaldo_guardarVetoCamaraOff(true);
+      respaldo_guardarVetoCamaraOff(0, true);   // D-166: la C, el bit 0x0200
       const int c = respaldo_barreraFuera() ? 1 : 0;
       respaldo_guardarDegradado(true);
       respaldo_guardarTestigo();
       respaldo_guardarDegradado(false);
-      const int d = (respaldo_barreraFuera() && respaldo_vetoCamaraOff()) ? 1 : 0;
+      const int d = (respaldo_barreraFuera() && respaldo_vetoCamaraOff(0)) ? 1 : 0;
       respaldo_setup();
       const int e = respaldo_perdidoAlArrancar() ? 1 : 0;
-      const int f = (respaldo_barreraFuera() && respaldo_vetoCamaraOff()) ? 1 : 0;
+      const int f = (respaldo_barreraFuera() && respaldo_vetoCamaraOff(0)) ? 1 : 0;
       respaldo_guardarBarreraFuera(false);
-      const int g = (respaldo_barreraFuera() ? 2 : 0) + (respaldo_vetoCamaraOff() ? 1 : 0);
+      const int g = (respaldo_barreraFuera() ? 2 : 0) + (respaldo_vetoCamaraOff(0) ? 1 : 0);
       const int dr4 = leerReg(REG_FLAGS) & 0x0600U;
       respaldo_borrar();
-      const int h = respaldo_vetoCamaraOff() ? 1 : 0;
+      const int h = respaldo_vetoCamaraOff(0) ? 1 : 0;
       printf("%d %d %d %d %d %d %d %d %04X\n", a, b, c, d, e, f, g, h, (unsigned)dr4);
 
     } else if (strncmp(linea, "CAUSA", 5) == 0) {

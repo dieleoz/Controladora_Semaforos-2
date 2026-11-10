@@ -279,10 +279,11 @@
     // cota contra el tramaCompleta[160] de enviarTramaConCrc() la recalcula
     // version_01_sello_de_firmware en cada corrida; no se pone un static_assert porque
     // nombrar ese 160 ABORTA esp32_07 y esp32_09, que leen la declaracion por TEXTO.
+    // D-168: detras del sello, la polaridad de la barrera de ESTE binario (pines.h, fijada al compilar).
 #if FW_SELLADO
-    enviarTramaConCrc("$ACK,CMD:VERSION,RESULT:OK,NODE:ESCLAVO,FW:" FW_TEXTO);
+    enviarTramaConCrc("$ACK,CMD:VERSION,RESULT:OK,NODE:ESCLAVO,FW:" FW_TEXTO ",J15:" TALANQUERA_J15);
 #else
-    enviarTramaConCrc("$ERR,CMD:VERSION,DESC:SIN_SELLAR,NODE:ESCLAVO,FW:" FW_SIN_SELLO);
+    enviarTramaConCrc("$ERR,CMD:VERSION,DESC:SIN_SELLAR,NODE:ESCLAVO,FW:" FW_SIN_SELLO ",J15:" TALANQUERA_J15);
 #endif
     // NO se anota en el Diario: preguntar la version no cambia el equipo, y una linea por
     // consulta inunda la bitacora donde hay que encontrar el fallo (N-73).

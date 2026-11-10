@@ -331,7 +331,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // paran ni cambian nada: hay que poder MIRAR antes de tocar; VERSION es la primera pregunta si algo va raro.
   const SIN_PIN = ['FORZAR_ROJO', 'AMBAR_EMERGENCIA', 'SET_MODO:MENU',
                    'LEER_RTC', 'VERSION', 'CONSULTA_DEG_AUTO', 'CONSULTA_DEG_FIN', 'CONSULTA_NOCHE', 'REINICIOS',
-                   'LOG,DESDE', 'CONSULTA_INSTALACION'];
+                   'LOG,DESDE', 'CONSULTA_INSTALACION', 'CONSULTA_VETO'];   // D-166: solo mira
 
   // DEVUELVE SI LA ORDEN LLEGO A SALIR, y el que llama TIENE QUE MIRARLO.
   //

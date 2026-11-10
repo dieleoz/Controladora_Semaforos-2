@@ -11,7 +11,8 @@
 const Practica = (() => {
   const mac = (n) => '02:00:00:00:00:' + String(n).padStart(2, '0');   // administradas localmente: no son de nadie
   const poste = (n, nodo, serie, fw, pareja, extra) => Object.assign({
-    nodo, serie, fw, pareja, direccion: mac(n), rotulo: 'SEM-' + serie + '-' + nodo[0], radio: true, rf: 100, rtt: 196
+    nodo, serie, fw, pareja, direccion: mac(n), rotulo: 'SEM-' + serie + '-' + nodo[0], radio: true, rf: 100, rtt: 196,
+    j15: null   // D-168: los FW de la flota son sellos de cintas de antes del 10/11, y su VERSION no lleva J15:
   }, extra || {});
   const NOCHE = (rojo, fase) => ({ tr: 180, fase, destino: 'AUTO',
                                     franjas: [{ dias: 127, inicio: 22 * 60, fin: 5 * 60, rojo }] });

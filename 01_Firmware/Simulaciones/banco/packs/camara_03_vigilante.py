@@ -545,7 +545,7 @@ def correr(b, fw):
         # llamara seria la funcion huerfana de N-73, y devolveria el firmware a dos
         # formulas de "hay coche" en cuanto alguien volviera a necesitar la pregunta.
         b.verificar(
-            re.search(r"camara_presenciaJ16\s*\(\s*\)",
+            re.search(r"camara_presenciaJ16\s*\(\s*(?:-?\d)?\s*\)",   # D-166: por camara
                       fw.codigo(punta, "src", "semaforo.cpp")) is not None,
             "%s: y tiene consumidor: el veto de la pluma de D-33 la pregunta desde "
             "semaforo.cpp, o sea que 'hay coche' se define UNA vez y se lee donde se "
@@ -556,7 +556,7 @@ def correr(b, fw):
 
     inteligente = fw.codigo("Maestro", "src", "modo_inteligente.cpp")
     b.verificar(
-        re.search(r"camara_presenciaJ16\s*\(\s*\)", inteligente) is not None,
+        re.search(r"camara_presenciaJ16\s*\(\s*(?:-?\d)?\s*\)", inteligente) is not None,   # D-166: por camara
         "Maestro: el Modo Inteligente lee las camaras de J16 -camara_presenciaJ16()- "
         "y no solo la de J14. Es donde el responsable decidio poner la camara",
         "Maestro: modo_inteligente.cpp NO llama a camara_presenciaJ16(). Entonces la "

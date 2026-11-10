@@ -27,15 +27,17 @@ const Simulador = (() => {
     TESTIGO_DESPEJE_MAX: [255, MD + 'TESTIGO_DESPEJE_MAX'], TESTIGO_INICIO_MAX_S: [43200, MD + 'TESTIGO_INICIO_MAX_S'],
     ROJO_MINIMO_MS: [4000, 'Esclavo/src/modo_degradado.cpp:ROJO_MINIMO_MS'],
     DEG_AUTO_ACUSE_MS: [10000, 'Maestro/include/deg_auto.h:DEG_AUTO_ACUSE_MS'],
-    FW_SIN_SELLO: ['--', 'Maestro/include/version_fw.h:FW_SIN_SELLO']
+    FW_SIN_SELLO: ['--', 'Maestro/include/version_fw.h:FW_SIN_SELLO'],
+    J15: ['BAJAR', 'Maestro/include/pines.h:TALANQUERA_J15']   // D-168: la polaridad de fabrica
   };
   const C = {}, ORIGEN = {};
   Object.keys(DEF).forEach(k => { C[k] = DEF[k][0]; ORIGEN[k] = DEF[k][1]; });
   const PREF_PIN = 'CMD:PIN:' + C.PIN + ':';
   // Las que el despachador del Maestro admite sin PIN (bluetooth.cpp, la lista de antes de AUTH_FAILED).
   const SIN_PIN_M = ['SET_MODO:MENU', 'CONSULTA_DEG_AUTO', 'CONSULTA_DEG_FIN', 'REINICIOS',
-                     'VERSION', 'CONSULTA_INSTALACION'];
+                     'VERSION', 'CONSULTA_INSTALACION', 'CONSULTA_VETO'];
   const DIAS = 'LMXJVSD'; if (typeof SimInstalacion === 'undefined') require('./sim_instalacion');
+  if (typeof SimInterruptores === 'undefined') require('./sim_interruptores');   // D-166/D-169: SPEC_8 6 y 9
 
   // Checksum NMEA de enviarTramaConCrc(): XOR de todo lo que va tras el '$'.
   function conCrc(p) {
@@ -56,7 +58,7 @@ const Simulador = (() => {
     postes.forEach(p => { if (p.pareja) p.otro = postes.find(q => q !== p && q.pareja === p.pareja) || null; });
 
     function nuevoPoste(d) {
-      const p = Object.assign({ sellado: true, radio: true, rf: null, rtt: null, enHora: true, pareja: null,
+      const p = Object.assign({ sellado: true, j15: C.J15, radio: true, rf: null, rtt: null, enHora: true, pareja: null,
                                 degAuto: false, salidaS: 0, ambarLatch: false, rojoFijo: false, testLeds: 0,
                                 cicloDesde: 0, saliendoDesde: 0, nocheDesde: 0, relojPendiente: false,
                                 rein: 0, causa: 'CORTE', antes: 0 }, d);
@@ -104,9 +106,9 @@ const Simulador = (() => {
       if (p.testLeds > reloj.ahora()) return Object.assign({ estado: 'VERDE', esc: 'ROJO' }, sin);
       const rj = p.rojoFijo || p.degSaliendo || reloj.ahora() < p.cicloDesde, sinD = { esc: '?', t: '--' };
       if (p.modo === 'DEGRADADO') return Object.assign(rj ? { estado: 'ROJO' } : ciclo(p, p.cicloDesde), sinD);
-      if (p.modo === 'AMBAR') return Object.assign({ estado: p.rojoFijo ? 'ROJO' : 'FALLO COM', esc: 'AMBAR' }, sin);
+      if (p.modo === 'AMBAR') return Object.assign({ estado: 'FALLO COM', esc: 'AMBAR' }, sin);   // D-170
       if (p.modo === 'NOCHE') return { estado: p.nocheFase === 'DESTELLO' ? 'AMBAR_INT' : 'ROJO', esc: '?', t: '--' };
-      if (!p.radio) return Object.assign({ estado: 'FALLO COM', esc: p.modo === 'MENU' ? 'ROJO' : '?' }, sin);
+      if (!p.radio) return Object.assign({ estado: 'FALLO COM', esc: '?' }, sin);   // D-171: sin dato fresco
       const parado = p.rojoFijo || ['MENU', 'MANUAL'].indexOf(p.modo) >= 0;
       if (parado) return { estado: p.rojoFijo && reloj.ahora() < p.amarM ? 'AMARILLO' : 'ROJO', esc: 'ROJO', t: '--' };
       return ciclo(p, p.cicloDesde);
@@ -117,18 +119,17 @@ const Simulador = (() => {
         : ciclo(p, p.cicloDesde).estado;
       if (p.modo === 'RENDIDO' || p.ambarLatch) return 'FALLO COM';
       const m = p.otro;
-      if (!p.radio || !m || !m.radio || m.nodo !== 'MAESTRO') return 'FALLO COM';
+      if (!p.radio || !m || !m.radio || m.nodo !== 'MAESTRO' || m.modo === 'AMBAR') return 'FALLO COM';
       const l = luzMaestro(m);
       const rojo = m.franjas[Math.max(0, m.nocheActiva)].rojo;   // coordinador_entrarNoche(rojoPoste2)
       if (m.modo === 'NOCHE' && m.nocheFase === 'DESTELLO') return rojo ? 'ROJO_INT' : 'AMBAR_INT';
-      if (m.modo === 'AMBAR') return m.rojoFijo && reloj.ahora() < m.rojoE ? 'ROJO' : 'FALLO COM';
       return m.rojoFijo && reloj.ahora() < m.amarE ? 'AMARILLO' : l.esc === 'VERDE' ? 'VERDE' : 'ROJO';
     }
     const estadoLuz = (p) => (p.nodo === 'MAESTRO' ? luzMaestro(p).estado : luzEsclavo(p));
     const plumaArriba = (e) => ['VERDE', 'FALLO COM', 'AMARILLO', 'AMBAR_INT', 'ROJO_INT'].indexOf(e) >= 0;
-    // D-97/D-150: la barrera fuera publica FUERA, tambien en rojo. D-151: NOVETO solo con camaras sanas (aqui, CAM:?).
+    // D-97/D-150: la barrera fuera publica FUERA, tambien en rojo. D-151/D-166: CAM: en js/sim_interruptores.js.
     const plumaCam = (p, e) => ',PLUMA:' + (p.barreraFuera ? 'FUERA' : plumaArriba(e) ? 'ARRIBA' : 'ABAJO') + ',CAM:' +
-                               (p.vetoOff ? 'NOVETO' : '?');
+                               SimInterruptores.cam(p);
     // ---- lo que pasa solo con el tiempo: modoNoche_loop/vigilar, salida del Degradado ----
     function setModo(p, m) {
       if (p.modo === 'NOCHE' && m !== 'NOCHE') { p.nocheActiva = -1; p.nocheFase = 'ENTRANDO'; }
@@ -176,23 +177,12 @@ const Simulador = (() => {
       return conCrc('$STATUS,NODE:ESCLAVO,SERIE:' + p.serie + ',MODO:' + p.modo + ',ESTADO:' + e +
                     ',T:--,RF:--,RTT:--,BAT:--,HORA:' + horaTxt(p) + plumaCam(p, e));
     }
-    // D-94: interruptores_orden() de {Maestro,Esclavo}/src/interruptores.cpp, identico en las dos puntas y local al
-    // poste (p.vetoOff, p.barreraFuera). Releido tras guardar (D-149); RESPALDO_INVALIDO con p.respaldoPerdido (D-148).
-    function interruptores(p, a) {
-      const esVeto = a.indexOf('SET_VETO_CAMARA:') === 0, cmd = esVeto ? 'SET_VETO_CAMARA' : 'SET_BARRERA_SERVICIO';
-      if (!esVeto && a.indexOf('SET_BARRERA_SERVICIO:') !== 0) return null;
-      const valor = a.slice(cmd.length + 1), puesto = valor === 'OFF', clave = esVeto ? 'vetoOff' : 'barreraFuera';
-      if (!puesto && valor !== 'ON') return '$ERR,CMD:' + cmd + ',DESC:FORMATO_INVALIDO';   // OFF: interruptor PUESTO
-      const enEstado = () => !!p[clave] === puesto;
-      const c = cmd + ':' + valor;
-      if (enEstado()) return '$ACK,CMD:' + c + ',RESULT:SIN_CAMBIO';
-      if (puesto && p.respaldoPerdido) return '$ERR,CMD:' + c + ',DESC:RESPALDO_INVALIDO';
-      p[clave] = puesto;
-      return enEstado() ? '$ACK,CMD:' + c + ',RESULT:OK' : '$ERR,CMD:' + c + ',DESC:NO_QUEDO_PUESTO';
-    }
+    // D-94/D-166/D-169: interruptores_orden() de interruptores.cpp, en js/sim_interruptores.js (este fichero, a 500).
+    const interruptores = (p, a) => SimInterruptores.orden(p, a);
     // ---- respuestas comunes a las dos puntas ----
     const version = (p) => (p.sellado ? '$ACK,CMD:VERSION,RESULT:OK,NODE:' + p.nodo + ',FW:' + p.fw
-                                      : '$ERR,CMD:VERSION,DESC:SIN_SELLAR,NODE:' + p.nodo + ',FW:' + C.FW_SIN_SELLO);
+                                      : '$ERR,CMD:VERSION,DESC:SIN_SELLAR,NODE:' + p.nodo + ',FW:' + C.FW_SIN_SELLO) +
+                            (p.j15 ? ',J15:' + p.j15 : '');   // D-168: polaridad del binario; null = antes del 10/11
     const reinicios = (p) => '$ACK,CMD:REINICIOS,RESULT:OK,NODE:' + p.nodo + ',REIN:' + p.rein + ',CAUSA:' + p.causa +
                              ',UP:' + Math.floor((reloj.ahora() - p.encendido) / 1000) + ',ANTES:' + p.antes;
     const aptoPropio = (p) => p.degAuto && p.radio && p.modo !== 'DEGRADADO';
@@ -348,8 +338,9 @@ const Simulador = (() => {
     }
     function forzarRojoMaestro(p, tx) {
       if (p.modo !== 'DEGRADADO') {   // coordinador_forzarRojoTotal(): cada verde cierra por amarillo (D-45)
+        if (p.modo === 'AMBAR') setModo(p, 'MANUAL');   // D-170: modo_ambar_forzarRojoTotal(), rojo en los dos
         const l = luzMaestro(p), ya = reloj.ahora(), amar = (s) => (s === 'VERDE' ? ya + C.AMARILLO_SEG * 1000 : 0);
-        Object.assign(p, { rojoFijo: true, rojoE: ya + C.SFTY6_SILENCIO_MS, amarE: amar(l.esc),
+        Object.assign(p, { rojoFijo: true, amarE: amar(l.esc),
                            amarM: l.estado === 'AMARILLO' ? ya + 1000 * (+l.t || 0) : amar(l.estado) });
         return tx('$ACK,CMD:FORZAR_ROJO,RESULT:OK');
       }
@@ -464,7 +455,10 @@ const Simulador = (() => {
       if (cmd === 'CMD:REINICIOS' || cmd === PREF_PIN + 'REINICIOS') return tx(reinicios(p));
       if (cmd === 'CMD:CONSULTA_DEG_FIN' || cmd === PREF_PIN + 'CONSULTA_DEG_FIN') return tx(consultaDegFin(p));
       if (cmd === 'CMD:CONSULTA_DEG_AUTO' || cmd === PREF_PIN + 'CONSULTA_DEG_AUTO') return tx(consultaDegAuto(p));
-      if (cmd.indexOf(PREF_PIN)) return tx(SimInstalacion.sinPin(p, cmd) || '$ERR,CMD:AUTH_FAILED,DESC:PIN_INVALIDO');
+      if (cmd.indexOf(PREF_PIN)) {
+        return tx(SimInstalacion.sinPin(p, cmd) || SimInterruptores.sinPin(p, cmd) ||
+                  '$ERR,CMD:AUTH_FAILED,DESC:PIN_INVALIDO');
+      }
       const a = cmd.slice(PREF_PIN.length);
       if (a === 'AMBAR_EMERGENCIA') ambarEmergencia(p, tx, true);
       else if (a === 'CANCELAR_AMBAR') {

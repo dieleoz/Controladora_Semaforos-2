@@ -170,6 +170,7 @@ Quien cita la transcripcion: `SPEC_1_Ciclo_y_Luces.md:109` (§2 y §5), `SPEC_1:
 | `Validacion_Automatico/instalacion_dobles.inc` | pagina siempre borrada (fabrica), sin escritura; `camaras_sembrar()` vacio | `dos_puntas/adaptador_esclavo.cpp`, `puente_esp32/arnes_puente.cpp` |
 | `App_Semaforo/js/instalacion.js` | panel de Ajustes, `Instalacion.RETARDO`, `rechazo()` | `index.html`; `tests/dom_simulador.js`, `tests/dom_interruptores.js`, `app_01_comandos` |
 | `App_Semaforo/js/sim_instalacion.js` | el simulador de practica de las tres ordenes y la consulta | `index.html`; `tests/dom_simulador.js` |
+| `App_Semaforo/js/sim_interruptores.js` | practica de SPEC_8 6 y 9: veto por camara, `SET_CAMARA_MALA`, `CONSULTA_VETO`, `CAM:` (`D-166`, `D-169`) | `index.html`; `tests/dom_simulador.js` |
 
 Punto ciego: `NC` en `Esclavo/src/botones.cpp` no lo compila ningun arnes (el bloque K es solo Maestro; los dobles
 vacian `camaras_sembrar()`).

@@ -89,3 +89,13 @@ void modo_ambar_setup() {
 void modo_ambar_loop() {
   semaforo_actualizar();
 }
+
+// D-170 (SPEC_4 3.1, responsable 10/11): EL ROJO TOTAL FUERA DEL DEGRADADO, y desde el ambar es rojo EN LOS DOS.
+// En MODO_AMBAR main.cpp no llama al coordinador: el rojo de abajo se quedaba en este poste, sin latido, y el
+// Esclavo volvia a su ambar por orfandad a los SFTY6_SILENCIO_MS con el $ACK diciendo OK. Se pasa a MODO_MANUAL
+// ANTES del rojo: alli el latido manda GO_RED hasta el ACK_RED y no hay cambio programado (N-147), como la
+// salida de la noche (D-111) y la cancelacion del Esclavo (N-152). Sin radio, SFTY-6 sigue siendo la red.
+void modo_ambar_forzarRojoTotal() {
+  if (modoActual_get() == MODO_AMBAR) modoActual_set(MODO_MANUAL);
+  coordinador_forzarRojoTotal();
+}

@@ -110,6 +110,17 @@ const char* camara_estado();
 // asi lo que publica el aire y lo que devuelve el getter no pueden separarse.
 uint16_t camara_vetosPluma();
 
+// D-166/D-169 (SPEC_8 9.1): la camara i (0 = C, 1 = D) MIRA si no esta inhibida a mano (SET_VETO_CAMARA, en el
+// respaldo) ni declarada mala por el vigilante (CAM_PEGADA o CAM_CIEGA). Es la mascara de los TRES consumidores
+// -el veto de escribirPines(), demandaLocalS1 y el flanco que pide demanda- y de ninguno mas: camara_presencia()
+// y camara_presenciaJ16() siguen viendo la camara cruda, porque las leen el vigilante y el VE: de SET_CAMARA.
+bool camara_mira(int i);
+// D-169 (SPEC_8 9.2): true si hay alguna camara mala no inhibida y su parametro dice ARRIBA -MALA1 si queda otra
+// que mira, MALA2 si no-. Lo lee la rama de bajada de escribirPines(); no levanta una pluma ya abajo.
+bool camara_malaRetienePluma();
+// D-166: la letra de una camara para CONSULTA_VETO: 'O' OK, '?' sin juzgar, 'C' CIEGA, 'P' PEGADA.
+char camara_letra(int i);
+
 
 // ---------------------------------------------------------------------------
 // LA PRESENCIA SOSTENIDA EN LAS DOS CAMARAS DE J16. 05/09/2026.

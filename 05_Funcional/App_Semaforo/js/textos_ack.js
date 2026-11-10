@@ -211,12 +211,15 @@ const ACK_TEXTO = {
            'cuando ese todo-rojo termine.',
     toast: 'Aceptada - sale del Degradado por todo-rojo antes de llegar al menu'
   },
-  // SPEC_4 3.1 (D-45): fuera de Degradado, amarillo 3 s y rojo; en Degradado, su salida por todo-rojo.
+  // SPEC_4 3.1 (D-45, D-170): fuera de Degradado; solo la via en verde pasa por amarillo. Desde Ambar, a Manual
+  // con rojo fijo en las dos; en Automatico e Inteligente el ciclo sigue al vencer su fase (G6, dos puntas).
   'FORZAR_ROJO|OK': {
     tono: 'red',
-    texto: 'Equipo: ROJO TOTAL aceptado. Las dos vias pasan por 3 s de amarillo y quedan en ' +
-           'ROJO FIJO. Compruebe las dos puntas antes de dejar pasar a nadie.',
-    toast: 'Rojo total: amarillo 3 s y rojo fijo en las dos vias'
+    texto: 'Equipo: ROJO TOTAL ordenado. La via que estaba en verde pasa por 3 s de amarillo. En Manual y desde ' +
+           'Ambar (pasa a Manual) el rojo se sostiene mientras el Poste 2 lo acuse; sin radio, o con su ambar de ' +
+           'emergencia, a los 28 s vuelve a ambar. En Automatico o Inteligente el ciclo sigue. Compruebe las dos ' +
+           'puntas antes de dejar pasar a nadie.',
+    toast: 'Rojo total: amarillo 3 s solo en la via que estaba en verde'
   },
   // D-51: en Degradado es rojo FIJO en este poste (no salida), y el otro sigue alternando por su reloj.
   'FORZAR_ROJO|ROJO_FIJO_EN_ESTE_POSTE': {
@@ -296,7 +299,9 @@ const ACK_TEXTO = {
     texto: 'Equipo: version contestada. La linea "Version cargada" es el commit ' +
            'del que salio el firmware que este equipo tiene CARGADO. Si termina en ' +
            '+SUCIO, ese binario se compilo sobre trabajo sin comitear: el commit NO lo ' +
-           'describe entero y no sirve para acreditar una prueba de banco.',
+           'describe entero y no sirve para acreditar una prueba de banco. La misma linea dice la ' +
+           'polaridad de la barrera que lleva: con "J15 manda BAJAR", la central tiene que estar en ' +
+           '"sin senal = subir"; si no, la pluma queda al reves (D-168).',
     toast: 'Version contestada - vea Eventos'
   },
   'LEER_RTC|OK': {

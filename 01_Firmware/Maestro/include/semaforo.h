@@ -70,6 +70,8 @@ bool semaforo_plumaArriba();
 // cuando empieza a haber algo que contar. Se cuenta el flanco de subida de esta bandera.
 // ---------------------------------------------------------------------------
 bool semaforo_plumaVetada();
+// D-169 (SPEC_8 9.2): true si la pluma sigue arriba en el rojo porque una camara MALA y su MALAx = ARRIBA.
+bool semaforo_plumaRetenidaMala();
 // ---------------------------------------------------------------------------
 // D-150 (SPEC_8 6.4): true si la ultima orden de escribirPines() abrio la pluma POR EL
 // INTERRUPTOR de barrera fuera de servicio (D-96). Es una ANOTACION de la misma orden que

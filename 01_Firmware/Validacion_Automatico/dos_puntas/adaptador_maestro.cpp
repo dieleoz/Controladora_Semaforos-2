@@ -94,6 +94,9 @@ void botones_actualizar() {}
 // es el reparto del verde entre las dos puntas; quien ejerce el veto con camaras de
 // verdad es el Bloque F/G de arnes_automatico.cpp, que compila botones.cpp REAL.
 bool camara_presenciaJ16(int) { return false; }
+bool camara_mira(int) { return true; }   // D-166/D-169: sin camaras ninguna esta inhibida ni mala
+bool camara_malaRetienePluma() { return false; }
+char camara_letra(int) { return '?'; }
 // N-187: instalacion.cpp entra REAL (semaforo.cpp lee de el el retardo de la pluma). La
 // pagina, modelada con memoria y borrada al cargar (fabrica NA, NA, 3 s): ver el .inc.
 #include "instalacion_mandos.inc"
@@ -154,7 +157,8 @@ uint32_t reloj_contadorSegundos() { return (uint32_t)(arnes_millis_valor / 1000U
 void respaldo_marcarSync(uint32_t) {}
 // SPEC_8 6 (D-95): los dos interruptores, en ON. Este arnes no ejerce las ordenes del Maestro (lo
 // hace el Bloque I de arnes_automatico.cpp); los del Esclavo, el bloque de orquestador_interruptores.inc.
-bool respaldo_vetoCamaraOff() { return false; }
+bool respaldo_vetoCamaraOff(int) { return false; }   // D-166: por camara
+bool respaldo_malaBaja(int) { return false; }         // D-169: fabrica ARRIBA
 bool respaldo_barreraFuera() { return false; }
 
 // N-133/N-135: los tiempos del ciclo, doblados con memoria de verdad.

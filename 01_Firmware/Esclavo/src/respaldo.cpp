@@ -106,8 +106,13 @@ static const uint16_t FLAG_ROJO_SIN_HORA = 0x0100;
 // dentro de la suma y sin tocar la firma. Los baja su orden inversa o respaldo_borrar() -los
 // dos vuelven a ON, el lado seguro-; guardarDegradado()/guardarTestigo() NO: un Degradado no
 // repara una barrera.
-static const uint16_t FLAG_VETO_CAMARA_OFF = 0x0200;
+static const uint16_t FLAG_VETO_CAMARA_OFF = 0x0200;   // D-166: la camara C inhibida (era "las dos", D-94)
 static const uint16_t FLAG_BARRERA_FUERA   = 0x0400;
+// D-166/D-169 (SPEC_8 9.4): la camara D inhibida y los dos parametros de camara mala. Mismo molde. EL BIT A 0
+// ES LA FABRICA -veto puesto, MALA ARRIBA-: respaldo_borrar() y la pila agotada vuelven al lado seguro.
+static const uint16_t FLAG_VETO_D_OFF      = 0x0800;
+static const uint16_t FLAG_MALA1_BAJA      = 0x1000;
+static const uint16_t FLAG_MALA2_BAJA      = 0x2000;
 
 static bool contenidoValido = false;
 // D-148: "este arranque encontro el respaldo invalido y lo borro". No es respaldo_valido():
@@ -450,10 +455,13 @@ bool respaldo_rojoSinHora() {
 // D-149: el getter lee DR4 por contenidoValido, sin copia en RAM; lo leen la orden y
 // escribirPines(). Antes de respaldo_setup() -en el Esclavo semaforo_setup() va antes- vale
 // false, que es ON.
-void respaldo_guardarVetoCamaraOff(bool off) { ponerFlag(FLAG_VETO_CAMARA_OFF, off); }
-bool respaldo_vetoCamaraOff() {
-  return contenidoValido && (leerReg(REG_FLAGS) & FLAG_VETO_CAMARA_OFF) != 0;
-}
+// D-166: cam 0 = C, 1 = D (fuera de rango, la D). D-169: n 1 = MALA1, 2 = MALA2.
+static uint16_t bitVeto(int cam) { return cam == 0 ? FLAG_VETO_CAMARA_OFF : FLAG_VETO_D_OFF; }
+static uint16_t bitMala(int n) { return n == 1 ? FLAG_MALA1_BAJA : FLAG_MALA2_BAJA; }
+void respaldo_guardarVetoCamaraOff(int cam, bool off) { ponerFlag(bitVeto(cam), off); }
+bool respaldo_vetoCamaraOff(int cam) { return contenidoValido && (leerReg(REG_FLAGS) & bitVeto(cam)) != 0; }
+void respaldo_guardarMalaBaja(int n, bool baja) { ponerFlag(bitMala(n), baja); }
+bool respaldo_malaBaja(int n) { return contenidoValido && (leerReg(REG_FLAGS) & bitMala(n)) != 0; }
 void respaldo_guardarBarreraFuera(bool fuera) { ponerFlag(FLAG_BARRERA_FUERA, fuera); }
 bool respaldo_barreraFuera() {
   return contenidoValido && (leerReg(REG_FLAGS) & FLAG_BARRERA_FUERA) != 0;

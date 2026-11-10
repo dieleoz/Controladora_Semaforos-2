@@ -22,6 +22,9 @@ static int g_entradaAlArrancar[64];
 void botones_setup() {}
 void botones_actualizar() {}
 bool camara_presenciaJ16(int) { return false; }
+bool camara_mira(int) { return true; }   // D-166/D-169: sin camaras ninguna esta inhibida ni mala
+bool camara_malaRetienePluma() { return false; }
+char camara_letra(int) { return '?'; }
 #include "../instalacion_dobles.inc"
 bool camara_leerPin(uint8_t pin, bool nc) { return (digitalRead(pin) == HIGH) != nc; }  // N-187: firma real
 static long arnesInstEsc_mando(const char*, long) { return PUNTA_DESCONOCIDO; }

@@ -127,6 +127,7 @@ static void procesarComando(const char* cmd) {
               strcmp(cmd + 4, "CONSULTA_DEG_FIN") == 0 ||    // D-52: solo mira
               strcmp(cmd + 4, "REINICIOS") == 0 ||           // D-60: solo mira
               strcmp(cmd + 4, "CONSULTA_INSTALACION") == 0 ||   // N-187: solo mira
+              strcmp(cmd + 4, "CONSULTA_VETO") == 0 ||          // D-166: solo mira
               strcmp(cmd + 4, "VERSION") == 0)) {
     accion = cmd + 4;
   } else {

@@ -274,9 +274,9 @@ static void procesarComando(const char* cmd) {
   // nada.
   if (strcmp(cmd, "CMD:VERSION") == 0) {
 #if FW_SELLADO
-    enviarTramaConCrc("$ACK,CMD:VERSION,RESULT:OK,NODE:ESCLAVO,FW:" FW_TEXTO);
+    enviarTramaConCrc("$ACK,CMD:VERSION,RESULT:OK,NODE:ESCLAVO,FW:" FW_TEXTO ",J15:" TALANQUERA_J15);
 #else
-    enviarTramaConCrc("$ERR,CMD:VERSION,DESC:SIN_SELLAR,NODE:ESCLAVO,FW:" FW_SIN_SELLO);
+    enviarTramaConCrc("$ERR,CMD:VERSION,DESC:SIN_SELLAR,NODE:ESCLAVO,FW:" FW_SIN_SELLO ",J15:" TALANQUERA_J15);
 #endif
     return;
   }
@@ -326,6 +326,11 @@ static void procesarComando(const char* cmd) {
   // N-187: CONSULTA_INSTALACION solo mira; entra con y sin PIN, gemela de la del Maestro.
   if (strcmp(cmd, "CMD:CONSULTA_INSTALACION") == 0 || strcmp(cmd, "CMD:PIN:1234:CONSULTA_INSTALACION") == 0) {
     enviarTramaConCrc(instalacion_orden("CONSULTA_INSTALACION"));
+    return;
+  }
+  // D-166: CONSULTA_VETO solo mira; con y sin PIN, gemela de la del Maestro.
+  if (strcmp(cmd, "CMD:CONSULTA_VETO") == 0 || strcmp(cmd, "CMD:PIN:1234:CONSULTA_VETO") == 0) {
+    enviarTramaConCrc(interruptores_orden("CONSULTA_VETO"));
     return;
   }
 

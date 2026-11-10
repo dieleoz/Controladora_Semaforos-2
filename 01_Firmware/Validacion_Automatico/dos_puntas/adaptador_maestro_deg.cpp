@@ -118,6 +118,9 @@ void botones_actualizar() {}
 // es el reparto del verde entre las dos puntas; quien ejerce el veto con camaras de
 // verdad es el Bloque F/G de arnes_automatico.cpp, que compila botones.cpp REAL.
 bool camara_presenciaJ16(int) { return false; }
+bool camara_mira(int) { return true; }   // D-166/D-169: sin camaras ninguna esta inhibida ni mala
+bool camara_malaRetienePluma() { return false; }
+char camara_letra(int) { return '?'; }
 // N-187: instalacion.cpp entra REAL (semaforo.cpp lee de el el retardo de la pluma). La
 // pagina no existe en el PC: borrada = fabrica (NA, NA, 3 s), y no se escribe.
 uint16_t instalacionFlash_leerHw(uint8_t) { return 0xFFFFU; }
@@ -388,6 +391,8 @@ PUNTA_API long punta_mando(const char* que, long arg) {
   if (!strcmp(que, "forzar_rojo_total"))  { coordinador_forzarRojoTotal(); return 1; }
   if (!strcmp(que, "forzar_rojo_app"))    return (long)modo_degradado_forzarRojo();   // bluetooth.cpp
   if (!strcmp(que, "esc_desconocido"))    return strcmp(coordinador_estadoEsclavo(), "?") == 0 ? 1 : 0;
+  if (!strncmp(que, "esc_es:", 7))        return strcmp(coordinador_estadoEsclavo(), que + 7) == 0 ? 1 : 0;   // D-170
+  if (!strcmp(que, "forzar_menu"))        { modoActual_set(MENU); coordinador_forzarMenu(); return 1; }   // menu.cpp
 
   // --- La puerta y el modo -------------------------------------------------
   // "deg_evaluar" devuelve el MotivoDegradado real: 0 = MDG_OK. No se toca nada.

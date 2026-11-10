@@ -136,6 +136,55 @@ module.exports = async function pruebaInterruptores(montarAppLimpia, assert) {
   assert(/ACEPTADA/.test(ultimo()) && !/veto|servicio/i.test(ultimo()),
     `Control: un $ACK ajeno no se traduce como interruptor: "${ultimo()}"`);
 
+  // D-166/D-169 (SPEC_8 9.5): veto por camara y camara mala. Tramas de la SPEC; datos asimetricos (C fuera y
+  // PEGADA, D con veto y OK; MALA1 ARRIBA, MALA2 BAJA) para que un indice cruzado no pase.
+  const nuevas = ['SET_VETO_CAMARA:C:OFF', 'SET_VETO_CAMARA:C:ON', 'SET_VETO_CAMARA:D:OFF', 'SET_VETO_CAMARA:D:ON',
+                  'SET_CAMARA_MALA:1:BAJA', 'SET_CAMARA_MALA:1:ARRIBA', 'SET_CAMARA_MALA:2:BAJA',
+                  'SET_CAMARA_MALA:2:ARRIBA'];
+  const faltanN = nuevas.filter(o => !boton(o) || !boton(o).closest('#tab-diag.admin-only'));
+  assert(!faltanN.length, `I11 (D-166, D-169): los mandos por camara y de camara mala existen tras la clave ` +
+    `(faltan: ${faltanN.join(', ') || 'ninguno'})`);
+  if (!faltanN.length) {
+    a.tramas.length = 0;
+    boton('SET_VETO_CAMARA:C:OFF').click();
+    const txtCC = d.getElementById('dialogo-texto').textContent;
+    assert(abierto() && /c[aá]mara C/.test(txtCC) && /D sigue/.test(txtCC) && /verde/.test(txtCC) && !JERGA.test(txtCC),
+      `I11: sacar la C pregunta antes y dice que la D sigue: "${txtCC}"`);
+    aceptar();
+    boton('SET_VETO_CAMARA:D:ON').click();
+    boton('SET_CAMARA_MALA:2:BAJA').click();
+    const txtM = d.getElementById('dialogo-texto').textContent;
+    const dlgM = abierto() && /SIN MIRAR/.test(txtM);
+    aceptar();
+    boton('SET_CAMARA_MALA:1:ARRIBA').click();
+    assert(dlgM && a.tramas.join('|') === ['SET_VETO_CAMARA:C:OFF', 'SET_VETO_CAMARA:D:ON', 'SET_CAMARA_MALA:2:BAJA',
+      'SET_CAMARA_MALA:1:ARRIBA'].map(o => 'CMD:PIN:1234:' + o + '\r\n').join('|'),
+      `I11: BAJA pregunta, ON y ARRIBA no; salen con PIN y el valor exacto: ${JSON.stringify(a.tramas)}`);
+  }
+  a.tramas.length = 0;
+  entra('ACK,CMD:SET_VETO_CAMARA:C:OFF,RESULT:OK');
+  assert(/c[aá]mara C queda FUERA/.test(ultimo()) && /Qu[eé] falta/.test(ultimo()) && !/ACEPTADA \(/.test(ultimo()) &&
+         a.tramas.join('|') === 'CMD:CONSULTA_VETO\r\n',
+    `I12: el OK de la C lo dice y reconsulta sin PIN: "${ultimo().slice(0, 140)}" ${JSON.stringify(a.tramas)}`);
+  entra('ACK,CMD:SET_CAMARA_MALA:2:BAJA,RESULT:OK');
+  assert(/sin mirar/.test(ultimo()), `I12: MALA2 BAJA dice que baja sin mirar: "${ultimo().slice(0, 140)}"`);
+  entra('ERR,CMD:SET_CAMARA_MALA:1:BAJA,DESC:RESPALDO_INVALIDO');
+  assert(/pila/i.test(ultimo()), `I12: BAJA con el respaldo perdido dice pila: "${ultimo().slice(0, 140)}"`);
+  const av = d.getElementById('averias'), vEst = () => (d.getElementById('veto-estado') || {}).textContent || '';
+  a.tramas.length = 0;
+  av.open = true; av.dispatchEvent(new w.Event('toggle')); av.dispatchEvent(new w.Event('toggle'));
+  assert(a.tramas.join('|') === 'CMD:CONSULTA_VETO\r\n',
+    `I13: al abrir Averias sale UNA consulta sin PIN: ${JSON.stringify(a.tramas)}`);
+  entra('ACK,CMD:CONSULTA_VETO,RESULT:C0P_D1O_M1A_M2B');
+  assert(/C[aá]mara C: FUERA del veto, PEGADA/.test(vEst()) && /C[aá]mara D: con veto, bien/.test(vEst()) &&
+         /una c[aá]mara mala: barrera arriba/.test(vEst()) && /Sin ninguna: la barrera baja/.test(vEst()) &&
+         /Qu[eé] falta: reparar la c[aá]mara C/.test(vEst()) && !/la c[aá]mara D/.test(vEst()),
+    `I13: la consulta pinta cada camara por su letra y MALA1/MALA2: "${vEst()}"`);
+  av.open = false; av.dispatchEvent(new w.Event('toggle'));
+  entra('EVENT,NODE:ESCLAVO,ORIGEN:INTERRUPTOR,DETALLE:ARRANQUE_CAM_NOVETO_D,HORA:08:00:00');
+  assert(/c[aá]mara D FUERA DEL VETO/.test(ultimo()) && !/c[aá]maras FUERA/.test(ultimo()),
+    `I14 (D-152, D-166): el aviso de arranque de UNA camara la nombra: "${ultimo().slice(0, 160)}"`);
+
   // N-187 (SPEC_8 8.6; P3 del responsable 09/11: R en 3..5 s, fabrica 3). Datos asimetricos (C NC, D NA, VE C0D1)
   // para que un indice cruzado no pase.
   const det = d.getElementById('instalacion'), tx = (id) => (d.getElementById(id) || {}).textContent || '';

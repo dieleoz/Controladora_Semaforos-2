@@ -53,18 +53,19 @@ static void bloqueInterruptores() {
   const bool evento = ESCLAVO.orden("evento:ORIGEN:INTERRUPTOR,DETALLE:ARRANQUE_BARRERA_FUERA") == 1;
   avanzar(5000);
   const bool sigue = (ESCLAVO.domLeer(3) & S_FLAG_BARRERA_FUERA) != 0;
-  // Tras el arranque nada vuelve a pasar por escribirPines() en S_ROJO estable: la pluma queda
-  // ABAJO y PLUMA: lo dice (D-150), hasta un cambio de luz o la orden. SPEC_8 6 no pide reentrada
-  // al arrancar; se mide para que el dia que se decida, este bloque lo note.
-  const bool abajoCoherente = !sArriba() && ESCLAVO.orden("pluma_fuera") == 0 && sStatus("PLUMA:ABAJO");
-  comprobar(evento && sigue && abajoCoherente,
-            "S3 (D-95, D-152): tras el microcorte la bandera sigue en el DR4 REAL y el arranque emite "
-            "$EVENT ORIGEN:INTERRUPTOR,DETALLE:ARRANQUE_BARRERA_FUERA; la pluma queda abajo hasta la "
-            "orden o un cambio de luz, y el $STATUS dice ABAJO, no FUERA (D-150)");
-  const bool s3b = sOrden("SET_BARRERA_SERVICIO:OFF", "$ACK,CMD:SET_BARRERA_SERVICIO:OFF,RESULT:OK");
+  // D-168 (SE INVIERTE «queda ABAJO y PLUMA:ABAJO», CLAUDE.md 9): el arranque deja la pluma ARRIBA con su cierre
+  // armado, y la reentrada de D-33 vuelve a pasar por escribirPines() con la bandera ya leida: FUERA (D-150).
+  const bool arribaCoherente = sArriba() && ESCLAVO.orden("pluma_fuera") == 1 && sStatus("PLUMA:FUERA");
+  comprobar(evento && sigue && arribaCoherente,
+            "S3 (D-95, D-152, D-168): tras el microcorte la bandera sigue en el DR4 REAL y el arranque emite "
+            "$EVENT ORIGEN:INTERRUPTOR,DETALLE:ARRANQUE_BARRERA_FUERA; la pluma no baja nunca: sale ARRIBA del "
+            "arranque y la reentrada la anota FUERA, y el $STATUS dice FUERA (D-150)");
+  // S3b (D-149) SE INVIERTE: «bandera puesta y pin abajo» ya no se alcanza tras un corte (D-168); con el estado ya
+  // pedido, repetir el OFF es SIN_CAMBIO y no mueve nada.
+  const bool s3b = sOrden("SET_BARRERA_SERVICIO:OFF", "$ACK,CMD:SET_BARRERA_SERVICIO:OFF,RESULT:SIN_CAMBIO");
   comprobar(s3b && sArriba(),
-            "S3b (D-149): con la bandera puesta y el pin abajo, repetir el OFF NO es SIN_CAMBIO: reentra "
-            "y la pluma sube en esa orden");
+            "S3b (D-149, D-168): con la bandera puesta y la pluma ya FUERA desde el arranque, repetir el OFF es "
+            "SIN_CAMBIO y la pluma sigue arriba");
   const bool s4 = sOrden("SET_BARRERA_SERVICIO:ON", "$ACK,CMD:SET_BARRERA_SERVICIO:ON,RESULT:OK");
   const bool arribaTrasOn = sArriba();
   unsigned long bajo = 0;

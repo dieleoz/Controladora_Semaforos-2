@@ -18,3 +18,6 @@ const char* camara_estado();
 // devuelve false: aqui no hay camaras cableadas.
 bool camara_presenciaJ16(int cam = -1);   // N-187: firma de include/botones.h
 void camaras_sembrar();                   // N-187: la llama instalacion.cpp
+bool camara_mira(int i);              // D-166/D-169: firma de include/botones.h
+bool camara_malaRetienePluma();
+char camara_letra(int i);

@@ -109,7 +109,8 @@ configuracion** (`SPEC_6` HUECO 3), y si no se hizo el sintoma no dira «radio m
    `AMBAR_EMERGENCIA` en el poste 2 — este queda **enclavado** y se retira con `CANCELAR_AMBAR`, que **si** pide PIN
    (`SPEC_6` A.4).
 10. **Fin de jornada. 🔴 HUECO: no existe orden de apagado ni de parada segura.** Lo que hay es parar con `SET_MODO:MENU` y
-    **quitar la energia**: sin energia el pin de la pluma cae a reposo, **la pluma BAJA** y las luces se apagan (`SPEC_5` §4).
+    **quitar la energia**: sin energia el pin de la pluma cae a reposo, **la pluma queda ARRIBA** con la central viva
+    (`D-168`) y las luces se apagan (`SPEC_5` §4).
     Al volver la energia, §0.B.
 
 ## 3. EL MAPA DE LAS OCHO SPEC — a donde ir

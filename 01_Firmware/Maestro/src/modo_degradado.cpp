@@ -739,7 +739,7 @@ bool modo_degradado_pedirSalida() {
 ResultadoRojoTotal modo_degradado_forzarRojo() {
   if (modoActual_get() != MODO_DEGRADADO) {
     if (!modo_degradado_revocarEsperaSiembra()) {
-      coordinador_forzarRojoTotal();
+      modo_ambar_forzarRojoTotal();   // D-170: desde MODO_AMBAR, a Manual con rojo sostenido en los dos
       return RRT_OK;
     }
     // Ventana de D-29: rojo fijo como el arranque de D-47, nunca ambar. setup() no rehace nada.

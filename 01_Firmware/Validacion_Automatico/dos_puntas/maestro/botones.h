@@ -15,3 +15,6 @@ void botones_actualizar();
 // camaras cableadas, o sea que la pluma sigue a la luz con su retardo y nada mas.
 bool camara_presenciaJ16(int cam = -1);   // N-187: firma de include/botones.h
 void camaras_sembrar();                   // N-187: la llama instalacion.cpp
+bool camara_mira(int i);              // D-166/D-169: firma de include/botones.h
+bool camara_malaRetienePluma();
+char camara_letra(int i);

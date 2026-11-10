@@ -147,6 +147,7 @@ COMANDOS_PERMITIDOS = {
     # nada, porque el firmware esta en un repositorio y no en el poste.
     # N-187 (SPEC_8 8): instalacion.cpp, local a este poste y sin radio.
     "CONSULTA_INSTALACION": "solo mira: contacto y retardo releidos de la flash y VE; entra con y sin PIN",
+    "CONSULTA_VETO":    "D-166: solo mira, veto y estado por camara y MALA1/MALA2 del respaldo; con y sin PIN",
     "SET_CAMARA:":      "cambia el sentido NA/NC de una camara de J16 (pide PIN): re-siembra las camaras y "
                         "reentra por semaforo_reaplicarSalidas() con lo ultimo pedido; no enciende un verde, "
                         "y con la pluma vetada se rechaza (PLUMA_VETADA)",

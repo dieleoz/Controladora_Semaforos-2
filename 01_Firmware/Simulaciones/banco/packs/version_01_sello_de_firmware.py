@@ -141,11 +141,10 @@ def correr(b, fw):
 
     # ---- A-1: UN SOLO SELLO, EL MISMO BYTE A BYTE EN LAS TRES PUNTAS -----------
     #
-    # Por el fichero ENTERO y no por una constante, con el molde de costura_01: la igualdad
-    # tiene que romperse por cualquier byte que cambie, no solo por los que alguien penso
-    # en vigilar. Dos sellos con formato distinto son dos convenciones que el tecnico tiene
-    # que aprender en el mismo poste, y un acta que compare un sello contra un commit deja
-    # de poder hacerse a maquina.
+    # Por el fichero ENTERO y no por una constante, con el molde de costura_01: la igualdad tiene que romperse por
+    # cualquier byte que cambie, no solo por los que alguien penso en vigilar. Dos sellos con formato distinto son dos
+    # convenciones que el tecnico tiene que aprender en el mismo poste, y un acta que compare un sello contra un
+    # commit deja de poder hacerse a maquina.
     b.verificar(
         len(set(huellas.values())) == 1,
         "A-1: version_fw.h es IDENTICO en las tres puntas (sha256 %s...)"
@@ -168,9 +167,8 @@ def correr(b, fw):
 
     # ---- A-3: LA LINEA DEL SELLO NO PUEDE MORIR EN SILENCIO EN EL .ini ---------
     #
-    # platformio CORTA el valor del .ini en el primer '#' o ';' precedido de espacio: un
-    # espacio de mas deja a medias el one-liner, el binario sale SIN SELLAR y el unico
-    # sintoma es que el equipo no sabe que firmware lleva.
+    # platformio CORTA el valor del .ini en el primer '#' o ';' precedido de espacio: un espacio de mas deja a medias
+    # el one-liner, el binario sale SIN SELLAR y el unico sintoma es que el equipo no sabe que firmware lleva.
     ordenes = {}
     for t in INI:
         valor = _valor_ini(fw.texto(*t), "build_flags")
@@ -191,9 +189,8 @@ def correr(b, fw):
                 "%s/platformio.ini no deja UNA orden de sellado legible: las cotas de "
                 "abajo se calcularian sobre un sello que no existe" % t[0])
 
-        # Que lo que ConfigParser devuelve sea el comando COMPLETO. Si un ';' o un '#'
-        # llevara espacio delante, aqui llegaria cortado justo por el final -que es donde
-        # se imprimen los dos -D-.
+        # Que lo que ConfigParser devuelve sea el comando COMPLETO. Si un ';' o un '#' llevara espacio delante, aqui
+        # llegaria cortado justo por el final -que es donde se imprimen los dos -D-.
         crudo = None
         for linea in fw.texto(*t).splitlines():
             if linea.strip().startswith("!") and "FW_HASH" in linea:
@@ -209,9 +206,8 @@ def correr(b, fw):
             "      en el fichero: %r\n      lo que ve pio: %r" % (t[0], crudo, vistas[0]))
         ordenes[t[0]] = vistas[0]
 
-    # La MISMA orden en las tres: tres sellos compuestos por tres comandos distintos son
-    # tres formatos que nadie compara, y el dia que uno cambie el cruce publicaria dos
-    # sellos que no se pueden restar.
+    # La MISMA orden en las tres: tres sellos compuestos por tres comandos distintos son tres formatos que nadie
+    # compara, y el dia que uno cambie el cruce publicaria dos sellos que no se pueden restar.
     b.verificar(
         len(set(ordenes.values())) == 1,
         "A-3: la orden de sellado es IDENTICA en los tres platformio.ini",
@@ -335,22 +331,32 @@ def correr(b, fw):
                 "nodo es la atribucion de CLAUDE.md 0.2 sin resolver, movida un metro"
                 % (punta, i, NODOS[punta]))
 
-        # Los prefijos literales de las dos respuestas, LEIDOS DEL C++. De ellos sale A-8.
-        pre_ok = re.findall(r'enviarTramaConCrc\s*\(\s*"([^"]*)"\s*FW_TEXTO\s*\)', codigo)
-        pre_no = re.findall(r'enviarTramaConCrc\s*\(\s*"([^"]*)"\s*FW_SIN_SELLO\s*\)',
-                            codigo)
+        # Literales LEIDOS DEL C++ (de ellos sale A-8). D-168: TODA respuesta lleva ",J15:" TALANQUERA_J15.
+        todas = len(re.findall(r'enviarTramaConCrc\s*\(\s*"[^"]*"\s*FW_(?:TEXTO|SIN_SELLO)', codigo))
+        j15 = r'\s*"([^"]*)"\s*TALANQUERA_J15\s*\)'
+        pre_ok = re.findall(r'enviarTramaConCrc\s*\(\s*"([^"]*)"\s*FW_TEXTO' + j15, codigo)
+        pre_no = re.findall(r'enviarTramaConCrc\s*\(\s*"([^"]*)"\s*FW_SIN_SELLO' + j15, codigo)
+        j15_max = max([len(v) for v in re.findall(r'#\s*define\s+TALANQUERA_J15\s+"([^"]*)"',
+                                                  fw.texto(punta, "include", "pines.h"))] or [0])
+        b.verificar(
+            bool(pre_ok and pre_no) and j15_max > 0 and len(pre_ok) + len(pre_no) == todas,
+            "A-6: %s: las dos respuestas declaran la polaridad de J15 (D-168, hasta %d B)" % (punta, j15_max),
+            "A-6: %s: la respuesta de VERSION no dice la polaridad de la barrera (\",J15:\" TALANQUERA_J15 detras "
+            "del sello, con su #define en pines.h). D-168: un binario por polaridad, y si no lo dice, firmware y "
+            "central se mezclan y la pluma queda invertida sin que nadie lo vea" % punta)
+        pre_ok = pre_ok or re.findall(r'enviarTramaConCrc\s*\(\s*"([^"]*)"\s*FW_TEXTO()', codigo)
+        pre_no = pre_no or re.findall(r'enviarTramaConCrc\s*\(\s*"([^"]*)"\s*FW_SIN_SELLO()', codigo)
         if not pre_ok or not pre_no:
             raise fw.Abortado(
                 "no se hallaron en %s/src/bluetooth.cpp las dos respuestas del sello en la "
                 'forma "...FW:" FW_TEXTO / FW_SIN_SELLO. Son de donde sale la cota, y '
                 "calcularla sobre una cadena inventada saldria en verde" % punta)
-        peores[punta] = max(max(len(p) for p in pre_ok) + fw_max,
-                            max(len(p) for p in pre_no) + len(sin_sello))
+        peores[punta] = max(max(len(p) + len(s) for p, s in pre_ok) + fw_max + j15_max,
+                            max(len(p) + len(s) for p, s in pre_no) + len(sin_sello) + j15_max)
 
-        # Y la orden entra por las DOS puertas -con PIN y sin PIN-. Aceptar solo una la
-        # hace depender de en que lista la ponga la app, que no vive en este arbol; y la
-        # version es lo primero que se pregunta cuando algo va mal: un AUTH_FAILED ahi
-        # manda a buscar una clave en vez de a mirar el firmware.
+        # Y la orden entra por las DOS puertas -con PIN y sin PIN-. Aceptar solo una la hace depender de en que lista
+        # la ponga la app, que no vive en este arbol; y la version es lo primero que se pregunta cuando algo va mal:
+        # un AUTH_FAILED ahi manda a buscar una clave en vez de a mirar el firmware.
         con_pin = re.search(r'strcmp\s*\(\s*accion\s*,\s*"VERSION"\s*\)', codigo)
         sin_pin = (re.search(r'strcmp\s*\(\s*cmd\s*,\s*"CMD:VERSION"\s*\)', codigo)
                    or re.search(r'strcmp\s*\(\s*cmd\s*\+\s*4\s*,\s*"VERSION"\s*\)', codigo))
@@ -365,11 +371,10 @@ def correr(b, fw):
 
     # ---- A-7: EL SELLO NO VA EN EL $STATUS -----------------------------------
     #
-    # El $STATUS de las dos puntas es EL BORDE DEL CABLE de este proyecto: su payload esta
-    # en 155 B y lo dice su propio fuente. Un campo que NO CAMBIA NUNCA mientras el equipo
-    # esta encendido, publicado cada 2 s, le come el margen a los que si cambian; y cuando
-    # uno de verdad no cabe, la trama se trunca POR EL FINAL y el checksum sale calculado
-    # sobre el trozo (N-108).
+    # El $STATUS de las dos puntas es EL BORDE DEL CABLE de este proyecto: su payload esta en 155 B y lo dice su
+    # propio fuente. Un campo que NO CAMBIA NUNCA mientras el equipo esta encendido, publicado cada 2 s, le come el
+    # margen a los que si cambian; y cuando uno de verdad no cabe, la trama se trunca POR EL FINAL y el checksum sale
+    # calculado sobre el trozo (N-108).
     for t in (BT_M, BT_E):
         punta = t[0]
         formatos = re.findall(r'"(\$STATUS[^"]*)"', fw.codigo(*t))
@@ -389,16 +394,14 @@ def correr(b, fw):
 
     # ---- A-8: LA COTA. NINGUNA RESPUESTA SE PUEDE TRUNCAR --------------------
     #
-    # No hay snprintf en la respuesta -es un literal concatenado por el preprocesador-, asi
-    # que lo unico que puede cortarla es el envoltorio: enviarTramaConCrc() mete el payload
-    # en su tramaCompleta[] junto al "*XX\r\n". Los tres sumandos se releen del C++ en cada
-    # corrida: el prefijo de la respuesta, el ancho del hash (de la orden del .ini), y el
-    # formato del cierre. Ni uno se teclea aqui.
+    # No hay snprintf en la respuesta -es un literal concatenado por el preprocesador-, asi que lo unico que puede
+    # cortarla es el envoltorio: enviarTramaConCrc() mete el payload en su tramaCompleta[] junto al "*XX\r\n". Los
+    # tres sumandos se releen del C++ en cada corrida: el prefijo de la respuesta, el ancho del hash (de la orden del
+    # .ini), y el formato del cierre. Ni uno se teclea aqui.
     #
-    # POR QUE ESTA COTA VIVE EN EL PACK Y NO EN UN static_assert: para escribirlo haria
-    # falta un NOMBRE para el 160 de tramaCompleta[], y esp32_07 y esp32_09 leen esa
-    # declaracion por TEXTO -"char tramaCompleta[(\d+)]"-. Nombrarla los aborta a los dos
-    # (CLAUDE.md 5), y un ABORTADO es una puerta abierta.
+    # POR QUE ESTA COTA VIVE EN EL PACK Y NO EN UN static_assert: para escribirlo haria falta un NOMBRE para el 160 de
+    # tramaCompleta[], y esp32_07 y esp32_09 leen esa declaracion por TEXTO -"char tramaCompleta[(\d+)]"-. Nombrarla
+    # los aborta a los dos (CLAUDE.md 5), y un ABORTADO es una puerta abierta.
     cierre = _expandir(_literal(
         fw.codigo(*BT_M),
         r'snprintf\s*\(\s*tramaCompleta\s*,[^,]+,\s*"((?:[^"\\]|\\.)*)"',
@@ -428,10 +431,9 @@ def correr(b, fw):
 
     # ---- A-9: EL PUENTE LO DICE POR SU PARTE, Y NO LE TAPA LA BOCA AL EQUIPO --
     #
-    # Si el puente RECLAMARA la linea de la version, despachador_esParaElPuente() se la
-    # quedaria entera y la orden no cruzaria: el que no podria contestar seria EL EQUIPO,
-    # que es de quien se pregunta la version en CLAUDE.md 0.2. El accesorio no puede
-    # taparle la boca al controlador para hablar el.
+    # Si el puente RECLAMARA la linea de la version, despachador_esParaElPuente() se la quedaria entera y la orden no
+    # cruzaria: el que no podria contestar seria EL EQUIPO, que es de quien se pregunta la version en CLAUDE.md 0.2.
+    # El accesorio no puede taparle la boca al controlador para hablar el.
     desp = fw.codigo(*DESPACHADOR)
     b.verificar(
         "VERSION" not in desp,
@@ -476,9 +478,8 @@ def correr(b, fw):
             "que el parte no cabe es justo el que mas falta hace poder atribuir a un "
             "commit" % (i_sello, i_return))
 
-        # Y la linea entera cabe en el buffer de salida hacia la app, con el cierre que
-        # pone trama_componer(). Aqui el truncado no se ve: trama_componer() devuelve 0 y
-        # el sello no sale NUNCA, en silencio.
+        # Y la linea entera cabe en el buffer de salida hacia la app, con el cierre que pone trama_componer(). Aqui el
+        # truncado no se ve: trama_componer() devuelve 0 y el sello no sale NUNCA, en silencio.
         cierre_x = _expandir(_literal(
             fw.codigo(*TRAMA),
             r'snprintf\s*\(\s*destino\s*,\s*capacidad\s*,\s*"((?:[^"\\]|\\.)*)"',
@@ -581,10 +582,9 @@ def correr(b, fw):
         "un $STATUS con el sello dentro se detecta: la trama del borde del cable no lo "
         "puede llevar")
 
-    # LA COTA SE RECALCULA, NO ESTA ESCRITA. Con un hash completo de git -40 caracteres, que
-    # es lo que sale si alguien quita el --short- la desigualdad de A-8 tiene que romperse
-    # en la punta mas cargada... o seguir cumpliendose por margen, y entonces lo que se
-    # comprueba es que el numero CAMBIA con el ancho del hash y no es una constante.
+    # LA COTA SE RECALCULA, NO ESTA ESCRITA. Con un hash completo de git -40 caracteres, que es lo que sale si alguien
+    # quita el --short- la desigualdad de A-8 tiene que romperse en la punta mas cargada... o seguir cumpliendose por
+    # margen, y entonces lo que se comprueba es que el numero CAMBIA con el ancho del hash y no es una constante.
     peor_40 = max(peores.values()) - fw_max + 40 + len(marca)
     b.control_negativo(
         peor_40 > max(peores.values()),

@@ -65,10 +65,13 @@ const char* camara_estado() {
   // entero para el unico instante en que de verdad no se sabe nada: entre el arranque y
   // la primera deteccion. Contestar "OK" ahi seria pintar un dato que no se tiene, que es
   // justo lo que este repositorio le quito a la app.
+  //
+  // D-166 (SPEC_8 9.5, Q6): Y SOLO ENTRE LAS NO INHIBIDAS. El campo dice lo que actua sobre la pluma; una inhibida
+  // CIEGA no tapa a la otra. Con las dos inhibidas no queda ninguna: "?", y interruptores_camNoVeto() dice NOVETO.
   EstadoCamara peor = CAM_DESCONOCIDA;
   bool juzgable = false;
   for (int i = 0; i < 2; i++) {
-    if (!camHuboFlanco[i] && camEstado[i] != CAM_PEGADA) {
+    if (respaldo_vetoCamaraOff(i) || (!camHuboFlanco[i] && camEstado[i] != CAM_PEGADA)) {
       continue;
     }
     if (!juzgable || camEstado[i] > peor) {
@@ -90,15 +93,45 @@ uint16_t camara_vetosPluma() {
   return camVetos;
 }
 
+// D-166/D-169 (SPEC_8 9.1): la mascara de los tres consumidores. Lee el estado del vigilante tal cual: una mala se
+// recupera sola (RECUPERADA) y vuelve a mirar en ese mismo tick. El porque de cada termino, en botones.h.
+bool camara_mira(int i) {
+  return !respaldo_vetoCamaraOff(i) && camEstado[i] != CAM_PEGADA && camEstado[i] != CAM_CIEGA;
+}
+
+// D-169 (SPEC_8 9.2, Q3): las inhibidas no cuentan ni como malas ni como "queda una": con una inhibida y otra
+// mala no queda ninguna que mire y rige MALA2; con las dos inhibidas no hay mala y la pluma baja (D-96).
+bool camara_malaRetienePluma() {
+  bool hayMala = false, quedaUna = false;
+  for (int i = 0; i < 2; i++) {
+    if (respaldo_vetoCamaraOff(i)) continue;
+    if (camara_mira(i)) {
+      quedaUna = true;
+    } else {
+      hayMala = true;
+    }
+  }
+  return hayMala && !respaldo_malaBaja(quedaUna ? 1 : 2);
+}
+
+// D-166: misma regla de juzgable que camara_estado(), por camara y sin mirar la inhibicion.
+char camara_letra(int i) {
+  if (camEstado[i] == CAM_PEGADA) return 'P';
+  if (!camHuboFlanco[i]) return '?';
+  return camEstado[i] == CAM_CIEGA ? 'C' : 'O';
+}
+
 // La alarma de una camara. Las dos que hay salen por esta puerta para que el peor caso
 // de bytes sea UNO SOLO y se pueda medir: el $ALARM lleva ademas el tramo del enlace y
 // la hora, y N-108 costo una trama truncada por no haber hecho antes esta cuenta. El
 // pack la rehace leyendo estos literales y el snprintf de bluetooth.cpp.
 //
-// ACCION:NINGUNA NO ES RELLENO. Ese campo significa "medida de seguridad vial
-// ejecutada", y la fase 1 no ejecuta ninguna: no veta, no baja la pluma, no toca una
-// luz. Escribir ahi cualquier otra cosa seria el $ACK que no mira lo que devolvio la
-// llamada (CLAUDE.md 6), trasladado a la caja negra.
+// ACCION NO ES RELLENO: es la medida de seguridad vial EJECUTADA. ~~La fase 1 no ejecuta ninguna~~ -> desde
+// D-169 si (SPEC_8 9.3): la camara mala deja de vetar y de pedir verde (IGNORA_CAMARA) o, con su MALAx en ARRIBA,
+// la pluma se queda arriba en el rojo (PLUMA_ARRIBA); una inhibida ya estaba ignorada (NINGUNA). Se lee DESPUES
+// de poner camEstado[i], con el parametro de ese instante. Escribir otra cosa seria el $ACK que no mira lo que
+// devolvio la llamada (CLAUDE.md 2), en la caja negra. La MAS LARGA VA PRIMERO: el pack del vigilante lee la
+// primera de las tres para el presupuesto de bytes de N-108.
 static void camara_alarmar(int i, const char* evento, const char* motivo) {
   // N-154: la cota sale de los literales que de verdad entran, no de un numero redondo.
   // Este buffer va ENTERO dentro del payload del $ALARM, y con char[28] aportaba 27 al
@@ -109,7 +142,11 @@ static void camara_alarmar(int i, const char* evento, const char* motivo) {
   // de bytes, y si alguien anade un motivo mas largo, falla ahi.
   char causa[sizeof("CAM_C_CONTACTO_FIJO")];
   snprintf(causa, sizeof(causa), "%s_%s", CAM_NOMBRE[i], motivo);
-  bluetooth_reportarAlarma(evento, causa, "NINGUNA");
+  // Sin llaves a proposito: el pack del presupuesto de bytes busca causa[] en el MISMO bloque que la llamada.
+  const bool inhibida = respaldo_vetoCamaraOff(i);
+  if (!inhibida && !camara_malaRetienePluma()) bluetooth_reportarAlarma(evento, causa, "IGNORA_CAMARA");
+  else if (!inhibida) bluetooth_reportarAlarma(evento, causa, "PLUMA_ARRIBA");
+  else bluetooth_reportarAlarma(evento, causa, "NINGUNA");
 }
 
 // Una alarma que no se cierra nunca deja al operario sin saber si aquello se arreglo:

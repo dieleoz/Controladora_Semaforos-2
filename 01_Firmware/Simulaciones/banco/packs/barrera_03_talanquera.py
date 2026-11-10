@@ -19,14 +19,14 @@
 #
 # Este pack mira la ESTRUCTURA, que el arnes no puede ver: que no exista otra escritura
 # del pin en ningun otro fichero, que la que hay este dentro de escribirPines() -y no
-# en una funcion que alguien pueda llamar sola-, y que el arranque la deje cerrada. Un
+# en una funcion que alguien pueda llamar sola-, y que el arranque no la baje. Un
 # fallo de estructura no se manifiesta hasta que alguien anade el camino que lo usa, y
 # entonces ya es tarde: es exactamente la trampa a plazo de N-61.
 
 import re
 
 NOMBRE = "barrera_03_talanquera"
-DESCRIPCION = "la talanquera solo se escribe en escribirPines(), sigue al verde y arranca cerrada"
+DESCRIPCION = "la talanquera solo se escribe en escribirPines(), sigue al verde y el arranque no la baja (D-168)"
 
 PUNTAS = ("Maestro", "Esclavo")
 
@@ -67,14 +67,15 @@ def correr(b, fw):
                 "%s: no se pueden leer TALANQUERA_ABRIR/CERRAR de pines.h. Sin esos "
                 "niveles este pack no sabe cual es 'arriba', y compararia contra un "
                 "valor inventado" % punta)
+        # D-168 (10/11, SE INVIERTE la de SFTY-28 de antes, CLAUDE.md 9): el borde es el NIVEL ABSOLUTO de la spec
+        # (SPEC_8 8.2): ABRIR = LOW, el de reset y equipo muerto, y CERRAR = HIGH, la orden activa de bajar.
         b.verificar(
-            cerrar.group(1) == "LOW",
-            "%s: el nivel de CERRAR es LOW, que es el de reposo del MOSFET: si el "
-            "equipo se apaga o el pin queda flotando, la pluma NO se queda arriba"
-            % punta,
-            "%s: TALANQUERA_CERRAR es %s. El reposo del hardware tiene que cerrar la "
-            "barrera; si cerrar exigiera energia, un equipo muerto dejaria la via "
-            "abierta sin regulacion" % (punta, cerrar.group(1)))
+            abrir.group(1) == "LOW" and cerrar.group(1) == "HIGH",
+            "%s: ABRIR es LOW, el nivel de reposo del MOSFET, y CERRAR es HIGH: un equipo "
+            "muerto o en reset no manda bajar y la central deja el brazo arriba (D-168)" % punta,
+            "%s: TALANQUERA_ABRIR es %s y TALANQUERA_CERRAR %s. Desde D-168 J15 conduce = BAJAR: "
+            "con CERRAR en LOW, cada reset o corte bajaria la pluma sin R ni veto, y con la "
+            "central nueva quedaria invertida (abajo en verde)" % (punta, abrir.group(1), cerrar.group(1)))
         b.verificar(
             abrir.group(1) != cerrar.group(1),
             "%s: abrir y cerrar son niveles distintos" % punta,
@@ -172,7 +173,7 @@ def correr(b, fw):
                 "en rojo: la excepcion habria dejado de ser una excepcion a la bajada "
                 "para ser un permiso de subida" % punta)
 
-    # ---- 4. El arranque la deja cerrada ----
+    # ---- 4. El arranque NO la baja (D-168; SE INVIERTE «la deja cerrada») ----
     for punta in PUNTAS:
         codigo = fw.codigo(punta, "src", "semaforo.cpp")
         setup = _cuerpo_de(codigo, "void semaforo_setup(")
@@ -181,11 +182,13 @@ def correr(b, fw):
         plano = setup.replace(" ", "").replace("\n", "")
         b.verificar(
             "pinMode(MOTOR_TALANQUERA,OUTPUT)" in plano and
-            "digitalWrite(MOTOR_TALANQUERA,TALANQUERA_CERRAR)" in plano,
-            "%s: semaforo_setup() declara la pluma y la CIERRA antes de nada" % punta,
-            "%s: el arranque no cierra la talanquera. Los dos segundos de bienvenida "
-            "la dejarian en el estado en que quedo el pin -y tras un reinicio por "
-            "watchdog, ese estado puede ser ABIERTA-" % punta)
+            "digitalWrite(MOTOR_TALANQUERA,TALANQUERA_ABRIR)" in plano and
+            "plumaAbierta=true;" in plano and "TALANQUERA_CERRAR" not in plano,
+            "%s: semaforo_setup() declara la pluma, escribe ABRIR (el nivel de reset) y anota "
+            "plumaAbierta = true: la 1.a bajada pasa por R y por el veto" % punta,
+            "%s: el arranque baja la talanquera o no la anota arriba. Con J15 = BAJAR (D-168) "
+            "cada reset la bajaria en el acto, sin R ni veto, sobre quien paso por debajo "
+            "con la central viva; y con watchdog la bombearia cada 4 s" % punta)
 
     # ---- 5. Las dos puntas, igual ----
     cuerpos = [_cuerpo_de(fw.codigo(p, "src", "semaforo.cpp"), "void escribirPines(")

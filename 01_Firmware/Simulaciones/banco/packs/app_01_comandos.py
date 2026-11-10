@@ -42,6 +42,7 @@ AVISO_DEG_JS = ("05_Funcional", "App_Semaforo", "js", "aviso_degradado.js")
 # modo_noche.cpp, al que bluetooth.cpp las pasa (modoNoche_orden) con la accion en `a`.
 NOCHE_JS = ("05_Funcional", "App_Semaforo", "js", "noche.js")
 INSTALACION_JS = ("05_Funcional", "App_Semaforo", "js", "instalacion.js")   # N-187
+INTERRUPTORES_JS = ("05_Funcional", "App_Semaforo", "js", "interruptores.js")   # D-166: CONSULTA_VETO
 NOCHE_CPP = ("Maestro", "src", "modo_noche.cpp")
 APP_HTML = ("05_Funcional", "App_Semaforo", "index.html")
 
@@ -151,7 +152,7 @@ def _envia(fw):
     -por openPinModal(), que guarda el comando y lo ejecuta al validar el PIN-.
     Es la regla del instrumento: descartar al buscador antes de acusar."""
     return _envia_de([fw.texto_repo(*r) for r in (APP_JS, TESTIGO_JS, DEG_AUTO_JS, AVISO_DEG_JS, NOCHE_JS,
-                                                  INSTALACION_JS)],
+                                                  INSTALACION_JS, INTERRUPTORES_JS)],
                      fw.texto_repo(*APP_HTML))
 
 

@@ -42,11 +42,11 @@ function fuente(punta) {
   const dir = path.join(FW, punta, 'src');
   return fs.readdirSync(dir).filter(f => f.endsWith('.cpp')).map(f => sinComentarios(leerCpp(path.join(dir, f))));
 }
-// Literales de cadena; los que siguen con FW_TEXTO / FW_SIN_SELLO llevan un hueco al final.
+// Literales de cadena; los que siguen con FW_TEXTO / FW_SIN_SELLO / TALANQUERA_J15 (D-168) llevan un hueco al final.
 function literales(codigos) {
   const out = [];
   codigos.forEach(c => {
-    const re = /"((?:[^"\\\n]|\\.)*)"(\s*(?:FW_TEXTO|FW_SIN_SELLO)\b)?/g;
+    const re = /"((?:[^"\\\n]|\\.)*)"(\s*(?:FW_TEXTO|FW_SIN_SELLO|TALANQUERA_J15)\b)?/g;
     let m;
     while ((m = re.exec(c))) out.push(m[1] + (m[2] ? '%s' : ''));
   });
@@ -132,10 +132,14 @@ module.exports = async function pruebaSimulador(montarAppLimpia, assert) {
          juzgar(VOC.ESCLAVO, '$ACK,CMD:VERSION,RESULT:OK,NODE:ESCLAVO,FW:abc1234,EXTRA:1') !== null &&
          juzgar(VOC.MAESTRO, '$ACK,CMD:SET_TIEMPOS,RESULT:OK*4A') === null,
     'Simulador: control negativo: un DESC: que el C++ no tiene y un campo de mas se rechazan; uno del C++ pasa');
+  { const s = S.crear({ reloj: relojManual(T0), postes: [{ nodo: 'ESCLAVO', serie: 'X', fw: 'abc1234' }] });
+    const v = (s.recibir(s.postes[0], 'CMD:VERSION') || [])[0] || ''; s.parar();
+    assert(/,FW:abc1234,J15:BAJAR\*/.test(v) && juzgar(VOC.ESCLAVO, v) === null,
+      `Simulador (D-168): VERSION dice la polaridad de fabrica J15:BAJAR, con el literal del C++: ${v}`); }
   // Las ordenes del despachador de cada punta, leidas del C++ (C++ -> simulador).
   const ARGS = { 'SET_MODO:DEG_T:': '10:00:00,10:00:30,300,40', 'SET_MODO:DEG_FIN:': 'CANCELAR', 'SET_DEG_AUTO:': '1', 'SET_TIEMPOS:': '5,5,30',
                  'SET_NOCHE:': '1,OFF', 'SET_NOCHE_TR:': '200', 'SET_VETO_CAMARA:': 'OFF', 'SET_BARRERA_SERVICIO:': 'OFF', 'CMD:HORA_ESP32:': '2026-10-15T10:00:00',
-                 'SET_CAMARA:': 'C:NC', 'SET_PLUMA_RETARDO:': '4' };
+                 'SET_CAMARA:': 'C:NC', 'SET_PLUMA_RETARDO:': '4', 'SET_CAMARA_MALA:': '1:BAJA' };
   const NO_CONTESTA = ['$LATIDO', 'CMD:HORA_ESP32:'];   // bluetooth.cpp: el latido del puente y su hora no se contestan
   function ordenes(punta) {
     const cods = ['bluetooth.cpp', 'interruptores.cpp', 'instalacion.cpp'].concat(punta === 'Maestro' ? ['modo_noche.cpp'] : [])
@@ -191,8 +195,10 @@ module.exports = async function pruebaSimulador(montarAppLimpia, assert) {
                         'SET_MODO:DEG_FIN:': ['CANCELAR', '10:00:00,10:30:00', '09:00:00,10:30:00', 'x'],
                         'SET_DEG_AUTO:': ['1', '0', '7'], 'SET_TIEMPOS:': ['5,5,30', '99,5,30', 'x'],
                         'SET_NOCHE:': ['1,OFF', '1,LMXJVSD,2200,0500,R', '9,OFF', '1,LMXJVSD,2500,0500,A', 'x'],
-                        'SET_NOCHE_TR:': ['200', '5', 'x'], 'SET_VETO_CAMARA:': ['OFF', 'ON', 'x'], 'SET_BARRERA_SERVICIO:': ['OFF', 'ON', 'x'],
-                        'SET_CAMARA:': ['C:NC', 'D:NA', 'C,NC', 'x'], 'SET_PLUMA_RETARDO:': ['4', '6', 'x'] };
+                        'SET_NOCHE_TR:': ['200', '5', 'x'], 'SET_BARRERA_SERVICIO:': ['OFF', 'ON', 'x'],
+                        'SET_VETO_CAMARA:': ['OFF', 'ON', 'C:OFF', 'D:ON', 'E:ON', 'x'],   // D-166
+                        'SET_CAMARA:': ['C:NC', 'D:NA', 'C,NC', 'x'], 'SET_PLUMA_RETARDO:': ['4', '6', 'x'],
+                        'SET_CAMARA_MALA:': ['1:BAJA', '2:ARRIBA', '3:BAJA', 'x'] };   // D-169
     F.forEach(def => {
       const r = relojManual(T0), em = [];
       const sim = S.crear({ reloj: r, postes: [JSON.parse(JSON.stringify(def))], emitir: (p, t) => em.push([def.nodo, t]) });
@@ -235,7 +241,7 @@ module.exports = async function pruebaSimulador(montarAppLimpia, assert) {
       const st0 = campos(c.tramas.find(t => /^\$STATUS/.test(t)));
       const def = { nodo: c.nodo, serie: c.serie, fw: c.firmware, direccion: 'CINTA', modo: st0.find(x => x[0] === 'MODO')[1] };
       const sim = S.crear({ reloj: r, postes: [def] });
-      const p = sim.postes[0];
+      const p = sim.postes[0]; p.j15 = null;   // D-168: cintas de firmware de antes del 10/11, VERSION sin J15:
       const sincronizar = (st) => {
         const v = (k) => (st.find(x => x[0] === k) || [])[1];
         if (v('MODO') !== p.modo) { p.modo = v('MODO'); p.degSaliendo = false; p.rojoFijo = false; }
@@ -435,6 +441,13 @@ module.exports = async function pruebaSimulador(montarAppLimpia, assert) {
       `Simulador: Averias en practica contesta como el firmware (acuses: ${acuses.join(' | ') || '-'}), el Maestro ` +
       `publica PLUMA:FUERA y CAM:NOVETO (${stM.slice(-25) || '-'}), Trafico pinta «${plM || '-'}», y el Esclavo ` +
       `no los hereda (${stE0.slice(-20) || '-'}) hasta su propia orden (${stE.slice(-20) || '-'})`);
+    // D-166/D-169: por camara y camara mala, literales de SPEC_8 9.5; tras el OK la app consulta sola.
+    ['SET_VETO_CAMARA:D:OFF', 'SET_CAMARA_MALA:1:BAJA'].forEach(pulsa);
+    const n = a.oidas.filter(t => /CMD:(SET_VETO_CAMARA:D|SET_CAMARA_MALA|CONSULTA_VETO)/.test(t)).map(t => t.replace(/\*..$/, ''));
+    assert(n.includes('$ACK,CMD:SET_VETO_CAMARA:D:OFF,RESULT:OK') && n.includes('$ACK,CMD:SET_CAMARA_MALA:1:BAJA,RESULT:OK') &&
+           n.includes('$ACK,CMD:CONSULTA_VETO,RESULT:C1?_D0?_M1B_M2A') && /,CAM:NOVETO$/.test(st()),
+      `Simulador: en practica el Esclavo contesta D:OFF, MALA1 BAJA y CONSULTA_VETO como el firmware (${n.join(' | ') || '-'}), ` +
+      `y publica CAM:NOVETO (${st().slice(-12) || '-'})`);
     P(a).salir();
   }
   {

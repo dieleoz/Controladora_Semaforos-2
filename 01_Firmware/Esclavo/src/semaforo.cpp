@@ -82,6 +82,9 @@ static unsigned long tPlumaCierrePedido = 0;
 // verdad actuan; plumaCierrePendiente tambien es cierta durante el retardo, donde no hay
 // veto ninguno, y una sola bandera para las dos preguntas no contestaria bien a ninguna.
 static bool plumaVetada = false;
+// D-169 (SPEC_8 9.2): Y UNA TERCERA, "arriba porque una camara MALA y su MALAx = ARRIBA". No es veto: nadie
+// ve nada debajo; si fuera plumaVetada, el aviso de 90 s y PLUMA_VETADA mandarian a mirar debajo de una CIEGA.
+static bool plumaRetenidaMala = false;
 
 static void escribirPines(bool rojo, bool amarillo, bool verde) {
   digitalWrite(ROJO1, rojo);
@@ -211,22 +214,24 @@ static void escribirPines(bool rojo, bool amarillo, bool verde) {
   // el carril unico con las dos bocas abiertas, sin tope de tiempo, sobreviviendo al corte
   // (D-95) y sin $ALARM (solo el aviso de arranque, D-152). El brazo esta roto: manda la luz.
   // 'fuera' gana el termino de la luz y sale por esta misma puerta; su anotacion va en la
-  // expresion del pin (D-150). Y CAMARA FUERA DEL VETO (FLAG_VETO_CAMARA_OFF): plumaVetada
-  // no vale nunca true y la pluma baja al cumplir el retardo, como con las borneras vacias.
+  // expresion del pin (D-150). Y CAMARA FUERA DEL VETO: D-166 lo hace POR CAMARA y D-169 saca tambien a la
+  // camara MALA (SPEC_8 9): el veto es el OR de las que MIRAN (camara_mira()); con ninguna, plumaVetada no vale
+  // true y la pluma baja al cumplir el retardo, salvo que MALA1/MALA2 pida ARRIBA (plumaRetenidaMala), que solo
+  // RETIENE: va en esta rama y no en luzPideArriba, asi que espera al verde y no levanta una pluma ya abajo.
   const bool fuera = respaldo_barreraFuera();
   const bool luzPideArriba = fuera || (verde && !testLedsActivo) || estado == S_FALLO || estado == S_AMARILLO ||
                              estado == S_AMBAR_INT || estado == S_ROJO_INT;
   bool plumaArriba;
   if (luzPideArriba) {
     plumaCierrePendiente = false;
-    plumaVetada = false;
+    plumaVetada = plumaRetenidaMala = false;
     plumaArriba = true;
   } else if (!plumaAbierta) {
     // Ya estaba abajo: no hay bajada que retrasar ni que vetar. Sin esta rama, una
     // camara pegada impediria que la pluma BAJARA una vez y despues impediria que
     // volviera a estar abajo, que no es lo mismo y es absurdo.
     plumaCierrePendiente = false;
-    plumaVetada = false;
+    plumaVetada = plumaRetenidaMala = false;
     plumaArriba = false;
   } else {
     if (!plumaCierrePendiente) {
@@ -234,8 +239,10 @@ static void escribirPines(bool rojo, bool amarillo, bool verde) {
       tPlumaCierrePedido = millis();
     }
     const bool enRetardo = (millis() - tPlumaCierrePedido) < instalacion_retardoPlumaMs();   // N-187
-    plumaVetada = !enRetardo && !respaldo_vetoCamaraOff() && camara_presenciaJ16();   // D-96
-    plumaArriba = enRetardo || plumaVetada;
+    plumaVetada = !enRetardo && ((camara_mira(0) && camara_presenciaJ16(0)) ||
+                                 (camara_mira(1) && camara_presenciaJ16(1)));   // D-96, D-166
+    plumaRetenidaMala = !enRetardo && !plumaVetada && camara_malaRetienePluma();   // D-169
+    plumaArriba = enRetardo || plumaVetada || plumaRetenidaMala;
     if (!plumaArriba) plumaCierrePendiente = false;
   }
   digitalWrite(MOTOR_TALANQUERA,
@@ -281,20 +288,18 @@ void semaforo_setup() {
   pinMode(AMARILLO2, OUTPUT);
   pinMode(VERDE2, OUTPUT);
 
-  // SFTY-28: la pluma se declara y se CIERRA antes que nada. Un arranque que la
-  // dejara en el estado en que quedo el pin es una via abierta sin regulacion
-  // durante los dos segundos de bienvenida.
+  // SFTY-28/D-168: la pluma se declara antes que nada y se deja en ABRIR, el MISMO nivel que tenia el pin en el
+  // reset (LOW, sin orden de bajar): el arranque NO la baja. Con la central viva, durante el reset subio, y pudo
+  // pasar gente por debajo; bajarla aqui seria hacerlo sin R ni veto, y con un cuelgue el watchdog la bombearia
+  // cada 4 s. La bandera dice lo que dice el pin (este digitalWrite no pasa por escribirPines()): arriba.
   pinMode(MOTOR_TALANQUERA, OUTPUT);
-  digitalWrite(MOTOR_TALANQUERA, TALANQUERA_CERRAR);
-  // La bandera dice lo que dice el pin, tambien aqui: este digitalWrite no pasa por
-  // escribirPines(), asi que es el unico sitio donde hay que repetirlo.
-  plumaAbierta = false;
+  digitalWrite(MOTOR_TALANQUERA, TALANQUERA_ABRIR);
+  plumaAbierta = true;
   plumaFuera = false;   // D-150: la anotacion del interruptor, igual que la de arriba
-  // D-33: y con ella las dos banderas del cierre. Un arranque no hereda un retardo a
-  // medias ni un veto de antes del reinicio: la pluma ya esta abajo, que es el unico
-  // estado desde el que las dos sobran.
+  // D-33: un arranque no hereda un retardo a medias ni un veto de antes del reinicio. El semaforo_apagarTodo() de
+  // abajo (S_ROJO) arma el cierre con su R desde AHORA, y la 1.a bajada pasa por R y por el veto (SPEC_8 8.4).
   plumaCierrePendiente = false;
-  plumaVetada = false;
+  plumaVetada = plumaRetenidaMala = false;
 
   semaforo_apagarTodo();
 }
@@ -353,6 +358,7 @@ bool semaforo_plumaArriba() {
 bool semaforo_plumaVetada() {
   return plumaVetada;
 }
+bool semaforo_plumaRetenidaMala() { return plumaRetenidaMala; }   // D-169: la tercera bandera, arriba
 
 void semaforo_iniciarFallo() {
   estado = S_FALLO;

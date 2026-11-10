@@ -1540,10 +1540,9 @@ bool coordinador_rojoEsclavoConfirmado() {
 // este repositorio ya pago eso dos veces: el 12,6 V de bateria que era un literal
 // (N-108) y el equipo declarandose en hora con el reloj parado en ceros (N-144).
 //
-// POR ESO EXISTE EL "?", Y NO ES UN HUECO: ES LA RESPUESTA CORRECTA. Con el enlace caido
-// esta punta no sabe de que color esta la otra, y decirlo es mas util que un color
-// plausible. La app tiene orden de escribirlo como "sin dato", no de pintar el ultimo
-// valor como si fuera de ahora (CLAUDE.md 3.quinquies).
+// POR ESO EXISTE EL "?", Y NO ES UN HUECO: ES LA RESPUESTA CORRECTA. Con el enlace caido esta punta no sabe
+// de que color esta la otra, y decirlo es mas util que un color plausible; la app lo escribe "sin dato".
+// D-171: tambien en MENU (C_MENU_IDLE no pasa a C_FALLO): sin respuesta fresca, con el borde de SFTY-6.
 //
 // EL AMBAR SE MIRA ANTES QUE NADA porque en MODO_AMBAR esta punta ordena el ambar y se
 // calla a proposito -main.cpp no llama al coordinador en ese modo-, asi que quienVerde
@@ -1557,6 +1556,7 @@ const char* coordinador_estadoEsclavo() {
   // que quedara en quienVerde es el ultimo valor, no una medida: se publica "?".
   if (modoActual_get() == MODO_DEGRADADO) return "?";
   if (estadoC == C_FALLO || estadoC == C_NOCHE) return "?";   // D-110: lo publica el Esclavo
+  if (tUltimaRespuestaEsclavo == 0 || millis() - tUltimaRespuestaEsclavo > SFTY6_SILENCIO_MS) return "?";   // D-171
   // N-162 (cinta del Sisga, 10/09, 12:20:54-12:21:10): quienVerde se queda en QV_ESCLAVO
   // hasta que el Maestro llega a VERDE, pero el Esclavo YA esta en rojo desde que llego
   // su ACK_RED. Sin esto la trama publicaba ESC:VERDE durante todo el despeje y durante

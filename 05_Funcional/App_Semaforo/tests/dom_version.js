@@ -16,6 +16,16 @@ module.exports = async function pruebaVersionVisible(montarAppLimpia, assert) {
   meter('EVENT,NODE:PUENTE,EVT:VERSION,FW:def5678');
   assert(/def5678/.test(eventos()),
     'Version: el hash del PUENTE (FW del $EVENT) sale escrito en Eventos');
+  // D-168: la misma linea dice la polaridad de la barrera del binario CARGADO (campo J15: del $ACK del controlador);
+  // sin el campo es un firmware de antes del 10/11 (J15 = subir). El puente no la lleva: no mueve la barrera.
+  meter('ACK,CMD:VERSION,RESULT:OK,NODE:ESCLAVO,FW:abc5555,J15:BAJAR');
+  meter('ACK,CMD:VERSION,RESULT:OK,NODE:ESCLAVO,FW:abc6666,J15:SUBIR');
+  const ev = eventos();
+  assert(/Controlador ESCLAVO: FW abc5555 - Barrera: J15 manda BAJAR \(sin senal, ARRIBA\)/.test(ev) &&
+         /Controlador ESCLAVO: FW abc6666 - Barrera: J15 manda SUBIR \(polaridad VIEJA/.test(ev) &&
+         /Controlador MAESTRO: FW abc1234 - Barrera: firmware anterior al 10\/11 \(J15 manda SUBIR\)/.test(ev) &&
+         !/FW def5678 - Barrera/.test(ev),
+    'Version (D-168): la linea del controlador dice la polaridad de J15 (BAJAR, SUBIR o anterior); la del puente no');
 
   // LA LINEA VACIA DE CAMPO: la trama EXACTA de la cinta (evidencia/011020260934/IOTVIAL_*.txt,
   // *7F) pintaba ademas "Equipo [FIRMWARE]: " sin nada detras (Log_Semaforos_*.csv).

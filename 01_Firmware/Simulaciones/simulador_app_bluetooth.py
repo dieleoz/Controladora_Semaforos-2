@@ -350,10 +350,10 @@ class MicroModelado:
         # porque antes del primer acuse esta punta NO SABE, y ese es justo el estado que
         # el campo existe para poder decir.
         self.esc = "?"
-        # N-153: el equipo arranca con la pluma ABAJO, que es lo que hace semaforo_setup()
-        # -digitalWrite(MOTOR_TALANQUERA, TALANQUERA_CERRAR) antes de nada-. Empezar por
-        # ARRIBA seria modelar un arranque que el firmware no tiene.
-        self.pluma = "ABAJO"
+        # N-153/D-168 (SE INVIERTE): el equipo arranca con la pluma ARRIBA, que es lo que hace
+        # semaforo_setup() -digitalWrite(MOTOR_TALANQUERA, TALANQUERA_ABRIR) y plumaAbierta = true-;
+        # la 1.a bajada pasa por R y el veto. Empezar por ABAJO modelaria un arranque que ya no existe.
+        self.pluma = "ARRIBA"
         # D-13: el equipo arranca con las dos camaras en CAM_DESCONOCIDA -asi las
         # declara botones.cpp-, y camara_estado() publica la PEOR, que es "?".
         # Empezar por "OK" seria modelar un arranque que el firmware no tiene, y

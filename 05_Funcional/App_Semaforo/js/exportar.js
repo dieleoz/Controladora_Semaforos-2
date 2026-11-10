@@ -32,9 +32,15 @@ const Exportar = {
 
   // 29/09: LA LINEA DE EVENTOS QUE DICE EL SELLO. Antes solo iba a la cabecera del
   // fichero exportado y en pantalla no se veia (el funcional no pudo leer su version).
+  // D-168: la del CONTROLADOR dice ademas la polaridad de la barrera del binario (J15:, SPEC_8 8.2); el puente no la
+  // mueve. Sin el campo es un firmware de antes del 10/11, que manda SUBIR por J15.
   lineaVersion(campos) {
     const quien = campos.NODE === 'PUENTE' ? 'Puente (ESP32)' : 'Controlador ' + (campos.NODE || '?');
-    return 'Version cargada - ' + quien + ': FW ' + (campos.FW || '--');
+    const j15 = campos.J15 === 'BAJAR' ? 'J15 manda BAJAR (sin senal, ARRIBA)'
+      : campos.J15 === 'SUBIR' ? 'J15 manda SUBIR (polaridad VIEJA: la central tiene que ser "sin senal = bajar")'
+        : campos.J15 ? 'J15:' + campos.J15 + ' desconocida' : 'firmware anterior al 10/11 (J15 manda SUBIR)';
+    return 'Version cargada - ' + quien + ': FW ' + (campos.FW || '--') +
+      (campos.NODE === 'PUENTE' ? '' : ' - Barrera: ' + j15);
   },
 
   // Si ya contesto el CONTROLADOR. El sello del puente no dice nada del STM32.

@@ -77,8 +77,8 @@ leyendo **los dos despachadores** y prohibe que una lista reclame una orden que 
 Las dos puntas atienden `SET_MODO:DEG_T`, `SET_DEG_AUTO` y `CONSULTA_DEG_AUTO` (§3.1, §3.2). `SET_MODO:DEGRADADO`
 **salio de las dos con `D-46` (`f9cad1f`, 02/10; sin banco)**, y `SOLICITAR_PASO` del Esclavo con ella: las dos caen en
 el `else` final de `procesarComando()` y contestan `$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO` (`..._EN_ESCLAVO` en
-el Poste 2). Tambien las dos, locales y sin radio: `SET_VETO_CAMARA` y `SET_BARRERA_SERVICIO` (§3.1; SPEC 8 §6.1), y
-`SET_CAMARA`, `SET_PLUMA_RETARDO` y `CONSULTA_INSTALACION` (§3.1; SPEC 8 §8.6).
+el Poste 2). Tambien las dos, locales y sin radio: `SET_VETO_CAMARA` y `SET_BARRERA_SERVICIO` (§3.1; SPEC 8 §6.1),
+`SET_CAMARA_MALA` y `CONSULTA_VETO` (SPEC 8 §9.5), y `SET_CAMARA`, `SET_PLUMA_RETARDO` y `CONSULTA_INSTALACION` (§8.6).
 
 ⚠️ **`FORZAR_ROJO` no significa lo mismo en las dos puntas, y por eso el Esclavo ya no lo acepta:** alli
 prometia rojo y hacia ambar con la talanquera arriba. Lo rechaza **nombrando el literal nuevo**
@@ -106,7 +106,7 @@ prometia rojo y hacia ambar con la talanquera arriba. Lo rechaza **nombrando el 
 | `SET_MODO:DEG_T:ahora,inicio,verde,despeje` | si | Construido (`990c278`; `D-35`, SPEC 2 §7.bis). **La unica orden de entrada al Degradado.** Puerta paralela a `modo_degradado_evaluarEntrada()`, sin sync de radio: `$ERR ... DESC:<texto>` (`modo_degradado_textoTestigo()`) por `MDT_FALTA_HORA`, `MDT_AHORA_DESFASADO` (`TOLERANCIA_TESTIGO_S`), `MDT_DESPEJE_RANGO`, `MDT_INICIO_VENCIDO`, `MDT_AMBAR_VIGENTE`, `MDT_EN_VERDE`, `MDT_NO_GUARDADO`; `RESULT:OK` / `RESULT:RENOVADO`. Con salida programada (`D-52`): `$ERR ... DESC:Cancele antes la salida programada` |
 | `SET_DEG_AUTO:1` / `SET_DEG_AUTO:0` | si | Construido (`A-15`, SPEC 2 §7.ter (a)). **El `$ACK` sale DIFERIDO**, cuando el `ECO` del otro poste refleja el cambio: `RESULT:ON_EFECTIVO` (el otro tambien apto) / `RESULT:ON_FALTA_EL_OTRO_POSTE` / `RESULT:OFF`. Rechazos: `$ERR ... SIN_ENLACE_CON_EL_OTRO_POSTE` · `EN_DEGRADADO_SALGA_PRIMERO` · `FORMATO_INVALIDO`; sin `ECO` en `DEG_AUTO_ACUSE_MS`, `$ERR ... CAMBIADO_AQUI_SIN_ACUSE_DEL_OTRO_POSTE` (el cambio queda y se sigue publicando). Maestro en `MENU`: siempre ese `$ERR` (SPEC 2 §7.ter (a)). Misma orden y mismos literales en el Esclavo |
 | `CONSULTA_DEG_AUTO` | no (es una consulta) | Construido. `RESULT:ESTE_<ON/OFF>_OTRO_<ON/OFF>_APTO_<SI/NO>`: la opcion propia, el ultimo `APTO` oido del otro y el `APTO` propio. Igual en el Esclavo |
-| `FORZAR_ROJO` | **no** (y con PIN tambien) | Fuera de Degradado: `coordinador_forzarRojoTotal()`, `RESULT:OK`, 3 s de amarillo y rojo (`D-45`); sobre un rojo+amarillo, rojo directo (`D-53`, sin banco, SPEC 1 §3.3 (3)). En Degradado, **construido el 04/10 (`a4545bb`, `D-51`), sin banco:** rojo FIJO inmediato en ese poste (`DEG_ROJO_SIN_HORA`; tambien en la ventana de `D-29`), sin aviso de paleteros (decidido); respuestas en §3.ter.ter |
+| `FORZAR_ROJO` | **no** (y con PIN tambien) | Fuera de Degradado: `coordinador_forzarRojoTotal()`, `RESULT:OK`; solo la via que estaba en verde pasa por 3 s de amarillo (`D-45`); sobre un rojo+amarillo, rojo directo (`D-53`, sin banco). **Desde `MODO_AMBAR`, a Manual con rojo fijo sostenido en las dos (`D-170`, bajo la tabla).** En Automatico e Inteligente el ciclo sigue al vencer su fase. En Degradado, **`D-51`, sin banco:** rojo FIJO inmediato en ese poste (`DEG_ROJO_SIN_HORA`; tambien en la ventana de `D-29`), sin aviso de paleteros; respuestas en §3.ter.ter |
 | `SET_MODO:DEG_FIN:ahora,salida` · `SET_MODO:DEG_FIN:CANCELAR` | si | Construido el 04/10 (`a4545bb`, `D-52`), sin banco; SPEC 2 §7.quater (c): `salida` = `HH:MM:SS` a la que esta punta sale por su reloj; aviso de paleteros; un `$ERR` por motivo y `$ACK` solo si quedo programada (listas en §3.ter.ter) |
 | `CONSULTA_DEG_FIN` | no (es una consulta) | Construido el 04/10, sin banco. `RESULT:NINGUNA` o `RESULT:SALE_HHMMSS_FALTAN_<s>S_<RESPALDADA/SIN_RESPALDO>` (`_SIN_RESPALDO` tambien tras `FORZAR_ROJO` o hora perdida). Molde `CONSULTA_DEG_AUTO`; el contador no cabe en `$STATUS` (SPEC 2 §7.quater (c)). Igual en el Esclavo |
 | `MANUAL:CAMBIAR_TURNO` | si | **tres, y el ORDEN importa** (`N-151`): `$ERR ... MODO_SIN_CICLO_SALGA_PRIMERO` si `modoMueveElCoordinador()` es falso; si no, `RESULT:OK` cuando `pedirCambioVerificado()` devuelve true, y `$ERR ... EN_TRANSICION_REINTENTE` cuando no |
@@ -115,8 +115,18 @@ prometia rojo y hacia ambar con la talanquera arriba. Lo rechaza **nombrando el 
 | `REINICIAR_RELOJ` | si | **cuatro, y el `$ACK` NO sale en la rama** (1.49 (a), `622a20b`). ~~depende del bool de `reloj_reiniciarDominioRespaldo()`: `RESULT:CRISTAL_OK_PONGA_LA_HORA` o ...~~ → el bool solo decide si hay algo que verificar. `$ERR ... REPITA_EN_UNOS_SEGUNDOS` si ya hay una orden esperando veredicto —sin tocar nada: reiniciar otra vez abriria otra ventana y dejaria dos ordenes para un veredicto—; `$ERR ... SIGUE_PARADO_VEA_CONSULTA_RELOJ` si el oscilador no arranca, con el `$EVENT` `ORIGEN:RELOJ` de `reportarBitsDelReloj()`; y si arranca, **no contesta todavia**: publica `$EVENT ... ORIGEN:APP_BLUETOOTH, DETALLE:RELOJ_REINICIADO_VERIFICANDO` y deja la orden pendiente. **El veredicto sale despues, una sola vez**, desde `bluetooth_loop()` cuando `reloj_estadoCristal()` deja de decir VIGILANDO: `RESULT:CRISTAL_OK_PONGA_LA_HORA` **solo** con CUENTA, o `$ERR ... ARRANCA_Y_NO_CUENTA_VEA_CONSULTA_RELOJ` con CONGELADO, otra vez con los bits. **Llega unos segundos despues de pulsar**: el plazo es la ventana de vigilancia del cristal y no se copia aqui. La app traduce los tres `DESC` |
 | `DEMANDA` | si | **tres**: `$ERR ... SOLO_EN_MODO_INTELIGENTE` fuera del modo —registrar una peticion que ningun ciclo va a mirar es fingirla—; `RESULT:REGISTRADA` si `demanda_solicitar()` devuelve true; `$ERR ... REPITA_EN_UNOS_SEGUNDOS` si devuelve false |
 | `REINICIOS` | no (es una consulta) | `D-60`, §9.4 (construido, sin banco): `RESULT:OK` con `REIN`, `CAUSA`, `UP` y `ANTES` |
-| `SET_VETO_CAMARA:ON` / `:OFF` · `SET_BARRERA_SERVICIO:ON` / `:OFF` | si | `bd16447`, 09/11, sin banco; SPEC 8 §6.1. `interruptores_orden()`, molde `SET_TIEMPOS`, cinco respuestas: `$ERR,CMD:<orden>,DESC:FORMATO_INVALIDO` si el valor no es `ON` ni `OFF`; `$ACK,CMD:<orden>:<valor>,RESULT:SIN_CAMBIO` si ya estaba asi; `$ERR ... DESC:RESPALDO_INVALIDO` solo con `OFF` y el respaldo perdido en este arranque (`D-148`); `$ERR ... DESC:NO_QUEDO_PUESTO` si lo releido tras `semaforo_reaplicarSalidas()` no es lo pedido (`D-149`); `RESULT:OK` si lo es. Locales: no viajan por radio |
+| `SET_VETO_CAMARA:ON` / `:OFF` (y `:C:` / `:D:`, `D-166`) · `SET_BARRERA_SERVICIO:ON` / `:OFF` · `SET_CAMARA_MALA:<1/2>:<BAJA/ARRIBA>` (`D-169`) · `CONSULTA_VETO` | si · si · si · **no** | SPEC 8 §6.1 y §9.5 (`D-166`/`D-169`), sin banco. `interruptores_orden()`, molde `SET_TIEMPOS`, cinco respuestas: `$ERR` `FORMATO_INVALIDO` si el valor no vale; `RESULT:SIN_CAMBIO` si ya estaba asi; `RESPALDO_INVALIDO` con el respaldo perdido en este arranque (`D-148`); `NO_QUEDO_PUESTO` si lo releido tras `semaforo_reaplicarSalidas()` no es lo pedido (`D-149`); `RESULT:OK` si lo es; locales |
 | `SET_CAMARA:<C/D>:<NA/NC>` · `SET_PLUMA_RETARDO:<s>` · `CONSULTA_INSTALACION` | si · si · **no** | `3ea00d4` (`N-187`), sin banco. `instalacion_orden()` de `instalacion.cpp`, molde `SET_TIEMPOS`, local; respuestas y literales en SPEC 8 §8.6; la app, §9.15 |
+
+**`FORZAR_ROJO` desde `MODO_AMBAR` (`D-170`, responsable 10/11; construido, sin banco).** Lo que el equipo HACE:
+`modo_degradado_forzarRojo()` llama a `modo_ambar_forzarRojoTotal()`, que con el modo en `MODO_AMBAR` lo pasa a
+`MODO_MANUAL` antes de `coordinador_forzarRojoTotal()`. En Manual el coordinador corre (en `MODO_AMBAR` `main.cpp` no
+lo llama): el latido manda `CMD_GO_RED` hasta el `CMD_ACK_RED` y despues `PING`, y los dos postes quedan en rojo fijo,
+sin cambio programado, hasta otra orden (`SET_MODO:MENU`, `SET_MODO:AUTO`, `MANUAL:CAMBIAR_TURNO` con PIN,
+`SET_MODO:AMBAR`). El `$ACK ... RESULT:OK` sale despues de armarlo. Antes el Maestro quedaba en rojo con el modo en
+ambar y callado, y el Esclavo volvia a su ambar por orfandad a los `SFTY6_SILENCIO_MS`. Sin radio, a los
+`SFTY6_SILENCIO_MS` las dos caen a ambar (`C_FALLO`, SFTY-6); con el ambar de emergencia del Poste 2 puesto, su
+cerrojo (`D-8`) no obedece el rojo. Lo ejerce R1 del arnes del Degradado de dos puntas (`orquestador_deg_fin.inc`).
 
 **Rango de `SET_TIEMPOS` (`D-131`; construido en `9ffc049`, sin banco).** Verde y rojo 3..15 min, despeje 10..90 s,
 con una sola copia en `limites_ciclo.h`. Se juzga el numero que llego, sin truncar: `modoAutomatico_fijarTiempos()`
@@ -140,7 +150,7 @@ que viviera en una funcion comun los dejaria midiendo un bloque vacio (`N-89`).
 | `FORZAR_ROJO` | las dos formas | `$ERR ... RENOMBRADO_USE_AMBAR_EMERGENCIA`. **Se rechaza ensenando el nombre bueno**, no en silencio: quien lo manda tiene una app o un manual anteriores al cambio |
 | `TEST_LEDS` | si | `$ERR ... NO_EN_SERVICIO_USE_EL_MAESTRO`, **rechazado a proposito**: la secuencia enciende VERDE sin mirar nada, y ese verde saldria mientras el Maestro da paso al otro sentido |
 | `REINICIOS` | no (es una consulta) | `D-60`, §9.4 (construido, sin banco): igual que en el Maestro, con `NODE:ESCLAVO` |
-| `SET_VETO_CAMARA` · `SET_BARRERA_SERVICIO` (SPEC 8 §6.1) | si | Las del Maestro (§3.1): el mismo `interruptores.cpp`, por el Bluetooth de este poste |
+| `SET_VETO_CAMARA` · `SET_BARRERA_SERVICIO` · `SET_CAMARA_MALA` · `CONSULTA_VETO` (SPEC 8 §6.1, §9.5) | si · si · si · **no** | Las del Maestro (§3.1): el mismo `interruptores.cpp`, por el Bluetooth de este poste |
 | `SET_CAMARA` · `SET_PLUMA_RETARDO` · `CONSULTA_INSTALACION` | si · si · **no** | Las del Maestro (§3.1): `instalacion.cpp` identico (`cmp`); la consulta entra con y sin PIN |
 
 ### 3.3 El puente ESP32 de cada poste — `ESP32_Expansion/src/despachador.cpp`
@@ -347,7 +357,10 @@ sale sin fecha.
 
 - **La unica orden que sale sin que nadie pulse es `CMD:VERSION`** (sin PIN, no cambia nada): una vez por enlace,
   a los `TIMEOUT_ENLACE_MS` de conectar, solo con telemetria viva y si el CONTROLADOR no ha contestado ya
-  (`EVT:VERSION` es el sello del puente). No renueva la inactividad del PIN. El sello de cada `NODE` va en la linea
+  (`EVT:VERSION` es el sello del puente). No renueva la inactividad del PIN. La linea «Version cargada» del
+  CONTROLADOR dice ademas la polaridad de la barrera que lleva el binario (`D-168`, `SPEC_8` §8.2): `J15:BAJAR` =
+  «J15 manda BAJAR; sin senal, arriba»; `J15:SUBIR` = la vieja; sin `J15:`, un firmware de antes del 10/11
+  (`js/exportar.js`, `lineaVersion()`; lo ejerce `dom_version.js`). El sello de cada `NODE` va en la linea
   `Firmware:` de la cabecera del diario y de la cinta, y **«Exportar registro»** (Eventos, sin clave, `D-143`) los
   saca en un `IOTVIAL_<serie>_<AAAAMMDD-HHMMSS>.txt` (`js/exportar.js`). En el navegador sale por la hoja de
   compartir con el fichero adjunto o, si no la hay, como descarga. En la APK se escribe en la cache de la app
@@ -409,6 +422,13 @@ pluma esta arriba por diseno (`luzPideArriba`), no por un veto (SPEC 8 §1); **(
 🔴 **ABIERTO: `ESC:AMARILLO` no se construyo.** `coordinador_estadoEsclavo()` publica lo ultimo que consta del Poste
 2 y dice `VERDE` hasta el `CMD_ACK_RED`, tambien durante su amarillo de cierre (SPEC 2 §2.2.bis). La propuesta
 —`ESC:AMARILLO` desde la orden de rojo que cierra un verde del Poste 2 hasta su acuse— sigue **sin decidir**.
+
+**`ESC:?` sin dato fresco del Poste 2 (`D-171`, responsable 10/11; construido, sin banco).**
+`coordinador_estadoEsclavo()` publica `?` (el Maestro no lo sabe, `js/luces_tablas.js`) en Degradado, en `C_FALLO`, en
+`C_NOCHE` y, en cualquier otro modo salvo Ambar, cuando no hay respuesta del Poste 2 o la ultima tiene mas de
+`SFTY6_SILENCIO_MS`: el mismo criterio que `tieneComunicacion` de SFTY-6. Antes, en `MENU` sin radio el coordinador se
+quedaba en `C_MENU_IDLE` (no pasa a `C_FALLO`) y publicaba `ESC:ROJO` sin saberlo. Lo ejerce R2 del arnes del Degradado
+de dos puntas.
 
 **`D-53` (`N-176`), construido, sin banco: `ESTADO:ROJO+AMAR`**, 9 caracteres, el tope del campo
 (`semaforo_nombreEstado()`, SPEC 1 §3.3 (9)), durante los `ROJO_AMARILLO_SEG` antes de cada verde, en las dos
@@ -1203,7 +1223,7 @@ app con un equipo. El PIN se pide igual (§4) y viaja igual; `juzgarTrama()` juz
 su `$STATUS` publica `PLUMA:FUERA` y `CAM:NOVETO` (`D-150`, `D-151`). No imita: el `$EVENT` `INTERRUPTOR` de arranque
 (no reinicia), `NO_QUEDO_PUESTO` (relee la variable que acaba de escribir), un poste de la flota con el respaldo
 perdido, ni el `CAM:` real: sin veto publica `NOVETO` y si no `?`, porque sus camaras no dan flancos. Las ordenes de
-la instalacion las contesta `js/sim_instalacion.js` (§9.15).
+la instalacion las contesta `js/sim_instalacion.js` (§9.15); las de SPEC 8 §6 y §9, `js/sim_interruptores.js`.
 
 **(d) Marcas y registros (`D-89`).** Con `Practica.activa()`: `Exportar.nombreFichero()` da
 `IOTVIAL_SIMULADO_<serie>_...txt`; la cabecera de la cinta (`Exportar.textoCinta()`) y la del diario

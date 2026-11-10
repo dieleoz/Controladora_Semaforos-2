@@ -55,6 +55,9 @@ CONOCIDAS = {
         # en modo_noche.cpp con franjas en flash (D-108) y el andamio se retiro del firmware.
         # Su unico llamador era el Modo Alcance (cero de SFTY-15 retirado el 14/10; el modo, con D-167); gemela.
         "protocolo_reiniciarContadores",
+        # D-169: la anotacion de escribirPines() "arriba por camara mala"; la lee el arnes para su excepcion por
+        # NOMBRE (SPEC_8 9.2), como semaforo_plumaVetada(); el firmware no publica un campo mas (D-60).
+        "semaforo_plumaRetenidaMala",
     },
     "Esclavo": {
         # N-133: respaldo.cpp/.h gemelos byte a byte (maestro_02_respaldo). El ciclo
@@ -67,6 +70,8 @@ CONOCIDAS = {
         # SI tiene lector. D-44 no la retira: el arnes del Degradado a dos puntas la lee
         # (reloj_real/rtc_periferico.cpp, frontera de segundo) con su logica real.
         "reloj_dia",
+        # D-169: como en el Maestro, la lee el arnes de dos puntas (excepcion por NOMBRE).
+        "semaforo_plumaRetenidaMala",
         # D-44: SALEN DE LA LISTA, retiradas del firmware: bluetooth_testLedsActivo,
         # botonArriba/Abajo/Aceptar/Cancelar, semaforo_toggle, semaforo_iniciarTestLeds y
         # los getters de pantalla del Degradado (degradado_textoEstado, textoFase,
