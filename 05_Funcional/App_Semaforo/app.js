@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // poste. Cinco salidas y ninguna se colapsa con otra:
     //
     //   null       el campo NO VINO: equipo con firmware anterior a D-13.
-    //   'OK'       las dos ven y ninguna esta pegada.
+    //   'OK'       alguna ha visto algo y ninguna pegada (no que sigan conectadas).
     //   '?'        el EQUIPO dice que todavia no consta que vean. NO es 'OK' y
     //              tampoco es null: null es que la app no tiene dato.
     //   'CIEGA'    lleva demasiado paso abierto sin una sola deteccion. El umbral NO

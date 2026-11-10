@@ -166,7 +166,9 @@ button#btnPdf{
   <div class="debever"><b class="t">Conexión</b><ul>
     <li><strong>J15</strong> a la entrada de <strong>bajar</strong> de la central o puente H. Con este firmware J15 conduce (12 V) para <strong>bajar</strong>: en rojo, tras el retardo; en verde y en ámbar, 0 V. La central, en &laquo;<strong>sin señal = subir</strong>&raquo; (prueba 1).</li>
     <li><strong>J14</strong> es una entrada del micro: no le conecte ningún relé. <strong>J16 pata 1</strong> lleva 12 V: tapada. <strong>J16 patas 5 y 8</strong>: sin cablear.</li>
-    <li>Cámaras en sus entradas C y D, con su contacto NA o NC anotado.</li>
+    <li>Cámaras en sus entradas C y D, con su contacto NA o NC anotado. <strong>Una entrada en NC sin cámara conectada se lee como &laquo;hay algo debajo&raquo; siempre</strong>: la barrera no baja nunca. Tras poner NA/NC, en Instalación debe leer <strong>VE:C0D0</strong> sin nadie delante; si no, revise el contacto antes de seguir.</li>
+    <li>&laquo;Cámaras: OK&raquo; quiere decir que alguna ha visto algo desde el arranque y ninguna está pegada; <strong>no comprueba que sigan conectadas</strong> (una desconectada se avisa como CIEGA a las 24 h).</li>
+    <li>Al arrancar sin radio los dos quedan en ámbar intermitente; al volver la radio <strong>siguen en ámbar hasta que se dé una orden desde el Poste 1</strong> (un modo o VOLVER AL MENÚ).</li>
   </ul></div>
   <div class="debever"><b class="t">Configuración desde la app (clave de técnico y PIN del equipo: 1234 y 1234)</b><ul>
     <li><strong>Degradado automático: APAGADO</strong> en los dos postes (así sale de fábrica y así va en carretera). Apagado, ROJO TOTAL deja los dos en rojo fijo en MANUAL también sin radio; sin radio el Poste 2 queda en ámbar hasta que vuelva.</li>

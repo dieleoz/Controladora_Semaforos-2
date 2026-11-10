@@ -161,7 +161,7 @@ const PLUMA_LEYENDA = {
 // dato que tiene es "todavia no lo se". Mandan a sitios distintos: uno a mirar la
 // radio, el otro a esperar o a provocar una deteccion.
 const CAM_LEYENDA = {
-  'OK':     { texto: 'OK',           frase: 'las dos ven y ninguna esta pegada',
+  'OK':     { texto: 'OK',           frase: 'alguna ha visto algo y ninguna pegada; no dice que sigan conectadas',
               color: 'var(--green-lamp)' },
   '?':      { texto: 'SIN COMPROBAR', frase: 'aun no ha pasado nada por esos pines: no consta que vean',
               color: 'var(--text-muted)' },
