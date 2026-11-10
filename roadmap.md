@@ -34,7 +34,7 @@ entregable: los tres defectos del banco del 03-04/09 pasaron la compuerta entera
 
 | # | que | quien | estado |
 |---|---|---|---|
-| 5d | **Candidata 3 sobre `5b6e8f9`** (paquete ya en el banco de Marco): arquitecto y QA una vez, en workflow; compuerta hasta dos pasadas iguales; paquetes viejos `8a81f1e` y `416766a` a `entregas/RETIRADOS/` SOLO con permiso del responsable | orquestador | pendiente |
+| 5d | **Candidata 3 sobre `5b6e8f9`** (paquete ya en el banco de Marco): arquitecto y QA una vez, en workflow; compuerta hasta dos pasadas iguales; `8a81f1e` y `416766a` ya en `entregas/RETIRADOS/` | orquestador | pendiente |
 | 5e | **Banco de Marco sobre `6ca489f` (10/11, `evidencia/101120261449/`), abierto:** la cinta de Averias (prueba 30: sin efecto en el equipo; no reproduce en app ni firmware), pedida en la hoja con el PIN del equipo | Marco | pedida |
 | 5g | **`D-175`, dos casos que decide el responsable, sin construir:** F2 (Esclavo reiniciado con el Maestro en verde: pluma arriba hasta 28 s) y la pluma del Maestro arriba en la ventana de `D-29` | responsable | pendiente |
 | 6 | **Banco de Marco:** paquete `5b6e8f9` (hoja del 11/11, 12 pruebas) y hoja del 10/11 (1-40) (Parte 9 `N-187`, Parte 10 barrera arriba) y lo POR VALIDAR de §5. Sus registros se leen enteros y contando (`CLAUDE.md` §7): `RTT:` con LoRa, cobertura en metros, subida y bajada real del brazo, camaras (NA/NC y veto), C5, y lo que deben las cintas (`D1`..`D8` del 09/11). Rangos de `N-187` desde la app, sin firmware (`D-163`). `SIN_BANCO` sale solo con acta `evidencia/<fecha>_campo_<tema>.txt` y el hash cargado | Marco; lee el orquestador | ya |

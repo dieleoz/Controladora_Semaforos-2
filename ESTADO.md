@@ -10,7 +10,7 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 2. **Al cargar `J15:BAJAR`:** central a «sin senal = subir» en la MISMA visita, `J15` suelta entre medias; se anota
    aqui la polaridad por poste. Todos los equipos de la tabla llevan firmware anterior: `J15` conduce = SUBIR.
 3. **Candidata 3 sobre `5b6e8f9`** (`roadmap.md` fila 5d): arquitecto y QA una vez; compuerta hasta dos pasadas iguales;
-   `8a81f1e` y `416766a` a `RETIRADOS/` solo con permiso del responsable.
+   `8a81f1e` y `416766a` ya en `entregas/RETIRADOS/` (11/11).
 4. **`D-175`, casos del responsable sin construir:** F2 (Esclavo reiniciado, pluma arriba hasta 28 s) y la pluma del
    Maestro en la ventana de `D-29` (`roadmap.md` fila 5g).
 5. **Frentes:** El Sisga tras banco, `D-158` tras medir telefonos. Version siguiente: `roadmap.md`.
