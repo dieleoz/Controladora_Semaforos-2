@@ -1,10 +1,7 @@
 // ===== tests/dom_interruptores.js =====
 // SPEC_8 6 en la APP (D-94, D-97, D-148, D-151, D-152; D-56 la clave, D-80 sin jerga, D-83 ambar = mirar).
-// Los textos esperados salen de SPEC_8 6.1 y 6.4; las tramas, del firmware: interruptores_orden() de
-// {Maestro,Esclavo}/src/interruptores.cpp (responder(): "$ERR,CMD:<orden>:<valor>,DESC:..."; sin valor solo
-// FORMATO_INVALIDO) e interruptores_avisoArranque() para el $EVENT de D-152. Los $ACK se ejercen tambien sin
-// argumento: el firmware lo manda siempre, y esa forma ejerce el _pedido de js/interruptores.js.
-// Lo llama test_dom_execution.js, como dom_version.js.
+// Textos de SPEC_8 6.1/6.4; tramas de {Maestro,Esclavo}/src/interruptores.cpp (interruptores_orden / avisoArranque).
+// Los $ACK sin argumento ejercen el _pedido de js/interruptores.js. Lo llama test_dom_execution.js.
 module.exports = async function pruebaInterruptores(montarAppLimpia, assert) {
   const JERGA = require('./dom_usabilidad.js').JERGA;
   const xor = (s) => { let c = 0; for (const ch of s) c ^= ch.charCodeAt(0);
@@ -68,7 +65,7 @@ module.exports = async function pruebaInterruptores(montarAppLimpia, assert) {
 
   // I6 (D-94, molde SET_TIEMPOS): cada RESULT con su frase, nunca el generico "ACEPTADA (".
   const ACKS = [
-    ['ACK,CMD:SET_VETO_CAMARA,RESULT:OK', /veto/i, /ACEPTADA \(/],
+    ['ACK,CMD:SET_VETO_CAMARA,RESULT:OK', /DEVUELTO/i, /ACEPTADA \(/],
     ['ACK,CMD:SET_VETO_CAMARA,RESULT:SIN_CAMBIO', /ya estaba/i, /ACEPTADA \(/],
     ['ACK,CMD:SET_BARRERA_SERVICIO:ON,RESULT:OK', /en servicio/i, /fuera de servicio/i],
     ['ACK,CMD:SET_BARRERA_SERVICIO:OFF,RESULT:OK', /fuera de servicio/i, /ACEPTADA \(/],
@@ -110,14 +107,16 @@ module.exports = async function pruebaInterruptores(montarAppLimpia, assert) {
   assert(/PLUMA ABAJO/.test(pluma.textContent) && !/FUERA/.test(pluma.textContent),
     `I8 (control): PLUMA:ABAJO sigue igual: "${pluma.textContent}"`);
 
-  // I9 (D-151): CAM:NOVETO en ambar, "camara sana y sin veto: devolver el veto".
-  st('ROJO', ',ESC:ROJO,PLUMA:ABAJO,CAM:NOVETO');
-  const camE = d.getElementById('cam-estado'), camD = d.getElementById('cam-detalle');
-  assert(camE.textContent !== '!' && /amber/.test(camE.style.color) && /devolver el veto/i.test(camD.textContent) &&
-         /sana/i.test(camD.textContent) && !JERGA.test(camE.textContent + ' ' + camD.textContent),
+  // I9 (D-151, SPEC_8 6.4): CAM:NOVETO en ambar abre Averias; CAM:PEGADA la deja cerrada (tapa NOVETO).
+  st('ROJO', ',ESC:ROJO,PLUMA:ABAJO,CAM:NOVETO'); await Promise.resolve();
+  const camE = d.getElementById('cam-estado'), camD = d.getElementById('cam-detalle'), avSum = d.querySelector('#averias summary');
+  assert(camE.textContent === 'SIN VETO' && /amber/.test(camE.style.color) && /devolver el veto/i.test(camD.textContent) &&
+         d.getElementById('averias').open && avSum.classList.contains('averia-fuera') && /sana/i.test(camD.textContent) &&
+         !JERGA.test(camE.textContent + ' ' + camD.textContent),
     `I9: CAM:NOVETO -> "${camE.textContent}" / "${camD.textContent}" color ${camE.style.color}`);
-  st('ROJO', ',ESC:ROJO,PLUMA:ABAJO,CAM:PEGADA');
-  assert(camE.textContent === 'PEGADA', `I9 (control): CAM:PEGADA sigue igual: "${camE.textContent}"`);
+  st('ROJO', ',ESC:ROJO,PLUMA:ABAJO,CAM:PEGADA'); await Promise.resolve();
+  assert(camE.textContent === 'PEGADA' && !avSum.classList.contains('averia-fuera'),
+    `I9 (control): CAM:PEGADA no abre Averias: "${camE.textContent}"`);
 
   // I10 (D-152): el $EVENT de arranque con una bandera puesta se muestra con frase llana.
   // Literales del firmware (interruptores.cpp, interruptores_avisoArranque), no inventados.
