@@ -133,6 +133,8 @@ ambar. En `MANUAL` el Esclavo entraba solo y daba verde por reloj contra el amba
 §7.ter, fila `H13`). Desde Ambar o Manual sin radio, a los `SFTY6_SILENCIO_MS` las dos caen a ambar (SFTY-6); con el
 ambar de emergencia del Poste 2, su cerrojo (`D-8`) no obedece. Lo ejercen R1, los bloques S y U del arnes del Degradado
 de dos puntas (`orquestador_deg_*.inc`), P1 del simulador del puente y G6 del arnes de dos puntas.
+"Con radio" exige ademas el rojo del Poste 2 constado (no `ESC:?`, `D-171`). El Poste 2 no tiene rojo propio (`D-176`):
+el aviso de `OK_SIN_RADIO_SOLO_ESTE_POSTE` manda al operador a su AMBAR DE EMERGENCIA.
 
 **Rango de `SET_TIEMPOS` (`D-131`; construido en `9ffc049`, sin banco).** Verde y rojo 3..15 min, despeje 10..90 s,
 con una sola copia en `limites_ciclo.h`. Se juzga el numero que llego, sin truncar: `modoAutomatico_fijarTiempos()`

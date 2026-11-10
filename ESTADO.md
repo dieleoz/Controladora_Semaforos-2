@@ -13,7 +13,8 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 2. **Al cargar `J15:BAJAR`:** central a «sin senal = subir» en la MISMA visita, `J15` suelta entre medias; se anota
    aqui la polaridad por poste. Todos los equipos de la tabla llevan firmware anterior: `J15` conduce = SUBIR.
 3. **Con los registros de Marco:** leerlos enteros (`CLAUDE.md` §7): `RTT:`, cobertura, tiempo del brazo, camaras.
-4. **`D-173`:** ROJO TOTAL deja rojo fijo en todos los modos (pasa a Manual); `D-172`: corto de `Q10` aceptado.
+4. **`D-173`-`D-176`:** ROJO TOTAL a Manual solo con radio y rojo del otro constado; sin radio, AMBAR DE EMERGENCIA en
+   el Poste 2 (`D-176`); pluma arriba en el rojo de espera (`D-175`, F2 y ventana `D-29` pendientes); `D-172` aceptado.
 5. **Frentes:** banco de Marco, El Sisga tras banco, `D-158` tras medir telefonos. Version siguiente: `roadmap.md`.
 
 ## Que firmware hay en cada equipo (`CLAUDE.md` §0.2)
@@ -24,7 +25,7 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 | Maestro `179DB0` (El Sisga) | `7ff7d12` `SIN_BANCO`, probado despues `b354fe9`. Ninguno lleva el veto de camara a la pluma (`363e375`, `D-33`): `Camaras_Sisga_4x.html` se corrige en la MISMA visita en que se cargue un firmware posterior | cinta y diario en `evidencia/` |
 | Esclavo del Sisga | sin medir | su cinta no se ha traido |
 | Maestro `4D2007` y Esclavo `38EB53` (Marco, banco) | `6bd1e4f` en controlador y puente, medido: `$ACK,CMD:VERSION` el 01/10 | `evidencia/011020260934/` |
-| paquete para Marco | `Paquete_Semaforos_2026-11-11_8a81f1e_SIN_BANCO` (zip `129a1157...`, APK `c9b82b1a...`); en su banco, `8f8dd7e`, medido el 09/11 15:42 | `entregas/`, `evidencia/091120261545` |
+| paquete para Marco | `Paquete_Semaforos_2026-11-11_5b6e8f9_SIN_BANCO` (zip `386ab58b...`, APK `802f419a...`): `D-170` a `D-176`; en su banco, `8f8dd7e`, medido el 09/11 15:42 | `entregas/`, `evidencia/091120261545` |
 
 ## Verificacion en escritorio
 
@@ -33,10 +34,10 @@ cabecera con que HEAD y que arbol se midio; las comprueba `documentos_01` en cad
 
 | | |
 |---|---|
-| Flash | Maestro **85.2 %** · Esclavo **72.1 %** · ESP32 **35.8 %** |
+| Flash | Maestro **85.5 %** · Esclavo **72.3 %** · ESP32 **35.8 %** |
 | Banco por packs | **1524/1525 comprobaciones** en **70 packs**, 1 FALLA: `D-22` pide una tarjeta delante (`CLAUDE.md` §1) |
-| Arneses de C++ real | 115/115 automatico · 78/78 ciclo · 196/196 dos puntas · 179/179 Degradado a dos puntas |
-| App y puente | **967/967** jsdom · **71/71** funcional · **70/70** unitarios · 92/92 TDD · puente 167/167 |
+| Arneses de C++ real | 120/120 automatico · 78/78 ciclo · 204/204 dos puntas · 184/184 Degradado a dos puntas |
+| App y puente | **971/971** jsdom · **71/71** funcional · **70/70** unitarios · 92/92 TDD · puente 167/167 |
 ## BLOQUEANTES (lo que no cierra el teclado): `roadmap.md` §1 y §4 (`N-108`, `N-120`, `C-6`, `N-116`, §0.2).
 
 ---|---|
