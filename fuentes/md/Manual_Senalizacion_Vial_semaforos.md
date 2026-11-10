@@ -1,5 +1,8 @@
 # Manual de Senalizacion Vial de Colombia 2024 - extractos de semaforizacion (Cap. 4)
 
+pdf: 04_Manuales/Manual_de_Senalizacion_Vial.pdf
+sha256: 9311b4f7b76361be1c5797db48948ed1c1246c65c320fdf770071070054bb357
+
 Transcripcion parcial: solo los numerales que contestan a una interseccion semaforizada de hasta 4 grupos.
 Texto entre comillas: literal (capa de texto del PDF, guiones de fin de linea unidos). Pagina impresa = pagina
 del PDF en todo el capitulo 4 (cotejado en imagen en p. 378 y p. 394).

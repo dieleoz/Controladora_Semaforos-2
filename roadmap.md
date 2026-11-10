@@ -83,7 +83,7 @@ python 01_Firmware/Simulaciones/banco/correr.py   # solo los packs. Sirve para i
 
 ## 0. Lo que esta abierto de verdad, en cinco lineas
 
-### ORDEN DE TRABAJO (09/11, 19:00; «construir todo, que no falte nada»): esto manda; el detalle, en cada `N-x`
+### ORDEN DE TRABAJO («construir todo, que no falte nada»): esto manda; el detalle, en cada `N-x`
 
 | # | que | quien / donde | estado |
 |---|---|---|---|
@@ -261,55 +261,13 @@ Para la rama `auditoria/n182`: el recorrido del menu de `dom_simulador.js` empar
 (`SET_DEG_AUTO:1`, `CONSULTA_NOCHE`, `SET_TIEMPOS:5,5,30` saldrian «sin respuesta»), y el juez de vocabulario no ve
 las tramas que el firmware arma con `snprintf` (interruptores).
 
-**`N-184` (09/11): la radio del banco de Marco se cae al cambiar o dar una orden, a 5 m.** Medido en sus capturas
-(`evidencia/091120261523`, 10:35): E90-DTU leida como `433C37`, UART 1200, aire 1,2 k, modo Fixed, 37 dBm; SPEC_6
-B.2 pide 9600 / 2,4 k / Transparent. El manual del modelo comprado, E90-DTU (433L37)-V8 (LoRa, mismo directorio),
-dice en §6 que el modo NORMAL es M1=ON, M0=ON y que OFF/OFF es el de configuracion: lo CONTRARIO de SPEC_6 B.1 (2) y
-`CLAUDE.md` §3, escritos para un modelo sin confirmar (SPEC_6 B.5). Sin medir en sus radios: modelo de la etiqueta
-y posicion de los interruptores (pedido a Marco con la configuracion de las dos). Si se confirma: SPEC_6 B.1-B.3,
-`CLAUDE.md` §3 y la hoja cambian en el mismo commit. Manual transcrito a `.md` (fuente de trabajo). Despues, si
-sigue cayendo bien configurada: `RTT:` frente a las esperas del protocolo (LoRa, semiduplex, paquetes de 58 B).
+**`N-184` cerrado: radio.** El enlace es RS485 a 9600 transparente con la E90-DTU (433L37)-V8 de fabrica y M0/M1 en
+ON (`D-160`, SPEC_6 B.1-B.3; programa: RF_Setting 4.6). Medido: 100 % de latidos y `RTT:` mediana 752 ms, max 952
+(`evidencia/091120261729`); la ida cabe en los 500 ms de `D-34`, sin cambio de tiempos. La cronica, en `HISTORIA.md`
+§14. Falta: cobertura en metros (hoja del 10/11).
 
-**`N-184` (09/11): causa medida, sin cambio de tiempos.** Registro de Marco (`evidencia/091120261545`, firmware
-`8f8dd7e`): `RF:0%` en los 126 `$STATUS`, 505 latidos sin respuesta: el enlace nunca existio. Foto: M0/M1 en OFF/OFF
-en las dos radios = modo 3 del manual. Corregido en `277fb72` (SPEC_6 B.1-B.3, `CLAUDE.md` §3, hoja): ON/ON para
-operar. Tiempos frente a LoRa (inventario + simulacion con el C++ real en el scratchpad): arquitecto MEDIR ANTES, sin
-cambio: a 2,4 k una rafaga ~0,15 s frente a ~1,35 s de borde; bajar reintentos no detecta antes la radio caida (eso
-es el silencio de 28 s, `D-48`) y haria pisar `GO_RED` sobre `ACK_RED`. Se reabre solo con `RTT:` medido en su banco
-con las radios bien configuradas. Paquete vigente: `277fb72`.
-
-**`N-184`, segundo registro (15:39-15:54, `evidencia/091120261558`):** `RF:0%` en 260 `$STATUS`, 687 latidos sin
-respuesta; el diagnostico D-23 del Maestro: «33 bytes recibidos, 0 tramas buenas y 0 descartadas» (52 como maximo) y
-tramos de 30 s sin un byte. Firma de radio fuera de modo normal o a otra velocidad (UART 1200 frente a 9600, o
-Fixed), no de tiempos del protocolo. Exportado antes de reconfigurar. Paso a paso de configuracion enviado a Marco
-(SPEC_6 B.3 y manual §6-§7.2); se cierra con «tramas buenas» > 0 y `RTT:` medido. Si no: cableado 485 y masa comun.
-
-**`N-184`, decision (responsable, 16:20):** Marco no puede escribir en las radios (programa V1.9 lee «Version 0,0» y
-modelo `433C37`; SetParam en gris). «Baja la tasa, que funcione desde firmware» (`D-159`): entorno de compilacion
-aparte para radios a UART 1200 / Fixed (cabecera de destino con fuente de Ebyte; presupuesto de tiempos con sus
-`static_assert`; el binario por defecto, identico por sha256), en worktree, con arquitecto antes de entregar.
-Prueba simple de las radios sin controlador: LEDs `TXD`/`RXD` de las cajas con los dos postes encendidos (cada
-latido, 3 s), y PC con dos USB-RS485 y un terminal a 1200 8N1 en cada radio (sin cable cruzado: A con A, B con B).
-Hechos tambien: `N-185` (`15c5fe6`), `D-98` tanda 3 (`8ac39f4`), `D-158` (`955d2c7`).
-
-**`N-184`, medido (17:06, `evidencia/091120261648` y `091120261707`):** con RF_Setting 4.6 (el que Ebyte enlaza para el
-433L37-V8; el V1.9 leia mal: «433C37», «Version 0,0», 1200/1.2k/Fixed) las DOS radios leen ID E90-DTU(433L37),
-version 7459-0-20, UART 9600 8N1, aire 2.4k, FEC Enable, Fixed Disable (= Transparent), canal 23, direccion 0,
-37 dBm: la configuracion de fabrica, que es la de SPEC_6 B.2. La unica causa que queda es M0/M1 en OFF/OFF. El
-entorno `radio_1200_fija` (`f3d893d`) se retiro despues (N-186), sin efecto en el binario por defecto.
-Se cierra con el registro de Marco con M0/M1 en ON: «tramas buenas» > 0 y `RTT:` medido.
-
-**`N-184` resuelto (17:24):** con M0/M1 en ON, «Enlace: 100 % de latidos contestados». Definido en `D-160`: RS485 a
-9600 transparente, sin cambio de firmware. Falta: registros de los dos postes para medir `RTT:` con LoRa. Retirado el
-entorno `radio_1200_fija` (`D-159` derogada); se conserva el calculo de `ENVIO_RAFAGA_MS`/`ENVIO_SYNC_MS`.
-
-**`N-186` (09/11, 17:45, responsable): UN `.zip` con firmware, APK y `.html` solo de lo que falta.** «No usar esa rama
-de LoRa»: sale el entorno `radio_1200_fija` (`D-159` derogada por `D-160`), se conserva el calculo de tiempos de envio.
-«Que funcione bien los fines de semana en Degradado»: con testigo no hay tope de 48 h (H9), pero ningun arnes lo
-ejercia: casos de 72 h (viernes a lunes) en el arnes del Degradado, vistos en rojo. Hoja nueva solo con lo pendiente
-(barrera, camaras, interruptores, RTT, fin de semana en Degradado, calle, El Sisga, `D-22`, `D-124`). Workflow con tres
-agentes en ficheros disjuntos; `auditoria/n182` fusionada en main (7 commits + «NO CUBRE», `d77695a`). Despues:
-integrar, compuerta dos pasadas, QA una vez, APK, `.zip`.
+**`N-186` hecho: paquete `db07446` para Marco** (firmware de tres puntas sin Repetidor ni 1200, APK de hoy, hoja de
+lo pendiente; Degradado con testigo probado 72 h en el arnes; QA APTO).
 
 **Rama `auditoria/n182` (otra sesion, 09/11):** 7 commits de instrumentos sobre `7f4a502` (rondas.json ignorado,
 lista cerrada en `barrera_03`, ABORTADO en `Validacion_Respaldo`, D-94 por el despachador real del Maestro en el

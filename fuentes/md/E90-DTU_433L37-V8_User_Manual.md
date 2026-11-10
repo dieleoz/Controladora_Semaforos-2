@@ -1,5 +1,8 @@
 # E90-DTU (433L37)-V8 User Manual (EBYTE) - transcripcion literal
 
+pdf: evidencia/091120261523/Saf0e770220924608a9744716c546324aB.pdf
+sha256: 7c5d68651561ec3e4618b59cd165d7cb22e1fe5fb33c8aa4f1a27226a7de9cfd
+
 Copia de trabajo. Para citar, usar numeral y pagina del manual: "E90-DTU (433L37)-V8 User Manual, numeral 6, p. 10".
 El texto es el del original en ingles, transcrito tal cual, con sus erratas. Las figuras no se copian: se indican.
 

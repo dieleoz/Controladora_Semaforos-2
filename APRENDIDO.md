@@ -157,3 +157,12 @@ sin su visto bueno.
 - **Leccion:** al lanzar agentes que pueden abrir decisiones se les reserva un rango, o el orquestador no numera
   hasta que acaben.
 - **Destino:** SUBIDA al metodo 0.1.13 (`62e69c3`), regla de «dos subagentes».
+
+## L-19 — La lectura de un programa que no reconoce el equipo no es una medida (09/11)
+- **Paso:** el programa de configuracion de la radio (V1.9) leia «Version 0,0», modelo `433C37` y 1200/1.2k/Fixed; se
+  construyo un firmware a 1200 (`D-159`). Con el programa del modelo exacto (RF_Setting 4.6) la radio estaba de
+  fabrica a 9600/Transparent; la causa era M0/M1 en OFF, regla copiada de otro modelo.
+- **Leccion:** si el programa no reconoce el modelo (version 0, modelo distinto de la etiqueta, campos en gris), se
+  busca el del modelo exacto en la ficha del fabricante y se relee antes de construir nada; una regla de cobre de otro
+  modelo se contrasta con el manual del comprado.
+- **Destino:** SUBE (vale para cualquier equipo con programa de configuracion): propuesto a Diego.
