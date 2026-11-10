@@ -8,9 +8,9 @@ es `SPEC_8`.** **Fuera** ademas: el ciclo (SPEC 1), la radio (SPEC 2), la hora (
 > **EL CORTE CON `SPEC_8`, Y POR QUE ES ESE — se escribe porque partir un documento deja huecos entre
 > las dos mitades, y un hueco que nadie nombra no lo cubre nadie.** Aqui vive lo que decide **EL
 > COBRE**: lo que hay en un borne y lo que pasa **sin firmware dentro**. Alli vive lo que decide **EL
-> FIRMWARE**. Por eso **la pluma sin energia esta AQUI** (§4: cae el pin, cae el MOSFET, baja el
-> brazo) y **la pluma que sube con el ambar intermitente esta en `SPEC_8` §5** — esa la decide una
-> linea de `escribirPines()`, no el cobre.
+> FIRMWARE**. Por eso **la pluma sin energia esta AQUI** (§4: hoy cae el pin y baja el brazo; el
+> requisito del 10/11 la deja ARRIBA) y **la pluma que sube con el ambar intermitente esta en
+> `SPEC_8` §5** — esa la decide una linea de `escribirPines()`, no el cobre.
 
 **De donde sale cada linea.** Las MEDIDAS de cobre son de `05_Funcional/17_Arquitectura_28-08_y_
 Decisiones_Abiertas.md`, **copiadas literales con su fecha** — esa spec **gana a esta** en todo lo
@@ -206,11 +206,44 @@ pin** (la regla completa es SFTY-28, y su tabla luz -> pluma es **SPEC 1 §2**):
 
 - **La orden sale por la MISMA puerta que las luces** — dentro de `escribirPines()`, con el `verde`
   ya enclavado por SFTY-2. Una barrera con dos puertas no es una barrera.
-- **Equipo SIN ENERGIA: el pin cae a LOW, el MOSFET no conduce, la pluma BAJA** — el fallo seguro. La
-  compra pide **actuador con retorno por muelle o gravedad**: eso el software no lo garantiza.
-- 🔴 **Y por eso «sacar la barrera de servicio» (`SPEC_8` §6) NO garantiza que el brazo se quede
-  arriba si se va la luz:** sin energia la salida cae y el actuador baja por su muelle o por su peso.
-  **El interruptor manda mientras haya corriente**; el cobre manda cuando no la hay.
+- **Lo que HACE hoy** (firmware cargado y del paquete del 10/11, `TALANQUERA_ABRIR HIGH`; central «sin senal =
+  bajar»): `J15` conduce = SUBIR. **Sin energia el pin cae a LOW, el MOSFET no conduce y la pluma BAJA**, y con
+  actuador de retorno por muelle o gravedad baja tambien en corte general. Ese era el requisito de compra hasta el
+  10/11: **queda DEROGADO** por el de abajo.
+- 🔴 **REQUISITO (responsable, 10/11; deroga en parte `D-164`): en REPOSO y SIN ENERGIA, la pluma ARRIBA. La orden
+  de BAJAR es la senal ACTIVA:** `J15` conduce = BAJAR; sin senal (controlador apagado, reset, cable cortado) la
+  central sube el brazo o lo deja arriba. Principio del 10/11: ninguna averia de camara o barrera deja el paso
+  inoperante; la barrera es complemento y quien regula es la luz. **HUECO, sin construir:** el firmware sigue en
+  «conduce = subir» (`SPEC_8` §8.2) y ninguna central del proyecto esta configurada asi.
+- **Lo que se exige al proveedor de la barrera y de su central o puente H:** (a) sin senal de mando, brazo arriba y
+  quieto; (b) sin alimentacion de la central, con el brazo abajo o a medio recorrido, el brazo sube solo y se queda
+  (muelle, contrapeso o su logica); (c) al volver la alimentacion no baja sin orden, ni para buscar posicion;
+  (d) declara la entrada de BAJAR: bornes, NA o NC, seco o tension, sostenido o pulso, y que hace al quitar la orden.
+  Que un puente H «suba sin senal» exige logica alimentada e inversor: es medida suya, no del repo.
+- **Como se acepta:** `Pruebas_Funcional_2026-11-10.html`, Parte 10, con `J15` SUELTA del controlador: 35 (sin
+  senal = arriba), 36 y 37 (corte con el brazo abajo y a medias: acaba arriba, con su tiempo), 38 (vuelta de la
+  alimentacion, tres veces: ninguna bajada), 39 (la entrada de bajar, d) y 40 (si 35..38 dan NO OK, lo que ofrece
+  el proveedor). **Un NO OK en 35..38 no acepta la barrera.**
+- **«Sacar la barrera de servicio» (`SPEC_8` §6) manda mientras haya corriente.** Hoy, sin ella, el brazo baja; con
+  el requisito, sin energia queda arriba por la central, no por el software.
+
+**Tabla de fallos con su cobre.** «Hoy» = `J15` conduce = subir y central «sin senal = bajar»; «requisito» = `J15`
+conduce = bajar y central «sin senal = subir». Ninguna fila la ve el firmware: no hay fin de carrera leido (`D-27`,
+`D-46`).
+
+| fallo | hoy | requisito | quien lo ve |
+|---|---|---|---|
+| corte general (controlador y central) | abajo, por muelle o peso | arriba, si la central cumple 36..37 | el conductor; luces apagadas |
+| controlador sin energia, central viva | abajo | arriba | el conductor; sin `$ALARM` (micro muerto) |
+| `Q10` u opto en CORTO (conduce siempre) | arriba fija, tambien en rojo | 🔴 **abajo fija, tambien en verde, en silencio** | quien mira el brazo |
+| `Q10`/opto abiertos, `J15` o bobina del rele cortados | abajo fija, tambien en verde | arriba fija, tambien en rojo | quien mira el brazo |
+| reset, carga SWD, cuelgue con watchdog (pin flotando) | abajo; el arranque la deja abajo | sube, tambien en rojo; el arranque NO la baja (`SPEC_8` §8.4) | aviso de arranque |
+| firmware nuevo con central vieja | - | **invertida**: abajo en verde, arriba en rojo | solo quien mira el brazo |
+| firmware viejo con central nueva | - | **invertida**, igual | solo quien mira el brazo |
+
+🔴 **La fila del corto contradice el principio del 10/11** (deja el paso cerrado con verde) y el firmware no la ve:
+**no esta aceptada ni medida**; la cierra un fin de carrera leido (version siguiente) o una fila del responsable.
+Las dos mezclas las evita cambiar firmware y central en la MISMA visita con `J15` suelta (`SPEC_8` §8.2).
 
 ⚠️ **MEDIDO EN COBRE (banco 04/09):** `J15` dio *«en rojo 0 V, en ambar 12 V»*. La causa se explico
 el 05/09: **nueve de los diez drenadores llevan pull-up de 1 kOhm + LED al riel de 12 V** (`R23`,

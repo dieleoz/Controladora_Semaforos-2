@@ -14,8 +14,9 @@ la tabla de conectores, la cadena electrica y lo que no se ha medido del hardwar
 >
 > **EL FALLO SEGURO EN ESTADO DE AVERIA —que la barrera SUBA con el ambar intermitente— ES DE ESTE
 > FICHERO, §5**, porque lo decide una linea de `escribirPines()` y no el cobre. `SPEC_5` §4 deja su
-> puntero y se queda con la otra mitad, la que **no** es firmware: **sin energia el pin cae, el
-> MOSFET no conduce y el brazo baja.** Las dos mitades se leen juntas o ninguna protege a nadie.
+> puntero y se queda con la otra mitad, la que **no** es firmware: **hoy, sin energia el pin cae y el
+> brazo baja; el requisito del 10/11 lo deja ARRIBA (8.2, HUECO).** Las dos mitades se leen juntas o
+> ninguna protege a nadie.
 
 **De donde sale cada linea.** Manda esta spec; `DECISIONES.md` es su indice para no volver a preguntar; el
 cobre medido, `05_Funcional/17_...` y `SPEC_5`. El firmware se cita **por SIMBOLO**, nunca por linea,
@@ -173,9 +174,9 @@ vez el extremo de la cadena electrica que vive en `SPEC_5` §4. **Es de aqui.**
   lo que un agente o un tecnico leeria mal manana: **no es una decision del firmware que se pueda
   cambiar midiendo**; para moverla hace falta una fila del responsable, y si se mueve se cambia
   **AQUI, en el comentario del fuente y en la tabla de SFTY-28**, los tres a la vez.
-- 🔴 **Lo que NO garantiza este apartado: que el brazo se quede arriba si se va la luz.** Sin energia
-  la salida cae y el actuador baja por su muelle o por su peso — **es el fallo seguro de la barrera y
-  el software no lo gobierna**: `SPEC_5` §4.
+- 🔴 **Lo que NO garantiza este apartado: que el brazo se quede arriba si se va la luz.** Hoy, sin
+  energia la salida cae y el brazo baja; el requisito del 10/11 (arriba sin energia) lo cumple la
+  central, no el software, y esta sin construir: `SPEC_5` §4, 8.2.
 
 > 🔴 **Y lo que NO hace: no la levanta nada.** La camara solo puede retrasar o impedir la BAJADA
 > (`D-33`, §1). **`A-1.bis` sigue abierto en su otra mitad:** que hacer cuando el veto se
@@ -299,8 +300,8 @@ veto» (`CAM_LEYENDA`). Con cualquiera de los dos, «Averias» de Ajustes se abr
 `CAM_LEYENDA` en los dos sentidos.
 
 🔴 **Lo que NO garantiza «sacar la barrera de servicio»: que el brazo se quede arriba si se va la
-luz.** Sin energia la salida cae y el actuador baja por su muelle o por su peso — es el fallo seguro
-de la barrera y **el software no lo gobierna**. El interruptor manda mientras haya corriente.
+luz.** Hoy, sin energia la salida cae y el brazo baja; el requisito del 10/11 (arriba, `SPEC_5` §4,
+8.2) es de la central y esta sin construir. El interruptor manda mientras haya corriente.
 
 **El obstaculo que la app midio** —el estado no cabia en la trama, `SPEC_4` §7 hueco 10— **queda cerrado por 6.4**.
 
@@ -346,17 +347,30 @@ los numeros de apartado no se tocan, `CLAUDE.md` cabecera.)
 | contacto de la camara C (`J16` p10) | `NA` | `NA` / `NC` | la lectura de `CAM_C_PIN`, en un solo sitio (8.3) |
 | contacto de la camara D (`J16` p12) | `NA` | `NA` / `NC` | la de `CAM_D_PIN`, igual |
 | retardo de bajada tras el rojo | 3 s | 3..5 s, entero (P1, P3 decididas 09/11) | `PLUMA_RETARDO_BAJADA_MS` pasa a valor de fabrica |
-| sentido de `J15` | activa = subir | **fijo, no es parametro** | nada (8.2) |
+| sentido de `J15` | activa = subir (HUECO: activa = bajar) | **fijo al compilar, no es parametro** | `pines.h` (8.2) |
 | tipo de salida | nivel | **fijo, no es parametro** | nada (8.2) |
 | pluma en ambar intermitente / `S_FALLO` | ARRIBA | **fijo salvo fila (P2)** | nada (8.2) |
 
 ## 8.2 Por que tres candidatos se quedan fijos (`D-164`) — la premisa contraria esta en el fuente
 
-- **`J15` «activa = bajar»: NO.** `pines.h` (SFTY-28): «en LOW el MOSFET no conduce, el motor queda sin energia y la
-  pluma se queda ABAJO. Ese es el fallo seguro». Con el sentido invertido, cada corte de luz, reinicio, carga por SWD
-  o micro colgado (pin en alta impedancia, opto apagado) **sube** la pluma, tambien en rojo. Ningun vigilante lo ve: el
-  firmware no esta corriendo. La central o el puente H se compran y configuran «sin senal = bajar» (`SPEC_5` §4).
-- **Salida por PULSO: NO en esta version.** `J15` es UNA salida con dos estados: en nivel, 1 = subir y 0 = bajar. Un
+- **`J15` «activa = BAJAR»: SI, desde el 10/11** (responsable: «en reposo o sin energia, pluma arriba»; deroga el
+  «NO» de `D-164`; requisito de cobre en `SPEC_5` §4). **Lo que HACE hoy el equipo:** activa = subir
+  (`TALANQUERA_ABRIR HIGH`, `pines.h`), y cada corte, reinicio o carga baja la pluma. **Lo que DEBE hacer (HUECO, sin
+  construir):** (1) `TALANQUERA_CERRAR` = `HIGH`, `TALANQUERA_ABRIR` = `LOW`, el nivel de reset; (2) polaridad
+  **fijada al compilar**: un binario por polaridad, declarada en la respuesta de version o en el aviso de arranque
+  (`$STATUS` no crece, `D-60`), y `ESTADO.md` la lleva por poste. **Nunca parametro:** `DR4` con pila agotada vuelve
+  a fabrica en silencio y la pagina `0x0800F400` la borran `-e all` y el cambio de `VERSION`; cualquier fabrica
+  invierte la pluma con uno de los dos tipos de central; (3) `semaforo_setup()` escribe `TALANQUERA_ABRIR` y deja
+  `plumaAbierta = true` en las dos puntas: el arranque NO baja la pluma, y la primera bajada pasa por R y por el veto
+  (8.4); `camaras_sembrar()` corre antes del primer tick que pueda bajar.
+  **Modo de fallo que trae:** cada reset, carga o cuelgue SUBE la pluma, tambien en rojo (aceptado: la barrera es
+  complemento); `Q10` u opto en corto la deja ABAJO fija con verde, en silencio (`SPEC_5` §4, sin aceptar ni medir);
+  y la mezcla de firmware y central la invierte sin que nadie salvo el que mira el brazo lo note.
+  **Por eso firmware y central cambian en la MISMA visita, con `J15` suelta entre medias** (para este cambio NO vale
+  «firmware primero» de `CLAUDE.md` §3): `J15` suelta; central a «sin senal = subir» y comprobar que sube; carga SWD;
+  leer la polaridad por la app; reconectar `J15`; casillas: verde = arriba, rojo tras R sin nadie = abajo, quitar
+  `J15` = sube, reset = sube y vuelve a bajar tras R. El puente H del banco se reconfigura en la misma sesion.
+- **Salida por PULSO: NO en esta version.** `J15` es UNA salida con dos estados (hoy, 1 = subir y 0 = bajar). Un
   pulso necesita un tercer estado (motor parado) o una central paso a paso, y una paso a paso que pierda un pulso
   queda **invertida para siempre** (arriba en rojo, abajo en verde) sin que el firmware lo sepa: no hay fin de carrera
   leido (`J14`/`PB0` reservada, `D-46`; libre, `D-27`). El puente H del funcional (10 s, con su final de carrera) es
@@ -392,8 +406,9 @@ los numeros de apartado no se tocan, `CLAUDE.md` cabecera.)
 
 ## 8.4 La tabla de estados — luz x parametro -> `J15` y pluma (validada contra `escribirPines()` de `63e4c63`)
 
-`J15`: 1 = `TALANQUERA_ABRIR` (`HIGH`), 0 = `CERRAR`. R = retardo (3..5 s). «Ve» = presencia logica de C o D tras
-aplicar `NA`/`NC`. Ningun parametro entra en `luzPideArriba`: solo en la rama de bajada.
+`J15`: 1 = `TALANQUERA_ABRIR`, 0 = `CERRAR` (simbolos: hoy ABRIR = `HIGH`; con 8.2, ABRIR = `LOW`). R = retardo
+(3..5 s). «Ve» = presencia logica de C o D tras aplicar `NA`/`NC`. Ningun parametro entra en `luzPideArriba`: solo en
+la rama de bajada.
 
 | luz / causa | NA o NC | R | `J15` | pluma | caso ya aceptado |
 |---|---|---|---|---|---|
@@ -409,7 +424,8 @@ aplicar `NA`/`NC`. Ningun parametro entra en `luzPideArriba`: solo en la rama de
 | `S_ROJO_INT` (noche) | no cuenta | no cuenta | 1 | arriba | `D-110` |
 | barrera fuera (`FLAG_BARRERA_FUERA`) | no cuenta | no cuenta | 1 | arriba | `D-96` |
 | camara fuera del veto | ignorada | 3..5 | 0 tras R | baja | `D-96` |
-| arranque, reset, corte, SWD | no cuenta | no cuenta | 0 | abajo | SFTY-28, `SPEC_5` §4 |
+| arranque, reset, corte, SWD: HOY | no cuenta | no cuenta | 0 | abajo | SFTY-28 de antes del 10/11 |
+| idem, DEBE (HUECO, 8.2) | no cuenta | no cuenta | 1 (`LOW`) | arriba con la central viva; corte general, lo que haga la central (`SPEC_5` §4, pruebas 36-37); 1.a bajada tras R y veto | 10/11 |
 
 **Las cuatro comprobaciones, con lo que las garantiza:**
 1. **Pluma arriba en rojo solo en los casos ya aceptados.** Los parametros no tocan `luzPideArriba` ni la rama «ya
@@ -419,7 +435,8 @@ aplicar `NA`/`NC`. Ningun parametro entra en `luzPideArriba`: solo en la rama de
    minimo es 3 s (P3).
 3. **Ningun pulso activo mas de su tiempo:** no hay pulso (8.2). En nivel, el tiempo de motor lo corta el final de
    carrera de la central o del puente H.
-4. **El fallo seguro sin energia no depende de ningun parametro:** el sentido de `J15` no es parametro.
+4. **El reposo sin energia no depende de ningun parametro:** la polaridad de `J15` es de compilacion (8.2). Hoy el
+   reposo es abajo; el requisito (HUECO) es arriba, con el arranque escribiendo ABRIR y `plumaAbierta = true`.
 
 ## 8.5 El contacto mal declarado — se detecta
 
@@ -484,9 +501,12 @@ cambiar el contacto, comprobar `VE:0` y devolver el veto.
 - **P3. Rango de R:** por debajo de 2 s se acerca a «baja en el instante del rojo»; por encima de 5 s pasa de la mitad
   del despeje minimo (`static_assert` de `D-33`). **Decidido el 09/11: 3..5 s (`D-163`)**: con 2 s el brazo cae ~7
   veces mas sobre quien cruza al final del amarillo (simulacion de dos modelos y arbitro, `roadmap.md` `N-187`).
-- **P4. `J15` fija «activa = subir» y de nivel; pulso a la version siguiente; central y puente H «sin senal = bajar»
-  (`D-164`).** Modo de fallo de lo contrario: invertida, sube con cada corte o reinicio; un pulso sin fin de carrera
-  puede quedar invertido para siempre. **Decidido: las tres (`D-164`).**
+- **P4. `J15` de nivel; pulso a la version siguiente (`D-164`, vigente). Sentido: decidido el 09/11 «activa =
+  subir» y central «sin senal = bajar»; DEROGADO el 10/11 por el responsable: J15 activa = BAJAR, polaridad fijada al
+  compilar (un binario por polaridad, declarada en la version), arranque que no baja la pluma, central «sin senal =
+  subir» y firmware y central en la MISMA visita con `J15` suelta (8.2, `SPEC_5` §4).** Modo de fallo: sube con cada
+  corte o reinicio (aceptado) y baja fija con `Q10` en corto (sin aceptar). **HUECO: hasta construirlo, el equipo
+  hace lo de hoy (activa = subir).**
 
 **P1..P4 decididas el 09/11** (simulacion de dos modelos y arbitro): P1 y P4 como se recomienda, P2 ARRIBA fija,
 P3 3..5 s. Revision de arquitectura antes de construir: APTO CON CONDICIONES (C1..C5, cerradas en este apartado).

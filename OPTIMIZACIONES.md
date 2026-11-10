@@ -112,7 +112,7 @@ que no la comprueba es **peor** que una fila vacía, porque la vacía al menos n
 | SFTY-25 | **— solo diseño.** Cero etiquetas en el firmware | — |
 | SFTY-26 | **— solo diseño.** Cero etiquetas en el firmware | — |
 | **SFTY-27** | 🔴 **DOS REGLAS CON EL MISMO NÚMERO — ver el aviso justo debajo.** Este documento lo define como *«matrícula de pareja»*, sin implementar; las **8 etiquetas del firmware** dicen otra cosa · SPEC: el sentido del firmware (el Esclavo pide, el Maestro decide), `SPEC_2` §1; la matricula, ninguna | — |
-| **SFTY-28** | `*/src/semaforo.cpp` *(dentro de `escribirPines()`)* · `*/include/pines.h` · `*/include/instalacion.h` *(el retardo de bajada, 3..5 s, que lee `escribirPines()` por `instalacion_retardoPlumaMs()`; `N-187`, sin banco)* | ✅ `barrera_03_talanquera` · `maestro_09_test_leds` |
+| **SFTY-28** | `*/src/semaforo.cpp` *(dentro de `escribirPines()`)* · `*/include/pines.h` · `*/include/instalacion.h` *(el retardo de bajada, 3..5 s, que lee `escribirPines()` por `instalacion_retardoPlumaMs()`; `N-187`, sin banco)* | ✅ `barrera_03_talanquera` · `maestro_09_test_leds` · 🔴 *requisito 10/11 (reposo y sin energía = ARRIBA, `J15` activa = bajar) sin construir: `SPEC_8` §8.2* |
 | **SFTY-29** | **— solo diseño.** Presencia como veto del todo-rojo y sensor de pluma | — |
 
 > ⚠️ **CÓMO SE LEE UN ✅ DE ESTA TABLA. Sin esto promete más de lo que cubre** *(auditorías del 28/08
@@ -870,9 +870,9 @@ exactamente lo que hace hoy—.
 > va ARRIBA en cualquier luz, también en rojo (`SPEC_8` §6.3). Es la única excepción; no se ensancha a «con rojo».
 
 **Estado:** anotado el 26/08/2026 y **construido el 27/08** en las dos puntas. La orden sale de
-`escribirPines()` —**la misma puerta que las lámparas**— y sigue al `verde` YA enclavado; el arranque
-la deja cerrada; **el nivel de reposo del pin es el de CERRAR**, de modo que un equipo apagado no
-deja la vía abierta. Coste: **+24 bytes por punta**, sin drivers ni bus.
+`escribirPines()` —**la misma puerta que las lámparas**— y sigue al `verde` YA enclavado. 🔴 **Requisito del 10/11
+(responsable): en reposo y sin energía, pluma ARRIBA; `J15` activa = BAJAR, polaridad de compilación, el arranque no
+baja (`SPEC_8` §8.2, `SPEC_5` §4). El fuente AÚN NO lo cumple:** hoy el arranque la cierra y el reposo es CERRAR.
 
 **Lo que lo mide, en dos planos distintos:** el arnés del automático vigila en CADA tick de los nueve
 bloques que la pluma nunca esté arriba con los dos verdes apagados —sobre lo que el `semaforo.cpp`
@@ -911,9 +911,9 @@ han visto veinte semáforos de obra esa semana, el rojo se salta. Una barrera, n
    *«cerrar la vía por completo»* frente a *«dejar pasar con precaución»* sigue siendo decisión del
    cliente y del PMT. Cambiarla es **una línea** en `escribirPines()`, y el día que se cambie hay
    que actualizar la tabla de arriba y el Manual 1.
-2. **¿Qué hace al cortarse la energía?** Una talanquera que se queda arriba con el equipo muerto es
-   una vía abierta sin regulación. **Esto no se resuelve en software:** se resuelve eligiendo un
-   actuador que caiga por gravedad o con muelle de retorno. **Va en la especificación de compra.**
+2. **¿Qué hace al cortarse la energía?** Cerrado el 10/11: ARRIBA (la barrera es complemento; regula la luz). Lo
+   cumple la central «sin señal = subir», exigida en compra y aceptada con las pruebas 35-40 (`SPEC_5` §4); el
+   fuente aún manda «activa = subir», y el corto de `Q10` deja la pluma abajo fija sin aceptar.
 3. **¿Y si no llega a bajar?** Un final de carrera convierte *«ordené bajar»* en *«está bajada»*, que
    no es lo mismo. Sin realimentación el firmware no puede saberlo y **no debe fingir que sí**: si no
    hay final de carrera, el manual tiene que decir que la barrera es una ayuda visual y que **quien
