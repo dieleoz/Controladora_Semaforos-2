@@ -244,15 +244,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const camEstadoEl = document.getElementById('cam-estado');     // D-13
   const camDetalleEl = document.getElementById('cam-detalle');   // D-13
 
-  // La caja de la Prueba de Alcance (28/09): el funcional en campo pulsaba el boton y
-  // no sabia "donde se ve este valor" -el % ya se pintaba en rf-quality, pero en la
-  // pestana de Operacion, mientras el boton vive en la de Tecnico-. Ver
-  // pintarCajaAlcance() mas abajo.
-  const alcanceCajaEl = document.getElementById('alcance-caja');
-  const alcanceCajaPctEl = document.getElementById('alcance-caja-pct');
-  const alcanceCajaRttEl = document.getElementById('alcance-caja-rtt');
-  const alcanceCajaFraseEl = document.getElementById('alcance-caja-frase');
-
   // Bitacora del enlace (pestana de eventos)
   const registroTiraEl = document.getElementById('registro-tira');
   const registroListaEl = document.getElementById('registro-lista');
@@ -273,8 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnOpMenu = document.getElementById('btn-op-menu');
 
   // Mandos de tecnico que no salen por data-cmd porque cada uno tiene una condicion
-  // propia: ALCANCE viaja sin PIN y DEMANDA solo vale en un modo concreto.
-  const btnModoAlcance = document.getElementById('btn-modo-alcance');
+  // propia: DEMANDA solo vale en un modo concreto (ALCANCE salio con D-167).
   const btnDemanda = document.getElementById('btn-demanda');
   const demandaHintEl = document.getElementById('demanda-hint');
 
@@ -334,12 +324,12 @@ document.addEventListener('DOMContentLoaded', () => {
   //   FORZAR_ROJO       Maestro. Rojo fijo (en Degradado, SOLO en ese poste: D-51).
   //   AMBAR_EMERGENCIA  Esclavo. Ambar intermitente y talanquera ABIERTA; el Esclavo rechaza el literal FORZAR_ROJO
   //                     nombrando este (hasta el 28/08 acusaba "rojo forzado" sin poner un rojo).
-  //   SET_MODO:MENU / SET_MODO:ALCANCE   Maestro. Menu sin ciclo / rojo fijo; MENU es la vuelta atras universal.
+  //   SET_MODO:MENU     Maestro. Menu sin ciclo; la vuelta atras universal (SET_MODO:ALCANCE salio con D-167).
   // Se aceptan TAMBIEN con PIN: aqui no se abre ninguna puerta, solo se pueden usar sin teclear delante de un cruce
   // parado. Vale para las DOS de emergencia: una caida segura que pide clave no es segura.
   // LEER_RTC, VERSION y las consultas (CONSULTA_DEG_*, CONSULTA_NOCHE D-110, REINICIOS D-64, LOG D-75) no abren ni
   // paran ni cambian nada: hay que poder MIRAR antes de tocar; VERSION es la primera pregunta si algo va raro.
-  const SIN_PIN = ['FORZAR_ROJO', 'AMBAR_EMERGENCIA', 'SET_MODO:MENU', 'SET_MODO:ALCANCE',
+  const SIN_PIN = ['FORZAR_ROJO', 'AMBAR_EMERGENCIA', 'SET_MODO:MENU',
                    'LEER_RTC', 'VERSION', 'CONSULTA_DEG_AUTO', 'CONSULTA_DEG_FIN', 'CONSULTA_NOCHE', 'REINICIOS',
                    'LOG,DESDE', 'CONSULTA_INSTALACION'];
 
@@ -764,48 +754,8 @@ document.addEventListener('DOMContentLoaded', () => {
     return tramo;
   }
 
-  // =========================================================================
-  // 1.ter.bis LA CAJA DE LA PRUEBA DE ALCANCE (28/09, funcional en campo)
-  // =========================================================================
-  // "La prueba de enlace no comprendo como funciona o donde se ve este valor": el
-  // boton btn-modo-alcance vive en la pestana de Tecnico y el % que mide -rf-quality,
-  // pintado por pintarEnlace() arriba- vive en la pestana de Operacion. El tecnico
-  // pulsaba el boton y no tenia delante ningun numero que le dijera que la prueba
-  // estaba corriendo.
-  //
-  // CAMBIO MINIMO: mientras el equipo diga MODO:ALCANCE, esta funcion pinta el MISMO
-  // dato -mismo % y mismo RTT que ya calculo pintarEnlace()/lecturaDeEnlace()- en una
-  // caja aparte, puesta justo debajo del boton que arranca la prueba. No se mide nada
-  // nuevo: es el unico escritor de rf-quality (pintarEnlace) leido dos veces.
-  //
-  // LOS TRAMOS Y LOS UMBRALES SON LOS QUE YA USA LA APP -RF_BIEN, RF_JUSTO y
-  // ENLACE_ROTULO, arriba-, no una escala nueva: CLAUDE.md 14 prohibe una cifra que
-  // esta app no pueda recalcular, y estas SI las recalcula, porque son las mismas
-  // constantes de este mismo fichero.
-  function pintarCajaAlcance(lectura) {
-    if (!alcanceCajaEl) return;
-    if (state.modo !== 'ALCANCE') {
-      alcanceCajaEl.hidden = true;
-      return;
-    }
-    alcanceCajaEl.hidden = false;
-    const tramo = clasificarEnlace(lectura);
-    const medido = tramo !== 'SIN_DATO';
-    if (alcanceCajaPctEl) {
-      alcanceCajaPctEl.textContent = medido ? lectura.pct + '%' : '--';
-    }
-    const hayRtt = lectura && lectura.rtt !== null && lectura.rtt !== undefined;
-    if (alcanceCajaRttEl) {
-      alcanceCajaRttEl.textContent = hayRtt ? 'RTT ' + lectura.rtt + ' ms' : 'RTT --';
-    }
-    if (alcanceCajaFraseEl) {
-      alcanceCajaFraseEl.textContent = medido
-        ? ENLACE_ROTULO[tramo] + ' · cuanto más alto, mejor: ' + RF_BIEN +
-          '% o más es ' + ENLACE_ROTULO.BIEN.toLowerCase() + ', por debajo de ' +
-          RF_JUSTO + '% está ' + ENLACE_ROTULO.CAYENDO.toLowerCase() + '.'
-        : 'esperando la primera medida del equipo en esta prueba.';
-    }
-  }
+  // D-167 (SPEC_4 7.5): la caja de la Prueba de Alcance (28/09) salio con su modo; el mismo % y RTT siguen en la
+  // tarjeta ENLACE RADIO (pintarEnlace), en cualquier modo.
 
   // =========================================================================
   // 1.quater LA BITACORA DEL ENLACE: LO QUE PASA CUANDO NADIE MIRA
@@ -1588,7 +1538,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Esclavo no tiene esas ramas, Esclavo/src/bluetooth.cpp-. Contra un Esclavo estos
   // tres botones salian al cable y volvian como $ERR,CMD:DESCONOCIDO: el operario ve
   // un boton que "no hace nada" y un error que no dice de que habla. El resto de las
-  // ordenes de la app SI preguntaban -el despachador de data-cmd, MENU, ALCANCE,
+  // ordenes de la app SI preguntaban -el despachador de data-cmd, MENU,
   // DEGRADADO y los dos mandos de emergencia-, asi que estos tres eran el hueco, no la
   // norma.
   //
@@ -2078,16 +2028,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // PRUEBA DE ALCANCE: rojo fijo mientras se mide el enlace. Sin PIN, como MENU.
-  if (btnModoAlcance) {
-    btnModoAlcance.addEventListener('click', () => {
-      const punta = puntaCorrecta('SET_MODO:ALCANCE');
-      if (punta) { avisarOtraPunta('SET_MODO:ALCANCE', punta); return; }
-      if (!enviarComandoFirmware('SET_MODO:ALCANCE')) return;
-      addEvent('cyan', 'Tecnico: orden PRUEBA DE ALCANCE enviada al equipo.');
-    });
-  }
-
   // D-37/D-46: el Degradado sin testigo ya no se ofrece y su orden salio del firmware.
   // D-35 (testigo) y A-15 (degradado automatico) viven en js/testigo.js y js/deg_auto.js.
   Testigo.iniciar({ state, enviarComandoFirmware, puntaCorrecta, avisarOtraPunta, addEvent,
@@ -2519,9 +2459,6 @@ document.addEventListener('DOMContentLoaded', () => {
       // pintarEnlace() quien decide, y sabe declarar la ausencia.
       const lectura = lecturaDeEnlace(data); state.rfLectura = lectura;  // aviso_degradado.js
       pintarEnlace(lectura);
-      // Mismo dato, misma trama: se pinta ademas en la caja de la Prueba de Alcance si
-      // el equipo esta en ese modo (28/09). state.modo ya viene actualizado de arriba.
-      pintarCajaAlcance(lectura);
       registrarMuestraEnlace(lectura); DegAuto.render();  // eleccion del automatico: botones y avisos sin radio
       if (data.BAT !== undefined) {
         // N-108 (31/08): EL FIRMWARE DEJO DE INVENTARSE ESTE NUMERO Y AHORA MANDA "--".
@@ -2883,7 +2820,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // construyo. Lo caza app_08_enrutado_por_punta, que recalcula el reparto de los dos
   // despachadores y prohibe que una lista reclame una orden que atienden las dos.
   const SOLO_MAESTRO = ['SET_MODO:AUTO', 'SET_MODO:MANUAL', 'SET_MODO:AMBAR',
-                        'SET_MODO:MENU', 'SET_MODO:ALCANCE', 'SET_MODO:INTELIGENTE',
+                        'SET_MODO:MENU', 'SET_MODO:INTELIGENTE',
                         'MANUAL:CAMBIAR_TURNO', 'SET_TIEMPOS', 'TEST_LEDS',
                         'DEMANDA', 'REINICIAR_RELOJ', 'FORZAR_ROJO'];
   // CANCELAR_AMBAR (R-3) vive en el Esclavo, que tiene el latch como en AMBAR_EMERGENCIA:
@@ -3592,11 +3529,6 @@ document.addEventListener('DOMContentLoaded', () => {
       badgeModoEl.style.color = '';
       badgeModoEl.textContent = 'SIN ENLACE';
     }
-    // La caja de Alcance se retira igual que el badge: state.modo se queda con el
-    // ultimo valor conocido (no lo borra esta funcion, ver arriba), y sin este `if`
-    // quedaria una caja de ALCANCE encendida sobre un equipo que ya no habla.
-    if (alcanceCajaEl) alcanceCajaEl.hidden = true;
-
     // Sin telemetria no se sabe el modo, asi que el control que depende de el se
     // apaga. Dejarlo habilitado con el ultimo modo conocido seria decidir con un dato
     // vencido, que es lo mismo que se retira dos lineas mas arriba con los numeros.

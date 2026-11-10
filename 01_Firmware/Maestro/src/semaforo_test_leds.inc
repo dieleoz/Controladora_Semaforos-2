@@ -11,7 +11,7 @@
 // La fase verde enciende VERDE1/VERDE2 sin mirar el ciclo y SFTY-2 no lo impide (solo mira
 // ESTE poste). Medido con el arnes del automatico: en AUTO el test dejo el verde del Maestro
 // 2 s con ESC:VERDE a la vez; por eso el Esclavo rechaza TEST_LEDS desde siempre (SPEC_4).
-// Admitido solo en MENU y ALCANCE (D-44: los DOS postes en rojo fijo por
+// Admitido solo en MENU (D-44: los DOS postes en rojo fijo por
 // coordinador_forzarMenu()) y con S_ROJO aqui: sin enlace pasan a S_FALLO, y un verde ahi
 // seria un verde contra un ambar que invita a pasar.
 //
@@ -21,7 +21,7 @@
 // se corta si el coordinador deja C_MENU_IDLE, y con el enlace caido la luz pasa a S_FALLO.
 static bool testLedsAdmitido() {
   const ModoSistema m = modoActual_get();
-  return (m == MENU || m == MODO_ALCANCE) && estado == S_ROJO &&
+  return m == MENU && estado == S_ROJO &&
          coordinador_rojoEsclavoConfirmado();
 }
 

@@ -192,7 +192,7 @@ static void contestar(void (*tx)(const char*), const char* cmd, const char* err)
 }
 
 // Dentro de la noche: las salidas por la app (D-111). A AUTO, INTELIGENTE o MANUAL, con PIN,
-// por el todo-rojo; una segunda mientras tanto, SALIDA_EN_CURSO. MENU, ALCANCE y FORZAR_ROJO
+// por el todo-rojo; una segunda mientras tanto, SALIDA_EN_CURSO. MENU y FORZAR_ROJO
 // siguen al despachador (rojo e inmediato): aqui solo se anota el $EVENT de la salida.
 // SET_MODO:DEG_T y SET_MODO:AMBAR no estan en 5.10 (f): el despachador los entraria con su
 // propio rojo, sin tr; se rechazan sin tocar luces. (El Degradado automatico y el ambar del
@@ -204,7 +204,7 @@ static bool ordenEnNoche(const char* a, bool conPin, void (*tx)(const char*)) {
     tx(p);
     return true;
   }
-  if (!strcmp(a, "SET_MODO:MENU") || !strcmp(a, "SET_MODO:ALCANCE")) {
+  if (!strcmp(a, "SET_MODO:MENU")) {
     bluetooth_reportarEvento("NOCHE", "SALIDA_APP");
     return false;
   }

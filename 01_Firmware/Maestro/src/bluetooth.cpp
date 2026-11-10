@@ -154,7 +154,6 @@ static const char* obtenerNombreModo(ModoSistema m) {
     case MODO_MANUAL: return "MANUAL";
     case MODO_AUTOMATICO: return "AUTO";
     case MODO_INTELIGENTE: return "INTELIGENTE";
-    case MODO_ALCANCE: return "ALCANCE";
     case MODO_DEGRADADO: return "DEGRADADO";
     case MODO_AMBAR: return "AMBAR";
     case MODO_NOCHE: return "NOCHE";   // D-110

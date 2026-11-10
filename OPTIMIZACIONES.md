@@ -33,8 +33,15 @@ determina el coste de la ráfaga de SFTY-11 y el peor caso de reintentos de SFTY
 - **SFTY-11:** Transmisión en ráfaga configurable vía `RF_BURST_COPIES` (`protocolo.h`), **fijada en 3 copias**. El coste de la ráfaga lo determina la **tasa aérea**, no el protocolo: a 2.4 kbps son ~0.13s de aire (despreciable), mientras que a 0.3 kbps eran ~2.2s y ahí sí saturaban el canal. Con la tasa corregida la redundancia vuelve a ser barata, y es **la palanca correcta frente a distancias variables** en equipos móviles.
 - **SFTY-12:** **Navegación de Menú Independiente**: Mantiene a Maestro y Esclavo en **🔴 ROJO FIJO CONTINUO** (o Amarillo Intermitente sin coms).
 - **SFTY-13:** **Supresión Anti-Colisión de PING**: Suprime el Heartbeat PING durante espera de ACK para evitar colisiones RS485.
-- **SFTY-14 (V8.1):** **Telemetría de calidad de enlace**. Sobre el latido de 3 s que ya existe se mide si hubo respuesta y cuánto tardó, en ventana deslizante de 10 latidos. Se expone en los modos de operación (`RF:100% 340ms`) y en la pantalla **PRUEBA ALCANCE**. Solo se acepta como respuesta el comando que corresponde (`PONG` a un `PING`, `ACK_RED` a un `GO_RED`): aceptar cualquier paquete falsearía la medida al alza. No requiere soporte de la radio ni cambios de protocolo.
-- **SFTY-15 (V8.3):** **Diagnóstico de línea**. `protocolo.cpp` cuenta bytes recibidos, tramas válidas y tramas descartadas por CRC. La pantalla **PRUEBA ALCANCE** los muestra en su fila inferior, separando tres fallos que antes se veían todos como "no hay comunicación": `RX 0 - nada llega` (cobertura, canal o antena), `RX 4k - BASURA` (llegan bytes pero ninguna trama válida: cableado, línea flotando o radio atascada) y `RX 36 9 tr` (enlace correcto). Los contadores se ponen a cero al entrar a la pantalla.
+- **SFTY-14 (V8.1):** **Telemetría de calidad de enlace**. Sobre el latido de 3 s que ya existe se mide si hubo
+  respuesta y cuánto tardó, en ventana deslizante de 10 latidos. Se expone en los modos de operación (`RF:100% 340ms`)
+  (`D-167`). Solo se acepta como respuesta el comando que corresponde (`PONG` a un `PING`, `ACK_RED` a un `GO_RED`):
+  aceptar cualquier paquete falsearía la medida al alza. No requiere soporte de la radio ni cambios de protocolo.
+- **SFTY-15 (V8.3):** **Diagnóstico de línea**. `protocolo.cpp` cuenta bytes recibidos, tramas válidas y tramas
+  descartadas por CRC. Los publica `$EVENT ENLACE_RF` (`D-32` (1), `D-167`), separando tres fallos que antes se veían
+  todos como "no hay comunicación": `RX 0 - nada llega` (cobertura, canal o antena), `RX 4k - BASURA` (llegan bytes pero
+  ninguna trama válida: cableado, línea flotando o radio atascada) y `RX 36 9 tr` (enlace correcto). Los contadores solo
+  vuelven a cero con el micro.
 - **SFTY-16 (V8.3):** Retirada con el Repetidor ESP32 (D-157): era el puente que validaba el CRC antes de retransmitir.
   Su fuente queda en `01_Firmware/historico/Repetidor`.
 - **SFTY-17 (V8.4):** **Retardo de cortesía del Esclavo antes de responder** (`RETARDO_RESPUESTA_MS = 200`). En modo
@@ -53,15 +60,8 @@ determina el coste de la ráfaga de SFTY-11 y el peor caso de reintentos de SFTY
   marcador, y al arrancar `reloj_enHora()` solo devuelve `true` si ese marcador sobrevivió. Pila agotada, primera puesta
   en marcha o dominio de respaldo corrupto ⇒ **`false`**, y toda función que dependa de la hora debe abstenerse. Un
   reloj sin poner en hora que se cree válido es peor que no tener reloj: activaría la operación nocturna a deshora.
-  ~~**V8.6:** se añade la pantalla **AJUSTAR HORA** —quinta opción del menú— que es la única vía para poner
-  el reloj y, por tanto, el requisito previo de SFTY-20 y SFTY-21. Se edita **dígito a dígito** con el dígito
-  activo subrayado: con un solo botón de subir, poner los minutos como valor completo costaría hasta 59
-  pulsaciones, y además la edición por dígitos **funciona igual con el mando de relés**, que solo entrega pulsos
-  y no admite repetición por mantener pulsado. Se trabaja sobre una copia y solo se escribe al RTC al confirmar, de
-  modo que entrar por error y salir con el Botón 4 no altera la hora. La pantalla **no arranca ciclos**: mantiene
-  el mismo estado seguro que el menú.~~
 
-> 🔴 **Sobre lo tachado de `SFTY-18`: `MODO_HORA` es INALCANZABLE, así que «la única vía para poner
+> 🔴 **Sobre AJUSTAR HORA de `SFTY-18` (V8.6, retirada): `MODO_HORA` es INALCANZABLE, así que «la única vía para poner
 > el reloj» no es ninguna vía.** `modoActual_set(MODO_HORA)` tiene **un solo armador**, dentro de un
 > `if (botonAceptar())` en `Maestro/src/menu.cpp`, y `botonAceptar()` es `return false;` desde el
 > 31/08 porque su pin es una entrada de cámara. **La regla de seguridad de SFTY-18 no cambia**
@@ -99,7 +99,7 @@ que no la comprueba es **peor** que una fila vacía, porque la vacía al menos n
 | SFTY-12 | `Maestro/src/coordinador.cpp` · `Maestro/src/modo_manual.cpp` | — |
 | SFTY-13 | `Maestro/src/coordinador.cpp` | — |
 | SFTY-14 | `Maestro/src/coordinador.cpp` · SPEC: `SPEC_4` §5 (`RF`/`RTT` del `$STATUS`) y §9.11 | — |
-| SFTY-15 | `*/src/protocolo.cpp` (D-63: PRUEBA ALCANCE ya no los pone a cero) | — |
+| SFTY-15 | `*/src/protocolo.cpp` (solo vuelven a cero con el micro; el modo Alcance salio con D-167) | — |
 | SFTY-16 | retirada con el Repetidor (D-157) | — |
 | SFTY-17 | `Esclavo/src/main.cpp` | — |
 | **SFTY-18** | `Maestro/src/reloj.cpp` · `Maestro/include/reloj.h` · `ESP32_Expansion` *(el reloj del puente)* · SPEC: `SPEC_3` §1, §4 y §5 (la hora la siembra el ESP32, `D-20`) | ✅ `esp32_04_osf` · ✅ `esp32_11_bien_formada_no_es_cierta` |

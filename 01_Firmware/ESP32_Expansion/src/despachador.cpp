@@ -114,7 +114,7 @@ void despachador_atender(const char* linea) {
   //
   // POR QUE NO PIDE PIN, MEDIDO CONTRA EL CRITERIO QUE YA ESTA ESCRITO. El Maestro lo
   // dice en su despachador: "El PIN guarda lo que ABRE paso o mueve luces; no lo que las
-  // para" -y por eso FORZAR_ROJO, SET_MODO:MENU y SET_MODO:ALCANCE entran sin clave-.
+  // para" -y por eso FORZAR_ROJO y SET_MODO:MENU entran sin clave-.
   // Una consulta no abre, no para y no cambia: no hay nada que custodiar. Y hay una
   // razon de campo encima: si el reloj esta mal, el tecnico tiene que poder MIRARLO
   // antes de decidir si toca algo, no despues de haber tecleado la llave que lo cambia.

@@ -8,7 +8,6 @@
 #include "modo_manual.h"
 #include "modo_automatico.h"
 #include "modo_inteligente.h"
-#include "modo_alcance.h"
 #include "modo_degradado.h"
 #include "modo_ambar.h"
 #include "reloj.h"
@@ -349,7 +348,6 @@ void loop() {
       case MODO_MANUAL:      modoManual_setup();      break;
       case MODO_AUTOMATICO:  modoAutomatico_setup();  break;
       case MODO_INTELIGENTE: modoInteligente_setup(); break;
-      case MODO_ALCANCE:     modoAlcance_setup();     break;
       case MODO_DEGRADADO:   modo_degradado_setup();  break;
       case MODO_AMBAR:       modo_ambar_setup();      break;
       case MENU:             menu_setup();            break;
@@ -363,7 +361,6 @@ void loop() {
     case MODO_MANUAL:     modoManual_loop();      break;
     case MODO_AUTOMATICO: modoAutomatico_loop();  break;
     case MODO_INTELIGENTE:modoInteligente_loop(); break;
-    case MODO_ALCANCE:    modoAlcance_loop();     break;
     case MODO_DEGRADADO:  modo_degradado_loop();  break;
     case MODO_AMBAR:      modo_ambar_loop();      break;
     case MODO_NOCHE:      modoNoche_loop();       break;

@@ -112,17 +112,17 @@ def escenario_p(t, c, maestro, esclavo, util_max):
                 "P4 Maestro: DEG_T con salida programada -> Cancele antes la salida programada",
                 "P4 Maestro: DEG_T con salida contesta %s" % a)
     maestro.pr.pedir("SAL 0 3 0 0")
-    # P5: en MODO_NOCHE (7, modos.h) DEG_T y AMBAR no salen sin el todo-rojo tr (SPEC_0 5.10 (f)): $ERR y sin
-    # cambio de modo; MENU, de los inmediatos de (f), sigue saliendo. El doble de DEG_T diria FALTA_HORA.
+    # P5: en MODO_NOCHE (6, modos.h; 7 hasta D-167) DEG_T y AMBAR no salen sin el todo-rojo tr (SPEC_0 5.10 (f)): $ERR
+    # y sin cambio de modo; MENU, de los inmediatos de (f), sigue saliendo. El doble de DEG_T diria FALTA_HORA.
     previo = maestro.dato("MODO", r"MODO (\d+)")
     for orden in ("SET_MODO:DEG_T:18:25:00,18:30:00,180,30", "SET_MODO:AMBAR"):
-        maestro.pr.pedir("MODOSET 7")
+        maestro.pr.pedir("MODOSET 6")
         a, m = _una(maestro, pm + orden), maestro.dato("MODO", r"MODO (\d+)")
         cmd = orden[:14] if "DEG_T" in orden else orden
         esperado = "$ERR,CMD:%s,DESC:EN_NOCHE_SALGA_PRIMERO" % cmd
-        t.verificar(a == esperado and m == "7", "P5 Maestro: %s en NOCHE -> %s, sigue en NOCHE" % (cmd, esperado),
-                    "P5 Maestro: %s en NOCHE contesta %s y deja MODO %s (esperado %s y MODO 7)" % (cmd, a, m, esperado))
-    maestro.pr.pedir("MODOSET 7")
+        t.verificar(a == esperado and m == "6", "P5 Maestro: %s en NOCHE -> %s, sigue en NOCHE" % (cmd, esperado),
+                    "P5 Maestro: %s en NOCHE contesta %s y deja MODO %s (esperado %s y MODO 6)" % (cmd, a, m, esperado))
+    maestro.pr.pedir("MODOSET 6")
     a, m = _una(maestro, "CMD:SET_MODO:MENU"), maestro.dato("MODO", r"MODO (\d+)")
     t.verificar(a == "$ACK,CMD:SET_MODO:MENU,RESULT:OK" and m == "0", "P5 Maestro: MENU en NOCHE sale inmediato",
                 "P5 Maestro: MENU en NOCHE contesta %s y deja MODO %s (esperado RESULT:OK y MODO 0)" % (a, m))

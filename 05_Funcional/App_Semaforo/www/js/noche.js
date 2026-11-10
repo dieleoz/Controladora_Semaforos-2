@@ -177,7 +177,7 @@ const Noche = {
       SALIDA_HORA: ['Modo noche: acaba la franja', 'Modo noche: acaba la franja. Todo-rojo ' + this._tr() +
         ' en los dos postes y después vuelve al modo de antes de la noche.'],
       SALIDA_APP: ['Modo noche: salida desde la app', 'Modo noche: salida pedida desde la app. Rojo en los dos ' +
-        'postes; a AUTO, INTELIGENTE o MANUAL tras el todo-rojo, a MENU, ALCANCE o rojo total al momento.'],
+        'postes; a AUTO, INTELIGENTE o MANUAL tras el todo-rojo, a MENU o rojo total al momento.'],
       FRANJA_SALTADA: ['Modo noche: franja saltada', 'Modo noche: franja saltada. El POSTE 1 no estaba en AUTO ni ' +
         'INTELIGENTE al empezar; no entra hasta la próxima franja.'],
     }[String(data.DETALLE || '')];

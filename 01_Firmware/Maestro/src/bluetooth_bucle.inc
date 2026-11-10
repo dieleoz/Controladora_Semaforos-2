@@ -364,7 +364,7 @@ void bluetooth_loop() {
   // QUE SE ROMPIO, medido: protocolo_bytesRecibidos() y protocolo_tramasValidas() -los dos
   // contadores de SFTY-15 que separan "no llega nada" de "llega basura"- se quedaron SIN
   // NINGUN LECTOR en esta punta al retirar el LCD. Su unico lector era refrescarSiCambio()
-  // de modo_alcance.cpp, que los pintaba en la pantalla de PRUEBA ALCANCE.
+  // de modo_alcance.cpp (salio con D-167), que los pintaba en la pantalla de PRUEBA ALCANCE.
   // costura_10_funciones_muertas los lleva anotados desde ese commit y su motivo dice
   // literalmente cual es el arreglo: "el sustituto natural es publicarlos en bluetooth.cpp,
   // y eso es firmware que hay que escribir, no una anotacion". Esto es ese firmware.

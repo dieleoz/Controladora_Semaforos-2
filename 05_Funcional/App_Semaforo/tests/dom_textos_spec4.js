@@ -87,8 +87,8 @@ module.exports = async function pruebaTextosSpec4(montarAppLimpia, assert) {
   // 6. SPEC_4 §3.1/§3.2: nada cae en el generico ni en "motivo sin traducir".
   const lista = [
     [M, 'MENU', 'ACK,CMD:SET_MODO:AUTO,RESULT:OK'], [M, 'MENU', 'ACK,CMD:SET_MODO:MANUAL,RESULT:OK'],
-    [M, 'MENU', 'ACK,CMD:SET_MODO:ALCANCE,RESULT:OK'], [M, 'MENU', 'ACK,CMD:SET_MODO:INTELIGENTE,RESULT:OK'],
-    [M, 'ALCANCE', 'ACK,CMD:SET_MODO:ALCANCE,RESULT:SIN_CAMBIO'], [M, 'INTELIGENTE', 'ACK,CMD:SET_MODO:INTELIGENTE,RESULT:SIN_CAMBIO'],
+    [M, 'MENU', 'ACK,CMD:SET_MODO:INTELIGENTE,RESULT:OK'],
+    [M, 'INTELIGENTE', 'ACK,CMD:SET_MODO:INTELIGENTE,RESULT:SIN_CAMBIO'],
     [M, 'MENU', 'ACK,CMD:TEST_LEDS,RESULT:STARTING_6S'], [M, 'MENU', 'ACK,CMD:REINICIAR_RELOJ,RESULT:CRISTAL_OK_PONGA_LA_HORA'],
     [M, 'INTELIGENTE', 'ACK,CMD:DEMANDA,RESULT:REGISTRADA'],
     [M, 'AUTO', 'ERR,CMD:CAMBIAR_TURNO,DESC:MODO_SIN_CICLO_SALGA_PRIMERO'],
@@ -102,8 +102,8 @@ module.exports = async function pruebaTextosSpec4(montarAppLimpia, assert) {
   assert(/hora/i.test(dice(M, 'MENU', 'ACK,CMD:REINICIAR_RELOJ,RESULT:CRISTAL_OK_PONGA_LA_HORA').t) &&
          /pong/i.test(dice(M, 'MENU', 'ACK,CMD:REINICIAR_RELOJ,RESULT:CRISTAL_OK_PONGA_LA_HORA').t),
     '6: REINICIAR_RELOJ|CRISTAL_OK_PONGA_LA_HORA dice que ponga la hora');
-  assert(!/entro|ya esta en|puesto/i.test(dice(M, 'MENU', 'ACK,CMD:SET_MODO:ALCANCE,RESULT:OK').t),
-    '6: ALCANCE|OK no afirma que el modo entro (SPEC_4 §9.5 / D-65)');
+  assert(!/entro|ya esta en|puesto/i.test(dice(M, 'MENU', 'ACK,CMD:SET_MODO:INTELIGENTE,RESULT:OK').t),
+    '6: INTELIGENTE|OK no afirma que el modo entro (SPEC_4 §9.5 / D-65; ALCANCE salio con D-167)');
 
   // 7. SPEC_4 §3.bis (no hay pantalla) y §3.1 (SET_TIEMPOS solo rechaza en AUTOMATICO: el OK no promete rojo).
   assert(!/pantalla/i.test(dice(M, 'MENU', 'ACK,CMD:SET_MODO:MENU,RESULT:OK').t), '7: SET_MODO:MENU|OK no manda a una pantalla que no existe');
@@ -224,8 +224,8 @@ module.exports = async function pruebaTextosSpec4(montarAppLimpia, assert) {
     }
   }
 
-  // 14. SPEC_2 §7.quater (e) (MENU sin radio: ambar), SPEC_4 §3.1 (SET_TIEMPOS solo rechaza en AUTOMATICO; ALCANCE e
-  // INTELIGENTE contestan $ERR en Degradado) y SPEC_4 §3.ter.ter (un CANCELADA que esta app no pidio a esa punta).
+  // 14. SPEC_2 §7.quater (e) (MENU sin radio: ambar), SPEC_4 §3.1 (SET_TIEMPOS solo rechaza en AUTOMATICO;
+  // INTELIGENTE contesta $ERR en Degradado) y SPEC_4 §3.ter.ter (un CANCELADA que esta app no pidio a esa punta).
   {
     const m = dice(M, 'MENU', 'ACK,CMD:SET_MODO:MENU,RESULT:OK').t;
     assert(/ambar/i.test(m) && /radio/i.test(m), `14: MENU|OK dice que el rojo depende de la radio (sin ella, ambar): "${m}"`);
@@ -241,7 +241,7 @@ module.exports = async function pruebaTextosSpec4(montarAppLimpia, assert) {
       assert(/no esta en AUTOMATICO/.test(a.ultimo()) && a.d.getElementById('aviso-tiempos-parado').hidden === false,
         `14: SET_TIEMPOS|OK en ${modo}: guardados para el proximo arranque del ciclo y con el cartel: "${a.ultimo()}"`);
     }
-    for (const c of ['ALCANCE', 'INTELIGENTE']) {
+    for (const c of ['INTELIGENTE']) {
       const t = dice(M, 'MENU', `ACK,CMD:SET_MODO:${c},RESULT:OK`).t;
       assert(!/OK siempre/i.test(t), `14: ${c}|OK no dice que el equipo contesta OK siempre (en Degradado contesta $ERR): "${t}"`);
       // SPEC_4 §9.5 / D-66: el modo ya puesto contesta SIN_CAMBIO: lo dice, en ambar, con el camino por MENU.

@@ -220,7 +220,7 @@ estado vive fuera de la pantalla, en su propio fichero, y se lee y escribe con u
 | Manual | todo-rojo al entrar y **ningún cambio programado**: la fase acaba cuando alguien pulsa | `SET_MODO:MANUAL`; también al cancelarse un ámbar del Poste 2 |
 | Automático | cicla por tiempo | `SET_MODO:AUTO` ~~; secuencia `A.A.A` del mando~~ *(salió el 14/09)* |
 | Inteligente | cicla por tiempo **con suelo y techo**, y las cámaras sólo pueden ALARGAR | `SET_MODO:INTELIGENTE` |
-| Alcance | **no arranca ciclos**: mantiene lo que haya (rojo fijo con enlace) | `SET_MODO:ALCANCE` |
+| ~~Alcance~~ | salió con `D-167` (era Menú con otro rótulo); `SET_MODO:ALCANCE` contesta `COMANDO_NO_SOPORTADO` | — |
 | Degradado | todo-rojo de entrada y luego verde/amarillo/rojo por reloj | `SET_MODO:DEG_T` (testigo); reanudación tras corte. ~~`SET_MODO:DEGRADADO`~~ salió (`D-46`, §12.11) |
 | Ámbar | **ámbar intermitente**, pedido o de arranque | `SET_MODO:AMBAR`; ~~`B.B.B`;~~ aviso del Poste 2; salida del Degradado; **arranque** (§4.1) |
 | Noche (`MODO_NOCHE`: `D-103`, SPEC 0 §5.10, construido en `N-179`, sin banco) | **ámbar intermitente en las dos puntas** o Poste 1 ámbar y Poste 2 rojo intermitente (`S_AMBAR_INT`/`S_ROJO_INT`, pluma arriba); entra y sale por un todo-rojo `tr` (180 s de fábrica, 10..900) | por flanco de inicio de franja desde Automático o Inteligente; sale en el primer minuto fiable fuera de la franja (`D-115`) o por la app (SPEC 0 §5.10 (e)-(f)) |
@@ -376,7 +376,7 @@ lleva amarillo (§3.2 (6)).
 → **salieron con el mando el 14/09** (`D-30`): ya no queda nada que ocupe las lámparas por encima de la lógica, y la
 puerta única escribe siempre lo que decide. **Test de lámparas** (`CMD:TEST_LEDS`): tres fases —rojo, ámbar, verde— que
 **entran por la puerta única** y por tanto por el enclavamiento, y **la pluma no sigue a ese verde**. **Solo corre
-fuera de servicio** (`N-82.bis`): modo `MENU` o `ALCANCE` (~~`HORA`~~ salió con `D-44`), luz en `S_ROJO`
+fuera de servicio** (`N-82.bis`): modo `MENU` (~~`HORA`~~ salió con `D-44`; ~~`ALCANCE`~~, con `D-167`), luz en `S_ROJO`
 **y el rojo del Esclavo
 confirmado** —su `ACK_RED` a la orden de rojo de esa entrada al menú (`coordinador_rojoEsclavoConfirmado()`)—; en
 cualquier otro caso `TEST_LEDS` se rechaza con `$ERR` (`ESPERANDO_ROJO_DEL_ESCLAVO` mientras no llega el acuse),

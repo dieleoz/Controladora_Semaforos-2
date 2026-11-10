@@ -112,8 +112,8 @@ static void procesarComando(const char* cmd) {
 
   // Validación estricta de PIN de 4 dígitos (1234)
   //
-  // OTRAS ORDENES ENTRAN SIN PIN, POR EL MISMO CRITERIO DE ARRIBA: ni MENU ni ALCANCE abren paso y VERSION y las
-  // consultas no tocan nada: solo CUENTAN lo que este binario es o lo que tiene guardado. El PIN guarda lo que ABRE,
+  // OTRAS ORDENES ENTRAN SIN PIN, POR EL MISMO CRITERIO DE ARRIBA: MENU no abre paso (D-167: ALCANCE salio) y VERSION y
+  // las consultas no tocan nada: solo CUENTAN lo que este binario es o lo que tiene guardado. El PIN guarda lo que ABRE,
   // no lo que para ni lo que mira. Se aceptan tambien con PIN, igual que FORZAR_ROJO: la app antepone la clave a todo
   // lo que no este en su lista SIN_PIN, y una orden que solo se aceptara sin PIN seria inalcanzable desde el celular.
   // Lo que se mueve es DONDE EMPIEZA LA ACCION, no la cadena de comparaciones: una segunda cadena serian dos
@@ -123,7 +123,6 @@ static void procesarComando(const char* cmd) {
     accion = cmd + 13;
   } else if (strncmp(cmd, "CMD:", 4) == 0 &&
              (strcmp(cmd + 4, "SET_MODO:MENU") == 0 ||
-              strcmp(cmd + 4, "SET_MODO:ALCANCE") == 0 ||
               strcmp(cmd + 4, "CONSULTA_DEG_AUTO") == 0 ||   // A-15: solo mira
               strcmp(cmd + 4, "CONSULTA_DEG_FIN") == 0 ||    // D-52: solo mira
               strcmp(cmd + 4, "REINICIOS") == 0 ||           // D-60: solo mira

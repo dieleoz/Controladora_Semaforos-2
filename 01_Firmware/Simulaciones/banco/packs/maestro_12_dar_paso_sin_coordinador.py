@@ -188,7 +188,7 @@ def correr(b, fw):
 
     if cong:
         uno = sorted(cong)[0]
-        roto = _medir(_Parche(fw, "m != %s" % uno, "m != MODO_ALCANCE"))
+        roto = _medir(_Parche(fw, "m != %s" % uno, "m != MODO_MANUAL"))
         b.control_negativo(
             not (roto["congelados"] <= roto["rechazados"]),
             "quitado %s de la guarda -el defecto de la cinta-, la comprobacion 1 cae" % uno)

@@ -331,11 +331,10 @@ const ERR_MOTIVO = {
   // sin cifra, que es exactamente lo que la app sabe.
   // 🔴 AQUI NO VA UNA CUENTA ATRAS, Y NO ES QUE FALTE: ES QUE SERIA MENTIRA.
   //
-  // Se comprobo el 04/09 antes de construirla. Los TRES sitios que emiten este motivo
+  // Se comprobo el 04/09 antes de construirla. Los sitios que emiten este motivo (ALCANCE salio con D-167)
   // rechazan por una condicion que EL TIEMPO NO CAMBIA:
   //
   //   SET_TIEMPOS ............ el ciclo automatico esta en marcha
-  //   SET_MODO:ALCANCE ....... el equipo esta en Modo Degradado
   //   SET_MODO:INTELIGENTE ... el equipo esta en Modo Degradado
   //
   // En ninguno "esperar" sirve de nada: por muchos segundos que pasen el equipo sigue

@@ -19,7 +19,8 @@ enum ModoSistema {
   MODO_MANUAL,
   MODO_AUTOMATICO,
   MODO_INTELIGENTE,
-  MODO_ALCANCE,
+  // D-167 (SPEC_4 7.5): MODO_ALCANCE salio; era MENU con otro rotulo. Los de abajo bajan uno: el modo
+  // vive en RAM (modos.cpp) y ningun respaldo guarda su numero.
   MODO_DEGRADADO,  // SFTY-21: operacion por reloj, sin radio. Activacion MANUAL.
 
   // SFTY-21: ambar intermitente pedido a proposito, no por fallo.

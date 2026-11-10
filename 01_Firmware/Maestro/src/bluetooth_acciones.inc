@@ -56,25 +56,15 @@
       } else { enviarTramaConCrc("$ACK,CMD:SET_MODO:MENU,RESULT:OK"); }
       bluetooth_reportarEvento("APP_BLUETOOTH", "SET_MODO_MENU");
     }
-  } else if (strcmp(accion, "SET_MODO:ALCANCE") == 0) {
-    // Del Degradado se sale por su puerta: saltarse su todo-rojo deja a la otra punta dando verde sin verificar.
-    // D-65 (CLAUDE.md 2): con el modo ya puesto main.cpp no corre nada (solo en el flanco): SIN_CAMBIO y nada mas,
-    // sin re-armar (un REARMADO correria un todo-rojo que nadie pidio; se reinicia pasando por MENU).
-    if (modoActual_get() == MODO_DEGRADADO) {
-      enviarTramaConCrc("$ERR,CMD:SET_MODO:ALCANCE,DESC:EN_MARCHA_PARE_EL_MODO");
-    } else if (modoActual_get() == MODO_ALCANCE) {   // D-65: yaEnModo, leido ANTES de modoActual_set()
-      enviarTramaConCrc("$ACK,CMD:SET_MODO:ALCANCE,RESULT:SIN_CAMBIO");
-    } else {
-      modoActual_set(MODO_ALCANCE);
-      enviarTramaConCrc("$ACK,CMD:SET_MODO:ALCANCE,RESULT:OK");
-      bluetooth_reportarEvento("APP_BLUETOOTH", "SET_MODO_ALCANCE");
-    }
   } else if (strcmp(accion, "SET_MODO:INTELIGENTE") == 0) {
     // PIDE PIN porque arranca un ciclo que DA VERDES, y no se entra desde el Degradado: su salida obliga a un
     // todo-rojo de 30 s en las dos puntas, y ciclar sin cumplirlo deja a la otra unidad en su ciclo por reloj.
+    // D-65 (CLAUDE.md 2): con el modo ya puesto main.cpp no corre nada (solo en el flanco): SIN_CAMBIO y nada mas,
+    // sin re-armar (un REARMADO correria un todo-rojo que nadie pidio; se reinicia pasando por MENU).
+    // D-167: SET_MODO:ALCANCE ya no tiene rama y cae en el else final (COMANDO_NO_SOPORTADO).
     if (modoActual_get() == MODO_DEGRADADO) {
       enviarTramaConCrc("$ERR,CMD:SET_MODO:INTELIGENTE,DESC:EN_MARCHA_PARE_EL_MODO");
-    } else if (modoActual_get() == MODO_INTELIGENTE) {   // D-65: como ALCANCE, sin re-armar
+    } else if (modoActual_get() == MODO_INTELIGENTE) {   // D-65: yaEnModo, leido ANTES de modoActual_set()
       enviarTramaConCrc("$ACK,CMD:SET_MODO:INTELIGENTE,RESULT:SIN_CAMBIO");
     } else {
       modoActual_set(MODO_INTELIGENTE);
@@ -215,8 +205,7 @@
       bluetooth_reportarEvento("APP_BLUETOOTH", "TEST_LEDS_INICIADO");
     } else if (semaforo_estado() == S_FALLO) {
       enviarTramaConCrc("$ERR,CMD:TEST_LEDS,DESC:SIN_ENLACE_AMBAR_NO_SE_PRUEBA");
-    } else if ((modoActual_get() == MENU || modoActual_get() == MODO_ALCANCE) &&
-               !coordinador_rojoEsclavoConfirmado()) {
+    } else if (modoActual_get() == MENU && !coordinador_rojoEsclavoConfirmado()) {
       enviarTramaConCrc("$ERR,CMD:TEST_LEDS,DESC:ESPERANDO_ROJO_DEL_ESCLAVO");
     } else {
       enviarTramaConCrc("$ERR,CMD:TEST_LEDS,DESC:EN_SERVICIO_PASE_A_MENU");

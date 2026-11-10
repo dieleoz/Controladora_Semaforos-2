@@ -262,7 +262,7 @@ de la banda de la antena (B.5); los dos salen del acta de dos parejas (B.1 (4)).
 ## B.6 Como se mide el alcance HOY
 
 **La pantalla `PRUEBA ALCANCE` ya no existe** —se fue con el LCD (`D-17.bis`)— y el Modo Alcance publicaba **por ese
-unico camino**: entrar en el desde la app deja el cruce parado en rojo y **no ensena nada a nadie** (SPEC 4 §7.5).
+unico camino**; el modo salio entero con `D-167` (SPEC 4 §7.5).
 **En su lugar, sin cambiar de modo y sin parar el cruce:** se leen **`RF:`** y **`RTT:`** del `$STATUS` del Maestro,
 **en el MISMO punto** con la antena vieja y con la nueva, anotando distancia y hora — una prueba de alcance sin punto
 fijo no compara nada.
@@ -271,7 +271,7 @@ fijo no compara nada.
 de **bytes recibidos, tramas validas y tramas descartadas** los publica el diario, en las **dos** puntas, como
 `$EVENT ENLACE_RF RX:<n> OK:<n> RUIDO:<n> REIN:<r>`, al cambiar el estado del enlace y ademas cada medio
 minuto (`D-32` (1)). `REIN` cuenta arranques del STM32 (`D-60`, SPEC_4 §9.4; construido, sin banco): los contadores
-solo vuelven a cero con el micro, desde `D-63` tambien en PRUEBA ALCANCE.
+solo vuelven a cero con el micro.
 **Para una sesion de antenas se leen de ahi, no del `$STATUS`. Lo unico que sigue sin sustituto son los LATIDOS
 PERDIDOS**, que no los cuenta nadie: si una sesion los necesita, **pregunta para el responsable.**
 

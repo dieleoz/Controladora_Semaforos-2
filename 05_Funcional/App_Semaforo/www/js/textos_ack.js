@@ -3,13 +3,6 @@
 
 const ACK_TEXTO = {
   // SPEC_4 9.5 (D-65, D-66): OK = la orden entra (la luz lo confirma); SIN_CAMBIO = ya estaba, no corrio nada.
-  'SET_MODO:ALCANCE|OK': { tono: 'cyan',
-    texto: 'Equipo: orden PRUEBA DE ALCANCE aceptada. Mire la luz: debe quedar en rojo fijo.',
-    toast: 'Alcance aceptado: compruebe el rojo fijo' },
-  'SET_MODO:ALCANCE|SIN_CAMBIO': { tono: 'amber',
-    texto: 'Equipo: ya estaba en PRUEBA DE ALCANCE: no se movio nada. Para empezar de nuevo pase a MENU ' +
-           'y vuelva a pedir PRUEBA DE ALCANCE.',
-    toast: 'Ya estaba en PRUEBA DE ALCANCE: nada que hacer' },
   'SET_MODO:INTELIGENTE|OK': { tono: 'cyan',
     texto: 'Equipo: orden INTELIGENTE aceptada. El modo se ve en el rotulo del modo y en la luz, ' +
            'no en este aviso.',

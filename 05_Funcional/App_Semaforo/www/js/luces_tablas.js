@@ -116,7 +116,6 @@ const MODOS = {
                    porEstado: { 'ROJO': '🌙 NOCHE · TODO-ROJO', 'AMARILLO': '🌙 NOCHE · PASANDO A ROJO',
                      'AMBAR_INT': '🌙 NOCHE · ÁMBAR INTERMITENTE' } },
   'INTELIGENTE': { texto: '👁 INTELIGENTE · POR DEMANDA',  fondo: 'rgba(0,240,255,0.15)',   borde: 'var(--cyan-neon)',  color: 'var(--cyan-neon)' },
-  'ALCANCE':     { texto: '🛑 ALCANCE · ROJO FIJO',       fondo: 'rgba(255,30,68,0.2)',    borde: 'var(--red-lamp)',   color: 'var(--red-lamp)' },
   'DEGRADADO':   { texto: '⚠️ DEGRADADO', fondo: 'rgba(255,179,0,0.15)', borde: 'var(--amber-lamp)', color: 'var(--amber-lamp)' },
   'SUBORDINADO': { texto: '🔗 SUBORDINADO AL MAESTRO',    fondo: 'rgba(0,240,255,0.15)',   borde: 'var(--cyan-neon)',  color: 'var(--cyan-neon)' },
   // A-11 (05/09). EL DECIMOPRIMERO, Y ES DEL ESCLAVO. Esa punta dejo de publicar

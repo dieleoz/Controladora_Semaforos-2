@@ -70,7 +70,7 @@ $ grep -n "MENU\|MODO_" 01_Firmware/Maestro/include/modos.h
 
 | | quién lo arma hoy |
 |---|---|
-| `MENU` · `MODO_MANUAL` · `MODO_AUTOMATICO` · `MODO_INTELIGENTE` · `MODO_ALCANCE` · `MODO_DEGRADADO` · `MODO_AMBAR` | **Bluetooth** (`SET_MODO:*` en `Maestro/src/bluetooth.cpp`) — **7 de los 8** |
+| `MENU` · `MODO_MANUAL` · `MODO_AUTOMATICO` · `MODO_INTELIGENTE` · `MODO_DEGRADADO` · `MODO_AMBAR` | **Bluetooth** (`SET_MODO:*` en `Maestro/src/bluetooth.cpp`; `MODO_ALCANCE` salio con `D-167`) |
 | `MODO_AUTOMATICO` · `MODO_AMBAR` · `MODO_DEGRADADO` | además, el **mando de relés**: `A.A.A`, `B.B.B` y `A.B.A.B` (`Maestro/src/mando.cpp`) |
 | 🔴 **`MODO_HORA`** | **NADIE. Es inalcanzable.** |
 

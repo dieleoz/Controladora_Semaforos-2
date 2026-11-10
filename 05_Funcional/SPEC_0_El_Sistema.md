@@ -236,7 +236,7 @@ configuracion** (`SPEC_6` HUECO 3), y si no se hizo el sintoma no dira «radio m
      y despues el destino. Por hora, el modo del que vino (`modoActual_set()` y su `setup()`, con el todo-rojo de
      entrada que ya tiene: se acepta el doble rojo). Desde la app, a `AUTO`, `INTELIGENTE` o `MANUAL` (con PIN, como
      hoy): `RESULT:SALIENDO_TODO_ROJO` y el cambio de modo al cumplirse `tr`; una segunda orden mientras tanto,
-     `$ERR ... DESC:SALIDA_EN_CURSO`. A `MENU`, `ALCANCE` y `FORZAR_ROJO` (sin PIN, como hoy: solo ponen rojo) el rojo
+     `$ERR ... DESC:SALIDA_EN_CURSO`. A `MENU` y `FORZAR_ROJO` (sin PIN, como hoy: solo ponen rojo) el rojo
      y el cambio de modo son inmediatos y contestan como fuera de la noche: el todo-rojo protege el PRIMER VERDE y
      esos destinos no dan ninguno. `SET_MODO:DEG_T` y `SET_MODO:AMBAR` (con PIN) no son salidas de la noche: entrarian
      con su propio rojo y sin `tr`, y se rechazan sin tocar luces, `$ERR,CMD:<orden>,DESC:EN_NOCHE_SALGA_PRIMERO`.

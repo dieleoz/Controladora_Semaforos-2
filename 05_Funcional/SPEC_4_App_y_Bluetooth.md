@@ -72,7 +72,7 @@ leyendo **los dos despachadores** y prohibe que una lista reclame una orden que 
 
 | solo el MAESTRO | solo el ESCLAVO | el PUENTE de cada poste |
 |---|---|---|
-| `SET_MODO:` AUTO · MANUAL · AMBAR · MENU · ALCANCE · INTELIGENTE · `MANUAL:CAMBIAR_TURNO` · `SET_TIEMPOS` · `TEST_LEDS` · `DEMANDA` · `REINICIAR_RELOJ` · `FORZAR_ROJO` | `AMBAR_EMERGENCIA` · `CANCELAR_AMBAR` | `LEER_RTC` · `SET_RTC` |
+| `SET_MODO:` AUTO · MANUAL · AMBAR · MENU · INTELIGENTE · `MANUAL:CAMBIAR_TURNO` · `SET_TIEMPOS` · `TEST_LEDS` · `DEMANDA` · `REINICIAR_RELOJ` · `FORZAR_ROJO` | `AMBAR_EMERGENCIA` · `CANCELAR_AMBAR` | `LEER_RTC` · `SET_RTC` |
 
 Las dos puntas atienden `SET_MODO:DEG_T`, `SET_DEG_AUTO` y `CONSULTA_DEG_AUTO` (§3.1, §3.2). `SET_MODO:DEGRADADO`
 **salio de las dos con `D-46` (`f9cad1f`, 02/10; sin banco)**, y `SOLICITAR_PASO` del Esclavo con ella: las dos caen en
@@ -100,8 +100,8 @@ prometia rojo y hacia ambar con la talanquera arriba. Lo rechaza **nombrando el 
 | `SET_MODO:MANUAL` | si | `RESULT:OK` incondicional, por lo mismo: la rama llama a `coordinador_forzarRojoTotal()` (`N-147`: se entra por el todo-rojo que no programa nada) |
 | `SET_MODO:AMBAR` | si | **dos respuestas**, y dependen de `modoActual_get()` leido ANTES de escribirlo: `RESULT:REARMADO` si ya estaba en `MODO_AMBAR` —la rama re-arma con `modo_ambar_setup()`— y `RESULT:OK` si no. `N-146`: sin esto el equipo contestaba OK seis veces sin encender nada |
 | `SET_MODO:MENU` | **no** | **tres**: en `MODO_DEGRADADO` depende del bool de `modo_degradado_pedirSalida()` — `RESULT:SALIENDO_TODO_ROJO` si arranco la salida, `$ERR ... YA_VUELVE_AL_MENU` si ya estaba en marcha. Ninguno es OK: el menu tarda el todo-rojo. Fuera del Degradado, `RESULT:OK`. **Construido (`a4545bb`), sin banco:** sigue siendo la salida INMEDIATA del poste conectado, con el aviso de paleteros; con el Maestro en `MENU` esperando la siembra de `D-29`, revoca el permiso y contesta `RESULT:OK_REANUDACION_CANCELADA`. Hueco sin radio: SPEC 2 §7.quater |
-| `SET_MODO:ALCANCE` | **no** | **tres** (`D-65`, §9.5; construido, sin banco): `$ERR ... EN_MARCHA_PARE_EL_MODO` si `modoActual_get()` es `MODO_DEGRADADO`; `RESULT:SIN_CAMBIO` si ya era `MODO_ALCANCE` —leido ANTES de `modoActual_set()`, molde `N-146`, y no se vuelve a correr nada—; `RESULT:OK` si no |
-| `SET_MODO:INTELIGENTE` | si | igual que la anterior: `$ERR` en Degradado, `RESULT:SIN_CAMBIO` si ya era `MODO_INTELIGENTE`, `RESULT:OK` si no (`D-65`, §9.5; construido, sin banco) |
+| ~~`SET_MODO:ALCANCE`~~ | — | **Salio con `D-167`** (10/11; sin banco): cae en el `else` final, `$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO` con PIN y `$ERR,CMD:AUTH_FAILED,DESC:PIN_INVALIDO` sin el. Era `MENU` con otro rotulo (§7 hueco 5) |
+| `SET_MODO:INTELIGENTE` | si | **tres** (`D-65`, §9.5; construido, sin banco): `$ERR ... EN_MARCHA_PARE_EL_MODO` en Degradado; `RESULT:SIN_CAMBIO` si ya era `MODO_INTELIGENTE` —leido ANTES de `modoActual_set()`, molde `N-146`, y no se vuelve a correr nada—; `RESULT:OK` si no |
 | `SET_NOCHE:n,dias,HHMM,HHMM,A/R` · `SET_NOCHE:n,OFF` · `SET_NOCHE_TR:s` · `CONSULTA_NOCHE` | si · si · si · no | Construido en `N-179` (`D-110`, SPEC 0 §5.10 (h); `modoNoche_orden()`), sin banco. Molde `SET_TIEMPOS`: `$ERR ... FORMATO_INVALIDO` / `RANGO` / `EN_NOCHE_SALGA_PRIMERO` / `FLASH_NO_RELEE`, y `RESULT:OK` solo si lo releido de la flash es lo pedido. La consulta contesta `$ACK,CMD:NOCHE,RESULT:OK,TR:<s>,F1:..,F4:..` (131 caracteres como mucho). Solo el Maestro; el Esclavo, §3.2. ~~`SET_MODO:DEGRADADO`~~ salio con `D-46` (`COMANDO_NO_SOPORTADO`) |
 | `SET_MODO:DEG_T:ahora,inicio,verde,despeje` | si | Construido (`990c278`; `D-35`, SPEC 2 §7.bis). **La unica orden de entrada al Degradado.** Puerta paralela a `modo_degradado_evaluarEntrada()`, sin sync de radio: `$ERR ... DESC:<texto>` (`modo_degradado_textoTestigo()`) por `MDT_FALTA_HORA`, `MDT_AHORA_DESFASADO` (`TOLERANCIA_TESTIGO_S`), `MDT_DESPEJE_RANGO`, `MDT_INICIO_VENCIDO`, `MDT_AMBAR_VIGENTE`, `MDT_EN_VERDE`, `MDT_NO_GUARDADO`; `RESULT:OK` / `RESULT:RENOVADO`. Con salida programada (`D-52`): `$ERR ... DESC:Cancele antes la salida programada` |
 | `SET_DEG_AUTO:1` / `SET_DEG_AUTO:0` | si | Construido (`A-15`, SPEC 2 §7.ter (a)). **El `$ACK` sale DIFERIDO**, cuando el `ECO` del otro poste refleja el cambio: `RESULT:ON_EFECTIVO` (el otro tambien apto) / `RESULT:ON_FALTA_EL_OTRO_POSTE` / `RESULT:OFF`. Rechazos: `$ERR ... SIN_ENLACE_CON_EL_OTRO_POSTE` · `EN_DEGRADADO_SALGA_PRIMERO` · `FORMATO_INVALIDO`; sin `ECO` en `DEG_AUTO_ACUSE_MS`, `$ERR ... CAMBIADO_AQUI_SIN_ACUSE_DEL_OTRO_POSTE` (el cambio queda y se sigue publicando). Maestro en `MENU`: siempre ese `$ERR` (SPEC 2 §7.ter (a)). Misma orden y mismos literales en el Esclavo |
@@ -110,7 +110,7 @@ prometia rojo y hacia ambar con la talanquera arriba. Lo rechaza **nombrando el 
 | `SET_MODO:DEG_FIN:ahora,salida` · `SET_MODO:DEG_FIN:CANCELAR` | si | Construido el 04/10 (`a4545bb`, `D-52`), sin banco; SPEC 2 §7.quater (c): `salida` = `HH:MM:SS` a la que esta punta sale por su reloj; aviso de paleteros; un `$ERR` por motivo y `$ACK` solo si quedo programada (listas en §3.ter.ter) |
 | `CONSULTA_DEG_FIN` | no (es una consulta) | Construido el 04/10, sin banco. `RESULT:NINGUNA` o `RESULT:SALE_HHMMSS_FALTAN_<s>S_<RESPALDADA/SIN_RESPALDO>` (`_SIN_RESPALDO` tambien tras `FORZAR_ROJO` o hora perdida). Molde `CONSULTA_DEG_AUTO`; el contador no cabe en `$STATUS` (SPEC 2 §7.quater (c)). Igual en el Esclavo |
 | `MANUAL:CAMBIAR_TURNO` | si | **tres, y el ORDEN importa** (`N-151`): `$ERR ... MODO_SIN_CICLO_SALGA_PRIMERO` si `modoMueveElCoordinador()` es falso; si no, `RESULT:OK` cuando `pedirCambioVerificado()` devuelve true, y `$ERR ... EN_TRANSICION_REINTENTE` cuando no |
-| `TEST_LEDS` | si | Solo fuera de servicio (`N-82.bis`): `testLedsAdmitido()` exige modo `MENU` o `ALCANCE`, luz en `S_ROJO` y `ACK_RED` del Esclavo (`coordinador_rojoEsclavoConfirmado()`). `RESULT:STARTING_6S` si quedo armado; `$ERR` `SIN_ENLACE_AMBAR_NO_SE_PRUEBA` en `S_FALLO`, `ESPERANDO_ROJO_DEL_ESCLAVO` sin acuse, `EN_SERVICIO_PASE_A_MENU` en el resto |
+| `TEST_LEDS` | si | Solo fuera de servicio (`N-82.bis`): `testLedsAdmitido()` exige modo `MENU`, luz en `S_ROJO` y `ACK_RED` del Esclavo (`coordinador_rojoEsclavoConfirmado()`). `RESULT:STARTING_6S` si quedo armado; `$ERR` `SIN_ENLACE_AMBAR_NO_SE_PRUEBA` en `S_FALLO`, `ESPERANDO_ROJO_DEL_ESCLAVO` sin acuse, `EN_SERVICIO_PASE_A_MENU` en el resto |
 | `SET_TIEMPOS:v,r,d` | si | **EL MOLDE. Cuatro respuestas, una por motivo:** `$ERR ... FORMATO_INVALIDO` si el `sscanf` con el `%c` centinela no convierte 3 exactos —dos ordenes pegadas convierten 4—; `$ERR ... EN_MARCHA_PARE_EL_MODO` si `modoAutomatico_enMarcha()`; `$ERR ... RANGO` si `modoAutomatico_fijarTiempos()` devuelve false; `RESULT:OK` **solo** si devolvio true; la app, en DEGRADADO, dice solo «guardados» y que sigue en Degradado (con rojo fijo no da verdes); rango, bajo la tabla (`D-131`) |
 | `REINICIAR_RELOJ` | si | **cuatro, y el `$ACK` NO sale en la rama** (1.49 (a), `622a20b`). ~~depende del bool de `reloj_reiniciarDominioRespaldo()`: `RESULT:CRISTAL_OK_PONGA_LA_HORA` o ...~~ → el bool solo decide si hay algo que verificar. `$ERR ... REPITA_EN_UNOS_SEGUNDOS` si ya hay una orden esperando veredicto —sin tocar nada: reiniciar otra vez abriria otra ventana y dejaria dos ordenes para un veredicto—; `$ERR ... SIGUE_PARADO_VEA_CONSULTA_RELOJ` si el oscilador no arranca, con el `$EVENT` `ORIGEN:RELOJ` de `reportarBitsDelReloj()`; y si arranca, **no contesta todavia**: publica `$EVENT ... ORIGEN:APP_BLUETOOTH, DETALLE:RELOJ_REINICIADO_VERIFICANDO` y deja la orden pendiente. **El veredicto sale despues, una sola vez**, desde `bluetooth_loop()` cuando `reloj_estadoCristal()` deja de decir VIGILANDO: `RESULT:CRISTAL_OK_PONGA_LA_HORA` **solo** con CUENTA, o `$ERR ... ARRANCA_Y_NO_CUENTA_VEA_CONSULTA_RELOJ` con CONGELADO, otra vez con los bits. **Llega unos segundos despues de pulsar**: el plazo es la ventana de vigilancia del cristal y no se copia aqui. La app traduce los tres `DESC` |
 | `DEMANDA` | si | **tres**: `$ERR ... SOLO_EN_MODO_INTELIGENTE` fuera del modo —registrar una peticion que ningun ciclo va a mirar es fingirla—; `RESULT:REGISTRADA` si `demanda_solicitar()` devuelve true; `$ERR ... REPITA_EN_UNOS_SEGUNDOS` si devuelve false |
@@ -392,7 +392,7 @@ aqui** (§14).
 |---|---|---|
 | rotulo en Android | `<prefijo><serie>-M` | `<prefijo><serie>-E` (o el provisional en la primera arrancada del modulo) |
 | cabecera | `MAESTRO (POSTE 1)` + «(radio N %)» con `RF:` medido | `ESCLAVO (POSTE 2)` + «(enlazado)» — lo decide `NODE:`, no lo que el operario suponga. En las dos, «(sin radio)» (§9.9 (d), `D-82`) con `FALLO COM` fuera de `MODO:AMBAR` o `RF:0%`, y «(sin enlace)» sin `$STATUS` |
-| `MODO:` | `MENU` `MANUAL` `AUTO` `INTELIGENTE` `ALCANCE` `DEGRADADO` `AMBAR` (~~`HORA`~~, `D-44`) | `SUBORDINADO` `DEGRADADO` `RENDIDO` — el campo dice si esta punta esta obedeciendo o gobernando |
+| `MODO:` | `MENU` `MANUAL` `AUTO` `INTELIGENTE` `DEGRADADO` `AMBAR` (~~`HORA`~~, `D-44`; ~~`ALCANCE`~~, `D-167`: solo de un firmware anterior; la app lo muestra como «MODO NO RECONOCIDO» y lo trata sin ciclo) | `SUBORDINADO` `DEGRADADO` `RENDIDO` — el campo dice si esta punta esta obedeciendo o gobernando |
 | `ESTADO:` | `ROJO` `VERDE` `AMARILLO` `FALLO COM` (con espacio); `ROJO+AMAR` (`D-53`, construido, sin banco) | los mismos |
 | cuenta atras `T:` | numero o `--` | **`--` FIJO** |
 | enlace `RF:` `RTT:` | medidos | **`--` FIJOS** |
@@ -464,10 +464,11 @@ segunda linea vacia en Eventos.
 
 > Lo que sigue **no cumple una decision vigente, o no lo cubre nadie**. Cada linea dice como se midio.
 
-🟢 **1 · ACEPTADO por el responsable (09/11, `D-158`): cuatro ordenes sin PIN; solo ponen rojo o ambar.** `correctPin`
+🟢 **1 · ACEPTADO por el responsable (09/11, `D-158`): tres ordenes sin PIN; solo ponen rojo o ambar.** `correctPin`
 es un literal en `app.js` y `CMD:PIN:1234:` es un literal en **los dos** `bluetooth.cpp`; el transporte es
-SPP **sin cifrar**. Las ordenes que **cambian algo** y entran sin PIN son **cuatro**: `FORZAR_ROJO`, `SET_MODO:MENU`
-y `SET_MODO:ALCANCE` (Maestro) y `AMBAR_EMERGENCIA` (Esclavo); ninguna da verde (`SET_MODO:MENU` corre el todo-rojo
+SPP **sin cifrar**. Las ordenes que **cambian algo** y entran sin PIN son **tres**: `FORZAR_ROJO` y `SET_MODO:MENU`
+(Maestro) y `AMBAR_EMERGENCIA` (Esclavo; `SET_MODO:ALCANCE` salio con `D-167`); ninguna da verde (`SET_MODO:MENU` corre
+el todo-rojo
 de las dos puntas). El latido y `HORA_ESP32` preceden a la guarda y no cuentan: uno no actua y el otro lo tira el
 puente. El emparejamiento del puente con clave (`spp.begin` sin ella) es firmware de la version siguiente (`D-158`).
 
@@ -479,13 +480,14 @@ cuenta es indistinguible de un olvido** (`CLAUDE.md` §6).
 🟢 **3 · `D-23`: construido, sin telefono ni banco.** `$EVENT` periodico a cadencia baja (`D-32` (2)); la app lo lee
 en `js/diagnostico_enlace.js` y `renderDiagnosticoEnlace()` lo pinta en la ventana del Poste 2 sin color ni veredicto.
 
-🟢 **4 · CERRADO por `D-65` (§9.5):** `SET_MODO:ALCANCE`/`INTELIGENTE` repetidos contestan `RESULT:SIN_CAMBIO`.
+🟢 **4 · CERRADO por `D-65` (§9.5):** `SET_MODO:INTELIGENTE` repetido contesta `RESULT:SIN_CAMBIO`.
 
-⚠️ **5 · El Modo Alcance no tiene medida propia** (a medias, `cd437b2`). Sin LCD (`D-17.bis`) y sin
-`lcd_dibujarAlcance()` en el fuente, `modoAlcance_setup()` solo llama a `coordinador_forzarMenu()`: desde `D-63` no
-pone ningun contador a cero. La app, con `MODO:ALCANCE`, abre una caja (`pintarCajaAlcance()`) con el `RF:`/`RTT:`
-del mismo `$STATUS` que cualquier otro modo, la ventana de latidos del coordinador. **Pendiente del responsable**
-(`D-16`): retirar el modo o darle medida propia.
+🟢 **5 · CERRADO por `D-167` (10/11; sin banco): el Modo Alcance sale.** Era `MENU` con otro rotulo: su setup era
+`coordinador_forzarMenu()` y su bucle el `coordinador_actualizar()` que `main.cpp` ya corre en `MENU`. Salen la orden
+(§3.1), el valor del enum (`MODO_DEGRADADO`, `MODO_AMBAR` y `MODO_NOCHE` bajan uno: el modo vive en RAM y no se
+guarda), el boton y la caja de la app. El `RF:`/`RTT:` se lee en la tarjeta ENLACE RADIO, en cualquier modo. Un
+poste con firmware anterior aun puede publicar `MODO:ALCANCE`: el badge dice «MODO NO RECONOCIDO: ALCANCE»
+(`app_04` no admite un rotulo que ninguna punta emite) y `SIN_CICLO` lo sigue tratando como sin ciclo.
 
 🟢 **6 · CERRADO POR `D-44` (`f9cad1f`):** `menu_setup()` sigue llamando a `coordinador_forzarMenu()` (§3.1, hueco 1).
 
@@ -648,7 +650,7 @@ necesita una linea en `app.js`.
 
 Por que (medido): el 06/10 a las 10:43:30 la app escribio «los contadores BAJARON (1789→91) ... SE HA REINICIADO»
 (`evidencia/061020261110/Enlace_KM_12_EL_SISGA_2026-10-06.csv`, fila 346). **No hubo reinicio**: a las 10:43:00 la
-misma cinta trae `SET_MODO_ALCANCE`, y `modoAlcance_setup()` llama a `protocolo_reiniciarContadores()` (SFTY-15). La
+misma cinta trae `SET_MODO_ALCANCE`, y `modoAlcance_setup()` llamaba a `protocolo_reiniciarContadores()` (SFTY-15). La
 premisa de `ROADMAP_APP.md` 11 queda REFUTADA a medias: lo que faltaba no era fechar un reinicio, era poder decir que
 NO lo hubo. El `$STATUS` no admite un campo mas: su comentario en `Maestro/src/bluetooth.cpp` mide margen 2 sobre
 `tramaCompleta[160]` y `esp32_07_presupuesto_bytes` lo recalcula. **Nada de esto va en el `$STATUS`.**
@@ -675,9 +677,9 @@ Lo que el equipo HACE (las dos puntas, bloques gemelos letra por letra; leido en
    caso, con las cotas de tipo. **La fecha del ultimo arranque la pone la APP**, `hora del telefono - UP`; el equipo
    no la fecha (SPEC_7: puede no tener hora; el telefono siempre la tiene). `HEAP_MIN` no existe: el firmware STM32
    no usa heap (`grep "String|malloc|new "` en `*/src`: 0 lineas); la RAM se mide con `nm` (`CLAUDE.md` §10).
-3. **SFTY-15 deja de poner a cero los contadores al entrar en PRUEBA ALCANCE** (`D-63`): `modoAlcance_setup()` no
-   llama a `protocolo_reiniciarContadores()`; la funcion queda declarada y pasa a la lista de huerfanas del Maestro en
-   `costura_10` (ya estaba en la del Esclavo). Su unico lector era el LCD (`D-44`); la app mide por ventanas de 30 s
+3. **SFTY-15 dejo de poner a cero los contadores al entrar en PRUEBA ALCANCE** (`D-63`, derogada al salir el modo
+   con `D-167`): `protocolo_reiniciarContadores()` queda declarada y en la lista de huerfanas de las dos puntas en
+   `costura_10`. Su unico lector era el LCD (`D-44`); la app mide por ventanas de 30 s
    (`D-23`). Desde aqui «un contador baja» vuelve a significar lo que la app ya afirmaba. Modo de fallo buscado
    (`CLAUDE.md` §11.7): ninguno sobre luces; una sesion de antenas (SPEC_6) compara deltas, no absolutos.
 4. **La app** (`D-64`; `js/diagnostico_enlace.js`, copia identica en `www/js/`; en `app.js` solo `REINICIOS` en
@@ -705,21 +707,23 @@ el core de Arduino limpia `RCC_CSR` antes de `setup()` y hay que leerlo donde el
 Por que (medido sobre el fuente): `ROADMAP_APP.md` 12 pide «todo `$ACK` lleva `RES`/`APLICA` o es `$ERR`; la orden
 que no cambia nada da `MOTIVO:SIN_CAMBIO`». Aqui el campo es `RESULT:` y ya lo lleva todo `$ACK` (`grep '"\$ACK'` sin
 `RESULT` en `Maestro/src`, `Esclavo/src` y `ESP32_Expansion/src`: 0 lineas); `MOTIVO:` no existe como campo y `DESC:`
-es el del `$ERR`. Lo que queda a medias es el hueco 4 de §7: `SET_MODO:ALCANCE` y `SET_MODO:INTELIGENTE` contestan
-`OK` con el modo ya puesto y no corre nada. Es el mismo «si» que `N-146` destapo en el ambar: el operario repite la
+es el del `$ERR`. Lo que queda a medias es el hueco 4 de §7: `SET_MODO:INTELIGENTE` (y `ALCANCE`, que salio con
+`D-167`) contestaba `OK` con el modo ya puesto y no corre nada. Es el mismo «si» que `N-146` destapo en el ambar: el
+operario repite la
 orden creyendo que no le hacen caso.
 
 Lo que el equipo HACE (`D-65`):
-1. **Maestro, `procesarComando()`, ramas `SET_MODO:ALCANCE` y `SET_MODO:INTELIGENTE`:** `yaEnModo` leido con
+1. **Maestro, `procesarComando()`, rama `SET_MODO:INTELIGENTE`:** `yaEnModo` leido con
    `modoActual_get()` ANTES de `modoActual_set()` (molde `N-146`). En Degradado sigue el `$ERR`; con `yaEnModo`,
    `RESULT:SIN_CAMBIO` y NO se llama a nada (ni `modoActual_set()`, ni el setup, ni `bluetooth_reportarEvento()`:
    repetir una orden no es un evento del cruce); si no, `RESULT:OK` como hoy. Es `$ACK` y no `$ERR` porque el equipo
    esta en el estado pedido; lo que se niega es que haya corrido algo. **Sin re-armar**: un `REARMADO` como el del
    ambar volveria a correr `coordinador_iniciarModo()` (todo-rojo y ciclo desde cero) por una pulsacion repetida; la
    maquina no corre un todo-rojo que nadie pidio (`CLAUDE.md` §2). Quien quiera reiniciar el ciclo pasa por `MENU`.
-2. **La app** (`ACK_TEXTO`, `textos_ack.js`; `D-66`): `SET_MODO:ALCANCE|SIN_CAMBIO` y `SET_MODO:INTELIGENTE|SIN_CAMBIO`
-   dicen «ya estaba en <modo>: no se movio nada» y el camino para reiniciar (MENU y de nuevo el modo), tono ambar, no
-   verde. Las dos entradas `|OK` pasan de `js/textos_spec4.js` a `ACK_TEXTO`, porque `app_10` solo censa esa tabla
+2. **La app** (`ACK_TEXTO`, `textos_ack.js`; `D-66`): `SET_MODO:INTELIGENTE|SIN_CAMBIO` dice «ya estaba en
+   INTELIGENTE: no se movio nada» y el camino para reiniciar (MENU y de nuevo el modo), tono ambar, no verde (las de
+   `ALCANCE` salieron con `D-167`). La entrada `|OK` paso de `js/textos_spec4.js` a `ACK_TEXTO`, porque `app_10` solo
+   censa esa tabla
    (y `DegAuto.ACUSE`) y con dos `RESULT` por orden exige las dos entradas alli; en `textos_spec4.js` se borran.
    El veredicto `SIN_CAMBIO` del diario (`js/depuracion.js`, dos `$STATUS` iguales) es otra medida y no se toca.
 
@@ -731,14 +735,15 @@ ninguno sobre luces; la segunda orden ya no hacia nada, solo deja de decir que s
 operario esperaba reiniciar el ciclo se cubre con el texto de la app.
 
 Quien lo ejerce (instrumentos existentes; simulador congelado, `CLAUDE.md` §4):
-- `Simulaciones/simulador_puente_esp32.py`, escenario N4 (compila el `bluetooth.cpp` REAL del Maestro): `ALCANCE`
-  dos veces, `OK` y despues `SIN_CAMBIO` con `MODO` igual; `INTELIGENTE` (con PIN) dos veces, igual; control:
-  `MENU` dos veces, las dos `OK`. Rojo antes de construir: la segunda contestaba `OK`.
+- `Simulaciones/simulador_puente_esp32.py`, escenario N4 (compila el `bluetooth.cpp` REAL del Maestro):
+  `INTELIGENTE` (con PIN) dos veces, `OK` y despues `SIN_CAMBIO` con `MODO` igual; control: `MENU` dos veces, las dos
+  `OK`. Rojo antes de construir: la segunda contestaba `OK`. `D-167`: `ALCANCE` con PIN contesta
+  `COMANDO_NO_SOPORTADO` y sin el `PIN_INVALIDO`, sin mover el `MODO` (rojo con la rama aun dentro).
 - `banco/packs/app_10_ack_con_varios_sies.py`, sin tocar: rojo si el C++ tiene los dos `RESULT` y
   `ACK_TEXTO` no los nombra; verde con las cuatro entradas y textos distintos.
-- `tests/dom_textos_spec4.js` (6 y 14): los dos `|SIN_CAMBIO` entran por el parser real, sin generico, con «ya
-  estaba» y «MENU»; la asercion de `ALCANCE|OK` conserva su texto y cita este apartado en vez del hueco 4.
-- `decisiones_01_anclas`, sin tocar: `D-65` anclada en `Maestro/src/bluetooth.cpp` (rama `SET_MODO:ALCANCE`).
+- `tests/dom_textos_spec4.js` (6 y 14): `INTELIGENTE|SIN_CAMBIO` entra por el parser real, sin generico, con «ya
+  estaba» y «MENU»; y ninguna tabla de textos nombra ya `SET_MODO:ALCANCE` (`D-167`).
+- `decisiones_01_anclas`, sin tocar: `D-65` anclada en `Maestro/src/bluetooth.cpp` (rama `SET_MODO:INTELIGENTE`).
 
 ### 9.6 Alarmas que se ven sin nadie conectado (`N-178` M3; `D-67`..`D-69`) — construido, sin banco
 
@@ -788,8 +793,8 @@ Lo que el equipo HACE (`D-70`, `D-71`; solo `ESP32_Expansion`, fuera del camino 
 Lo que NO se hace, y por que: no se toca `BUF_*` de `contrato.h` ni se anade una cola propia (una cola delante de la
 cola de la libreria solo retrasa el mismo bloqueo); no se reintenta la trama descartada (`$STATUS` sale cada segundo y
 los `$ALARM` se repiten, `D-67`/`D-38`); no se avisa a la app (no lee). Modo de fallo buscado (`CLAUDE.md` §11.7): la
-trama que se pierde puede ser un `$ACK` o un `$EVENT` del STM32. Repetida la orden sin acuse: `ALCANCE`/`INTELIGENTE`
-dan `SIN_CAMBIO` (§9.5); `AUTO`/`MANUAL`/`MENU` repiten el todo-rojo (seguro); `DEG_T` da `RENOVADO`; `FORZAR_ROJO`
+trama que se pierde puede ser un `$ACK` o un `$EVENT` del STM32. Repetida la orden sin acuse: `INTELIGENTE`
+da `SIN_CAMBIO` (§9.5); `AUTO`/`MANUAL`/`MENU` repiten el todo-rojo (seguro); `DEG_T` da `RENOVADO`; `FORZAR_ROJO`
 sigue en rojo; `SET_TIEMPOS` y `SET_RTC` reescriben lo mismo. Ninguna orden se vuelve peligrosa al repetirse, y el
 `$EVENT` perdido es justo lo que el contador cuenta. La alternativa (bloquear) es un reinicio del puente con la sesion
 y la siembra tiradas.
@@ -1080,7 +1085,7 @@ Inventario y destino (QUEDA · PLEGADO · FUERA; «clave» = ya estaba tras ella
 | Tiempos (clave) | verde, rojo, despeje, Aplicar; aviso de cruce parado | QUEDA, con nombre y frase (h) |
 | Tiempos (clave) | modo noche: distancia y todo-rojo | QUEDA |
 | Tiempos (clave) | las cuatro franjas | cada una PLEGADO; su `<summary>` dice dias, horas y color, o «apagada» |
-| Ajustes (clave) | Practicar sin poste; Manual, Inteligente, Alcance | QUEDA |
+| Ajustes (clave) | Practicar sin poste; Manual, Inteligente (Alcance salio con `D-167`) | QUEDA |
 | Ajustes (clave) | interruptores de `D-94` | PLEGADO en «Averias: camaras y barrera»; abierto y en ambar si alguno esta fuera |
 | Ajustes (clave) | contacto de cada camara y retardo de bajada (`D-161`) | PLEGADO en «Instalacion: camaras y barrera», tras Averias (§9.15) |
 | Ajustes (clave) | Pedir paso | solo con `MODO:INTELIGENTE`; en otro modo, FUERA de la vista |

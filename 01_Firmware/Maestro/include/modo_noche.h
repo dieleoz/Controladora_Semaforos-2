@@ -13,7 +13,7 @@
 // SET_MODO:MANUAL -coordinador_forzarRojoTotal()-, el ACK_RED del Esclavo y tr segundos de
 // rojo en los dos; despues coordinador_entrarNoche(). Sin ACK_RED no entra: manda SFTY-6.
 // SALIDA (D-106, D-111): por el flanco de fin o desde la app, SIEMPRE por el todo-rojo (rojo
-// en los dos, ACK_RED, tr) y despues el destino; a MENU, ALCANCE y FORZAR_ROJO, rojo e
+// en los dos, ACK_RED, tr) y despues el destino; a MENU y FORZAR_ROJO, rojo e
 // inmediata (esos destinos no dan verde). Durante toda la noche el coordinador tiene el veto
 // de verde puesto (coordinador_vetarVerde).
 // ---------------------------------------------------------------------------

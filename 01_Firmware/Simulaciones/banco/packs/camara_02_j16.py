@@ -106,13 +106,13 @@ PINES_DE_LUZ = ("ROJO1", "ROJO2", "AMARILLO1", "AMARILLO2", "VERDE1", "VERDE2",
                 "ROJO_PEATON", "VERDE_PEATON")
 
 # Los sustitutos de botonAceptar()/botonCancelar() en el Maestro. Esta lista NO es
-# decorativa: retirar la unica salida de los ocho modos sin que exista el comando que la
+# decorativa: retirar la unica salida de los siete modos sin que exista el comando que la
 # sustituye deja al operario dentro de un modo sin mas salida que cortar la energia.
 SUSTITUTOS_MAESTRO = (
     "SET_MODO:MENU",          # la salida de todos los modos
     "SET_MODO:AUTO", "SET_MODO:MANUAL", "SET_MODO:AMBAR",
-    # D-46: SET_MODO:DEGRADADO salio; al Degradado se entra por el testigo (D-35).
-    "SET_MODO:ALCANCE", "SET_MODO:INTELIGENTE", "SET_MODO:DEG_T:",
+    # D-46: SET_MODO:DEGRADADO salio (al Degradado se entra por el testigo, D-35); D-167: ALCANCE, con su modo.
+    "SET_MODO:INTELIGENTE", "SET_MODO:DEG_T:",
     "MANUAL:CAMBIAR_TURNO",   # el "dar paso" del Modo Manual
     "SET_TIEMPOS:",           # confirmar tiempos, que hacia el boton 3
     # Poner la hora, que hacia AJUSTAR HORA con ACEPTAR. Hasta el 11/09 el sustituto era
@@ -640,7 +640,7 @@ def correr(b, fw):
         "Maestro: los %d comandos que sustituyen a ACEPTAR y CANCELAR estan en el "
         "despachador de Bluetooth" % len(SUSTITUTOS_MAESTRO),
         "Maestro: FALTA(N) %s en bluetooth.cpp. botonCancelar() era la unica salida de "
-        "los ocho modos: retirarla sin el comando que la sustituye deja al operario "
+        "los siete modos: retirarla sin el comando que la sustituye deja al operario "
         "dentro de un modo sin mas salida que cortar la energia" % ", ".join(faltan))
 
     # COMPROBACION INVERTIDA (D-30, 14/09), y la frase que la sostenia ya era falsa.

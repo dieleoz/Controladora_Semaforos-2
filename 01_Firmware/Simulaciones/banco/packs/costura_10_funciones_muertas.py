@@ -53,7 +53,7 @@ CONOCIDAS = {
         "respaldo_valido", "respaldo_verdeSeg", "respaldo_despejeSeg",
         # N-179: SALEN las cuatro reloj_*Noche* (andamio SFTY-20): el modo noche se construyo
         # en modo_noche.cpp con franjas en flash (D-108) y el andamio se retiro del firmware.
-        # D-63: PRUEBA ALCANCE ya no pone a cero los contadores; protocolo.h es gemelo.
+        # Su unico llamador era el Modo Alcance (cero de SFTY-15 retirado el 14/10; el modo, con D-167); gemela.
         "protocolo_reiniciarContadores",
     },
     "Esclavo": {

@@ -844,7 +844,6 @@ body {
 .ctrl-btn.btn-mode-manual { border-color: rgba(0, 240, 255, 0.4); }
 .ctrl-btn.btn-request { border-color: rgba(0, 230, 118, 0.4); }
 .ctrl-btn.btn-mode-smart { border-color: rgba(0, 230, 118, 0.4); }
-.ctrl-btn.btn-mode-range { border-color: rgba(255, 179, 0, 0.4); }
 
 /* Un mando apagado tiene que PARECER apagado: DEMANDA se deshabilita sola fuera del
    Modo Inteligente y el rotulo de debajo dice por que. */
@@ -854,50 +853,6 @@ body {
   opacity: 0.4;
   cursor: not-allowed;
   filter: grayscale(1);
-}
-
-/* ==========================================================================
-   La caja de la Prueba de Alcance (28/09, funcional en campo)
-   ==========================================================================
-   NACE OCULTA -ver el `hidden` del HTML- y solo la abre pintarCajaAlcance() en app.js
-   cuando el equipo confirma MODO:ALCANCE. Se quiere "grande y visible" porque es la
-   respuesta a "donde se ve este valor": si se confunde con una tarjeta mas, no
-   contesta la pregunta. */
-.alcance-caja {
-  margin-top: 12px;
-  padding: 14px;
-  border-radius: var(--radius-md);
-  border-left: 4px solid var(--red-lamp);
-  background: linear-gradient(135deg, rgba(255, 30, 68, 0.12) 0%, rgba(16, 24, 40, 0.8) 60%);
-}
-
-.alcance-caja-titulo {
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  color: var(--red-lamp);
-  margin-bottom: 4px;
-}
-
-.alcance-caja-valor {
-  font-family: var(--font-mono);
-  font-size: 32px;
-  font-weight: 800;
-  color: var(--text-primary);
-  line-height: 1.1;
-}
-
-.alcance-caja-rtt {
-  font-family: var(--font-mono);
-  font-size: 13px;
-  color: var(--text-secondary);
-  margin-top: 2px;
-}
-
-.alcance-caja-frase {
-  font-size: 11px;
-  color: var(--text-secondary);
-  margin: 6px 0 0;
 }
 
 /* ==========================================================================

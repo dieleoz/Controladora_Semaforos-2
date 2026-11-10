@@ -225,7 +225,7 @@ module.exports = async function pruebaSimulador(montarAppLimpia, assert) {
     const cinta = (n) => new Function(fs.readFileSync(path.join(APP, 'js', 'practica_cinta_' + n + '.js'), 'utf8') +
                                       '; return PRACTICA_CINTA_' + n + ';')();
     const campos = (t) => t.replace(/\*[0-9A-F]{2}$/, '').split(',').slice(1).map(c => [c.split(':')[0], c.slice(c.indexOf(':') + 1)]);
-    const SIN_PIN = ['FORZAR_ROJO', 'AMBAR_EMERGENCIA', 'SET_MODO:MENU', 'SET_MODO:ALCANCE', 'VERSION', 'CONSULTA_DEG_AUTO',
+    const SIN_PIN = ['FORZAR_ROJO', 'AMBAR_EMERGENCIA', 'SET_MODO:MENU', 'VERSION', 'CONSULTA_DEG_AUTO',
                      'CONSULTA_DEG_FIN', 'CONSULTA_NOCHE', 'REINICIOS'];   // los de app.js, que es quien las envia
     const VARIAN = /^(HORA|T|RTT|REIN|UP|ANTES|DETALLE)$/;
     const difieren = [], nombres = [];
@@ -374,7 +374,7 @@ module.exports = async function pruebaSimulador(montarAppLimpia, assert) {
       a.r.avanzar(200);
     };
     const pasos = (m, ids) => { a.pulsa('btn-bt-disconnect'); a.pulsa('btnDevice'); a.enlazar(m); ids.forEach(pulsar); };
-    pasos(mac(1), ['btn-degauto-on', 'btn-op-menu', 'btn-modo-alcance', 'btn-op-menu', 'btn-start-test-leds',
+    pasos(mac(1), ['btn-degauto-on', 'btn-op-menu', 'btn-start-test-leds',
                    'btn-leer-version', 'btn-op-auto', 'btn-op-step', 'btn-op-amber', 'btn-op-emergency', 'btn-op-menu',
                    'SET_VETO_CAMARA:OFF', 'SET_VETO_CAMARA:ON', 'SET_BARRERA_SERVICIO:OFF', 'SET_BARRERA_SERVICIO:ON']);
     a.pulsa('tab-btn-tiempos');
@@ -396,13 +396,15 @@ module.exports = async function pruebaSimulador(montarAppLimpia, assert) {
     const cmdDe = (o) => o.replace(/^CMD:(PIN:\d+:)?(MANUAL:)?/, '').replace(/^CONSULTA_NOCHE$/, 'NOCHE')
       .replace(/^(SET_(?:TIEMPOS|DEG_AUTO|NOCHE|NOCHE_TR)):.*/, '$1').split(':').slice(0, 2).join(':');
     const sinRespuesta = alSim.filter(o => !a.oidas.some(t => /^\$(ACK|ERR),CMD:/.test(t) && t.indexOf('CMD:' + cmdDe(o)) >= 0));
-    const hechas = ['SET_MODO:MENU', 'SET_MODO:ALCANCE', 'TEST_LEDS', 'VERSION', 'SET_MODO:AUTO', 'CAMBIAR_TURNO',
+    const hechas = ['SET_MODO:MENU', 'TEST_LEDS', 'VERSION', 'SET_MODO:AUTO', 'CAMBIAR_TURNO',
                     'SET_MODO:AMBAR', 'FORZAR_ROJO', 'SET_TIEMPOS', 'SET_NOCHE', 'SET_NOCHE_TR', 'SET_DEG_AUTO',
                     'SET_MODO:DEG_T', 'AMBAR_EMERGENCIA', 'CANCELAR_AMBAR', 'SET_VETO_CAMARA', 'SET_BARRERA_SERVICIO']
                     .filter(k => !alSim.some(o => o.includes(k)));
     assert(alSim.length >= 15 && hechas.length === 0 && sinRespuesta.length === 0 && a.tramas.length === 0,
       `Simulador: el menu entero por los botones (${alSim.length} ordenes) sin enlace real; sin pulsar: ` +
       `${hechas.join(',') || '-'}; sin respuesta: ${sinRespuesta.join(' | ') || '-'}; al puerto real: ${a.tramas.length}`);
+    assert(!a.el('btn-modo-alcance') && !a.el('alcance-caja') && !escritas.some(o => /ALCANCE/.test(o)),
+      'D-167 (SPEC_4 §7.5): la app no ofrece ni manda SET_MODO:ALCANCE; el Modo Alcance salio');
     P(a).salir();
   }
   {

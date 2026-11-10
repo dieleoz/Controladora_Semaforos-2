@@ -1376,27 +1376,27 @@ def escenario_n4(t, c, maestro, esclavo, util_max):
     puente.desde_app(c.prefijo_pin["Esclavo"] + "FORZAR_ROJO\r\n")
     salidas = esclavo.rx(puente.hacia_stm32[0])
     err = next((s for s in salidas if s.startswith("$ERR")), "")
-    t.verificar(
-        "RENOMBRADO" in err,
-        "y el rechazo trae su motivo entero: %r" % err.strip(),
-        "el $ERR del Esclavo no explica por que: %r. Un rechazo sin motivo manda al "
-        "tecnico a adivinar" % err)
+    t.verificar("RENOMBRADO" in err, "y el rechazo trae su motivo entero: %r" % err.strip(),
+                "el $ERR del Esclavo no explica por que: %r. Un rechazo sin motivo manda al tecnico a adivinar" % err)
 
-    # D-65 (SPEC_4 9.5): la orden repetida en ALCANCE/INTELIGENTE no corre nada y lo dice
-    # (SIN_CAMBIO, mismo modo); MENU repetido re-arma dentro de su rama y su OK es verdad.
-    def acuse(orden):
-        r = [s.strip() for s in maestro.rx(c.prefijo_pin["Maestro"] + orden + "\n")
-             if s.startswith(("$ACK", "$ERR"))]
+    # D-65 (SPEC_4 9.5): INTELIGENTE repetido no corre nada y lo dice (SIN_CAMBIO, mismo modo); MENU repetido re-arma
+    # en su rama y su OK es verdad. D-167 (SPEC_4 7.5): ALCANCE salio; con PIN o sin el, $ERR y el MODO no se mueve.
+    def acuse(orden, pre=c.prefijo_pin["Maestro"]):
+        r = [s.strip() for s in maestro.rx(pre + orden + "\n") if s.startswith(("$ACK", "$ERR"))]
         return (r[0].split("*")[0] if r else None), maestro.dato("MODO", r"MODO (\d+)")
-    for modo, segunda in (("ALCANCE", "SIN_CAMBIO"), ("INTELIGENTE", "SIN_CAMBIO"),
-                          ("MENU", "OK")):
+    for pre, err in ((c.prefijo_pin["Maestro"], "DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO"),
+                     ("CMD:", "AUTH_FAILED,DESC:PIN_INVALIDO")):
+        m0, (a, m) = maestro.dato("MODO", r"MODO (\d+)"), acuse("SET_MODO:ALCANCE", pre)
+        t.verificar(a == "$ERR,CMD:" + err and m == m0, "D-167: %sSET_MODO:ALCANCE -> %r, MODO %s" % (pre, a, m),
+                    "D-167: %sSET_MODO:ALCANCE da %r, MODO %s->%s (esperado $ERR,CMD:%s, MODO igual)"
+                    % (pre, a, m0, m, err))
+    for modo, segunda in (("INTELIGENTE", "SIN_CAMBIO"), ("MENU", "OK")):
         (a1, m1), (a2, m2) = acuse("SET_MODO:" + modo), acuse("SET_MODO:" + modo)
         base = "$ACK,CMD:SET_MODO:%s,RESULT:" % modo
-        t.verificar(
-            a1 == base + "OK" and a2 == base + segunda and m1 == m2,
-            "SET_MODO:%s dos veces -> %r / %r, modo %s y %s" % (modo, a1, a2, m1, m2),
-            "SET_MODO:%s repetido contesto %r / %r (modo %s -> %s); D-65 pide OK y "
-            "despues %s sin mover el modo" % (modo, a1, a2, m1, m2, segunda))
+        t.verificar(a1 == base + "OK" and a2 == base + segunda and m1 == m2,
+                    "SET_MODO:%s dos veces -> %r / %r, modo %s y %s" % (modo, a1, a2, m1, m2),
+                    "SET_MODO:%s repetido contesto %r / %r (modo %s -> %s); D-65 pide OK y despues %s sin mover "
+                    "el modo" % (modo, a1, a2, m1, m2, segunda))
 
     t.control_negativo(
         c.acciones["Esclavo"] != c.acciones["Maestro"],

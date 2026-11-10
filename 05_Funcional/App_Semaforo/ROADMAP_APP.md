@@ -28,7 +28,7 @@ prueba se entrega vista en rojo (`CLAUDE.md` §15). «Sin telefono» = sin medir
 | Registro de la sesion: cambios de `$STATUS`, un `.txt`, copia fuera de CACHE (`D-55`) | §9.3 | `71241ec` | `copy` |
 | Registro en el puente, `CMD:LOG,DESDE:<N>` (`D-72`..`D-75`, `D-100`) | §9.8 | `cd437b2` | banco |
 | Reinicios fechados y contador que baja (`D-60`..`D-64`) | §9.4 | `cd437b2` | banco |
-| `RESULT:SIN_CAMBIO` en `ALCANCE`/`INTELIGENTE` repetidos (`D-65`, `D-66`) | §9.5 | `cd437b2` | banco |
+| `RESULT:SIN_CAMBIO` en `INTELIGENTE` repetido (`D-65`, `D-66`; `ALCANCE` salio con `D-167`) | §9.5 | `cd437b2` | banco |
 | Alarmas del limite repetidas mientras duran (`D-67`..`D-69`) | §9.6 | `cd437b2` | banco |
 | SPP del puente que no bloquea, `CONG` contado (`D-70`, `D-71`) | §9.7 | `cd437b2` | banco |
 | Practica sin poste (`D-86`..`D-89`), con estado y grupos (`D-117`..) | §9.10, §9.14 | `cd437b2`, `ac844b9` | franja |
@@ -43,7 +43,7 @@ prueba se entrega vista en rojo (`CLAUDE.md` §15). «Sin telefono» = sin medir
    recontados.
 3. **Aviso en vivo de un fallo de escritura del fichero de sesion**: hoy solo se declara en el `.txt` (§9.3).
 4. **Emparejamiento del puente con clave** (`D-158`): firmware del ESP32, version siguiente; la app no cambia.
-5. **Del responsable:** retirar el Modo Alcance o darle medida propia (§7.5); `ESC:AMARILLO` (§6, sin decidir).
+5. **Del responsable:** `ESC:AMARILLO` (§6, sin decidir). El Modo Alcance salio con `D-167` (§7.5).
 6. **Version siguiente:** el origen del ambar del Poste 2 (§9.11, queda fuera).
 
 ## Lo que NO se trae, y por que

@@ -33,7 +33,7 @@ const Simulador = (() => {
   Object.keys(DEF).forEach(k => { C[k] = DEF[k][0]; ORIGEN[k] = DEF[k][1]; });
   const PREF_PIN = 'CMD:PIN:' + C.PIN + ':';
   // Las que el despachador del Maestro admite sin PIN (bluetooth.cpp, la lista de antes de AUTH_FAILED).
-  const SIN_PIN_M = ['SET_MODO:MENU', 'SET_MODO:ALCANCE', 'CONSULTA_DEG_AUTO', 'CONSULTA_DEG_FIN', 'REINICIOS',
+  const SIN_PIN_M = ['SET_MODO:MENU', 'CONSULTA_DEG_AUTO', 'CONSULTA_DEG_FIN', 'REINICIOS',
                      'VERSION', 'CONSULTA_INSTALACION'];
   const DIAS = 'LMXJVSD'; if (typeof SimInstalacion === 'undefined') require('./sim_instalacion');
 
@@ -107,7 +107,7 @@ const Simulador = (() => {
       if (p.modo === 'AMBAR') return Object.assign({ estado: p.rojoFijo ? 'ROJO' : 'FALLO COM', esc: 'AMBAR' }, sin);
       if (p.modo === 'NOCHE') return { estado: p.nocheFase === 'DESTELLO' ? 'AMBAR_INT' : 'ROJO', esc: '?', t: '--' };
       if (!p.radio) return Object.assign({ estado: 'FALLO COM', esc: p.modo === 'MENU' ? 'ROJO' : '?' }, sin);
-      const parado = p.rojoFijo || ['MENU', 'ALCANCE', 'MANUAL'].indexOf(p.modo) >= 0;
+      const parado = p.rojoFijo || ['MENU', 'MANUAL'].indexOf(p.modo) >= 0;
       if (parado) return { estado: p.rojoFijo && reloj.ahora() < p.amarM ? 'AMARILLO' : 'ROJO', esc: 'ROJO', t: '--' };
       return ciclo(p, p.cicloDesde);
     }
@@ -335,7 +335,7 @@ const Simulador = (() => {
         tx('$ERR,CMD:' + a.slice(0, 14) + ',DESC:EN_NOCHE_SALGA_PRIMERO');
         return true;
       }
-      if (a === 'SET_MODO:MENU' || a === 'SET_MODO:ALCANCE') { evento(p, 'NOCHE', 'SALIDA_APP'); return false; }
+      if (a === 'SET_MODO:MENU') { evento(p, 'NOCHE', 'SALIDA_APP'); return false; }
       if (a === 'FORZAR_ROJO') { evento(p, 'NOCHE', 'SALIDA_APP'); setModo(p, 'MANUAL'); return false; }
       const destino = { 'SET_MODO:AUTO': 'AUTO', 'SET_MODO:INTELIGENTE': 'INTELIGENTE',
                         'SET_MODO:MANUAL': 'MANUAL' }[a];
@@ -386,7 +386,7 @@ const Simulador = (() => {
           tx('$ACK,CMD:SET_MODO:MENU,RESULT:SALIENDO_TODO_ROJO'); ev('SALIDA_DEGRADADO_PEDIDA');
         } else if (deg) tx('$ERR,CMD:SET_MODO:MENU,DESC:YA_VUELVE_AL_MENU');
         else { setModo(p, 'MENU'); tx('$ACK,CMD:SET_MODO:MENU,RESULT:OK'); ev('SET_MODO_MENU'); }
-      } else if (a === 'SET_MODO:ALCANCE' || a === 'SET_MODO:INTELIGENTE') {
+      } else if (a === 'SET_MODO:INTELIGENTE') {
         const m = a.slice(9), c = '$ACK,CMD:' + a + ',RESULT:';
         if (deg) tx('$ERR,CMD:' + a + ',DESC:EN_MARCHA_PARE_EL_MODO');
         else if (p.modo === m) tx(c + 'SIN_CAMBIO');
@@ -405,7 +405,7 @@ const Simulador = (() => {
           tx('$ACK,CMD:CAMBIAR_TURNO,RESULT:OK'); ev('CAMBIAR_TURNO_MANUAL');
         }
       } else if (a === 'TEST_LEDS') {
-        const e = luzMaestro(p).estado, fuera = p.modo === 'MENU' || p.modo === 'ALCANCE';
+        const e = luzMaestro(p).estado, fuera = p.modo === 'MENU';
         if (fuera && e === 'ROJO' && p.radio) {
           p.testLeds = reloj.ahora() + 6000; tx('$ACK,CMD:TEST_LEDS,RESULT:STARTING_6S'); ev('TEST_LEDS_INICIADO');
         } else if (e === 'FALLO COM') tx('$ERR,CMD:TEST_LEDS,DESC:SIN_ENLACE_AMBAR_NO_SE_PRUEBA');

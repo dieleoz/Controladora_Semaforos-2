@@ -440,7 +440,7 @@ escribe una vez por testigo, con el poste en ROJO, y lleva su propia suma. `resp
   `degradado_comprobarTestigo()`), con el `inicio` que usaría la entrada. No hay una lista aparte que pueda divergir.
 - **Puerta del Maestro** = `FLAG_DEG_AUTO` · sin `FLAG_RENDIDO` · sin salida manual pendiente (b) · modo `AUTOMATICO`
   o `INTELIGENTE` · `modo_degradado_syncFresca()` (la sync del PAR: el Esclavo la acusó). Viaja en el param de **toda**
-  `CMD_PING`, `CMD_GO_GREEN` y `CMD_GO_RED`. En `MENU`, `MANUAL`, `AMBAR` o `ALCANCE` vale 0: hay una persona.
+  `CMD_PING`, `CMD_GO_GREEN` y `CMD_GO_RED`. En `MENU`, `MANUAL` o `AMBAR` vale 0: hay una persona.
 - **Puerta del Esclavo** = `FLAG_DEG_AUTO` · sin `FLAG_RENDIDO` · sin salida manual pendiente · `DEG_INACTIVO`; la
   hora fiable con fecha y el ámbar de emergencia los mira la comprobación del testigo. Viaja en el `CMD_PONG`, junto a
   `PONG_VERDE_SOLTADO`, que el coordinador lee con máscara (`& PONG_VERDE_SOLTADO`, `D-34`). No exige sync propia: la

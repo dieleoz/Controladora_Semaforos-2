@@ -16,8 +16,8 @@ static uint32_t inicioAuto(uint32_t ahora) {
 }
 
 // Lo que la puerta automatica pide ademas del testigo: la opcion, ninguna rendicion en la pila
-// sin intercambio sano despues (arquitecto, 29/09), un modo que cicla solo -en MENU, MANUAL,
-// AMBAR, ALCANCE u HORA hay una persona- y la sync del PAR fresca.
+// sin intercambio sano despues (arquitecto, 29/09), un modo que cicla solo -en MENU, MANUAL o
+// AMBAR hay una persona- y la sync del PAR fresca.
 static bool salioSinIntercambio = false;   // salio del Degradado y no ha oido un PONG
 static bool puertaAbierta() {
   const ModoSistema m = modoActual_get();

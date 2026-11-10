@@ -458,8 +458,8 @@ try { luz13 = [require('../js/luces_tablas.js'), require('../js/luces.js')]; } c
 try { depu13 = require('../js/depuracion_vista.js'); } catch (e) { depu13 = null; }
 assert(!!luz13 && luz13[0].ESTADOS['FALLO COM'].anillo === 'amber' && !!luz13[0].MODOS.MENU.porEstado &&
        typeof luz13[1].instalar === 'function', 'js/luces_tablas.js exporta las tablas y js/luces.js, Luces.instalar');
-assert(!!ack13 && !!ack13['SET_MODO:ALCANCE|OK'] && typeof ack13['SET_MODO:ALCANCE|OK'].texto === 'string',
-  'js/textos_ack.js exporta ACK_TEXTO con SET_MODO:ALCANCE|OK y su texto');
+assert(!!ack13 && typeof ack13['SET_MODO:INTELIGENTE|OK'].texto === 'string' &&
+  !Object.keys(ack13).some(k => /ALCANCE/.test(k)), 'js/textos_ack.js: INTELIGENTE|OK con texto y sin ALCANCE (D-167)');
 assert(!!err13 && typeof err13.ERR_TEXTO === 'object' && typeof err13.ERR_MOTIVO === 'object' &&
        !!err13.ERR_TEXTO && !!err13.ERR_MOTIVO, 'js/textos_err.js exporta { ERR_TEXTO, ERR_MOTIVO }');
 // Tanda 3: depuracion a js/depuracion_vista.js; renderDepuracion() y textoDepuracion(), envoltorios en app.js.
