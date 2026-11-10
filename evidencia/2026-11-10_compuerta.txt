@@ -1,7 +1,7 @@
 ACTA DE VERIFICACION - Controladora de Semaforos
 ==============================================================================
 Fecha        : 2026-11-10
-HEAD         : 748934b   rama: main
+HEAD         : 1a82ef7   rama: main
 Arbol        : LIMPIO
 Modo         : completo
 PlatformIO   : PlatformIO Core, version 6.1.19
@@ -10,8 +10,8 @@ GCC de host  : gcc.exe (MinGW-W64 x86_64-ucrt-posix-seh, built by Brecht Sanders
 RESULTADOS
 ------------------------------------------------------------------------------
   PASS      guarda de rutas                   72 rutas parseadas, todas existen
-  PASS      compila maestro                   Flash: [========= ]  85.5% (used 53432 bytes from 62464 bytes)
-  PASS      compila esclavo                   Flash: [=======   ]  72.3% (used 45136 bytes from 62464 bytes)
+  PASS      compila maestro                   Flash: [========= ]  85.5% (used 53424 bytes from 62464 bytes)
+  PASS      compila esclavo                   Flash: [=======   ]  72.3% (used 45132 bytes from 62464 bytes)
   PASS      compila esp32                     Flash: [====      ]  35.8% (used 1126409 bytes from 3145728 bytes)
   PASS      simulador funcional               VEREDICTO FINAL: 9/9 PASS (SISTEMA V8.0 DEFINITIVA CERTIFICADO)
   PASS      simulador de app y bluetooth      RESULTADO GLOBAL: 12/12 comprobaciones PASS (app movil vs firmware Bluetooth)
@@ -30,5 +30,5 @@ RESULTADOS
   RESUMEN: 16 PASS | 1 FALLA | 0 ABORTADO
 
 ABORTADO no es PASS: una comprobacion que no pudo correr no dice nada del
-firmware. Esta acta se verifica volviendo a 748934b y re-corriendo
+firmware. Esta acta se verifica volviendo a 1a82ef7 y re-corriendo
 python 01_Firmware/compuerta.py.
