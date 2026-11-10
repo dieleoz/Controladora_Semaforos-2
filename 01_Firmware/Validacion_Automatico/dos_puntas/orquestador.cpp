@@ -114,12 +114,14 @@ static std::string dirDeEsteArchivo() {
 static const std::string AQUI = dirDeEsteArchivo();
 static const std::string RAIZ = AQUI + "/../..";        // 01_Firmware
 
-static std::string leerFuente(const std::string& ruta) {
+static std::string leerFuente(const std::string& ruta) {  // con sus .inc dentro, como el gcc (CLAUDE.md 5)
   std::ifstream f(ruta.c_str());
   if (!f) abortar("no se pudo abrir el fuente real " + ruta);
-  std::ostringstream ss;
-  ss << f.rdbuf();
-  return ss.str();
+  static const std::regex inc(R"re(^[ \t]*#include[ \t]+"(\w+\.inc)".*)re");
+  std::string linea, out, dir = ruta.substr(0, ruta.find_last_of("/\\") + 1);
+  for (std::smatch m; std::getline(f, linea);)
+    out += std::regex_match(linea, m, inc) ? leerFuente(dir + m[1].str()) : linea + "\n";
+  return out;
 }
 
 // Las constantes se releen del C++ en cada corrida. SIN VALOR POR DEFECTO, NUNCA: un
@@ -129,10 +131,8 @@ static unsigned long leerNumero(const std::string& ruta, const std::string& patr
                                  const std::string& que) {
   std::string txt = leerFuente(ruta);
   std::smatch m;
-  std::regex re(patron);
-  if (!std::regex_search(txt, m, re)) {
-    abortar("no se pudo leer del C++ real la constante de " + que +
-            " (patron no encontrado en " + ruta + ")");
+  if (!std::regex_search(txt, m, std::regex(patron))) {
+    abortar("no se pudo leer del C++ real la constante de " + que + " (patron no encontrado en " + ruta + ")");
   }
   return std::strtoul(m[1].str().c_str(), nullptr, 10);
 }

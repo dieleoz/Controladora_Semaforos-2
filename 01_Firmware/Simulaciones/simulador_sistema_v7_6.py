@@ -77,6 +77,12 @@ def _ruta_firmware(*partes):
     return None
 
 
+def _leer_cpp(ruta):
+    from banco.fuente import expandir_inc   # un .cpp partido en .inc (CLAUDE.md 5), entero como lo compila el gcc
+    with open(ruta, "r", encoding="utf-8", errors="replace") as f:
+        return expandir_inc(ruta, f.read())
+
+
 def _leer_constante_cpp(ruta, patron, defecto, obligatorio=False):
     """Extrae una constante numérica del C++.
 
@@ -93,8 +99,7 @@ def _leer_constante_cpp(ruta, patron, defecto, obligatorio=False):
     """
     if ruta and os.path.exists(ruta):
         try:
-            with open(ruta, "r", encoding="utf-8", errors="replace") as f:
-                m = _re.search(patron, f.read())
+            m = _re.search(patron, _leer_cpp(ruta))
             if m:
                 return int(m.group(1))
         except OSError:
@@ -200,8 +205,7 @@ def _leer_literal_cpp(patron, que):
     valor por defecto: si la puerta se movio, esta prueba no puede medir nada y tiene
     que decirlo (CLAUDE.md §2, ABORTADO no es PASS)."""
     if _BT_CPP and os.path.exists(_BT_CPP):
-        with open(_BT_CPP, "r", encoding="utf-8", errors="replace") as f:
-            m = _re.search(patron, f.read())
+        m = _re.search(patron, _leer_cpp(_BT_CPP))
         if m:
             return m.group(1)
     print(f"\n   ❌ ABORTADO: no se pudo leer de bluetooth.cpp {que}.")
@@ -212,17 +216,13 @@ def _leer_literal_cpp(patron, que):
 
 def _leer_literales_cpp(patron):
     if _BT_CPP and os.path.exists(_BT_CPP):
-        with open(_BT_CPP, "r", encoding="utf-8", errors="replace") as f:
-            return set(_re.findall(patron, f.read()))
+        return set(_re.findall(patron, _leer_cpp(_BT_CPP)))
     return set()
 
 
-# "CMD:PIN:1234:" - bluetooth.cpp:166
 BT_PREFIJO_PIN = _leer_literal_cpp(r'strncmp\(cmd,\s*"(CMD:PIN:[^"]+)"', "el prefijo de PIN")
-# "CMD:FORZAR_ROJO" - bluetooth.cpp:145, antes de la puerta del PIN
 BT_DIRECTO_SIN_PIN = _leer_literal_cpp(r'strcmp\(cmd,\s*"(CMD:[^"]+)"\)\s*==\s*0',
                                        "la orden que entra antes del PIN")
-# {"SET_MODO:MENU", "SET_MODO:ALCANCE"} - bluetooth.cpp:169-170
 BT_ACCIONES_SIN_PIN = _leer_literales_cpp(r'strcmp\(cmd \+ 4,\s*"([^"]+)"\)')
 
 BT_ERR_AUTH        = _leer_literal_cpp(r'"(\$ERR,CMD:AUTH_FAILED[^"]*)"', "el rechazo de PIN")
@@ -1029,8 +1029,7 @@ def ejecutar_auditoria_completa():
     RE_ENVIO = r"static void enviarHora\w*\(\)\s*\{(.*?)\n\}"
     lectura_dentro = False
     if coord_path and os.path.exists(coord_path):
-        with open(coord_path, "r", encoding="utf-8", errors="replace") as f:
-            cuerpo = f.read()
+        cuerpo = _leer_cpp(coord_path)
         # Se busca por lo que la funcion HACE, no por como se llama: el 01/08/2026 paso
         # de enviarTrioHora() a enviarHoraCompleta() al anadirse la trama del dia, y
         # esta prueba fallo por el nombre mientras la propiedad seguia intacta. Una

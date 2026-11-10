@@ -14,7 +14,6 @@ import sys
 import json
 import time
 
-import sys
 import io
 
 # Forzar salida UTF-8 en consola Windows
@@ -501,11 +500,12 @@ def main():
     # que decide que se traduce. Los ficheros son los que emiten: bluetooth.cpp (la hora
     # del ESP32) y modo_degradado.cpp (el salto por rojo) de Maestro y Esclavo.
     raiz_fw = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "01_Firmware")
+    sys.path.insert(0, os.path.join(raiz_fw, "Simulaciones"))
+    from banco.fuente import expandir_inc   # un .cpp partido en .inc (CLAUDE.md 5), entero como lo compila el gcc
 
     def _cpp_sin_comentarios(ruta):
         with io.open(ruta, encoding="utf-8", errors="replace") as f:
-            t = f.read()
-        t = re.sub(r"/\*.*?\*/", " ", t, flags=re.S)
+            t = re.sub(r"/\*.*?\*/", " ", expandir_inc(ruta, f.read()), flags=re.S)
         return re.sub(r"//[^\n]*", " ", t)
 
     re_alarma = re.compile(r'bluetooth_reportarAlarma\(\s*"HORA_ESP32"\s*,\s*"([A-Z0-9_]+)"')

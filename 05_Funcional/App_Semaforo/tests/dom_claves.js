@@ -225,7 +225,10 @@ module.exports = async function pruebaClaves(montarAppLimpia, assert) {
     ['MAESTRO', 'ESCLAVO'].forEach(nodo => {
       const cpp = path.join(__dirname, '..', '..', '..', '01_Firmware', nodo === 'MAESTRO' ? 'Maestro' : 'Esclavo',
                             'src', 'bluetooth.cpp');
-      const lit = (fs.readFileSync(cpp, 'utf8').match(new RegExp('"\\$STATUS,NODE:' + nodo + ',[^"]*"')) || [''])[0];
+      // bluetooth.cpp partido en .inc (roadmap, Partir; CLAUDE.md 5): el $STATUS se busca en el fuente entero.
+      const leer = (f) => fs.readFileSync(f, 'utf8').replace(/^[ \t]*#include[ \t]+"(\w+\.inc)".*$/gm,
+        (_, n) => leer(path.join(path.dirname(f), n)).replace(/\r?\n$/, ''));
+      const lit = (leer(cpp).match(new RegExp('"\\$STATUS,NODE:' + nodo + ',[^"]*"')) || [''])[0];
       const campos = lit.replace(/"/g, '').split(',').slice(1).map(c => c.split(':')[0]);
       const sim = a.w.Simulador ? a.w.Simulador.crear({ postes: JSON.parse(JSON.stringify(P(a).FLOTA)) }) : null;
       const st = sim ? sim.postes.filter(c => c.nodo === nodo).map(c => sim.status(c)) : [];

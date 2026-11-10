@@ -61,7 +61,7 @@ def texto(ruta_fichero):
     if not ruta_fichero or not os.path.exists(ruta_fichero):
         raise _fw.Abortado(f"no se encuentra el fuente {ruta_fichero!r}")
     with open(ruta_fichero, "r", encoding="utf-8", errors="replace") as f:
-        return f.read()
+        return _fw.expandir_inc(ruta_fichero, f.read())   # un .cpp partido en .inc se lee entero
 
 
 def num(cuerpo, patron, que):

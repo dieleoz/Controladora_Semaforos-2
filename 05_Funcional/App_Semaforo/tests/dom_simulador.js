@@ -35,9 +35,12 @@ function relojManual(inicioMs) {
 
 // ---- el C++ de cada punta, sin comentarios ----
 const sinComentarios = (s) => s.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\/\/[^\n]*/g, ' ');
+// Un .cpp partido en .inc (roadmap, Partir; CLAUDE.md 5) se lee entero, como lo compila el gcc.
+const leerCpp = (f) => fs.readFileSync(f, 'utf8').replace(/^[ \t]*#include[ \t]+"(\w+\.inc)".*$/gm,
+  (_, n) => leerCpp(path.join(path.dirname(f), n)).replace(/\r?\n$/, ''));
 function fuente(punta) {
   const dir = path.join(FW, punta, 'src');
-  return fs.readdirSync(dir).filter(f => f.endsWith('.cpp')).map(f => sinComentarios(fs.readFileSync(path.join(dir, f), 'utf8')));
+  return fs.readdirSync(dir).filter(f => f.endsWith('.cpp')).map(f => sinComentarios(leerCpp(path.join(dir, f))));
 }
 // Literales de cadena; los que siguen con FW_TEXTO / FW_SIN_SELLO llevan un hueco al final.
 function literales(codigos) {
@@ -104,7 +107,7 @@ module.exports = async function pruebaSimulador(montarAppLimpia, assert) {
     const f = path.join(FW, rel);
     if (!fs.existsSync(f)) return true;
     const v = String(valor);
-    const lineas = sinComentarios(fs.readFileSync(f, 'utf8')).split('\n').filter(l => l.includes(sim));
+    const lineas = sinComentarios(leerCpp(f)).split('\n').filter(l => l.includes(sim));
     return !lineas.some(l => (/^\d+$/.test(v) ? new RegExp('\\b' + v + '(UL|U|L)?\\b') : new RegExp('"' + v + '|' + v)).test(l));
   };
   {
@@ -136,7 +139,7 @@ module.exports = async function pruebaSimulador(montarAppLimpia, assert) {
   const NO_CONTESTA = ['$LATIDO', 'CMD:HORA_ESP32:'];   // bluetooth.cpp: el latido del puente y su hora no se contestan
   function ordenes(punta) {
     const cods = ['bluetooth.cpp', 'interruptores.cpp', 'instalacion.cpp'].concat(punta === 'Maestro' ? ['modo_noche.cpp'] : [])
-      .map(f => fs.readFileSync(path.join(FW, punta, 'src', f), 'utf8'));
+      .map(f => leerCpp(path.join(FW, punta, 'src', f)));
     const out = new Set();
     cods.map(sinComentarios).forEach(c => {
       const ini = c.search(/static (void|bool) (procesarComando|ordenEnNoche|modoNoche_orden)|(bool|const char\*) (modoNoche_orden|interruptores_orden|instalacion_orden)/);

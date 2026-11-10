@@ -63,8 +63,7 @@ _FALLIDAS = 0
 
 
 class Abortar(Exception):
-    """No se pudo medir. ABORTADO no es PASS, y tampoco es FALLA: no dice nada del
-    firmware ni de la app."""
+    """No se pudo medir. ABORTADO no es PASS, y tampoco es FALLA: no dice nada del firmware ni de la app."""
 
 
 def verificar(nombre, condicion, detalle=""):
@@ -93,8 +92,9 @@ def reportar(texto):
 def _leer(ruta, que):
     if not os.path.isfile(ruta):
         raise Abortar(f"no existe {que}: {ruta}")
+    from banco import fuente   # bluetooth.cpp partido en .inc (CLAUDE.md 5): se lee entero
     with open(ruta, "r", encoding="utf-8", errors="replace") as f:
-        return f.read()
+        return fuente.expandir_inc(ruta, f.read()) if ruta.endswith(".cpp") else f.read()
 
 
 def extraer_del_firmware():

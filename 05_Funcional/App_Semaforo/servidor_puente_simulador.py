@@ -86,10 +86,16 @@ def abortar(motivo):
     sys.exit(2)
 
 
+def _con_inc(ruta):
+    # bluetooth.cpp partido en .inc (roadmap, Partir; CLAUDE.md 5): se lee entero, como lo compila el gcc.
+    with open(ruta, "r", encoding="utf-8", errors="replace") as f:
+        return re.sub(r'^[ \t]*#include[ \t]+"(\w+\.inc)"[^\n]*$', lambda m: _con_inc(
+            os.path.join(os.path.dirname(ruta), m.group(1))).rstrip("\r\n"), f.read(), flags=re.M)
+
+
 def leer_fuente():
     try:
-        with open(BLUETOOTH_CPP, "r", encoding="utf-8", errors="replace") as f:
-            return f.read()
+        return _con_inc(BLUETOOTH_CPP)
     except OSError as e:
         abortar("no se puede leer %s (%s)." % (BLUETOOTH_CPP, e))
 

@@ -373,58 +373,7 @@ bool semaforo_iniciarNoche(bool rojo) {
   return true;
 }
 
-// N-82.bis (cinta del 28/09, serie 4D2007): EL TEST SOLO CORRE FUERA DE SERVICIO.
-//
-// La fase verde enciende VERDE1/VERDE2 sin mirar el ciclo y SFTY-2 no lo impide (solo mira
-// ESTE poste). Medido con el arnes del automatico: en AUTO el test dejo el verde del Maestro
-// 2 s con ESC:VERDE a la vez; por eso el Esclavo rechaza TEST_LEDS desde siempre (SPEC_4).
-// Admitido solo en MENU y ALCANCE (D-44: los DOS postes en rojo fijo por
-// coordinador_forzarMenu()) y con S_ROJO aqui: sin enlace pasan a S_FALLO, y un verde ahi
-// seria un verde contra un ambar que invita a pasar.
-//
-// Y EL ROJO DEL ESCLAVO TIENE QUE CONSTAR (coordinador_rojoEsclavoConfirmado()): al entrar
-// en MENU desde AUTO la luz de aqui pasa a S_ROJO en el acto, pero el Esclavo sigue en
-// verde hasta que le llega el GO_RED. Se pregunta en CADA vuelta, asi que el test tambien
-// se corta si el coordinador deja C_MENU_IDLE, y con el enlace caido la luz pasa a S_FALLO.
-static bool testLedsAdmitido() {
-  const ModoSistema m = modoActual_get();
-  return (m == MENU || m == MODO_ALCANCE) && estado == S_ROJO &&
-         coordinador_rojoEsclavoConfirmado();
-}
-
-// Al acabar el test -o al cortarlo- la lampara vuelve a decir lo que dice 'estado', por
-// el setter de ese estado y no con una luz fija: el final de antes era un rojo fijo, y
-// con el Maestro en S_VERDE dejaba luz roja, pluma abajo y $STATUS en VERDE a la vez
-// hasta la siguiente transicion (cinta del 28/09). S_FALLO recupera su parpadeo porque
-// semaforo_iniciarFallo() rearma su reloj.
-static void terminarTestLeds() {
-  testLedsActivo = false;
-  switch (estado) {
-    case S_ROJO:     semaforo_forzarRojo(); break;
-    case S_VERDE:    semaforo_forzarVerde(); break;
-    case S_AMARILLO: iniciarTransicionARojo(false); break;   // el cierre sigue su reloj
-    case S_FALLO:    semaforo_iniciarFallo(); break;
-    case S_ROJO_AMARILLO: semaforo_forzarVerde(); break;   // D-53: el R+A sigue su reloj
-    case S_AMBAR_INT: case S_ROJO_INT: break;   // D-110: inalcanzable (el test pide S_ROJO)
-  }
-}
-
-void semaforo_iniciarTestLeds() {
-  // EL RECHAZO NO ES MUDO: esta funcion no devuelve nada, pero bluetooth.cpp pregunta
-  // semaforo_testLedsEnCurso() DESPUES de llamarla y contesta $ERR si el test no quedo
-  // armado (molde SET_TIEMPOS, CLAUDE.md 2). Un test en curso que ya no esta admitido
-  // se corta aqui mismo, para que esa pregunta no lea la bandera de antes.
-  if (!testLedsAdmitido()) {
-    if (testLedsActivo) terminarTestLeds();
-    return;
-  }
-  testLedsActivo = true;
-  tInicioTest = millis();
-}
-
-bool semaforo_testLedsEnCurso() {
-  return testLedsActivo;
-}
+#include "semaforo_test_leds.inc"   // N-82: el test de lamparas, sin escribir ningun pin
 
 // N-153: lo ULTIMO que se le mando al pin de la pluma. Lo publica el campo PLUMA: del
 // $STATUS; ver el porque de que sea una bandera y no un recalculo sobre plumaAbierta.
@@ -497,33 +446,7 @@ void semaforo_actualizar() {
   if (plumaCierrePendiente) aplicarSalidas(ultR, ultA, ultV);
 }
 
-bool semaforo_estable() {
-  return estado == S_ROJO || estado == S_VERDE || estado == S_FALLO || estado == S_AMBAR_INT ||
-         estado == S_ROJO_INT;
-}
-
-EstadoSemaforo semaforo_estado() {
-  return estado;
-}
-
-const char* semaforo_nombreEstado() {
-  switch (estado) {
-    case S_ROJO: return "ROJO";
-    case S_VERDE: return "VERDE";
-    case S_AMARILLO: return "AMARILLO";
-    case S_FALLO: return "FALLO COM";
-    case S_ROJO_AMARILLO: return "ROJO+AMAR";   // D-53: 9, como FALLO COM
-    case S_AMBAR_INT: return "AMBAR_INT";      // D-110: 9, cabe en estadoStr
-    case S_ROJO_INT: return "ROJO_INT";
-  }
-  return "";
-}
-
-// D-150: true si la ultima orden de escribirPines() abrio la pluma por el interruptor de
-// barrera fuera de servicio. La anotacion, no la bandera: ver su declaracion.
-bool semaforo_plumaFuera() {
-  return plumaFuera;
-}
+#include "semaforo_lectura.inc"   // lo que la luz publica: solo lee, no escribe ningun pin
 
 // D-149 (SPEC_8 6.3): la orden de un interruptor vuelve a pasar por la puerta. En S_ROJO
 // estable nada llama a escribirPines() -la reentrada del bucle solo corre con un cierre

@@ -58,9 +58,30 @@ def existe(*partes):
     return os.path.isfile(os.path.join(FIRMWARE, *partes))
 
 
+# UN .cpp DEL FIRMWARE PARTIDO EN .inc SE LEE ENTERO (roadmap, «Partir»; CLAUDE.md 5).
+#
+# Un fuente de src/ que pasa de 500 lineas se parte en .inc que el MISMO .cpp incluye en su sitio:
+# una sola unidad de compilacion, asi que los static siguen siendo del fichero y el binario no cambia.
+# Quien pide "bluetooth.cpp" lee lo que el gcc compila con ese nombre: cada #include "x.inc" de una
+# linea se sustituye por el fichero, del mismo directorio y recursivo. Si falta, ABORTA (N-36).
+_RE_INC = re.compile(r'^[ \t]*#include[ \t]+"([A-Za-z0-9_]+\.inc)"[^\n]*$', re.M)
+
+
+def expandir_inc(p, t):
+    """El texto t del fuente p con sus .inc dentro. Lo usan tambien costura.py y el simulador."""
+    def _sub(m):
+        q = os.path.join(os.path.dirname(p), m.group(1))
+        if not os.path.isfile(q):
+            raise Abortado("%s incluye %s, que no existe" % (os.path.basename(p), m.group(1)))
+        with open(q, "r", encoding="utf-8", errors="replace") as f:
+            return expandir_inc(q, f.read()).rstrip("\r\n")
+    return _RE_INC.sub(_sub, t)
+
+
 def texto(*partes):
     with open(ruta(*partes), "r", encoding="utf-8", errors="replace") as f:
-        return f.read()
+        t = f.read()
+    return expandir_inc(ruta(*partes), t) if "src" in partes[:-1] else t
 
 
 def codigo(*partes):

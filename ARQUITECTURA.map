@@ -175,6 +175,16 @@ Punto ciego: `NC` en `Esclavo/src/botones.cpp` no lo compila ningun arnes (el bl
 vacian `camaras_sembrar()`).
 Antes de conectar un arnes se inyecta un defecto en el `.cpp` real y se exige que baje la cuenta (CLAUDE.md §6).
 
+**Fuentes partidos en `.inc` (roadmap, Partir; tope de 500 lineas):** cada `.inc` de `src/` lo incluye su `.cpp` en
+su sitio: misma unidad de compilacion, lo compila quien compila el `.cpp` y el banco lo lee dentro de el
+(`banco/fuente.py` `expandir_inc()`). `{Maestro,Esclavo}/src/botones_vigilante.inc` (identicos): de `botones.cpp`.
+`Maestro/src/semaforo_test_leds.inc` y `semaforo_lectura.inc`: de `semaforo.cpp`; ninguno escribe un pin, y
+`escribirPines()` y `aplicarSalidas()` no salen de `semaforo.cpp` (`SFTY-2`).
+`{Maestro,Esclavo}/src/bluetooth_{enlace,ordenes,acciones,bucle}.inc`: de `bluetooth.cpp`; `bluetooth_acciones.inc`
+lo incluye `bluetooth_ordenes.inc` DENTRO de `procesarComando()`, que sigue siendo una sola funcion. Fuera del banco
+leen el `.cpp` entero tambien `simulador_sistema_v7_6.py`, `simulador_app_bluetooth.py`, `test_funcional_app.py`,
+`servidor_puente_simulador.py` y `tests/dom_{simulador,claves}.js`.
+
 ---
 
 ## 5. LAS FILAS DE LA COMPUERTA
