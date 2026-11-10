@@ -174,6 +174,7 @@
     } else if (r == RRT_SALIDA_EN_CURSO) { enviarTramaConCrc("$ACK,CMD:FORZAR_ROJO,RESULT:SALIDA_YA_EN_CURSO");
     } else if (r == RRT_REANUDACION_CANCELADA) {
       enviarTramaConCrc("$ACK,CMD:FORZAR_ROJO,RESULT:OK_REANUDACION_CANCELADA");
+    } else if (r == RRT_SIN_RADIO) { enviarTramaConCrc("$ACK,CMD:FORZAR_ROJO,RESULT:OK_SIN_RADIO_SOLO_ESTE_POSTE");
     } else { enviarTramaConCrc("$ACK,CMD:FORZAR_ROJO,RESULT:OK"); }
     bluetooth_reportarEvento("APP_BLUETOOTH", "FORZAR_ROJO_TOTAL");
   } else if (strcmp(accion, "MANUAL:CAMBIAR_TURNO") == 0) {

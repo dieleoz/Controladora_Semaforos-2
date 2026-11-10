@@ -108,9 +108,9 @@ const Simulador = (() => {
       if (p.modo === 'DEGRADADO') return Object.assign(rj ? { estado: 'ROJO' } : ciclo(p, p.cicloDesde), sinD);
       if (p.modo === 'AMBAR') return Object.assign({ estado: 'FALLO COM', esc: 'AMBAR' }, sin);   // D-170
       if (p.modo === 'NOCHE') return { estado: p.nocheFase === 'DESTELLO' ? 'AMBAR_INT' : 'ROJO', esc: '?', t: '--' };
-      if (!p.radio) {   // D-171: ESC:? a SFTY6_SILENCIO_MS sin respuesta (coordinador_estadoEsclavo); antes el ultimo
-        const fresco = p.tEsc !== undefined && reloj.ahora() - p.tEsc <= C.SFTY6_SILENCIO_MS;
-        return Object.assign({ estado: 'FALLO COM', esc: fresco ? p.escUlt : '?' }, sin);
+      if (!p.radio) {   // D-171: ESC:? a SFTY6_SILENCIO_MS sin respuesta (coordinador_estadoEsclavo); D-174: rojo
+        const fresco = p.tEsc !== undefined && reloj.ahora() - p.tEsc <= C.SFTY6_SILENCIO_MS, ya = reloj.ahora();
+        return Object.assign({ estado: ya < p.rojoSinRadio ? 'ROJO' : 'FALLO COM', esc: fresco ? p.escUlt : '?' }, sin);
       }
       const parado = p.rojoFijo || ['MENU', 'MANUAL'].indexOf(p.modo) >= 0;
       const l = parado ? { estado: p.rojoFijo && reloj.ahora() < p.amarM ? 'AMARILLO' : 'ROJO', esc: 'ROJO', t: '--' }
@@ -343,7 +343,10 @@ const Simulador = (() => {
     function forzarRojoMaestro(p, tx) {
       if (p.modo !== 'DEGRADADO') {   // coordinador_forzarRojoTotal(): cada verde cierra por amarillo (D-45)
         const l = luzMaestro(p), ya = reloj.ahora(), amar = (s) => (s === 'VERDE' ? ya + C.AMARILLO_SEG * 1000 : 0);
-        if (['AMBAR', 'AUTO', 'INTELIGENTE'].indexOf(p.modo) >= 0) setModo(p, 'MANUAL');   // D-170, D-173: a Manual
+        const cicla = ['AUTO', 'INTELIGENTE'].indexOf(p.modo) >= 0, oye = p.radio || ya - p.tEsc <= C.SFTY6_SILENCIO_MS;
+        if (cicla && !oye) p.rojoSinRadio = ya + C.SFTY6_SILENCIO_MS;   // D-174: rojo aqui hasta su ambar (bloque U)
+        if (cicla && !oye) return tx('$ACK,CMD:FORZAR_ROJO,RESULT:OK_SIN_RADIO_SOLO_ESTE_POSTE');   // modo igual
+        if (p.modo === 'AMBAR' || cicla) setModo(p, 'MANUAL');   // D-170, D-173: a Manual (con radio)
         Object.assign(p, { rojoFijo: true, amarE: amar(l.esc),
                            amarM: l.estado === 'AMARILLO' ? ya + 1000 * (+l.t || 0) : amar(l.estado) });
         return tx('$ACK,CMD:FORZAR_ROJO,RESULT:OK');
@@ -356,10 +359,8 @@ const Simulador = (() => {
     function maestro(p, cmd, tx) {
       if (cmd === '$LATIDO') return;
       if (ordenNoche(p, cmd, tx)) return;
-      if (cmd === 'CMD:FORZAR_ROJO') {
-        forzarRojoMaestro(p, tx);
-        return evento(p, 'APP_BLUETOOTH', 'FORZAR_ROJO_SIN_PIN');
-      }
+      if (cmd === 'CMD:FORZAR_ROJO') return (forzarRojoMaestro(p, tx),
+                                             evento(p, 'APP_BLUETOOTH', 'FORZAR_ROJO_SIN_PIN'));
       if (cmd.indexOf('CMD:HORA_ESP32:') === 0) return;   // la origina el puente y no se contesta
       let a;
       if (cmd.indexOf(PREF_PIN) === 0) a = cmd.slice(PREF_PIN.length);

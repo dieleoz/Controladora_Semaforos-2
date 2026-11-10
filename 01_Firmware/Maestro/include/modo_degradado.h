@@ -154,9 +154,10 @@ void modo_degradado_loop();
 bool modo_degradado_pedirSalida();
 
 // D-51 corregida (SPEC_2 7.quater): CMD:FORZAR_ROJO. En Degradado es ROJO FIJO en este poste, no la salida; en la
-// ventana de D-29 revoca el permiso y entra en rojo fijo; fuera, el rojo total.
+// ventana de D-29 revoca el permiso y entra en rojo fijo; fuera, el rojo total. D-174: RRT_SIN_RADIO desde Automatico
+// o Inteligente sin radio: rojo en este poste y el modo no cambia (modo_ambar_forzarRojoTotal()).
 enum ResultadoRojoTotal : uint8_t { RRT_OK = 0, RRT_ROJO_FIJO = 1, RRT_YA_EN_ROJO_FIJO = 2,
-                                    RRT_SALIDA_EN_CURSO = 3, RRT_REANUDACION_CANCELADA = 4 };
+                                    RRT_SALIDA_EN_CURSO = 3, RRT_REANUDACION_CANCELADA = 4, RRT_SIN_RADIO = 5 };
 ResultadoRojoTotal modo_degradado_forzarRojo();
 
 // true si habia permiso esperando la siembra (D-29) y lo bajo. Lo llaman forzarRojo() y SET_MODO:MENU.

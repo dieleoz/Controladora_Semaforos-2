@@ -254,6 +254,7 @@ static void bloqueJ456(unsigned long) {
 #include "orquestador_deg_verde.inc"   // BLOQUE K: D-59, el verde elegido del Degradado con testigo
 #include "orquestador_deg_finde.inc"   // BLOQUE L: el fin de semana (72 h) en Degradado, con y sin testigo
 #include "orquestador_deg_rojo.inc"    // BLOQUE S: D-173, el ROJO TOTAL desde Automatico e Inteligente
+#include "orquestador_deg_sinradio.inc"   // BLOQUE U: D-174, el ROJO TOTAL sin radio no cambia el modo
 
 // BLOQUE R - D-170 y D-171 (SPEC_4 3.1 y 6, responsable 10/11): el ROJO TOTAL con el Maestro en ambar, y ESC:? sin
 // dato fresco del otro poste. Escritas ANTES del codigo y vistas en rojo. Lo que se exige sale de la SPEC (rojo en los
@@ -385,4 +386,5 @@ static void bloqueJ(unsigned long despejeS) {
   bloqueL();
   bloqueR();
   bloqueT();
+  bloqueU();
 }

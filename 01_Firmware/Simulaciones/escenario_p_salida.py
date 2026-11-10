@@ -4,7 +4,7 @@
 # Automatico/J4-J6). La SPEC dice RechazoSalida en (c) y MotivoSalida en las Firmas: aqui manda la lista de (c).
 
 RRT = ["OK", "ROJO_FIJO_EN_ESTE_POSTE", "YA_EN_ROJO_FIJO", "SALIDA_YA_EN_CURSO",
-       "OK_REANUDACION_CANCELADA"]   # RRT_* 0..4
+       "OK_REANUDACION_CANCELADA", "OK_SIN_RADIO_SOLO_ESTE_POSTE"]   # RRT_* 0..5 (D-174)
 MOTIVOS = ["PROGRAMADA", "REPROGRAMADA", "PROGRAMADA_SIN_RESPALDO", "CANCELADA", "No esta en Degradado",
            "Ya esta saliendo", "Falta: reloj sin poner en hora", "Ahora no coincide", "Salida ya vencida",
            "Salida antes del inicio", "En verde: repita en rojo", "No se pudo guardar la salida",
@@ -64,8 +64,8 @@ def escenario_p(t, c, maestro, esclavo, util_max):
             maestro.pr.pedir("FZR %d" % cod)
             a = _una(maestro, linea)
             visto.append(a.split("RESULT:")[-1] if a else None)
-        t.verificar(_p1_cumple(RRT, visto), "P1 FORZAR_ROJO %s: RRT_* 0..4 -> %s" % (etiqueta, RRT),
-                    "P1 FORZAR_ROJO %s: los codigos 0..4 contestan %s (esperado %s, ninguno SALIENDO_TODO_ROJO)"
+        t.verificar(_p1_cumple(RRT, visto), "P1 FORZAR_ROJO %s: RRT_* 0..5 -> %s" % (etiqueta, RRT),
+                    "P1 FORZAR_ROJO %s: los codigos 0..5 contestan %s (esperado %s, ninguno SALIENDO_TODO_ROJO)"
                     % (etiqueta, visto, RRT))
     maestro.pr.pedir("FZR -1")
     t.control_negativo(not _p1_cumple(RRT, ["OK", "SALIENDO_TODO_ROJO", "SALIDA_YA_EN_CURSO", "OK", "OK"]),

@@ -174,6 +174,7 @@ Derogadas: D-6, D-63, D-90, D-159
 | **D-171** | Sin dato fresco del Poste 2 (sin respuesta o con mas de `SFTY6_SILENCIO_MS`), `ESC:?` en todo modo salvo Ambar; tambien en `MENU`. Responsable, 10/11. | SPEC_4 §6 | firmware | `ESC:ROJO` en `MENU` sin radio |
 | **D-172** | Se acepta que, con `D-168`, un corto de `Q10` o del opto deje la pluma ABAJO fija, tambien en verde, sin aviso. Lo cierra la version siguiente leyendo un final de carrera (entrada y cobre, primero en SPEC_5 y medidos). Responsable, 10/11. | SPEC_5 §4, SPEC_8 §8.2 | firmware, campo | «sin aceptar» (arquitecto 10/11) |
 | **D-173** | «ROJO TOTAL es rojo total»: `FORZAR_ROJO` desde `MODO_AUTOMATICO` y `MODO_INTELIGENTE` hace lo de `D-170`: pasa a `MODO_MANUAL` y deja el rojo fijo en los dos hasta otra orden; la via en verde cierra por sus 3 s de amarillo (`D-45`). Responsable, 10/11. | SPEC_4 §3.1, SPEC_1 §4 | firmware, app | «en Automatico e Inteligente el ciclo sigue al vencer su fase» (`D-170`, SPEC_4 §3.1) |
+| **D-174** | «Sin radio, como antes»: desde `MODO_AUTOMATICO` o `MODO_INTELIGENTE`, `FORZAR_ROJO` pasa a `MODO_MANUAL` solo si hay comunicacion con el Poste 2; sin ella, rojo en este poste, el modo no cambia y responde `OK_SIN_RADIO_SOLO_ESTE_POSTE`. Responsable, 10/11. | SPEC_2 §7.ter, SPEC_4 §3.1 | firmware, app | `D-173` sin condicion de radio (riesgo (f).1 de SPEC_2) |
 
 ## Abiertas
 

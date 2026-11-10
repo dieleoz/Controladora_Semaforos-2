@@ -738,9 +738,8 @@ bool modo_degradado_pedirSalida() {
 // es la salida. Solo cambia la causa de la alarma (rojoPorOrden); sobrevive al corte con la bandera de D-47.
 ResultadoRojoTotal modo_degradado_forzarRojo() {
   if (modoActual_get() != MODO_DEGRADADO) {
-    if (!modo_degradado_revocarEsperaSiembra()) {
-      modo_ambar_forzarRojoTotal();   // D-170: desde MODO_AMBAR, a Manual con rojo sostenido en los dos
-      return RRT_OK;
+    if (!modo_degradado_revocarEsperaSiembra()) {   // D-170/D-173: a Manual; D-174: sin radio, solo este poste
+      return modo_ambar_forzarRojoTotal() ? RRT_OK : RRT_SIN_RADIO;
     }
     // Ventana de D-29: rojo fijo como el arranque de D-47, nunca ambar. setup() no rehace nada.
     rojoPorOrden = true;

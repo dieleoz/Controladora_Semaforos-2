@@ -98,8 +98,16 @@ void modo_ambar_loop() {
 // D-173 (responsable 10/11): "ROJO TOTAL es rojo total" tambien desde Automatico e Inteligente; alli el ciclo pedia
 // el cambio al vencer la fase. Es el camino de SET_MODO:MANUAL: la via en verde cierra por su amarillo (D-45) y la
 // segunda llamada de modoManual_setup() lo encuentra en S_AMARILLO y no lo toca (bloque S del arnes degradado).
-void modo_ambar_forzarRojoTotal() {
+// D-174 (responsable 10/11): desde Automatico e Inteligente, SOLO con comunicacion (el criterio de tieneComunicacion,
+// coordinador.cpp). Sin ella el modo no cambia: la puerta del Degradado automatico (deg_auto.cpp puertaAbierta())
+// sigue abierta y los dos entran coordinados; en MANUAL el Esclavo entraba solo y daba verde contra el ambar de este
+// poste (riesgo (f).1 de SPEC_2 7.ter, H13; bloque U del arnes degradado). Se pregunta ANTES del rojo: su gracia
+// renueva el reloj de la respuesta. false = ese caso (rojo solo en este poste); true en el resto.
+bool modo_ambar_forzarRojoTotal() {
   const ModoSistema m = modoActual_get();
-  if (m == MODO_AMBAR || m == MODO_AUTOMATICO || m == MODO_INTELIGENTE) modoActual_set(MODO_MANUAL);
+  const bool conRadio = coordinador_msDesdeRespuesta() <= SFTY6_SILENCIO_MS;
+  const bool ciclaSolo = (m == MODO_AUTOMATICO || m == MODO_INTELIGENTE);
+  if (m == MODO_AMBAR || (ciclaSolo && conRadio)) modoActual_set(MODO_MANUAL);
   coordinador_forzarRojoTotal();
+  return !(ciclaSolo && !conRadio);
 }

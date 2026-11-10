@@ -39,6 +39,18 @@ module.exports = async function pruebaSimuladorRojo(montarAppLimpia, assert) {
     r5.avanzar(200000); const e5 = [esc5()]; s5.postes[0].radio = false;
     [20000, 9000].forEach(ms => { r5.avanzar(ms); e5.push(esc5()); });
     casos.push([e5.join(' '), 'ESC:VERDE ESC:VERDE ESC:?']);
+    // D-174: desde AUTO sin respuesta del Poste 2 en SFTY6_SILENCIO_MS, rojo solo en el Poste 1 y el modo NO cambia;
+    // su ambar vuelve a los 28 s (28050 ms medidos en el bloque U del arnes degradado, C++ real). Con radio, arriba.
+    const r6 = relojManual(T0), s6 = S.crear({ reloj: r6, postes: [{ nodo: 'MAESTRO', serie: 'M', modo: 'AUTO',
+      pareja: 'A' }, { nodo: 'ESCLAVO', serie: 'E', pareja: 'A' }] }), m6 = s6.postes[0];
+    r6.avanzar(200000); m6.radio = false; r6.avanzar(30000);
+    const v6 = s6.recibir(m6, 'CMD:FORZAR_ROJO\r\n').filter(t => t.indexOf('$ACK') === 0)
+      .map(t => t.replace(/\*..\s*$/, ''));
+    [1000, 28000].forEach(ms => { r6.avanzar(ms); v6.push(s6.status(m6).split(',').slice(3, 5).join(' ')); });
+    const ack6 = require(path.join(__dirname, '..', 'js', 'textos_ack.js'))['FORZAR_ROJO|OK_SIN_RADIO_SOLO_ESTE_POSTE'];
+    const t6 = (ack6 && ack6.texto) || '';
+    casos.push([v6.join(' > ') + (/Poste 2 no lo recibe/.test(t6) && /modo no cambia/.test(t6) ? '' : ' SIN TEXTO'),
+      '$ACK,CMD:FORZAR_ROJO,RESULT:OK_SIN_RADIO_SOLO_ESTE_POSTE > MODO:AUTO ESTADO:ROJO > MODO:AUTO ESTADO:FALLO COM']);
     // DEG_T aceptado: modo_degradado_entrarTestigo() de las dos puntas fuerza el rojo y espera la hora de inicio.
     const r4 = relojManual(T0), s4 = S.crear({ reloj: r4, postes: [{ nodo: 'MAESTRO', serie: 'M', modo: 'MENU',
       radio: false }, { nodo: 'ESCLAVO', serie: 'E', modo: 'SUBORDINADO', radio: false }] }), dt = [];
@@ -49,7 +61,8 @@ module.exports = async function pruebaSimuladorRojo(montarAppLimpia, assert) {
     const malos = casos.filter(([v, q]) => v !== q).map(([v]) => v);
     assert(malos.length === 0, `Simulador: FORZAR_ROJO como el C++ (dos puntas, 10/11): el verde cierra por 3 s de ` +
       `amarillo en su punta; en AMBAR, AUTO e INTELIGENTE pasa a MANUAL con las dos en rojo, tambien a los 28 s y a ` +
-      `los 20 min (D-170, D-173); sin radio ESC:? a los 28 s, no antes (D-171); DEG_T aceptado ` +
+      `los 20 min (D-170, D-173); sin radio ESC:? a los 28 s, no antes (D-171); desde AUTO sin radio, rojo solo ` +
+      `en el Poste 1, el modo no cambia y OK_SIN_RADIO_SOLO_ESTE_POSTE con su texto (D-174); DEG_T aceptado ` +
       `deja las dos puntas en rojo hasta la hora de inicio ` +
       `(${malos.join(' || ') || 'OK'})`);
   }

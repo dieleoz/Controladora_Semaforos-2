@@ -547,6 +547,7 @@ saca al Esclavo con su latido, §7).
    arnés, **528 s de verde del Esclavo contra el ámbar del Maestro** (verde contra verde, 0). En campo sigue hasta que
    alguien llega o vuelve la radio. Lo cubre sólo la regla de paleteros: el aviso de la app (`js/aviso_degradado.js`)
    salta con el poste conectado en `MODO:DEGRADADO`, y aquí el Maestro aún no lo está.
+   `FORZAR_ROJO` sin radio desde Automático o Inteligente no abre este riesgo: el modo no cambia (`D-174`, bloque U).
 2. **Se va la luz del Maestro durante la cuenta:** arranca en ámbar (`D-40`, SPEC 1 §4.1) y no entra; el Esclavo sí.
 3. **La flash del testigo falla** (`MDT_NO_GUARDADO`): esa punta no entra (el Maestro va a `MENU`); la otra, sí.
 4. **El Esclavo se reinicia en la cuenta con la pila inválida** (sin la opción) o sin hora fiable en 420 s.
@@ -735,9 +736,9 @@ códigos). App: SPEC 4 §3.1-§3.ter.ter. **No toca** el ESP32, `reloj.cpp`, `re
   textos de (c); los cuatro primeros son `$ACK`, el resto `$ERR`) · `uint32_t modo_degradado_salidaS();` (0 = ninguna)
   · `bool modo_degradado_salidaRespaldada();`.
 - Solo Maestro: `enum ResultadoRojoTotal : uint8_t { RRT_OK = 0, RRT_ROJO_FIJO = 1, RRT_YA_EN_ROJO_FIJO = 2,
-  RRT_SALIDA_EN_CURSO = 3, RRT_REANUDACION_CANCELADA = 4 };` -> `RESULT:OK` · `ROJO_FIJO_EN_ESTE_POSTE` ·
-  `YA_EN_ROJO_FIJO` · `SALIDA_YA_EN_CURSO` · `OK_REANUDACION_CANCELADA`, y `ResultadoRojoTotal
-  modo_degradado_forzarRojo();` (sustituye al `uint8_t` de hoy).
+  RRT_SALIDA_EN_CURSO = 3, RRT_REANUDACION_CANCELADA = 4, RRT_SIN_RADIO = 5 };` -> `RESULT:OK` ·
+  `ROJO_FIJO_EN_ESTE_POSTE` · `YA_EN_ROJO_FIJO` · `SALIDA_YA_EN_CURSO` · `OK_REANUDACION_CANCELADA` ·
+  `OK_SIN_RADIO_SOLO_ESTE_POSTE` (`D-174`), y `ResultadoRojoTotal modo_degradado_forzarRojo();`.
 - Solo Maestro: `bool modo_degradado_revocarEsperaSiembra();` true si habia permiso esperando la siembra (`D-29`) y
   lo bajo. Lo llaman `modo_degradado_forzarRojo()` (y entra en rojo fijo, `RRT_REANUDACION_CANCELADA`) y
   `SET_MODO:MENU` (`RESULT:OK_REANUDACION_CANCELADA` si devolvio true, `RESULT:OK` si no).
