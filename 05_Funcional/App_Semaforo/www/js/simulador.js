@@ -12,11 +12,11 @@
 const Simulador = (() => {
   // Cada constante, copiada del firmware, con su origen `archivo:simbolo` (tests/dom_simulador.js lo busca alli).
   const BT = 'Maestro/src/bluetooth.cpp:', LC = 'Maestro/include/limites_ciclo.h:';
-  const MD = 'Maestro/src/modo_degradado.cpp:';
+  const MD = 'Maestro/src/modo_degradado.cpp:', PR = 'Maestro/include/protocolo.h:';
   const DEF = {
     STATUS_MS: [2000, BT + 'tUltimaTelemetria'], PIN: ['1234', BT + 'CMD:PIN:'],
-    AMARILLO_SEG: [3, 'Maestro/include/protocolo.h:AMARILLO_SEG'],
-    ROJO_AMARILLO_SEG: [2, 'Maestro/include/protocolo.h:ROJO_AMARILLO_SEG'],
+    AMARILLO_SEG: [3, PR + 'AMARILLO_SEG'], ROJO_AMARILLO_SEG: [2, PR + 'ROJO_AMARILLO_SEG'],
+    SFTY6_SILENCIO_MS: [28000, PR + 'SFTY6_SILENCIO_MS'],
     VERDE_MIN_MIN: [3, LC + 'VERDE_MIN_MIN'], VERDE_MIN_MAX: [15, LC + 'VERDE_MIN_MAX'],
     ROJO_MIN_MIN: [3, LC + 'ROJO_MIN_MIN'], ROJO_MIN_MAX: [15, LC + 'ROJO_MIN_MAX'],
     DESPEJE_SEG_MIN: [10, LC + 'DESPEJE_SEG_MIN'], DESPEJE_SEG_MAX: [90, LC + 'DESPEJE_SEG_MAX'],
@@ -39,10 +39,8 @@ const Simulador = (() => {
 
   // Checksum NMEA de enviarTramaConCrc(): XOR de todo lo que va tras el '$'.
   function conCrc(p) {
-    let c = 0;
-    for (let i = 1; i < p.length; i++) c ^= p.charCodeAt(i) & 0xFF;
-    return p + '*' + c.toString(16).toUpperCase().padStart(2, '0');
-  }
+    let c = 0; for (let i = 1; i < p.length; i++) c ^= p.charCodeAt(i) & 0xFF;
+    return p + '*' + c.toString(16).toUpperCase().padStart(2, '0'); }
   const dd = (n) => String(n).padStart(2, '0');
   // El reloj: { ahora(), programar(fn, ms), cancelar(h) }. El real es el del telefono; la prueba inyecta otro.
   function relojReal() {
@@ -52,8 +50,7 @@ const Simulador = (() => {
   // def = { nodo, serie, direccion, rotulo, fw, sellado, modo, radio, rf, rtt, tiempos:{v,r,d},
   //         noche:{tr, franjas:[{dias,inicio,fin,rojo}], fase, rojo}, enHora, desde }
   function crear(opciones) {
-    const reloj = opciones.reloj || relojReal();
-    const emitir = opciones.emitir || (() => {});
+    const reloj = opciones.reloj || relojReal(), emitir = opciones.emitir || (() => {});
     const timers = new Set();
     const postes = (opciones.postes || []).map(nuevoPoste);
     postes.forEach(p => { if (p.pareja) p.otro = postes.find(q => q !== p && q.pareja === p.pareja) || null; });
@@ -103,31 +100,29 @@ const Simulador = (() => {
       return { estado: 'ROJO', esc: 'ROJO', t: '--' };
     }
     function luzMaestro(p) {
-      avanzar(p);
-      const sin = { t: '--' };
+      avanzar(p); const sin = { t: '--' };
       if (p.testLeds > reloj.ahora()) return Object.assign({ estado: 'VERDE', esc: 'ROJO' }, sin);
-      if (p.modo === 'DEGRADADO') {
-        if (p.rojoFijo || p.degSaliendo) return Object.assign({ estado: 'ROJO', esc: '?' }, sin);
-        return Object.assign(ciclo(p, p.cicloDesde), { esc: '?', t: '--' });
-      }
-      if (p.modo === 'AMBAR') return Object.assign({ estado: 'FALLO COM', esc: 'AMBAR' }, sin);
+      const rj = p.rojoFijo || p.degSaliendo || reloj.ahora() < p.cicloDesde, sinD = { esc: '?', t: '--' };
+      if (p.modo === 'DEGRADADO') return Object.assign(rj ? { estado: 'ROJO' } : ciclo(p, p.cicloDesde), sinD);
+      if (p.modo === 'AMBAR') return Object.assign({ estado: p.rojoFijo ? 'ROJO' : 'FALLO COM', esc: 'AMBAR' }, sin);
       if (p.modo === 'NOCHE') return { estado: p.nocheFase === 'DESTELLO' ? 'AMBAR_INT' : 'ROJO', esc: '?', t: '--' };
       if (!p.radio) return Object.assign({ estado: 'FALLO COM', esc: p.modo === 'MENU' ? 'ROJO' : '?' }, sin);
       const parado = p.rojoFijo || ['MENU', 'ALCANCE', 'MANUAL'].indexOf(p.modo) >= 0;
-      if (parado) return { estado: 'ROJO', esc: 'ROJO', t: '--' };
+      if (parado) return { estado: p.rojoFijo && reloj.ahora() < p.amarM ? 'AMARILLO' : 'ROJO', esc: 'ROJO', t: '--' };
       return ciclo(p, p.cicloDesde);
     }
     function luzEsclavo(p) {
       avanzar(p);
-      if (p.modo === 'DEGRADADO') return p.degSaliendo || p.rojoFijo ? 'ROJO' : ciclo(p, p.cicloDesde).estado;
+      if (p.modo === 'DEGRADADO') return p.degSaliendo || p.rojoFijo || reloj.ahora() < p.cicloDesde ? 'ROJO'
+        : ciclo(p, p.cicloDesde).estado;
       if (p.modo === 'RENDIDO' || p.ambarLatch) return 'FALLO COM';
       const m = p.otro;
       if (!p.radio || !m || !m.radio || m.nodo !== 'MAESTRO') return 'FALLO COM';
       const l = luzMaestro(m);
       const rojo = m.franjas[Math.max(0, m.nocheActiva)].rojo;   // coordinador_entrarNoche(rojoPoste2)
       if (m.modo === 'NOCHE' && m.nocheFase === 'DESTELLO') return rojo ? 'ROJO_INT' : 'AMBAR_INT';
-      if (m.modo === 'AMBAR') return 'FALLO COM';
-      return l.esc === 'VERDE' ? 'VERDE' : 'ROJO';
+      if (m.modo === 'AMBAR') return m.rojoFijo && reloj.ahora() < m.rojoE ? 'ROJO' : 'FALLO COM';
+      return m.rojoFijo && reloj.ahora() < m.amarE ? 'AMARILLO' : l.esc === 'VERDE' ? 'VERDE' : 'ROJO';
     }
     const estadoLuz = (p) => (p.nodo === 'MAESTRO' ? luzMaestro(p).estado : luzEsclavo(p));
     const plumaArriba = (e) => ['VERDE', 'FALLO COM', 'AMARILLO', 'AMBAR_INT', 'ROJO_INT'].indexOf(e) >= 0;
@@ -223,7 +218,7 @@ const Simulador = (() => {
       if (p.salidaS) return tx('$ERR,CMD:SET_MODO:DEG_T,DESC:Cancele antes la salida programada');
       const v = +m[3], d = +m[4], reloj0 = segDia();
       let motivo = null; const esM = p.nodo === 'MAESTRO';
-      const vencido = (inicio + 86400 - reloj0) % 86400 > C.TESTIGO_INICIO_MAX_S;
+      const falta = (inicio + 86400 - reloj0) % 86400, vencido = falta > C.TESTIGO_INICIO_MAX_S;
       const txtVencido = esM ? 'Inicio ya vencido' : 'Inicio ya vencido: repita el testigo en el Maestro';
       if (!p.enHora) motivo = 'Falta: reloj sin poner en hora';
       else if (Math.abs(difCircular(ahora, reloj0)) > C.TOLERANCIA_TESTIGO_S) motivo = 'Ahora no coincide';
@@ -240,7 +235,7 @@ const Simulador = (() => {
       }
       const renueva = p.modo === 'DEGRADADO' && !p.degSaliendo && p.tiempos.v * 60 === v && p.tiempos.d === d;
       p.tiempos = Object.assign({}, p.tiempos, { v: v / 60, d });
-      if (!renueva) { setModo(p, 'DEGRADADO'); p.degSaliendo = false; }
+      if (!renueva) { setModo(p, 'DEGRADADO'); p.degSaliendo = false; p.cicloDesde += 1000 * falta; }   // rojo y espera
       tx('$ACK,CMD:SET_MODO:DEG_T,RESULT:' + (renueva ? 'RENOVADO' : 'OK'));
       evento(p, 'APP_BLUETOOTH', renueva ? 'SET_MODO_DEG_T_RENOVADO' : 'SET_MODO_DEG_T');
     }
@@ -352,7 +347,12 @@ const Simulador = (() => {
       return true;
     }
     function forzarRojoMaestro(p, tx) {
-      if (p.modo !== 'DEGRADADO') { p.rojoFijo = true; return tx('$ACK,CMD:FORZAR_ROJO,RESULT:OK'); }
+      if (p.modo !== 'DEGRADADO') {   // coordinador_forzarRojoTotal(): cada verde cierra por amarillo (D-45)
+        const l = luzMaestro(p), ya = reloj.ahora(), amar = (s) => (s === 'VERDE' ? ya + C.AMARILLO_SEG * 1000 : 0);
+        Object.assign(p, { rojoFijo: true, rojoE: ya + C.SFTY6_SILENCIO_MS, amarE: amar(l.esc),
+                           amarM: l.estado === 'AMARILLO' ? ya + 1000 * (+l.t || 0) : amar(l.estado) });
+        return tx('$ACK,CMD:FORZAR_ROJO,RESULT:OK');
+      }
       if (p.rojoFijo) return tx('$ACK,CMD:FORZAR_ROJO,RESULT:YA_EN_ROJO_FIJO');
       if (p.degSaliendo) return tx('$ACK,CMD:FORZAR_ROJO,RESULT:SALIDA_YA_EN_CURSO');
       p.rojoFijo = true; p.salidaS = 0;

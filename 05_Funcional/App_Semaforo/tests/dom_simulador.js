@@ -481,3 +481,4 @@ module.exports = async function pruebaSimulador(montarAppLimpia, assert) {
 // El juez, a mano desde node para mirar una trama suelta: require('./tests/dom_simulador.js').juzgar(...).
 module.exports.juzgar = juzgar;
 module.exports.vocabulario = vocabulario;
+module.exports.relojManual = relojManual;
