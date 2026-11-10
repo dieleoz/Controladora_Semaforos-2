@@ -103,7 +103,7 @@ publicaba 32 rutas y 86,4 % de flash cuando el acta que ella misma citaba medía
 
 | Comprobación | Estado | |
 |---|---|---|
-| guarda de rutas de los instrumentos | ✅ | 68 rutas parseadas, todas existen |
+| guarda de rutas de los instrumentos | ✅ | 72 rutas parseadas, todas existen |
 | banco por packs *(70 packs)* | 🔴 **FALLA** | **1524/1525 comprobaciones en 70 packs** — 69 PASS, **1 FALLA**. `decisiones_01_anclas` acusa a **`D-22`** (necesita una tarjeta delante); no se decora (`CLAUDE.md` §1) |
 | compila Maestro / Esclavo / ESP32 | ✅ | **85.2 %** · 72.1 % · 35.8 % — *el Maestro ocupa **53212 de 62464 B** (las tres ultimas paginas quedan para la instalacion de camaras y barrera, `D-165`, las franjas de noche, `D-108`, y el testigo de `D-35`); el Esclavo, **43964 B**. Subio con los parametros de instalacion (`N-187`). Bajo al quitar la libreria RTC (`N-172`) y subio con la salida programada (`D-52`) y el verde del testigo (`D-59`)* |
 | simulador funcional | ✅ | 9/9 — eran 20, y 11 de aquellas no medían nada: se retiraron una a una con su evidencia |
