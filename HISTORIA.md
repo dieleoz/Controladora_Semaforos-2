@@ -3240,3 +3240,18 @@ es lo mismo que "3.7 existe".
 - El Repetidor salio de la arquitectura (`D-157`). El Degradado con testigo se probo 72 h en el arnes (fin de semana).
 - Cuando bajar la pluma se decidio simulando: dos modelos independientes y un arbitro. Bajar antes del rojo multiplica
   por 600-900 el riesgo; el tiempo real del brazo manda. Paquete `db07446` para el 10/11; `N-187` queda por construir.
+
+## 15. Noche del 09/11/2026: N-187 construido sin banco y paquete c10e60f
+
+- `N-187`: contacto NA/NC por camara y retardo de bajada tras el rojo 3..5 s (fabrica 3) en firmware, con pagina de
+  flash propia, app y simulador (`3ea00d4`); SPEC_8 §8 y `D-161`..`D-165`. Arquitecto y QA APTO CON CONDICIONES; los
+  D1/M1/M2 de QA en la app, cerrados en `c10e60f`. Compuerta 16/17, solo `D-22` (acta de `ee06d88`). Paquete
+  `c10e60f` (zip `a9e98dd9...`, APK `921e0ab4...`) con la hoja del 10/11 y su Parte 9 (pruebas 26-34); `db07446` a
+  `RETIRADOS/`. Nada de esto ha visto una tarjeta.
+- Lo que se concluyo mal: (1) la propuesta de SPEC_8 §8 (`db07446`) daba el retardo en 2..5 s; la simulacion de dos
+  modelos y arbitro lo dejo en 3..5 (con 2 s el brazo cae ~7 veces mas sobre quien cruza, `D-163`). (2) La regla de
+  carga decia que cargar el firmware nuevo «no cambia nada de lo que ve un conductor»: falso desde la segunda carga,
+  porque `-e all` borra la pagina y cada carga devuelve el poste a fabrica (NA, NA, 3 s); SPEC_8 §8 pide ahora
+  `CONSULTA_INSTALACION` y reenviar la configuracion tras cada carga.
+- `roadmap.md` §0 reordenado para retomar en el banco de Marco; la cronica de `N-173`..`N-186`, literal a
+  `05_Funcional/historico/roadmap_hist_2026-11-09.md`.

@@ -188,7 +188,8 @@ el rojo-amarillo dentro del tiempo de seguridad. Transcripción: `fuentes/md/Man
 7. **La pluma no SUBE durante el rojo+amarillo; sube con el verde real** (`D-53`): `luzPideArriba` no gana término,
    porque mira el verde ya enclavado y `S_FALLO`/`S_AMARILLO`. **Excepción: si llega arriba** (de `S_FALLO`, del
    retardo de bajada o retenida por el veto de cámara), es una bajada pendiente: baja como mucho
-   `PLUMA_RETARDO_BAJADA_MS` después de que la luz dejó de pedirla arriba, salvo veto de cámara activo. SPEC 8 §1.
+   el retardo de bajada (3 s de fábrica, 3..5 por poste desde `N-187`, SPEC 8 §8, sin banco) después de que la luz
+   dejó de pedirla arriba, salvo veto de cámara activo. SPEC 8 §1.
 8. **El veto de margen al ABRIR el verde propio del Poste 1** (`puedeSostenerVerde()`, SPEC 2 §4) lleva además
    `ROJO_AMARILLO_MS`, para que el verde empiece con el margen de hoy. El umbral de silencio y la suelta de `D-50`,
    abiertos para el arquitecto: SPEC 2 §2.2.ter.
@@ -412,7 +413,8 @@ DOS, no tres.
 Medido el 12/09/2026; **1, 2 y 6 remedidos el 13/09/2026 sobre `bfef121`; 2 y 3 remedidos el 14/09/2026.**
 Cada uno trae con qué reproducirlo.
 1. 🟢 **CERRADO EL 14/09 — ~~LA PLUMA BAJA EN EL MISMO INSTANTE DEL ROJO~~.** Hoy **baja 3 segundos
-   después del rojo**, y **no baja en absoluto mientras una cámara vea algo debajo**. La regla que lo pidió,
+   después del rojo** (de fábrica; 3..5 s por poste desde `N-187`, SPEC 8 §8, sin banco), y **no baja en absoluto
+   mientras una cámara vea algo debajo**. La regla que lo pidió,
    del responsable el 13/09: *«sólo baja segundos DESPUÉS del rojo, porque suelen pasarse carros y hay que
    darle tiempo al conductor a pasar»*. Es **el cambio que sube la versión a `V9.1`**, y la conducta entera
    vive en **SPEC 5 pág. 1 §4** — aquí sólo el puntero. ⬇️ *lo que este hueco decía, y por qué se conserva:*
@@ -476,7 +478,8 @@ Cada uno trae con qué reproducirlo.
    - **Degradado**: `ciclo_degradado.h` en seis fases (`FD_AMARILLO_MAESTRO`, `FD_AMARILLO_ESCLAVO`,
      `ciclo_degradado_faseCruda()`), `aplicarLuz()` del Poste 2 abre directo, los todo-rojo cuentan desde el rojo, y
      el testigo se rechaza también durante el amarillo (`MDT_EN_VERDE`, `DEG_RECHAZO_T_EN_VERDE`).
-   - **La pluma**: `PLUMA_RETARDO_BAJADA_MS` y su `static_assert` contra `DESPEJE_SEG_MIN` no cambian (SPEC 8 §1).
+   - **La pluma**: el retardo de bajada y su `static_assert` contra `DESPEJE_SEG_MIN` no cambian (SPEC 8 §1; desde
+     `N-187` el retardo es parámetro y el `static_assert` va sobre `PLUMA_RETARDO_MAX_MS`, SPEC 8 §8.3).
    - **Instrumentos invertidos en el mismo commit** (`CLAUDE.md` §9): `arnes_automatico.cpp`, `orquestador.cpp`,
      `orquestador_degradado.cpp`, `orquestador_deg_auto2.inc`, `arnes_ciclo.cpp`, los modelos `esclavo.py` y
      `costura.py` y los packs `barrera_04`, `camara_03`, `costura_09`, `costura_10`, `costura_12`, `esclavo_01`,

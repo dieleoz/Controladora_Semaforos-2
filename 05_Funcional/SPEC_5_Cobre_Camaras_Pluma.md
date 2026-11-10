@@ -2,7 +2,7 @@
 
 **Para quien tiene un destornillador en la mano, y para quien compra — UN SOLO LECTOR.** Que hay en
 cada pin, que es peligroso, y que declara este proyecto **sin haberlo medido nunca**. 🔴 **Que HACEN
-la camara y la barrera —el veto, el retardo de 3 s, el aviso, los dos interruptores— ya NO vive aqui:
+la camara y la barrera —el veto, el retardo de bajada, el aviso, los interruptores, NA/NC— ya NO vive aqui:
 es `SPEC_8`.** **Fuera** ademas: el ciclo (SPEC 1), la radio (SPEC 2), la hora (SPEC 3), la app (SPEC 4).
 
 > **EL CORTE CON `SPEC_8`, Y POR QUE ES ESE — se escribe porque partir un documento deja huecos entre
@@ -98,7 +98,7 @@ Ya no existen en el fuente `mando_registrarPulso()`, `mando_ambarLocal()`, `sema
 ## 4. 🔴 LA CAMARA FRENA LA BARRERA — **este aviso se mudo ENTERO a `SPEC_8` §1**
 
 **Lo unico que se afirma de eso desde aqui es cobre: `J16` p10 y p12 son las dos camaras (§2.1) y
-`J15` es la pluma (§4). El veto, el retardo de 3 s y el aviso son `SPEC_8`, y no se resumen aqui.**
+`J15` es la pluma (§4). El veto, el retardo de bajada y el aviso son `SPEC_8`, y no se resumen aqui.**
 
 # 1. El reparto, en una frase
 
@@ -158,7 +158,8 @@ de `semaforo.cpp`.
 
 **El pull-down de 10 kOhm que declaraba el netlist es REAL y esta en las cuatro posiciones**
 (`R65`-`R68`, con su 100 nF). Con 3,3 V en la posicion contigua, **el gesto que el conector pide es
-cerrar el contacto contra los 3,3 V: entrada activa en ALTO, para los cuatro pines y sin excepcion.**
+cerrar el contacto contra los 3,3 V: entrada activa en ALTO, para los cuatro pines y sin excepcion.** Es el NIVEL
+ELECTRICO; que nivel es presencia en p10/p12 lo fija el contacto declarado `NA`/`NC` (`SPEC_8` §8, sin banco).
 🛑 **El gesto de prueba es contra el 3,3 V contiguo —`p10` contra `p9`, `p12` contra `p11`— NUNCA contra masa**
 *(el banco del 03/09 lo hizo tambien en `p5`/`p8`; en un equipo instalado esos dos no se puentean, §3)*: en todo `J16`
 hay **una sola masa** (`p2`). Y **`p1` tapado antes de nada.**
@@ -174,7 +175,8 @@ solo lee un pin. **Toda la inteligencia vive en la CONFIGURACION de la camara**,
 modelo comprado (`D-27` (3)). La camara **si graba en su propia microSD** (hasta 512 GB, ficha
 oficial): el soporte de accidentes existe **en la camara, no en el firmware**.
 
-**Cableado por poste** (`D-25`), cada camara por el **contacto seco de su salida de alarma** (`1A`/`1B`), que al detectar pone 3,3 V en el pin:
+**Cableado por poste** (`D-25`), cada camara por el **contacto seco de su salida de alarma** (`1A`/`1B`), que al
+detectar pone 3,3 V en el pin si es `NA` (fabrica) y los quita si es `NC` (`SPEC_8` §8.3, sin banco):
 
 | camara | del borne | al borne |
 |---|---|---|
@@ -246,7 +248,7 @@ Lo que no esta medido de la **conducta** —no del cobre— es `SPEC_8` §7.
 | # | lo que nadie ha comprobado |
 |---|---|
 | 1 | **Ninguna camara AcuSense se ha conectado NUNCA a este equipo.** Lo que se cablo en el paso 21 fue **un puente de `p10` a `p11`**, no una camara |
-| 2 | **Cual de los dos estados de la salida de la camara (NO/NC) significa demanda.** Es parametrizacion, y sigue **SIN TOMAR** |
+| 2 | **Cual de los dos estados de la salida de la camara (NO/NC) significa demanda.** Es parametrizacion: desde `N-187` el firmware admite los dos por camara (`SET_CAMARA`, `SPEC_8` §8, sin banco); cual lleva cada camara instalada sigue **SIN TOMAR** |
 | 3 | **`p12` no se ha cableado NUNCA**, ni en banco — y es el borne **mas cercano** a la red de 12 V (1,359 mm) |
 | 4 | **La concesion de paso por camara.** El cableado si (paso 21, sin demandas fantasma); que el equipo **conceda** depende del Modo Automatico, que no se pudo seleccionar sin app |
 | 5 | **Que `J9`, `J11` y `J13` esten REALMENTE SOLDADOS.** El esquematico los da `in_bom=yes`, `dnp=no`, `on_board=yes`; **nadie los ha mirado en cobre.** `J15`, el gemelo, si funciono: eso los hace **probables, no ciertos** |

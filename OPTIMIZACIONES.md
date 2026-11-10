@@ -112,7 +112,7 @@ que no la comprueba es **peor** que una fila vacía, porque la vacía al menos n
 | SFTY-25 | **— solo diseño.** Cero etiquetas en el firmware | — |
 | SFTY-26 | **— solo diseño.** Cero etiquetas en el firmware | — |
 | **SFTY-27** | 🔴 **DOS REGLAS CON EL MISMO NÚMERO — ver el aviso justo debajo.** Este documento lo define como *«matrícula de pareja»*, sin implementar; las **8 etiquetas del firmware** dicen otra cosa · SPEC: el sentido del firmware (el Esclavo pide, el Maestro decide), `SPEC_2` §1; la matricula, ninguna | — |
-| **SFTY-28** | `*/src/semaforo.cpp` *(dentro de `escribirPines()`)* · `*/include/pines.h` | ✅ `barrera_03_talanquera` · `maestro_09_test_leds` |
+| **SFTY-28** | `*/src/semaforo.cpp` *(dentro de `escribirPines()`)* · `*/include/pines.h` · `*/include/instalacion.h` *(el retardo de bajada, 3..5 s, que lee `escribirPines()` por `instalacion_retardoPlumaMs()`; `N-187`, sin banco)* | ✅ `barrera_03_talanquera` · `maestro_09_test_leds` |
 | **SFTY-29** | **— solo diseño.** Presencia como veto del todo-rojo y sensor de pluma | — |
 
 > ⚠️ **CÓMO SE LEE UN ✅ DE ESTA TABLA. Sin esto promete más de lo que cubre** *(auditorías del 28/08

@@ -83,6 +83,10 @@ configuracion** (`SPEC_6` HUECO 3), y si no se hizo el sintoma no dira «radio m
    no es averia y no se arregla reintentando.
 4. **Meter el PIN en la app.** Ella lo antepone a todo lo que lo necesita; que ordenes entran sin el, y por que, es `SPEC_4`
    §4 y §7.1.
+4.bis **Si se acaba de cargar firmware: revisar la instalacion de camaras y barrera, en CADA poste.** La carga con
+   `-e all` la devuelve a fabrica (contacto NA en las dos camaras, retardo de bajada 3 s): Ajustes > «Instalacion:
+   camaras y barrera», que consulta sola (`CONSULTA_INSTALACION`, sin PIN), y se reenvia lo que tenia el poste
+   (`SET_CAMARA`, `SET_PLUMA_RETARDO`; `SPEC_8` §8, `SPEC_4` §9.15). Sin banco.
 5. **Poner la hora — a CADA poste por separado.** `SET_RTC` la atiende **el ESP32 del poste al que se esta conectado** y ya no
    sigue viaje (`D-15`): quien se conecta al poste 1 **no le pone la hora al poste 2**. ⚠️ **No hace falta para el
    Automatico; hace falta ANTES de poder usar el Degradado**, con la comprobacion obligatoria de `SPEC_6` A.6 —leer las dos
@@ -119,7 +123,7 @@ configuracion** (`SPEC_6` HUECO 3), y si no se hizo el sintoma no dira «radio m
 | **`SPEC_5` Cobre y Conectores** | que hay en cada pin, que es peligroso y que no se ha medido nunca del hardware. Se lee **con un destornillador en la mano** |
 | **`SPEC_6` Campo, Radio y Alarmas** | el Degradado paso a paso, la configuracion de las radios, y **que hace el tecnico con cada alarma** |
 | **`SPEC_7` Modo Sin Reloj** | por que ese modo **no se construye**, y que si falta (que la app diga POR QUE) |
-| **`SPEC_8` Camaras y Barrera** | **que HACEN** las camaras y la pluma: el veto, el retardo de bajada, cuando el equipo pide que se revise una camara, y **que NO protege** |
+| **`SPEC_8` Camaras y Barrera** | **que HACEN** las camaras y la pluma: el veto, el retardo de bajada, los parametros de instalacion (§8), cuando el equipo pide que se revise una camara, y **que NO protege** |
 | **El `.zip` al funcional** (no es SPEC: `.claude/particularidades/entregar.md` §1 y §4) | que lleva y de donde sale: **un paquete, un commit** (`D-84`): firmware, `www/`, hoja y `FW_HASH.txt` de `git show <commit>:`, la APK comprobada contra ese `www/` (`D-85`); el hash del nombre y del PDF es el del arbol que va dentro |
 
 > 🔴 **`SPEC_5` y `SPEC_8` son las dos mitades de un mismo aparato y se leen juntas** — se partieron
@@ -153,7 +157,8 @@ configuracion** (`SPEC_6` HUECO 3), y si no se hizo el sintoma no dira «radio m
    **declarados y muertos** —ni un `pinMode` ni un `digitalWrite`—: **cableados a `J11`/`J9`/`J13` no se encienden nunca y no
    hay mensaje de error** (`SPEC_5` §2, `SPEC_1` §1). **No se venden como funciones del equipo.**
 3. **NO DISTINGUE UN VEHICULO PARADO DEBAJO DE UNA CAMARA MAL APUNTADA.** 🟢 ~~Ninguna camara protege la pluma~~ →
-   **desde el 14/09 SI la protege**: la barrera baja 3 s despues del rojo y **no baja mientras una camara vea algo
+   **desde el 14/09 SI la protege**: la barrera baja 3 s despues del rojo (de fabrica; 3..5 s por poste desde `N-187`,
+   `SPEC_8` §8, sin banco) y **no baja mientras una camara vea algo
    debajo** —salvo con las camaras sacadas del veto desde la app, `SPEC_8` §6—
    (`SPEC_8` §1). 🔴 **Lo que el equipo NO puede hacer es juzgar lo que ve:** un vehiculo parado y una camara
    que dispara sola **dan el mismo contacto cerrado**, asi que ante la duda **no baja y avisa** —y quien decide si eso es
@@ -199,7 +204,8 @@ configuracion** (`SPEC_6` HUECO 3), y si no se hizo el sintoma no dira «radio m
    - **(c) Franjas y donde caben (`D-108`).** Hasta `NOCHE_FRANJAS` = 4, cada una con mascara de 7 dias, inicio y fin
      en minutos del dia (cruza medianoche si fin <= inicio; `inicio == fin` = apagada), color, y comun a todas el
      todo-rojo `tr` de (d). En una pagina de flash PROPIA, `NOCHE_FLASH_DIR` = `0x0800F800` (la anterior a la del
-     testigo), con `board_upload.maximum_size` = 63488 en los dos `platformio.ini`; molde `testigo_flash` (firma,
+     testigo), con `board_upload.maximum_size` = 62464 en los dos `platformio.ini` (tres paginas reservadas desde
+     `N-187`: mapa en `SPEC_8` §8.6); molde `testigo_flash` (firma,
      version, suma, relectura; `-e all` la borra al cargar: tras una carga no hay franjas). Medido en `respaldo.cpp`:
      `BKP->DR1..DR10` estan todos ocupados (firma; DR2/DR3 con `ANTES`/`REIN` en el byte alto; DR4 con 9 bits de
      banderas; DR5-DR8; DR9/DR10 el ciclo automatico), y una franja son ~40 bits. Se escribe solo al cambiarla.

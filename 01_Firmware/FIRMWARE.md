@@ -41,7 +41,13 @@ El firmware está organizado en ~~**3**~~ **4** proyectos PlatformIO independien
 | **Gestor Esclavo** | `Esclavo/src/main.cpp` | Receptor autónomo de órdenes RF. Responde `0x05 (PONG)` al `0x04 (PING)` cada 3.0s y emite `CMD_ACK_RED` / `CMD_ACK_GREEN` inmediatos. |
 | **Coordinador** | `Maestro/src/coordinador.cpp` | Cerebro del ciclo de paso (`QV_MASTER` ↔ `QV_ESCLAVO`). PING rutinario a 3.0s ~~(0.3k)~~ **(2.4 kbps)**, timeout ACK de ~~5.0s~~ **3.5s**, fallback a ~~12.0s~~ **25.0s** y gestión del Menú Seguro e independizado. |
 | **Protocolo Binario V8.0** | `protocolo.cpp` (Maestro y Esclavo) | **CRC-8 Maxim (`0x31`)** bit a bit, **ráfaga configurable `RF_BURST_COPIES` (~~=1~~ **=3**) + Ventana Deslizante**, `msgID` acotado a 1..255, `protocolo_resetReplayProtection()` y retardo `delayMicroseconds(1200)` tras `Bus.flush()`. |
+| **Parametros de instalacion** (`N-187`, sin banco) | `instalacion.{h,cpp}`, `instalacion_flash.{h,cpp}` (identicos en Maestro y Esclavo) | `NA`/`NC` por camara de `J16` y retardo de bajada de la pluma 3..5 s, en su pagina de flash; ordenes locales `SET_CAMARA`, `SET_PLUMA_RETARDO`, `CONSULTA_INSTALACION`. Manda `SPEC_8` §8. |
 | **Hardware Abstraction** | `semaforo.cpp/h`, `pines.h` | Control de MOSFETs (`ROJO1`, `VERDE1`, etc.). Enclavamiento anti-verde simultáneo (`SFTY-2`) y secuencia vial Colombia 2024 (Rojo $\rightarrow$ Amarillo 4s $\rightarrow$ Verde). |
+
+**Mapa de flash (64 KB por micro).** `board_upload.maximum_size` = 62464 en `Maestro/` y `Esclavo/platformio.ini`: el
+codigo acaba antes de `0x0800F400` y las tres ultimas paginas de 1 KB son datos: `0x0800F400` instalacion,
+`0x0800F800` noche (solo Maestro) y `0x0800FC00` testigo. `-e all` las borra en cada carga: el equipo vuelve a fabrica
+(`SPEC_8` §8.6).
 
 ### 🔴 Los modos son OCHO, no cuatro — y la UI en ST7920 ya no existe (05/09/2026)
 

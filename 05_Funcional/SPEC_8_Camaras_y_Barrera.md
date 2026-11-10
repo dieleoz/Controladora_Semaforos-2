@@ -31,27 +31,27 @@ camara, y lo que hace con ella tiene una sola direccion:
 - **La pluma SUBE por la luz y por nada mas.** La camara no la levanta nunca: la rama de «pluma ya
   abajo» la deja abajo **en seco**, sin mirar camara ni reloj. **Una deteccion no puede abrir una
   barrera con la luz en rojo.**
-- **La pluma BAJA tres segundos DESPUES del rojo** (`PLUMA_RETARDO_BAJADA_MS`, elegido por el
+- **La pluma BAJA R segundos DESPUES del rojo:** de fabrica 3 (`PLUMA_RETARDO_BAJADA_MS`, elegido por el
   responsable el 14/09 — no derivado), *«porque suelen pasarse carros en ambar y hay que darle unos
-  segundos al conductor»*. El retardo no depende de ninguna camara: se cumple con las borneras vacias,
-  que es como esta hoy la mayoria de los equipos.
+  segundos al conductor»*; desde `N-187` R es un parametro por poste de 3..5 s (§8, sin banco). El retardo no
+  depende de ninguna camara: se cumple con las borneras vacias, que es como esta hoy la mayoria de los equipos.
 - **Durante el AMARILLO de cierre la pluma SIGUE ARRIBA, y el retardo cuenta desde el ROJO, no desde el amarillo**
   (`D-45`, `N-174`; construido en `cda33df`, sin banco; SPEC 1 §3.2). Es la letra de `D-33` («3 s despues del rojo»)
   y de `D-42` («retardo del rojo sigue en 3 s»): no las reabre. En `escribirPines()` de las dos puntas la condicion
   `luzPideArriba` es `(verde && !testLedsActivo) || estado == S_FALLO || estado == S_AMARILLO`: sin el ultimo
   termino el retardo empezaria en el amarillo y, con los dos a 3 s, la pluma bajaria en el instante del rojo, que es
   lo que `D-33` vino a quitar. El amarillo del test de lamparas no cuenta: alli `estado` sigue en `S_ROJO`. Lo
-  ejercen las filas 17, 18 y 19 sobre la salida de motor y `maestro_09_test_leds` por texto. El `static_assert` de
-  `PLUMA_RETARDO_BAJADA_MS` contra `DESPEJE_SEG_MIN` no cambia, porque el
+  ejercen las filas 17, 18 y 19 sobre la salida de motor y `maestro_09_test_leds` por texto. El `static_assert`
+  del retardo (hoy `PLUMA_RETARDO_MAX_MS`, §8.3) contra `DESPEJE_SEG_MIN` no cambia, porque el
   amarillo no resta despeje: tras cada verde la pluma queda arriba `AMARILLO_SEG` mas el retardo, y el otro poste
   sigue abriendo un despeje entero despues del rojo.
 - **Durante el ROJO+AMARILLO previo a cada verde la pluma no SUBE; sube con el VERDE real** (`D-53`, `N-176`;
   construido el 05/10, sin banco). `luzPideArriba` no gana termino: mira el verde ya enclavado, y en
   `S_ROJO_AMARILLO` no hay verde (SPEC 1 §3.3 (7)). **Excepcion: si llega arriba** (de `S_FALLO`, del retardo de
-  bajada o retenida por el veto), es la bajada pendiente: baja como mucho `PLUMA_RETARDO_BAJADA_MS` despues de que
-  la luz dejo de pedirla arriba, salvo veto de camara activo. El rojo+amarillo va despues del despeje del otro poste
-  y no lo acorta, asi que la bajada y su `static_assert` no cambian. Si el rojo+amarillo acaba en rojo (orden de
-  rojo, perdida de radio), la pluma no ha subido.
+  bajada o retenida por el veto), es la bajada pendiente: baja como mucho R (`instalacion_retardoPlumaMs()`, §8.3)
+  despues de que la luz dejo de pedirla arriba, salvo veto de camara activo. El rojo+amarillo va despues del despeje
+  del otro poste y no lo acorta, asi que la bajada y su `static_assert` no cambian. Si el rojo+amarillo acaba en rojo
+  (orden de rojo, perdida de radio), la pluma no ha subido.
 - **LA PLUMA ES LENTA, y se queda asi (`D-54`, 06/10).** La de El Sisga tarda ~60 s en subir (Marco, sin medir):
   sube con el VERDE real y deja paso a mitad de un verde de 3 min como minimo (`D-5`); no se adelanta, porque la
   abriria en rojo durante el despeje del otro sentido. **Y la camara solo veta el COMIENZO de la bajada:** mandada
@@ -60,7 +60,7 @@ camara, y lo que hace con ella tiene una sola direccion:
   algo. Sin consenso: con un AND, una camara muerta anularia el veto para siempre.
 - **Al soltarse el veto el firmware baja en el instante, pero la camara mantiene su alarma 5 s tras el evento**
   (de fabrica, `D-42`): la pluma baja unos 5 s despues de que el objeto salga. Esos 5 s son CONFIGURACION de la
-  camara. Una camara que avisa DESPUES de los 3 s del rojo encuentra la pluma ya abajo y no la sube.
+  camara. Una camara que avisa DESPUES de los R s del rojo encuentra la pluma ya abajo y no la sube.
 - **Que ve la camara es CONFIGURACION, no firmware (`D-39`):** las cuatro detectan Vehiculo **y** Humano, con
   sensibilidad 50 %, que se reajusta en campo con el enfoque. Precio aceptado: alguien parado en el barrido deja la
   pluma arriba, y se avisa (§3).
@@ -134,7 +134,7 @@ quien lo atiende; **no hiere a nadie**, y la alternativa —esperar a que se acu
 elegir un numero que nadie ha medido todavia. *(Decidido el 14/09.)*
 
 > ⚠️ **El aviso de «camara pegada» NO es este y llega tarde para esto: cuelga del NIVEL sostenido, y
-> una camara que dispara sin parar ABRE el contacto entre disparo y disparo, asi que su cronometro
+> una camara que dispara sin parar SUELTA la presencia entre disparo y disparo, asi que su cronometro
 > se reinicia y nunca alarma** — mientras el veto sigue puesto. Las dos alarmas de camara, con su
 > texto y lo que hace el tecnico con cada una, son **`SPEC_6`**.
 
@@ -247,7 +247,7 @@ tras un corte real, con pila; el arnes de dos puntas solo mide que el reinicio s
 ## 6.3 Lo que hace el equipo (`D-96`)
 
 - **Camara fuera del veto:** `escribirPines()` no pregunta a `camara_presenciaJ16()`: `plumaVetada` no vale nunca
-  `true` y la pluma baja al cumplirse `PLUMA_RETARDO_BAJADA_MS`, como con las borneras vacias. El retardo de 3 s no
+  `true` y la pluma baja al cumplirse R (§8.3), como con las borneras vacias. El retardo no
   cambia (`D-33`, `D-42`). El vigilante de las camaras sigue contando y avisando (`CAM_PEGADA`, `CAM_CIEGA`, `D-24`):
   asi se sabe cuando la camara volvio a dar flancos y se puede devolver el veto.
 - 🔴 **Barrera fuera de servicio: ARRIBA, confirmado por el responsable el 09/11 (`D-96`).** `luzPideArriba` gana el
@@ -267,7 +267,7 @@ tras un corte real, con pila; el arnes de dos puntas solo mide que el reinicio s
   `OFF` no mueve el pin hasta el siguiente cambio de luz (horas en rojo fijo, `D-38`) y `ON` deja la pluma arriba sin
   razon nombrada. Por eso, tras escribir la bandera, la orden llama a `semaforo_reaplicarSalidas()`, que llama
   a `aplicarSalidas(ultR, ultA, ultV)` —sin un segundo `digitalWrite` (SFTY-2)— y el `$ACK` lee despues. Con `ON` en
-  rojo la pluma baja a `PLUMA_RETARDO_BAJADA_MS`, o la retiene el veto. Prueba: C++ real en las dos puntas, `S_ROJO`
+  rojo la pluma baja a R (§8.3), o la retiene el veto. Prueba: C++ real en las dos puntas, `S_ROJO`
   estable, vista en rojo sobre el fuente de hoy.
 - Lo que §6 pedia medir: la segunda cosa, decidida ARRIBA (`D-96`, 09/11); la primera, el HUECO de 6.2.
 
@@ -309,12 +309,13 @@ de la barrera y **el software no lo gobierna**. El interruptor manda mientras ha
 **Escala:** `MEDIDO` = leido del fuente · `SIN VERIFICAR` = nadie lo ha comprobado, ni aqui ni en
 ningun sitio. **Lo no verificado del HARDWARE va entero en `SPEC_5` §6** —y de sus veinte filas, las
 que muerden a este documento son la **1** (ninguna camara se ha conectado NUNCA a este equipo), la
-**2** (cual de los dos estados de la salida de la camara, NO/NC, significa demanda: **sin tomar**) y
+**2** (cual de los dos estados de la salida de la camara, NO/NC, significa demanda: el firmware admite los dos desde
+`N-187`, §8; cual lleva cada camara instalada, **sin tomar**) y
 la **4** (la concesion de paso por camara nunca se probo)—. Aqui, lo que falta de la CONDUCTA:
 
 | # | lo que nadie ha comprobado |
 |---|---|
-| 1 | **NINGUNA DE ESTAS CONDUCTAS SE HA VISTO EN UNA TARJETA.** El retardo de 3 s y el veto son del 14/09 y estan **escritos y no cargados**; la instalacion **certificada** es la `V8.4`, anterior a las dos. 🛑 **Que firmware hay hoy en cada equipo lo dice `ESTADO.md`, no este fichero** (`CLAUDE.md` §0.2) |
+| 1 | **NINGUNA DE ESTAS CONDUCTAS SE HA VISTO EN UNA TARJETA.** El retardo de 3 s y el veto son del 14/09, los parametros de §8 del 09/11, y estan **escritos y no cargados**; la instalacion **certificada** es la `V8.4`, anterior a todo ello. 🛑 **Que firmware hay hoy en cada equipo lo dice `ESTADO.md`, no este fichero** (`CLAUDE.md` §0.2) |
 | 2 | **Que una camara real cierre el contacto el tiempo suficiente para vetar.** El veto se apoya en `camara_presenciaJ16()`, cuya ventana la fija `demanda_ventanaMs()`; **con un contacto mas corto que la ventana el veto se sostiene, con uno mas largo tambien — y ninguno se ha medido con una camara puesta** |
 | 3 | **Que el aviso de pluma retenida llegue al telefono.** Sale por el mismo camino que el resto de `$EVENT` (`SPEC_6`), y **el Bluetooth no subio en toda la sesion de banco** (`SPEC_5` §6.17) |
 | 4 | **Los dos interruptores de §6: construidos el 09/11 (`interruptores.cpp` en las dos puntas, `js/interruptores.js`) y sin banco.** Tras un corte con la barrera fuera, la pluma vuelve a subir en la siguiente escritura de la luz, no al arrancar: lo mide el arnes de dos puntas (S3), sin fila que lo decida |
@@ -327,7 +328,10 @@ la **4** (la concesion de paso por camara nunca se probo)—. Aqui, lo que falta
 **Lo que pidio el responsable el 09/11:** «que no sea firmware sino un parametro desde la app, en modo
 administracion, para camaras y barrera; asi evitamos ir a campo por algo que hoy no controlamos». Este apartado lo
 cumple el firmware desde `N-187` (09/11): modulos `instalacion.{h,cpp}` e `instalacion_flash.{h,cpp}`, identicos en las
-dos puntas. **Sin banco:** la escritura real de la pagina y el antirrebote con `NC` no se han medido en una tarjeta.
+dos puntas. **Sin banco; queda para la tarjeta** (lo que QA y arquitectura no pueden cerrar en PC): (1) la escritura
+real de la pagina de `0x0800F400` (borrar, programar y releer; en PC la dobla `instalacion_modelo.inc`); (2) `NC` con
+el rebote de un contacto real, contra los 5 ms de `camara_leerPin()`; (3) la radio durante el borrado: si borrar la
+pagina hace perder una trama o un latido, sin medir.
 **Regla de carga:** cada parametro sale de fabrica con el valor que hoy esta fijo en el firmware, asi que la primera
 carga no cambia nada de lo que ve un conductor. Pero la carga por SWD borra entera la flash (`-e all`, `CLAUDE.md` §3):
 **cada carga devuelve el poste a fabrica (NA, NA, 3 s)**. Un poste con una camara `NC` queda declarado `NA` y ve
@@ -368,9 +372,11 @@ los numeros de apartado no se tocan, `CLAUDE.md` cabecera.)
 - **Contacto NC.** El cobre no cambia: `INPUT` pelado, pull-down R67/R68, contacto contra los 3,3 V de p9/p11
   (`pines.h`, «por que activo en alto»: eso es el NIVEL ELECTRICO y sigue cierto). Con `NC` el contacto esta cerrado
   en reposo (pin alto) y abre al detectar (pin bajo): **presencia = pin bajo**. La inversion va en UN sitio:
-  `camara_leerPin(pin, nc)` (`botones.cpp`), que sigue siendo el unico `digitalRead` de camara (lo exige
-  `camara_02_j16`); `camaras_sembrar()` y `camaras_actualizar()` la llaman con `instalacion_camaraNC(i)` en las dos
-  puntas, y `CAM_DEMANDA_PIN` (`modo_inteligente.cpp`) la llama con `nc = false`, activo en alto como hoy. El
+  `camara_leerPin(pin, nc)` (`botones.cpp`), que sigue siendo el unico `digitalRead` de camara DE `J16` (dentro de
+  `botones.cpp` lo exige `camara_02_j16`); `camaras_sembrar()` y `camaras_actualizar()` la llaman con
+  `instalacion_camaraNC(i)` en las dos puntas. `J14` no entra en el parametro: el Maestro lee `CAM_DEMANDA_PIN`
+  (`modo_inteligente.cpp`) por `camara_leerPin()` con `nc = false`, y el Esclavo con su propio
+  `digitalRead(CAM_DEMANDA_PIN) == HIGH` en `main.cpp`, anterior a `N-187`; las dos, activo en alto como hoy. El
   antirrebote de 5 ms confirma el nivel ACTIVO (con `NC` un rebote bajo no pasa sin filtrar). `camara_02_j16` sigue
   viendo `== HIGH` y no ve el `!= nc`: la inversion la prueba el bloque K del arnes
   automatico, no el pack. Asi veto, demanda, Modo Inteligente y vigilante ven la misma presencia logica.
@@ -436,7 +442,10 @@ cambiar el contacto, comprobar `VE:0` y devolver el veto.
 ## 8.6 Donde se guarda, la orden y lo que publica
 
 - **Pagina de flash propia, molde `testigo_flash.cpp`/`noche_flash.cpp`:** `DR4` esta lleno (§6.2). Pagina de 1 KB en
-  `0x0800F400` en las dos puntas (fichero identico), con `board_upload.maximum_size` de 63488 a 62464. Formato: firma,
+  `0x0800F400` en las dos puntas (fichero identico). `board_upload.maximum_size` = 62464 en los dos `platformio.ini`
+  deja las TRES ultimas paginas fuera del enlazador: `0x0800F400` instalacion, `0x0800F800` noche (`noche_flash`,
+  solo el Maestro; en el Esclavo queda reservada sin uso) y `0x0800FC00` testigo (`testigo_flash`); las tres las borra
+  `-e all` en cada carga. Formato: firma,
   version, `ncC`, `ncD`, retardo en s, suma de 32 bits; valor fuera de rango = fabrica. Se borra y escribe solo al
   aceptar una orden (pocas en la vida del equipo).
 - **Ordenes, locales al poste** (no viajan por radio, como §6.1), tras la clave de administracion (`D-56`) y el PIN:
@@ -458,7 +467,10 @@ cambiar el contacto, comprobar `VE:0` y devolver el veto.
   estado por poste (fabrica NA, NA, 3); no simula camara (`VE:C0D0` siempre) ni el retardo, igual que hoy `plumaCam()`.
   `js/simulador.js` esta en 500 lineas: va en `js/sim_instalacion.js`; la pantalla, en `js/instalacion.js`, con el
   rango 3..5 en un solo sitio (`Instalacion.RETARDO`), cruzado contra `instalacion.h` por `tests/dom_simulador.js`.
-  Con un firmware anterior (`AUTH_FAILED` o `DESCONOCIDO`) la app dice que ese poste no tiene la funcion.
+  Con un firmware anterior la consulta vuelve como `$ERR,CMD:AUTH_FAILED` (sin repetir el `CMD`): la app lo toma por
+  la consulta, y dice que ese poste no tiene la funcion, solo si fue lo ultimo que salio del panel y dentro de
+  `Instalacion.PLAZO_MS` (3 s, elegido sin medir; `rechazo()` de `js/instalacion.js`); un `DESCONOCIDO` no se le
+  atribuye.
 
 ## 8.7 Lo que decide el responsable (P1..P4), con el modo de fallo y la recomendacion
 

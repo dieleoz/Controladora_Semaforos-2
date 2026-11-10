@@ -77,7 +77,8 @@ leyendo **los dos despachadores** y prohibe que una lista reclame una orden que 
 Las dos puntas atienden `SET_MODO:DEG_T`, `SET_DEG_AUTO` y `CONSULTA_DEG_AUTO` (§3.1, §3.2). `SET_MODO:DEGRADADO`
 **salio de las dos con `D-46` (`f9cad1f`, 02/10; sin banco)**, y `SOLICITAR_PASO` del Esclavo con ella: las dos caen en
 el `else` final de `procesarComando()` y contestan `$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO` (`..._EN_ESCLAVO` en
-el Poste 2). Tambien las dos, locales y sin radio: `SET_VETO_CAMARA` y `SET_BARRERA_SERVICIO` (§3.1; SPEC 8 §6.1).
+el Poste 2). Tambien las dos, locales y sin radio: `SET_VETO_CAMARA` y `SET_BARRERA_SERVICIO` (§3.1; SPEC 8 §6.1), y
+`SET_CAMARA`, `SET_PLUMA_RETARDO` y `CONSULTA_INSTALACION` (§3.1; SPEC 8 §8.6).
 
 ⚠️ **`FORZAR_ROJO` no significa lo mismo en las dos puntas, y por eso el Esclavo ya no lo acepta:** alli
 prometia rojo y hacia ambar con la talanquera arriba. Lo rechaza **nombrando el literal nuevo**
@@ -115,6 +116,7 @@ prometia rojo y hacia ambar con la talanquera arriba. Lo rechaza **nombrando el 
 | `DEMANDA` | si | **tres**: `$ERR ... SOLO_EN_MODO_INTELIGENTE` fuera del modo —registrar una peticion que ningun ciclo va a mirar es fingirla—; `RESULT:REGISTRADA` si `demanda_solicitar()` devuelve true; `$ERR ... REPITA_EN_UNOS_SEGUNDOS` si devuelve false |
 | `REINICIOS` | no (es una consulta) | `D-60`, §9.4 (construido, sin banco): `RESULT:OK` con `REIN`, `CAUSA`, `UP` y `ANTES` |
 | `SET_VETO_CAMARA:ON` / `:OFF` · `SET_BARRERA_SERVICIO:ON` / `:OFF` | si | `bd16447`, 09/11, sin banco; SPEC 8 §6.1. `interruptores_orden()`, molde `SET_TIEMPOS`, cinco respuestas: `$ERR,CMD:<orden>,DESC:FORMATO_INVALIDO` si el valor no es `ON` ni `OFF`; `$ACK,CMD:<orden>:<valor>,RESULT:SIN_CAMBIO` si ya estaba asi; `$ERR ... DESC:RESPALDO_INVALIDO` solo con `OFF` y el respaldo perdido en este arranque (`D-148`); `$ERR ... DESC:NO_QUEDO_PUESTO` si lo releido tras `semaforo_reaplicarSalidas()` no es lo pedido (`D-149`); `RESULT:OK` si lo es. Locales: no viajan por radio |
+| `SET_CAMARA:<C/D>:<NA/NC>` · `SET_PLUMA_RETARDO:<s>` · `CONSULTA_INSTALACION` | si · si · **no** | `3ea00d4` (`N-187`), sin banco. `instalacion_orden()` de `instalacion.cpp`, molde `SET_TIEMPOS`, local; respuestas y literales en SPEC 8 §8.6; la app, §9.15 |
 
 **Rango de `SET_TIEMPOS` (`D-131`; construido en `9ffc049`, sin banco).** Verde y rojo 3..15 min, despeje 10..90 s,
 con una sola copia en `limites_ciclo.h`. Se juzga el numero que llego, sin truncar: `modoAutomatico_fijarTiempos()`
@@ -139,6 +141,7 @@ que viviera en una funcion comun los dejaria midiendo un bloque vacio (`N-89`).
 | `TEST_LEDS` | si | `$ERR ... NO_EN_SERVICIO_USE_EL_MAESTRO`, **rechazado a proposito**: la secuencia enciende VERDE sin mirar nada, y ese verde saldria mientras el Maestro da paso al otro sentido |
 | `REINICIOS` | no (es una consulta) | `D-60`, §9.4 (construido, sin banco): igual que en el Maestro, con `NODE:ESCLAVO` |
 | `SET_VETO_CAMARA` · `SET_BARRERA_SERVICIO` (SPEC 8 §6.1) | si | Las del Maestro (§3.1): el mismo `interruptores.cpp`, por el Bluetooth de este poste |
+| `SET_CAMARA` · `SET_PLUMA_RETARDO` · `CONSULTA_INSTALACION` | si · si · **no** | Las del Maestro (§3.1): `instalacion.cpp` identico (`cmp`); la consulta entra con y sin PIN |
 
 ### 3.3 El puente ESP32 de cada poste — `ESP32_Expansion/src/despachador.cpp`
 
@@ -596,10 +599,11 @@ equipo, §4; `state.pinVerificado`, `CMD:PIN:`). Ninguno arma al otro.
   Construido (`4105ba3`; `D-141`, `D-143`, §9.9 (f)): Prueba de focos plegada en «Mas» de Trafico, y un solo
   «Exportar registro» en Eventos (el `.txt` de «Exportar todo»).
 - **Con la clave** se ven ademas Tiempos, Ajustes (Degradado: testigo, eleccion del automatico, salida `D-52`;
-  hora y Courier; mandos directos; «Averias: camaras y barrera» con los dos interruptores de `D-94`; Practicar sin
-  poste) y Tramas, y la tarjeta que pide la eleccion del automatico al conectar. Rotulos «Operario»/«Tecnico» y
-  «Ajustes»: §9.9 (g) 6 (`D-145`, `4105ba3`; lo ejercen `tests/dom_claves.js` y `tests/dom_usabilidad.js` K); la
-  lista de lo que ensena la clave no crece (`D-141`). Quien hace Degradado lleva las dos claves (SPEC_6 A.1).
+  hora y Courier; mandos directos; «Averias: camaras y barrera» con los dos interruptores de `D-94`; «Instalacion:
+  camaras y barrera», §9.15; Practicar sin poste) y Tramas, y la tarjeta que pide elegir el automatico al conectar.
+  Rotulos «Operario»/«Tecnico» y «Ajustes»: §9.9 (g) 6 (`D-145`, `4105ba3`; lo ejercen `tests/dom_claves.js` y
+  `tests/dom_usabilidad.js` K); la lista de lo que ensena la clave crecio solo con «Instalacion» (`D-161`, que la pone
+  tras la clave pese a `D-141`). Quien hace Degradado lleva las dos claves (SPEC_6 A.1).
 - **El PIN no cambia:** cada orden que lo pide abre el teclado del PIN, tambien con la clave puesta. Tiempos y las
   dos de hora no salen sin el: el emisor las frena (al diario como no salidas) y abre el teclado; tecleado, se
   vuelve a pulsar. FORZAR_ROJO y AMBAR_EMERGENCIA salen sin ninguna clave.
@@ -1078,6 +1082,7 @@ Inventario y destino (QUEDA · PLEGADO · FUERA; «clave» = ya estaba tras ella
 | Tiempos (clave) | las cuatro franjas | cada una PLEGADO; su `<summary>` dice dias, horas y color, o «apagada» |
 | Ajustes (clave) | Practicar sin poste; Manual, Inteligente, Alcance | QUEDA |
 | Ajustes (clave) | interruptores de `D-94` | PLEGADO en «Averias: camaras y barrera»; abierto y en ambar si alguno esta fuera |
+| Ajustes (clave) | contacto de cada camara y retardo de bajada (`D-161`) | PLEGADO en «Instalacion: camaras y barrera», tras Averias (§9.15) |
 | Ajustes (clave) | Pedir paso | solo con `MODO:INTELIGENTE`; en otro modo, FUERA de la vista |
 | Ajustes (clave) | Degradado con testigo; «Si se cae la radio» | QUEDA con una frase; el resto del texto, PLEGADO en «Por que» |
 | Ajustes (clave) | Sincronizar hora | QUEDA |
@@ -1192,7 +1197,8 @@ app con un equipo. El PIN se pide igual (§4) y viaja igual; `juzgarTrama()` juz
 `SET_VETO_CAMARA` y `SET_BARRERA_SERVICIO` (`D-94`) se contestan como `interruptores_orden()`, con estado por poste, y
 su `$STATUS` publica `PLUMA:FUERA` y `CAM:NOVETO` (`D-150`, `D-151`). No imita: el `$EVENT` `INTERRUPTOR` de arranque
 (no reinicia), `NO_QUEDO_PUESTO` (relee la variable que acaba de escribir), un poste de la flota con el respaldo
-perdido, ni el `CAM:` real: sin veto publica `NOVETO` y si no `?`, porque sus camaras no dan flancos.
+perdido, ni el `CAM:` real: sin veto publica `NOVETO` y si no `?`, porque sus camaras no dan flancos. Las ordenes de
+la instalacion las contesta `js/sim_instalacion.js` (§9.15).
 
 **(d) Marcas y registros (`D-89`).** Con `Practica.activa()`: `Exportar.nombreFichero()` da
 `IOTVIAL_SIMULADO_<serie>_...txt`; la cabecera de la cinta (`Exportar.textoCinta()`) y la del diario
@@ -1419,3 +1425,34 @@ de la cinta: se CONSERVA la cifra (FW `d810f81`) y la da el simulador; (6), camp
 `FLOTA[].tramas`: se lee el `$STATUS` del simulador.
 Es PRODUCTO de la app: el simulador del repo sigue congelado (`CLAUDE.md` §4) y §8 no lo cuenta. Verde en practica
 dice que la app pinta bien, no que el equipo lo haga: no es evidencia ni entregable.
+
+### 9.15 Instalacion de camaras y barrera (`N-187`; `D-161`..`D-165`) — construido, sin banco ni telefono
+
+Lo que la app HACE (`js/instalacion.js`); las ordenes, las tramas y sus literales son de SPEC 8 §8.6 y no se copian.
+- **Donde:** Ajustes (`#tab-diag`, tras la clave `D-56`), plegado `#instalacion` justo despues de `#averias`; el cuerpo
+  lo escribe `Instalacion._cuerpo()` en `#instalacion-cuerpo`. Dice que es solo de este poste y que **cada carga de
+  firmware lo vuelve a fabrica** (NA, NA, 3 s): `-e all` borra su pagina (`D-161`); tras cargar, consultar y reenviar.
+- **Consulta sin PIN:** al abrir el plegado (una por apertura) y con «Consultar otra vez» sale `CONSULTA_INSTALACION`,
+  que esta en `SIN_PIN` de `app.js`. Se pinta lo que contesta el equipo, nunca lo pulsado: tras cada `RESULT:OK` se
+  vuelve a consultar; un `RESULT:` que no casa pone `!` en los tres valores y pide avisar.
+- **Cambios con PIN:** un boton por camara y contacto (`SET_CAMARA`) y un selector de 3 a 5 s, fabrica marcada, y
+  «Aplicar retardo» (`SET_PLUMA_RETARDO`); sin `pinVerificado`, `pedirPin()` antes. El rango vive solo en
+  `Instalacion.RETARDO`, que `tests/dom_simulador.js` cruza con `instalacion.h`. `RESULT:SIN_CAMBIO`, en ambar.
+- **Presencia:** cada `$ACK` trae `VE:`; el panel pinta «C x · D y» y, con un 1, ambar y un «Que falta» que manda
+  revisar con nadie delante el contacto declarado de esa camara. Sin `VE:`, `--`; con uno que no casa, `!` y el valor.
+- **Rechazos:** `FUERA_DE_RANGO`, `FORMATO_INVALIDO`, `PLUMA_VETADA` y `NO_QUEDO_PUESTO` tienen frase llana y su «Que
+  falta» en `Instalacion.RECHAZOS`. `PLUMA_VETADA` da cuatro pasos: sacar las camaras del veto en Averias, cambiar el
+  contacto, consultar hasta ver 0 con nadie delante, devolver el veto.
+- **Firmware anterior** (`9edb650`): las dos puntas contestan a la consulta `$ERR,CMD:AUTH_FAILED,DESC:PIN_INVALIDO`,
+  sin nombrar la orden. `Instalacion.rechazo()` se lo atribuye solo si la consulta fue lo ultimo que salio del panel
+  (un `SET_*` lo apaga), llega en `PLAZO_MS` (3000 ms, **elegido sin medir**) y no es de `NODE:PUENTE`; entonces vacia
+  a `--` y pinta `SIN_FW`. En `_traducirRechazo()` va despues de `Noche.rechazo()`. `DESCONOCIDO` no se trata: ningun
+  firmware lo contesta a la consulta (SPEC 8 §8.6 todavia lo nombra).
+- **Cambio de poste:** `Instalacion.alStatus()` desde la rama `$STATUS` (otro `NODE:`) y desde `olvidarEnlace()`
+  vacia los valores a `--`; abierto el plegado y con poste delante, reconsulta. Es la regla de §6: pintar los
+  valores del poste 1 en la pantalla del poste 2 es peor que un `--`.
+- **Practica:** `js/sim_instalacion.js`, que llaman los despachadores de `js/simulador.js`; estado por poste (`p.inst`,
+  fabrica NA, NA, 3). La consulta entra sin PIN por `SIN_PIN_M` en el Maestro y por `SimInstalacion.sinPin()` en el
+  Esclavo. No simula camara ni retardo: `VE:C0D0` siempre, nunca `PLUMA_VETADA`, y `NO_QUEDO_PUESTO` no sale (relee
+  la variable que acaba de escribir).
+Ejercen `tests/dom_interruptores.js` (J1..J8) y `tests/dom_simulador.js`. Sin banco: ninguna tarjeta lo contesto aun.

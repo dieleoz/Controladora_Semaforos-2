@@ -32,7 +32,7 @@ workflows en paralelo (ficheros disjuntos). Decisiones ya tomadas: no se vuelven
 4. **Cuando vuelvan los registros de Marco (10/11):** leerlos enteros y contando (`CLAUDE.md` §7): `RTT:` con LoRa,
    cobertura en metros, tiempo real de subida y bajada del brazo (el que decide: con >10 s ningun retardo protege),
    camaras y C5. Con eso se ajustan rangos de `N-187` desde la app, sin firmware.
-5. **Frentes:** banco de Marco (10/11), `N-187`, El Sisga tras banco. Version siguiente: `roadmap.md` orden, fila 5.
+5. **Frentes:** banco de Marco (10/11), `N-187`, El Sisga tras banco. Version siguiente: `roadmap.md` orden, fila 6.
 
 ## Que firmware hay en cada equipo (`CLAUDE.md` §0.2)
 

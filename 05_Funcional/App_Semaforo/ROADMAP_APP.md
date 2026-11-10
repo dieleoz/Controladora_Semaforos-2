@@ -23,6 +23,7 @@ prueba se entrega vista en rojo (`CLAUDE.md` §15). «Sin telefono» = sin medir
 | Nueve rechazos con frase llana; `RESULT:` desconocido en rojo (`N-183`, `D-156`) | §7.16 | `f41caf8` | — |
 | Interruptores en Ajustes > Averias (`D-94`..`D-97`, `D-148`..`D-152`) | §7.10 | `bd16447` | banco |
 | La practica contesta los interruptores (`PLUMA:FUERA`, `CAM:NOVETO`) | §9.10 (c) | `666d904`, `6242f8f` | — |
+| Ajustes > Instalacion: NA/NC por camara y retardo 3..5 s (`js/instalacion.js`, `js/sim_instalacion.js`; `D-161`..`D-165`) | §9.15 | `3ea00d4`, `c10e60f` | banco |
 | Espera de `SET_DEG_AUTO` atada a la conexion (`D-130`) | §3.ter.bis | `6828945` | — |
 | Registro de la sesion: cambios de `$STATUS`, un `.txt`, copia fuera de CACHE (`D-55`) | §9.3 | `71241ec` | `copy` |
 | Registro en el puente, `CMD:LOG,DESDE:<N>` (`D-72`..`D-75`, `D-100`) | §9.8 | `cd437b2` | banco |

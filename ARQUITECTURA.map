@@ -93,6 +93,7 @@ Quien cita `ARQUITECTURA_hist.map`: `README.md` (desde el 15/10) y la cronica de
 |---|---|---|
 | enclavamiento, nunca verde y rojo (`SFTY-2`) | `Maestro/src/semaforo.cpp:105` `escribirPines()`; `Esclavo/src/semaforo.cpp:79` | `compilar_dos_puntas.ps1` (semaforo.cpp:53); `Validacion_Automatico` |
 | pluma en la puerta unica (`SFTY-28`) | `semaforo.cpp:105` `escribirPines()` (Maestro) | idem |
+| parametros de instalacion: `NA`/`NC` por camara y retardo 3..5 s (`D-161`..`D-165`, `SPEC_8` §8; sin banco) | `{Maestro,Esclavo}/src/instalacion.cpp` (identicos), `instalacion_flash.cpp`; `botones.cpp` `camara_leerPin()`; `semaforo.cpp` `instalacion_retardoPlumaMs()` | `Validacion_Automatico` bloque K (solo Maestro); ordenes y literales: `app_01_comandos`, `esclavo_06_no_abre_paso`, `tests/dom_simulador.js` |
 | todo-rojo de despeje (`SFTY-4`) | `Maestro/src/coordinador.cpp` | `compilar_dos_puntas.ps1:60`, `compilar_degradado.ps1:71` |
 | watchdog (`SFTY-1`) | `main.cpp` de cada rol | ninguno: solo PlatformIO lo compila |
 | menu en rojo fijo (`SFTY-12`) | `Maestro/src/menu.cpp:13` | ninguno: `menu_setup()` lo sustituyen los arneses |
@@ -151,12 +152,27 @@ Quien cita la transcripcion: `SPEC_1_Ciclo_y_Luces.md:109` (§2 y §5), `SPEC_1:
 |---|---|---|
 | `Validacion_Ciclo/compilar.ps1` | `arnes_ciclo.cpp` (`ciclo_degradado.h`) | funcion pura: sin maquina de estados ni tiempo |
 | `Validacion_Respaldo/compilar.ps1` | `arnes_respaldo.cpp`, `respaldo.cpp` | no ejerce el arranque; compara identidad M/E |
-| `Validacion_Automatico/compilar.ps1` | Maestro: coordinador, botones, semaforo, modo_automatico, modo_inteligente, demanda, interruptores | solo el Maestro; no ejerce Degradado ni microcorte |
-| `Validacion_Automatico/compilar_dos_puntas.ps1` | M: coordinador:60, semaforo:61, modo_automatico:62, modo_noche:63, adaptador_maestro:65; E: semaforo:73, main:74, modo_degradado:75, config_ciclo:76, demanda:77, respaldo:78, deg_auto:79, interruptores:80, adaptador_esclavo:81 | el microcorte y `respaldo.cpp`/`protocolo.cpp` del Maestro no entran |
-| `Validacion_Automatico/compilar_degradado.ps1` | M: coordinador, semaforo, modo_degradado, modo_ambar, modos, respaldo, `rtc_periferico.cpp` (sustituto); E: `reloj.cpp` REAL, mas los seis hermanos, `deg_auto.cpp` e `interruptores.cpp` | no ejerce el microcorte |
-| `Simulaciones/puente_esp32/compilar.ps1` | `arnes_puente.cpp`; M: bluetooth, semaforo, coordinador, modo_automatico, modos, demanda, identidad, modo_noche, interruptores; E: bluetooth, semaforo, demanda, identidad, modo_degradado, interruptores | el ESP32 es modelo en Python: no carga su binario |
+| `Validacion_Automatico/compilar.ps1` | Maestro: coordinador, botones, semaforo, modo_automatico, modo_inteligente, demanda, interruptores, instalacion (+ `instalacion_modelo.inc`, `instalacion_bloque.inc`) | solo el Maestro; no ejerce Degradado ni microcorte |
+| `Validacion_Automatico/compilar_dos_puntas.ps1` | M: coordinador:60, semaforo:61, instalacion:62, modo_automatico:63, modo_noche:64, adaptador_maestro:66; E: semaforo:74, instalacion:75, main:76, modo_degradado:77, config_ciclo:78, demanda:79, respaldo:80, deg_auto:81, interruptores:82, adaptador_esclavo:83 (+ `instalacion_dobles.inc`) | el microcorte y `respaldo.cpp`/`protocolo.cpp` del Maestro no entran |
+| `Validacion_Automatico/compilar_degradado.ps1` | M: coordinador, semaforo, modo_degradado, modo_ambar, modos, respaldo, `rtc_periferico.cpp` (sustituto); E: `reloj.cpp` REAL, mas los seis hermanos, `deg_auto.cpp`, `interruptores.cpp` e `instalacion.cpp` (M:73, E:95) | no ejerce el microcorte |
+| `Simulaciones/puente_esp32/compilar.ps1` | `arnes_puente.cpp`; M: bluetooth, semaforo, coordinador, modo_automatico, modos, demanda, identidad, modo_noche, interruptores, instalacion; E: bluetooth, semaforo, demanda, identidad, modo_degradado, interruptores, instalacion (+ `instalacion_dobles.inc`) | el ESP32 es modelo en Python: no carga su binario |
 
 `ESP32_Expansion/src/despachador.cpp` no lo compila ningun arnes (SPEC_4:582): solo lo cruza PlatformIO.
+
+**Ficheros de `N-187` (`SPEC_8` §8, sin banco) y quien los abre:**
+
+| fichero | que es | quien lo abre |
+|---|---|---|
+| `{Maestro,Esclavo}/{include,src}/instalacion.{h,cpp}` | formato de la pagina, getters, `instalacion_orden()`; identicos M/E | los cuatro guiones de arriba (C++ real); `app_01_comandos` y `esclavo_06_no_abre_paso` (texto); `orquestador*.cpp` y `tests/dom_simulador.js` releen `PLUMA_RETARDO_*` de `instalacion.h` |
+| `{Maestro,Esclavo}/{include,src}/instalacion_flash.{h,cpp}` | acceso crudo a la pagina `0x0800F400` | solo PlatformIO: en PC lo sustituyen los `.inc` |
+| `Validacion_Automatico/instalacion_modelo.inc` | doble de la pagina con memoria (borrada = fabrica; falla inyectable) | `arnes_automatico.cpp`, a nivel de fichero |
+| `Validacion_Automatico/instalacion_bloque.inc` | bloque K: ordenes, NA/NC, retardo, siembra | `arnes_automatico.cpp`, dentro de `main()` |
+| `Validacion_Automatico/instalacion_dobles.inc` | pagina siempre borrada (fabrica), sin escritura; `camaras_sembrar()` vacio | `dos_puntas/adaptador_esclavo.cpp`, `puente_esp32/arnes_puente.cpp` |
+| `App_Semaforo/js/instalacion.js` | panel de Ajustes, `Instalacion.RETARDO`, `rechazo()` | `index.html`; `tests/dom_simulador.js`, `tests/dom_interruptores.js`, `app_01_comandos` |
+| `App_Semaforo/js/sim_instalacion.js` | el simulador de practica de las tres ordenes y la consulta | `index.html`; `tests/dom_simulador.js` |
+
+Punto ciego: `NC` en `Esclavo/src/botones.cpp` no lo compila ningun arnes (el bloque K es solo Maestro; los dobles
+vacian `camaras_sembrar()`).
 Antes de conectar un arnes se inyecta un defecto en el `.cpp` real y se exige que baje la cuenta (CLAUDE.md §6).
 
 ---

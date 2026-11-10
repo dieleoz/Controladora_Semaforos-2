@@ -46,10 +46,13 @@ que es donde se anotan las medidas.
 > **p10** (`CAM_C_PIN`), cámara 2 entre `J16` p11 (3,3 V) y **p12** (`CAM_D_PIN`)— y la
 > **talanquera en `J15`** por relé a la entrada `OPEN` de la centralita. La configuración de cada
 > cámara, por el **Manual 9** y `D-13` (que sigue vigente en todo lo demás). Lo que el que cablea
-> tiene que saber, medido en el firmware: **las dos cámaras de un poste hacen LO MISMO**, **ninguna
-> frena la pluma** (baja con un coche debajo) y **la app dice `OK — las dos ven` en cuanto detecta
-> CUALQUIERA de las dos**, aunque la otra no haya detectado nunca: **cada cámara se comprueba con
-> el multímetro en su borne** (paso 11 de la guía).
+> tiene que saber, medido en el firmware: **las dos cámaras de un poste hacen LO MISMO**: en rojo,
+> **cualquiera de las dos con presencia retiene la pluma arriba** y avisa a los 90 s (`D-33`, `SPEC_8` §3; salvo
+> con las cámaras fuera del veto, `D-94`), y **la app dice `OK` en cuanto detecta CUALQUIERA de las dos**, aunque la
+> otra no haya detectado nunca (`camara_estado()`): **cada cámara se comprueba con
+> el multímetro en su borne** (paso 11 de la guía). Cableadas, el contacto NA/NC de cada cámara y el retardo de
+> bajada se fijan por poste en la app, Ajustes > «Instalación: cámaras y barrera» (`SPEC_8` §8, `SPEC_4` §9.15; sin
+> banco); cada carga de firmware los vuelve a fábrica (NA, NA, 3 s).
 >
 > El paso 1 **no es opcional**: es la corrección de la causa raíz del fallo de comunicación que aparecía
 > al paso de cada ciclo, en los tres modos, y del repetidor que no enlazaba. Sin él, el firmware nuevo
