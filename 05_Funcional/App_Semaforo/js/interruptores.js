@@ -196,7 +196,7 @@ const Interruptores = {
     if (!data) return null;
     const txt = String(data.ORIGEN || '') + ' ' + String(data.DETALLE || '');
     const partes = [];
-    const una = /CAM_NOVETO_([CD])\b/.exec(txt);
+    const una = /CAM_NOVETO_([CD])(?![A-Za-z0-9])/.exec(txt);
     if (una) {
       partes.push('Al arrancar, este poste sigue con la cámara ' + una[1] + ' FUERA DEL VETO: no retiene la ' +
                   'barrera ni pide verde. Si ya ve bien, devuélvale el veto desde Ajustes.');

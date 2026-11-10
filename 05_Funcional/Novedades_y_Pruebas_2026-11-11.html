@@ -336,7 +336,7 @@ button#btnPdf{
     <li>Pase el Poste 1 a <strong>VOLVER AL MENÚ</strong> y <strong>AUTOMÁTICO</strong>. Cronometre el primer rojo hasta que el brazo baje.</li>
     <li>Repítalo en el <strong>Poste 2</strong>.</li>
   </ol>
-  <div class="espera">Se espera: al cortar, el brazo <strong>sube</strong> y se queda arriba los 2 minutos. Al volver la energía <strong>no baja</strong> en ningún momento del arranque ni en ámbar. En el primer rojo de AUTOMÁTICO baja a los <strong>3 s</strong>. Cualquier bajada al arrancar, aunque sea corta, es <strong>NO OK</strong>.</div>
+  <div class="espera">Se espera: al cortar, el brazo <strong>sube</strong> y se queda arriba los 2 minutos. Al volver la energía <strong>no baja</strong> en ningún momento del arranque ni en ámbar. En el primer rojo de AUTOMÁTICO baja a los <strong>3 s</strong>. En el <strong>Poste 1</strong>, cualquier bajada al arrancar, aunque sea corta, es <strong>NO OK</strong>. En el <strong>Poste 2</strong> el controlador arranca en rojo: <strong>puede bajar a unos 3 s</strong> del arranque mientras siga en rojo; es NO OK si baja estando en ámbar intermitente. Anote a qué segundo bajó.</div>
   <div class="horas">
     <label class="campo">Poste 1: qué hizo el brazo al cortar, y a los 2 minutos <input type="text" id="h6a" class="hora"></label>
     <label class="campo">Poste 1: ¿se movió hacia abajo al volver la energía? (sí/no) <input type="text" id="h6b" class="hora"></label>
@@ -365,7 +365,7 @@ button#btnPdf{
   </ul></div>
   <ol>
     <li>Pulse <strong>Sacar la cámara C</strong>. Copie el aviso antes de confirmar; confirme y meta el PIN. Copie Eventos y la línea de estado del plegado.</li>
-    <li>Ponga el puente en <strong>C</strong> (pata 9-10). En el siguiente rojo, cronometre hasta que baje el brazo. Quite el puente.</li>
+    <li>Ponga el puente <strong>durante un VERDE</strong> (con el brazo arriba; en rojo con el brazo ya abajo, se queda abajo) en <strong>C</strong> (pata 9-10). En el siguiente rojo, cronometre hasta que baje el brazo. Quite el puente.</li>
     <li>Ponga el puente en <strong>D</strong> (pata 11-12). Mire el siguiente rojo. Quite el puente.</li>
     <li>Quite la energía del poste y vuélvala. Copie el aviso de arranque de Eventos. Vuelva a <strong>VOLVER AL MENÚ</strong> y <strong>AUTOMÁTICO</strong>.</li>
     <li>Pulse <strong>Devolver la C</strong>. Repita los pasos 1 a 3 con <strong>Sacar la cámara D</strong> (ahora el puente en D debe dejar bajar y en C retener). Pulse <strong>Devolver la D</strong>.</li>
@@ -399,7 +399,7 @@ button#btnPdf{
   </ul></div>
   <ol>
     <li>Pulse <strong>1 mala: bajar</strong> (confirme y PIN). Copie Eventos.</li>
-    <li>Ponga el puente en <strong>C</strong> (pata 9-10). Anote la hora. Mire los rojos: el brazo debe quedarse arriba (la C todavía retiene).</li>
+    <li>Ponga el puente <strong>durante un VERDE</strong> en <strong>C</strong> (pata 9-10). Anote la hora. Mire los rojos: el brazo debe quedarse arriba (la C todavía retiene).</li>
     <li>Espere <strong>22 minutos</strong> desde la hora anotada. Copie la alarma de Eventos y la línea de Tramas que trae <code>CAM_PEGADA</code>. Mire el brazo en los dos rojos siguientes.</li>
     <li>Con el puente aún puesto, pulse <strong>1 mala: arriba</strong>. Mire los dos rojos siguientes.</li>
     <li>Quite el puente. Copie Eventos y mire el siguiente rojo.</li>
@@ -429,7 +429,7 @@ button#btnPdf{
   </ul></div>
   <ol>
     <li>Pulse <strong>Sacar la cámara D</strong> (confirme y PIN).</li>
-    <li>Ponga el puente en <strong>C</strong>. Anote la hora. Espere <strong>22 minutos</strong>, hasta la alarma PEGADA de la C. Copie la alarma. Mire los dos rojos siguientes.</li>
+    <li>Ponga el puente en <strong>C</strong>. Anote la hora. Espere <strong>22 minutos</strong>, hasta la alarma PEGADA de la C. Copie la alarma (debe traer <code>ACCION:PLUMA_ARRIBA</code>). Mire los dos rojos siguientes.</li>
     <li>Pulse <strong>Ninguna: bajar</strong>. Copie el aviso antes de confirmar; confirme. Mire los dos rojos siguientes.</li>
     <li>Pulse <strong>Ninguna: arriba</strong>. Mire el siguiente verde y rojo.</li>
     <li>Quite el puente. Pulse <strong>Devolver la D</strong>. Deje la línea de estado como de fábrica: las dos con veto, &laquo;1 mala&raquo; y &laquo;Ninguna&raquo; en arriba. Copie la línea.</li>

@@ -183,6 +183,9 @@ module.exports = async function pruebaInterruptores(montarAppLimpia, assert) {
   entra('EVENT,NODE:ESCLAVO,ORIGEN:INTERRUPTOR,DETALLE:ARRANQUE_CAM_NOVETO_D,HORA:08:00:00');
   assert(/c[aá]mara D FUERA DEL VETO/.test(ultimo()) && !/c[aá]maras FUERA/.test(ultimo()),
     `I14 (D-152, D-166): el aviso de arranque de UNA camara la nombra: "${ultimo().slice(0, 160)}"`);
+  entra('EVENT,NODE:MAESTRO,ORIGEN:INTERRUPTOR,DETALLE:ARRANQUE_CAM_NOVETO_C_Y_BARRERA_FUERA,HORA:08:00:00');
+  assert(/c[aá]mara C FUERA DEL VETO/.test(ultimo()) && !/c[aá]maras FUERA/.test(ultimo()),
+    `I14b (interruptores.cpp:114-115): una camara y la barrera fuera nombra la C: "${ultimo().slice(0, 160)}"`);
 
   // N-187 (SPEC_8 8.6; P3 del responsable 09/11: R en 3..5 s, fabrica 3). Datos asimetricos (C NC, D NA, VE C0D1)
   // para que un indice cruzado no pase.
