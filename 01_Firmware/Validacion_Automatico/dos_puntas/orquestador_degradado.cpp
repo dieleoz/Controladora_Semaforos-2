@@ -748,7 +748,7 @@ static void bloqueC2() {
 
 #include "orquestador_deg_auto.inc"   // BLOQUE H: A-15, el Degradado automatico (SPEC_2 7.ter)
 #include "orquestador_deg_fin.inc"    // BLOQUE J: D-51 corregida, el rojo total del Degradado
-// ---------------------------------------------------------------------------
+#include "orquestador_deg_esc.inc"    // BLOQUE S: D-171, la gracia de SFTY-6 no es un ESC: del Poste 2
 int main() {
   std::printf("==============================================================\n");
   std::printf(" LAS DOS PUNTAS EN MODO DEGRADADO - el C++ REAL de las dos,\n");
@@ -2109,7 +2109,7 @@ int main() {
     }
   }
   bloqueH();
-  bloqueJ(DEG_DESPEJE_SEG);
+  bloqueJ(DEG_DESPEJE_SEG); bloqueS();
   {
     char ra[560];
     std::snprintf(ra, sizeof(ra),

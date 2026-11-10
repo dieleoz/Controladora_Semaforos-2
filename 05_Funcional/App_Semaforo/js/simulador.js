@@ -6,7 +6,7 @@
 // da un reloj inyectado. No pinta nada: lo usa js/practica.js en el sitio del puerto falso.
 // Lo que NO modela (y una respuesta que dependa de ello sale de la rama comun): la radio real entre postes, el reloj
 // de respaldo (REINICIAR_RELOJ contesta siempre que el cristal arranca), la flash (nunca FLASH_NO_RELEE ni
-// NO_GUARDADO), la transicion del ciclo (CAMBIAR_TURNO nunca EN_TRANSICION_REINTENTE), las camaras (CAM:? o NOVETO) y
+// NO_GUARDADO), la transicion del ciclo (CAMBIAR_TURNO nunca EN_TRANSICION_REINTENTE), las camaras (letra fija) y
 // el puente ESP32 (LEER_RTC, SET_RTC y LOG no se contestan: SPEC_4 3.3 es otra punta).
 // Verde en practica dice que la app pinta bien, no que el equipo lo haga: no es evidencia (D-121).
 const Simulador = (() => {

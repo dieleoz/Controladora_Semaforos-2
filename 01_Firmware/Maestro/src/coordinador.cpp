@@ -1544,11 +1544,9 @@ bool coordinador_rojoEsclavoConfirmado() {
 // de que color esta la otra, y decirlo es mas util que un color plausible; la app lo escribe "sin dato".
 // D-171: tambien en MENU (C_MENU_IDLE no pasa a C_FALLO): sin respuesta fresca, con el borde de SFTY-6.
 //
-// EL AMBAR SE MIRA ANTES QUE NADA porque en MODO_AMBAR esta punta ordena el ambar y se
-// calla a proposito -main.cpp no llama al coordinador en ese modo-, asi que quienVerde
-// se queda congelado en lo que fuera. Es tambien el modo al que N-142 lleva el cruce
-// cuando el Esclavo avisa de SU ambar, asi que este es el caso en que las dos puntas
-// estan en ambar y ademas se sabe.
+// EL AMBAR SE MIRA ANTES QUE NADA porque en MODO_AMBAR esta punta ordena el ambar y se calla a proposito -main.cpp
+// no llama al coordinador en ese modo-, asi que quienVerde se queda congelado en lo que fuera. Es tambien el modo al
+// que N-142 lleva el cruce cuando el Esclavo avisa de SU ambar: las dos puntas estan en ambar y ademas se sabe.
 const char* coordinador_estadoEsclavo() {
   if (modoActual_get() == MODO_AMBAR) return "AMBAR";
   // Cinta IOTVIAL_4D2007 (29/09): en Degradado main.cpp no llama al coordinador y nadie
@@ -1557,6 +1555,8 @@ const char* coordinador_estadoEsclavo() {
   if (modoActual_get() == MODO_DEGRADADO) return "?";
   if (estadoC == C_FALLO || estadoC == C_NOCHE) return "?";   // D-110: lo publica el Esclavo
   if (tUltimaRespuestaEsclavo == 0 || millis() - tUltimaRespuestaEsclavo > SFTY6_SILENCIO_MS) return "?";   // D-171
+  // D-171: la gracia de forzarRojoTotal()/iniciarModo() renueva ese reloj SIN respuesta; el rojo pedido no es dato.
+  if (quienVerde == QV_NINGUNO && !rojoEsclavoConfirmado) return "?";
   // N-162 (cinta del Sisga, 10/09, 12:20:54-12:21:10): quienVerde se queda en QV_ESCLAVO
   // hasta que el Maestro llega a VERDE, pero el Esclavo YA esta en rojo desde que llego
   // su ACK_RED. Sin esto la trama publicaba ESC:VERDE durante todo el despeje y durante

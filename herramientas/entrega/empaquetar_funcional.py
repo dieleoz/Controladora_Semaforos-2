@@ -15,6 +15,12 @@
 import hashlib, os, re, shutil, subprocess, sys, zipfile
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# D-168: la polaridad de J15 se elige al compilar con PLATFORMIO_BUILD_FLAGS (pines.h). Con ella puesta, el mismo
+# <hash> da otro binario y el nombre <producto>_<fecha>_<hash> no lo distingue: no se empaqueta nada.
+if os.environ.get("PLATFORMIO_BUILD_FLAGS", "").strip():
+    sys.exit("ABORTA: PLATFORMIO_BUILD_FLAGS esta definida (%r). Con ella el mismo hash compila otro firmware "
+             "(D-168, polaridad J15). Quitala (set PLATFORMIO_BUILD_FLAGS=) y vuelve a lanzar."
+             % os.environ["PLATFORMIO_BUILD_FLAGS"])
 if len(sys.argv) not in (4, 5):
     sys.exit(__doc__)
 FECHA, HTML, ACTA = sys.argv[1], sys.argv[2], sys.argv[3]

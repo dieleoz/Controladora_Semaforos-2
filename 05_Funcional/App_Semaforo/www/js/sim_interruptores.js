@@ -2,8 +2,12 @@
 // SIMULADOR DE PRACTICA de SPEC_8 6 y 9 (D-94, D-166, D-169): interruptores_orden() de {Maestro,Esclavo}/src/
 // interruptores.cpp, identico en las dos puntas y local al poste. Va aparte porque js/simulador.js esta en 500 lineas;
 // este lo llama desde sus despachadores. Estado por poste: p.vetoC, p.vetoD (inhibida), p.mala1, p.mala2 (true =
-// BAJA), p.barreraFuera; RESPALDO_INVALIDO con p.respaldoPerdido (D-148). No simula camaras: cada una '?' (sin
-// flanco), asi que CAM: es '?' o NOVETO, igual que plumaCam() antes. LITERALES: los de interruptores.cpp;
+// BAJA), p.barreraFuera; RESPALDO_INVALIDO con p.respaldoPerdido (D-148); p.camC, p.camD: la letra de camara_letra()
+// ('O' OK, '?' sin flanco, 'C' CIEGA, 'P' PEGADA). Sin letra puesta, '?': el firmware antes del primer flanco y el
+// CAM:? de las cintas de campo; la flota de js/practica.js pone las suyas. De esas letras salen CONSULTA_VETO y CAM:
+// con la regla de camara_estado() + interruptores_camNoVeto(). NO MODELA: flancos,
+// silencio ni nivel (nada pone sola una 'C' o una 'P' ni la recupera), las alarmas CAM_PEGADA/CAM_CIEGA, ni el efecto
+// de una camara mala sobre la pluma (D-169, MALAx): la letra solo se lee. LITERALES: los de interruptores.cpp;
 // tests/dom_simulador.js juzga estas tramas contra el C++ y manda el C++.
 const SimInterruptores = (() => {
   const SUJETO = { 'SET_VETO_CAMARA': ['ON', 'OFF'], 'SET_CAMARA_MALA': ['ARRIBA', 'BAJA'],
@@ -18,8 +22,11 @@ const SimInterruptores = (() => {
     const m = /^([12]):(.*)$/.exec(v);
     return m ? { claves: ['mala' + m[1]], v: m[2] } : null;
   }
-  const consulta = (p) => '$ACK,CMD:CONSULTA_VETO,RESULT:C' + (p.vetoC ? '0' : '1') + '?_D' + (p.vetoD ? '0' : '1') +
-                          '?_M1' + (p.mala1 ? 'B' : 'A') + '_M2' + (p.mala2 ? 'B' : 'A');
+  // camara_letra(i), sin mirar la inhibicion (botones_vigilante.inc).
+  const letra = (p, k) => (['O', '?', 'C', 'P'].indexOf(p['cam' + k]) >= 0 ? p['cam' + k] : '?');
+  const consulta = (p) => '$ACK,CMD:CONSULTA_VETO,RESULT:C' + (p.vetoC ? '0' : '1') + letra(p, 'C') + '_D' +
+                          (p.vetoD ? '0' : '1') + letra(p, 'D') + '_M1' + (p.mala1 ? 'B' : 'A') + '_M2' +
+                          (p.mala2 ? 'B' : 'A');
   // a: la orden sin "CMD:PIN:<pin>:". Devuelve la trama o null si no es de este modulo.
   function orden(p, a) {
     if (a === 'CONSULTA_VETO') return consulta(p);
@@ -34,8 +41,13 @@ const SimInterruptores = (() => {
     s.claves.forEach(k => { p[k] = pon; });
     return enEstado() ? '$ACK,CMD:' + c + ',RESULT:OK' : '$ERR,CMD:' + c + ',DESC:NO_QUEDO_PUESTO';
   }
-  // D-151/D-166: sin camaras simuladas la peor de las no inhibidas es '?': NOVETO si hay alguna inhibida.
-  const cam = (p) => (p.vetoC || p.vetoD ? 'NOVETO' : '?');
+  // camara_estado(): la peor de las NO inhibidas que se pueden juzgar ('?' no cuenta); ninguna, '?'. Y D-151/D-166
+  // (interruptores_camNoVeto): con alguna inhibida y la peor OK o '?', NOVETO.
+  function cam(p) {
+    const vivas = ['C', 'D'].filter(k => !p['veto' + k]).map(k => letra(p, k)).filter(l => l !== '?');
+    const e = vivas.indexOf('P') >= 0 ? 'PEGADA' : vivas.indexOf('C') >= 0 ? 'CIEGA' : vivas.length ? 'OK' : '?';
+    return (p.vetoC || p.vetoD) && (e === 'OK' || e === '?') ? 'NOVETO' : e;
+  }
   // La consulta sin PIN en el Esclavo (en el Maestro entra por SIN_PIN_M): null si cmd no es ella.
   const sinPin = (p, cmd) => (cmd === 'CMD:CONSULTA_VETO' ? consulta(p) : null);
   return { orden, cam, sinPin };

@@ -427,8 +427,10 @@ pluma esta arriba por diseno (`luzPideArriba`), no por un veto (SPEC 8 §1); **(
 `coordinador_estadoEsclavo()` publica `?` (el Maestro no lo sabe, `js/luces_tablas.js`) en Degradado, en `C_FALLO`, en
 `C_NOCHE` y, en cualquier otro modo salvo Ambar, cuando no hay respuesta del Poste 2 o la ultima tiene mas de
 `SFTY6_SILENCIO_MS`: el mismo criterio que `tieneComunicacion` de SFTY-6. Antes, en `MENU` sin radio el coordinador se
-quedaba en `C_MENU_IDLE` (no pasa a `C_FALLO`) y publicaba `ESC:ROJO` sin saberlo. Lo ejerce R2 del arnes del Degradado
-de dos puntas.
+quedaba en `C_MENU_IDLE` (no pasa a `C_FALLO`) y publicaba `ESC:ROJO` sin saberlo. Tampoco cuenta la gracia de SFTY-6:
+`coordinador_forzarRojoTotal()` (Manual, `FORZAR_ROJO`) y `coordinador_iniciarModo()` (Automatico, Inteligente) renuevan
+el reloj de la respuesta sin que llegue ninguna; hasta el `CMD_ACK_RED` de esa orden (`quienVerde == QV_NINGUNO` y el
+rojo sin constar) se publica `?`, no `ROJO`. Lo ejercen R2 y S1..S5 del arnes del Degradado de dos puntas.
 
 **`D-53` (`N-176`), construido, sin banco: `ESTADO:ROJO+AMAR`**, 9 caracteres, el tope del campo
 (`semaforo_nombreEstado()`, SPEC 1 §3.3 (9)), durante los `ROJO_AMARILLO_SEG` antes de cada verde, en las dos

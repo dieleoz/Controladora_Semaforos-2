@@ -26,7 +26,8 @@ const Practica = (() => {
     poste(6, 'ESCLAVO', 'C12002', '8974932', 'km120', { modo: 'DEGRADADO', radio: false, rf: null }),
     poste(7, 'MAESTRO', 'D12001', 'd3606be', 'pr12', { modo: 'NOCHE', noche: NOCHE(true, 'SALIENDO') }),
     poste(8, 'ESCLAVO', 'D12002', 'd3606be', 'pr12', { modo: 'SUBORDINADO' }),
-    poste(9, 'MAESTRO', 'D45001', 'd3606be', 'pr45', { modo: 'INTELIGENTE' }),              // FW distinto entre postes
+    poste(9, 'MAESTRO', 'D45001', 'd3606be', 'pr45', { modo: 'INTELIGENTE', camC: 'O', camD: '?' }),   // FW distinto;
+    // camaras distintas (D-166): la C ya vio un coche, la D aun no: CONSULTA_VETO C1O_D1?, CAM:OK
     poste(10, 'ESCLAVO', 'D45E2B', '6bd1e4f', 'pr45', { modo: 'SUBORDINADO' }),             // y serie cambiada
     poste(11, 'MAESTRO', 'B0B0A1', 'd810f81', null, { modo: 'MENU', radio: false, rf: 0, rotulo: 'SEM-SIN-MATRICULA' })
   ];

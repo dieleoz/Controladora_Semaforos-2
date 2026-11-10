@@ -290,4 +290,32 @@ module.exports = async function pruebaInterruptores(montarAppLimpia, assert) {
     entra(enEsclavo);
     assert(consultas() === 1, `J7: al reconectar con el plegado abierto reconsulta (consultas ${consultas()})`);
   }
+
+  // K1 (D-166, SPEC_8 9.5): la Practica contesta CONSULTA_VETO con la letra de CADA camara, como camara_letra()
+  // (botones_vigilante.inc), y CAM: sale del MISMO estado (camara_estado() + interruptores_camNoVeto()). Datos
+  // asimetricos C distinto de D para que un indice cruzado no pase. Sin letra puesta, '?': es lo que da el firmware
+  // antes del primer flanco (camHuboFlanco) y lo que traen los 653 $STATUS de las cintas de campo (CAM:?).
+  const SI = require('../js/sim_interruptores.js');
+  const cpp = require('fs').readFileSync(require('path').join(__dirname, '..', '..', '..', '01_Firmware', 'Maestro',
+                                                              'src', 'interruptores.cpp'), 'utf8');
+  const PAR = (/PAR\[2\]\[4\] = \{(.*)\};/.exec(cpp) || ['', ''])[1];
+  const casos = [[{ vetoD: true }, 'C1?_D0?_M1A_M2A', 'NOVETO'],
+                 [{ camC: 'C', camD: 'O', vetoD: true, mala2: true }, 'C1C_D0O_M1A_M2B', 'CIEGA'],
+                 [{ camC: 'O', camD: 'P', mala1: true }, 'C1O_D1P_M1B_M2A', 'PEGADA'],
+                 [{ camC: 'P', camD: '?', vetoC: true }, 'C0P_D1?_M1A_M2A', 'NOVETO'],
+                 [{ camC: '?', camD: 'O' }, 'C1?_D1O_M1A_M2A', 'OK'],
+                 [{ camC: '?', camD: '?' }, 'C1?_D1?_M1A_M2A', '?']];
+  casos.forEach(([p, res, cam]) => {
+    const r = SI.orden(p, 'CONSULTA_VETO'), c = SI.cam(p);
+    const pares = [res.slice(1, 3), res.slice(5, 7)].filter(x => PAR.indexOf('"' + x + '"') < 0);
+    assert(r === '$ACK,CMD:CONSULTA_VETO,RESULT:' + res && c === cam && pares.length === 0,
+      `K1: ${JSON.stringify(p)} da ${res} y CAM:${cam} (sale ${r.slice(30)} y CAM:${c}; pares sin literal en ` +
+      `interruptores.cpp: ${pares.join(',') || 'ninguno'})`);
+  });
+  // K2: la flota de la Practica lleva un poste con camaras distintas (PR 45 Maestro: C con flanco, D sin el), para
+  // que la Practica pinte 'O' y una C distinta de la D sin inventar una averia.
+  const f9 = JSON.parse(JSON.stringify(require('../js/practica.js').FLOTA[8]));
+  const r9 = SI.orden(f9, 'CONSULTA_VETO'), c9 = SI.cam(f9);
+  assert(r9 === '$ACK,CMD:CONSULTA_VETO,RESULT:C1O_D1?_M1A_M2A' && c9 === 'OK',
+    `K2: el poste 9 de la Practica (${f9.serie}) contesta C1O_D1? y CAM:OK: ${r9.slice(30)} CAM:${c9}`);
 };
