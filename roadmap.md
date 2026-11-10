@@ -118,6 +118,12 @@ a medir en banco), cada uno con su spec en el mismo commit.
   con su condicion en [`ROADMAP_APP.md`](05_Funcional/App_Semaforo/ROADMAP_APP.md), y Pasos Peatonales alli.
 - De arquitecto y QA de `N-187`: prueba de la pegada y del aviso de 90 s tras re-siembra; `camara_02_j16` no ve el
   `!= nc`. Hecho el 10/11: el Esclavo y los cortes de luz en PC (bloque I, 193/193, `2049501`).
+- Decidido por el responsable el 10/11 (sin construir; DECISIONES al integrar `D-167`): principio «ninguna averia de
+  camara o barrera deja el paso inoperante, la barrera es complemento»; veto por camara (`D-166`), inhibida = ni veto
+  ni demanda; parametro `MALA1`/`MALA2` (BAJA|ARRIBA), fabrica ARRIBA/ARRIBA; Q2..Q7 de la propuesta aceptados
+  (scratchpad `propuesta_camaras_degradadas.md`); SIN ENERGIA = barrera ARRIBA: central «sin senal = subir» y J15
+  invertida, contra `D-164`/SFTY-28: en revision de arquitectura antes de construir (`CLAUDE.md` §11.7); firmware y
+  central cambian en la MISMA visita. En construccion: `D-167` (retirar Alcance, worktree).
 - Barrera con brazo lento (responsable, 10/11): cuando bajar y subir (con el verde, con el ambar, tras el rojo, N s
   antes) se decide con el tiempo del brazo que mide Marco (hoja, prueba 4) y una simulacion de dos modelos y arbitro
   con 10, 30 y 60 s. «Sin barrera» ya existe: fuera de servicio, arriba en todo modo (`D-96`). Recomendado no crear
