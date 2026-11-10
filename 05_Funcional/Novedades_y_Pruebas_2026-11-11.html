@@ -161,6 +161,20 @@ button#btnPdf{
   </ol>
 </div>
 
+<section class="prueba" id="conf">
+  <h2>Configuración y conexión de este paquete (léala antes de cargar)</h2>
+  <div class="debever"><b class="t">Conexión</b><ul>
+    <li><strong>J15</strong> a la entrada de <strong>bajar</strong> de la central o puente H. Con este firmware J15 conduce (12 V) para <strong>bajar</strong>: en rojo, tras el retardo; en verde y en ámbar, 0 V. La central, en &laquo;<strong>sin señal = subir</strong>&raquo; (prueba 1).</li>
+    <li><strong>J14</strong> es una entrada del micro: no le conecte ningún relé. <strong>J16 pata 1</strong> lleva 12 V: tapada. <strong>J16 patas 5 y 8</strong>: sin cablear.</li>
+    <li>Cámaras en sus entradas C y D, con su contacto NA o NC anotado.</li>
+  </ul></div>
+  <div class="debever"><b class="t">Configuración desde la app (clave de técnico y PIN del equipo: 1234 y 1234)</b><ul>
+    <li><strong>Degradado automático: APAGADO</strong> en los dos postes (así sale de fábrica y así va en carretera). Apagado, ROJO TOTAL deja los dos en rojo fijo en MANUAL también sin radio; sin radio el Poste 2 queda en ámbar hasta que vuelva.</li>
+    <li><strong>Instalación: cámaras y barrera</strong>: ponga NA o NC según la cámara de cada entrada; el retardo de bajada, 3 s de fábrica. No lo cambie si no cambió la cámara.</li>
+    <li><strong>Averías: cámaras y barrera</strong>: solo si una cámara se avería. De fábrica las dos cámaras vetan la barrera y una cámara mala la deja arriba. Si al guardar responde <strong>RESPALDO_INVALIDO</strong>, anótelo y mande la cinta de Tramas: es un fallo que estamos revisando.</li>
+  </ul></div>
+</section>
+
 <div class="nota">
   <strong>Dónde se mira cada cosa en la app.</strong> En <strong>Tráfico</strong>: la pluma como <strong>"▲ PLUMA ARRIBA"</strong> o <strong>"▼ PLUMA ABAJO"</strong> y las cámaras en la línea de resumen. Ajustes y Tramas solo salen con la clave de técnico: pulse la pastilla <strong>&laquo;Operario&raquo;</strong>. En <strong>Eventos</strong>, los avisos traducidos; en <strong>Tramas</strong>, lo que manda el poste tal cual (las palabras en <code>esta letra</code>). <strong>"PLUMA ARRIBA" es lo que el poste MANDA, no donde está el brazo:</strong> no hay final de carrera. Lo que se ve con los ojos es lo que vale.
 </div>
