@@ -62,6 +62,7 @@ $fuentesMaestro = @(
     (Join-Path $MAESTRO 'src\instalacion.cpp'),    # N-187: el retardo de la pluma
     (Join-Path $MAESTRO 'src\modo_automatico.cpp'),
     (Join-Path $MAESTRO 'src\modo_noche.cpp'),      # N-179: el modo noche REAL
+    (Join-Path $MAESTRO 'src\modo_manual.cpp'),     # D-173: FORZAR_ROJO desde Automatico pasa a Manual
     (Join-Path $AQUI 'deg_auto_doble_maestro.cpp'),   # A-15: ver su cabecera
     (Join-Path $DP 'adaptador_maestro.cpp')
 )

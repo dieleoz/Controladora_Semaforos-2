@@ -16,6 +16,8 @@
 #include "deg_auto.h"
 #include "modo_automatico.h"
 #include "modo_manual.h"
+#include "modo_inteligente.h"   // D-173: FORZAR_ROJO desde Inteligente (bloque S)
+bool camara_leerPin(uint8_t, bool) { return false; }   // botones.cpp no se compila: sin camaras
 
 // ---------------------------------------------------------------------------
 // LO QUE EL FIRMWARE PUBLICA DE A-15, CONTADO POR SU DETALLE. Lo llaman los dobles de
@@ -121,6 +123,7 @@ static void pasoPrincipal() {
     switch (modo) {
       case MODO_MANUAL:      modoManual_setup();      break;
       case MODO_AUTOMATICO:  modoAutomatico_setup();  break;
+      case MODO_INTELIGENTE: modoInteligente_setup(); break;
       case MODO_DEGRADADO:   modo_degradado_setup();  break;
       case MODO_AMBAR:       modo_ambar_setup();      break;
       case MENU:             menu_setup();            break;
@@ -132,6 +135,7 @@ static void pasoPrincipal() {
   switch (modo) {
     case MODO_MANUAL:     modoManual_loop();      break;
     case MODO_AUTOMATICO: modoAutomatico_loop();  break;
+    case MODO_INTELIGENTE:modoInteligente_loop(); break;
     case MODO_DEGRADADO:  modo_degradado_loop();  break;
     case MODO_AMBAR:      modo_ambar_loop();      break;
     default: break;   // MENU: menu_loop() es pantalla y no se compila
@@ -143,6 +147,11 @@ static void pasoPrincipal() {
 // ---------------------------------------------------------------------------
 static long arnesDegAuto_mando(const char* que, long arg) {
   if (!strcmp(que, "da_opcion"))      { respaldo_guardarDegAuto(arg != 0); return 1; }
+  if (!strcmp(que, "tiempos_ciclo")) {   // D-173: v*10000 + r*100 + d, los CONFIGURADOS (modo_automatico.cpp)
+    uint8_t v = 0, r = 0, d = 0;
+    modoAutomatico_tiemposCiclo(&v, &r, &d);
+    return v * 10000L + r * 100L + d;
+  }
   if (!strcmp(que, "da_opcion_leer")) return respaldo_degAuto() ? 1 : 0;
   if (!strcmp(que, "da_apto"))        return degAuto_aptoPropio() ? 1 : 0;
   if (!strcmp(que, "da_otro_apto"))   return respaldo_otroApto() ? 1 : 0;

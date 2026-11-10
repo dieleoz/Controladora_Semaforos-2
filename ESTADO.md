@@ -13,7 +13,7 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 2. **Al cargar `J15:BAJAR`:** central a «sin senal = subir» en la MISMA visita, `J15` suelta entre medias; se anota
    aqui la polaridad por poste. Todos los equipos de la tabla llevan firmware anterior: `J15` conduce = SUBIR.
 3. **Con los registros de Marco:** leerlos enteros (`CLAUDE.md` §7): `RTT:`, cobertura, tiempo del brazo, camaras.
-4. **Abierto para el responsable:** FORZAR_ROJO en Automatico/Inteligente no es rojo fijo (el ciclo sigue).
+4. **`D-173`:** ROJO TOTAL deja rojo fijo en todos los modos (pasa a Manual); `D-172`: corto de `Q10` aceptado.
 5. **Frentes:** banco de Marco, El Sisga tras banco, `D-158` tras medir telefonos. Version siguiente: `roadmap.md`.
 
 ## Que firmware hay en cada equipo (`CLAUDE.md` §0.2)

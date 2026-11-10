@@ -106,7 +106,7 @@ prometia rojo y hacia ambar con la talanquera arriba. Lo rechaza **nombrando el 
 | `SET_MODO:DEG_T:ahora,inicio,verde,despeje` | si | Construido (`990c278`; `D-35`, SPEC 2 §7.bis). **La unica orden de entrada al Degradado.** Puerta paralela a `modo_degradado_evaluarEntrada()`, sin sync de radio: `$ERR ... DESC:<texto>` (`modo_degradado_textoTestigo()`) por `MDT_FALTA_HORA`, `MDT_AHORA_DESFASADO` (`TOLERANCIA_TESTIGO_S`), `MDT_DESPEJE_RANGO`, `MDT_INICIO_VENCIDO`, `MDT_AMBAR_VIGENTE`, `MDT_EN_VERDE`, `MDT_NO_GUARDADO`; `RESULT:OK` / `RESULT:RENOVADO`. Con salida programada (`D-52`): `$ERR ... DESC:Cancele antes la salida programada` |
 | `SET_DEG_AUTO:1` / `SET_DEG_AUTO:0` | si | Construido (`A-15`, SPEC 2 §7.ter (a)). **El `$ACK` sale DIFERIDO**, cuando el `ECO` del otro poste refleja el cambio: `RESULT:ON_EFECTIVO` (el otro tambien apto) / `RESULT:ON_FALTA_EL_OTRO_POSTE` / `RESULT:OFF`. Rechazos: `$ERR ... SIN_ENLACE_CON_EL_OTRO_POSTE` · `EN_DEGRADADO_SALGA_PRIMERO` · `FORMATO_INVALIDO`; sin `ECO` en `DEG_AUTO_ACUSE_MS`, `$ERR ... CAMBIADO_AQUI_SIN_ACUSE_DEL_OTRO_POSTE` (el cambio queda y se sigue publicando). Maestro en `MENU`: siempre ese `$ERR` (SPEC 2 §7.ter (a)). Misma orden y mismos literales en el Esclavo |
 | `CONSULTA_DEG_AUTO` | no (es una consulta) | Construido. `RESULT:ESTE_<ON/OFF>_OTRO_<ON/OFF>_APTO_<SI/NO>`: la opcion propia, el ultimo `APTO` oido del otro y el `APTO` propio. Igual en el Esclavo |
-| `FORZAR_ROJO` | **no** (y con PIN tambien) | Fuera de Degradado: `coordinador_forzarRojoTotal()`, `RESULT:OK`; solo la via que estaba en verde pasa por 3 s de amarillo (`D-45`); sobre un rojo+amarillo, rojo directo (`D-53`, sin banco). **Desde `MODO_AMBAR`, a Manual con rojo fijo sostenido en las dos (`D-170`, bajo la tabla).** En Automatico e Inteligente el ciclo sigue al vencer su fase. En Degradado, **`D-51`, sin banco:** rojo FIJO inmediato en ese poste (`DEG_ROJO_SIN_HORA`; tambien en la ventana de `D-29`), sin aviso de paleteros; respuestas en §3.ter.ter |
+| `FORZAR_ROJO` | **no** (y con PIN tambien) | Fuera de Degradado: `coordinador_forzarRojoTotal()`, `RESULT:OK`; solo la via que estaba en verde pasa por 3 s de amarillo (`D-45`); sobre un rojo+amarillo, rojo directo (`D-53`, sin banco). **Desde Ambar, Automatico e Inteligente, a Manual con rojo fijo sostenido en las dos (`D-170`, `D-173`, bajo la tabla).** En Degradado, **`D-51`, sin banco:** rojo FIJO inmediato en ese poste (`DEG_ROJO_SIN_HORA`; tambien en la ventana de `D-29`), sin aviso de paleteros; respuestas en §3.ter.ter |
 | `SET_MODO:DEG_FIN:ahora,salida` · `SET_MODO:DEG_FIN:CANCELAR` | si | Construido el 04/10 (`a4545bb`, `D-52`), sin banco; SPEC 2 §7.quater (c): `salida` = `HH:MM:SS` a la que esta punta sale por su reloj; aviso de paleteros; un `$ERR` por motivo y `$ACK` solo si quedo programada (listas en §3.ter.ter) |
 | `CONSULTA_DEG_FIN` | no (es una consulta) | Construido el 04/10, sin banco. `RESULT:NINGUNA` o `RESULT:SALE_HHMMSS_FALTAN_<s>S_<RESPALDADA/SIN_RESPALDO>` (`_SIN_RESPALDO` tambien tras `FORZAR_ROJO` o hora perdida). Molde `CONSULTA_DEG_AUTO`; el contador no cabe en `$STATUS` (SPEC 2 §7.quater (c)). Igual en el Esclavo |
 | `MANUAL:CAMBIAR_TURNO` | si | **tres, y el ORDEN importa** (`N-151`): `$ERR ... MODO_SIN_CICLO_SALGA_PRIMERO` si `modoMueveElCoordinador()` es falso; si no, `RESULT:OK` cuando `pedirCambioVerificado()` devuelve true, y `$ERR ... EN_TRANSICION_REINTENTE` cuando no |
@@ -118,15 +118,15 @@ prometia rojo y hacia ambar con la talanquera arriba. Lo rechaza **nombrando el 
 | `SET_VETO_CAMARA:ON` / `:OFF` (y `:C:` / `:D:`, `D-166`) · `SET_BARRERA_SERVICIO:ON` / `:OFF` · `SET_CAMARA_MALA:<1/2>:<BAJA/ARRIBA>` (`D-169`) · `CONSULTA_VETO` | si · si · si · **no** | SPEC 8 §6.1 y §9.5 (`D-166`/`D-169`), sin banco. `interruptores_orden()`, molde `SET_TIEMPOS`, cinco respuestas: `$ERR` `FORMATO_INVALIDO` si el valor no vale; `RESULT:SIN_CAMBIO` si ya estaba asi; `RESPALDO_INVALIDO` con el respaldo perdido en este arranque (`D-148`); `NO_QUEDO_PUESTO` si lo releido tras `semaforo_reaplicarSalidas()` no es lo pedido (`D-149`); `RESULT:OK` si lo es; locales |
 | `SET_CAMARA:<C/D>:<NA/NC>` · `SET_PLUMA_RETARDO:<s>` · `CONSULTA_INSTALACION` | si · si · **no** | `3ea00d4` (`N-187`), sin banco. `instalacion_orden()` de `instalacion.cpp`, molde `SET_TIEMPOS`, local; respuestas y literales en SPEC 8 §8.6; la app, §9.15 |
 
-**`FORZAR_ROJO` desde `MODO_AMBAR` (`D-170`, responsable 10/11; construido, sin banco).** Lo que el equipo HACE:
-`modo_degradado_forzarRojo()` llama a `modo_ambar_forzarRojoTotal()`, que con el modo en `MODO_AMBAR` lo pasa a
-`MODO_MANUAL` antes de `coordinador_forzarRojoTotal()`. En Manual el coordinador corre (en `MODO_AMBAR` `main.cpp` no
-lo llama): el latido manda `CMD_GO_RED` hasta el `CMD_ACK_RED` y despues `PING`, y los dos postes quedan en rojo fijo,
-sin cambio programado, hasta otra orden (`SET_MODO:MENU`, `SET_MODO:AUTO`, `MANUAL:CAMBIAR_TURNO` con PIN,
-`SET_MODO:AMBAR`). El `$ACK ... RESULT:OK` sale despues de armarlo. Antes el Maestro quedaba en rojo con el modo en
-ambar y callado, y el Esclavo volvia a su ambar por orfandad a los `SFTY6_SILENCIO_MS`. Sin radio, a los
-`SFTY6_SILENCIO_MS` las dos caen a ambar (`C_FALLO`, SFTY-6); con el ambar de emergencia del Poste 2 puesto, su
-cerrojo (`D-8`) no obedece el rojo. Lo ejerce R1 del arnes del Degradado de dos puntas (`orquestador_deg_fin.inc`).
+**`FORZAR_ROJO` desde Ambar, Automatico e Inteligente (`D-170`, `D-173`, responsable 10/11; construido, sin banco).**
+Lo que HACE: `modo_degradado_forzarRojo()` llama a `modo_ambar_forzarRojoTotal()`, que con el modo en `MODO_AMBAR`,
+`MODO_AUTOMATICO` o `MODO_INTELIGENTE` lo pasa a `MODO_MANUAL` antes de `coordinador_forzarRojoTotal()`, como
+`SET_MODO:MANUAL`: la via en verde cierra por sus 3 s de amarillo (`D-45`; la segunda llamada, la de
+`modoManual_setup()`, lo encuentra en amarillo y no lo reinicia) y el latido manda `CMD_GO_RED` hasta el `CMD_ACK_RED`.
+Los dos postes quedan en rojo fijo, sin cambio programado, hasta otra orden (`SET_MODO:MENU`/`AUTO`/`AMBAR`,
+`MANUAL:CAMBIAR_TURNO` con PIN); el `$ACK ... RESULT:OK` sale despues de armarlo. Sin radio, a los `SFTY6_SILENCIO_MS`
+las dos caen a ambar (SFTY-6); con el ambar de emergencia del Poste 2, su cerrojo (`D-8`) no obedece. Lo ejercen R1
+y el bloque S del arnes del Degradado de dos puntas (`orquestador_deg_*.inc`) y G6 del arnes de dos puntas.
 
 **Rango de `SET_TIEMPOS` (`D-131`; construido en `9ffc049`, sin banco).** Verde y rojo 3..15 min, despeje 10..90 s,
 con una sola copia en `limites_ciclo.h`. Se juzga el numero que llego, sin truncar: `modoAutomatico_fijarTiempos()`

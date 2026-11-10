@@ -218,7 +218,7 @@ estado vive fuera de la pantalla, en su propio fichero, y se lee y escribe con u
 | modo | qué hace con las luces | cómo se llega hoy |
 |---|---|---|
 | Menú | **rojo fijo** en las dos puntas; ámbar intermitente si no hay enlace. **Sin navegación** (`D-44`); se queda así (`D-105`): de `menu.cpp` sólo queda `menu_setup()`. La cabecera de la app DEBE decir lo que hacen las luces, leído del `$STATUS` (`D-112`, construido): `ESTADO:ROJO` → «☰ MENÚ · ROJO FIJO EN LOS DOS POSTES»; `ESTADO:FALLO COM` o sin telemetría → «☰ MENÚ · ÁMBAR INTERMITENTE, SIN RADIO»; `AMARILLO`/`ROJO+AMAR` → «☰ MENÚ · PASANDO A ROJO» | `SET_MODO:MENU`; la salida de cada modo; el arranque sólo mientras espera la reanudación del Degradado (§4.1) |
-| Manual | todo-rojo al entrar y **ningún cambio programado**: la fase acaba cuando alguien pulsa | `SET_MODO:MANUAL`; también al cancelarse un ámbar del Poste 2, y con `FORZAR_ROJO` desde Ámbar o Noche: rojo fijo sostenido en los dos (`D-170`, `D-111`; SPEC 4 §3.1) |
+| Manual | todo-rojo al entrar y **ningún cambio programado**: la fase acaba cuando alguien pulsa | `SET_MODO:MANUAL`; también al cancelarse un ámbar del Poste 2, y con `FORZAR_ROJO` desde Ámbar, Automático, Inteligente o Noche: rojo fijo sostenido en los dos (`D-170`, `D-173`, `D-111`; SPEC 4 §3.1) |
 | Automático | cicla por tiempo | `SET_MODO:AUTO` ~~; secuencia `A.A.A` del mando~~ *(salió el 14/09)* |
 | Inteligente | cicla por tiempo **con suelo y techo**, y las cámaras sólo pueden ALARGAR | `SET_MODO:INTELIGENTE` |
 | ~~Alcance~~ | salió con `D-167` (era Menú con otro rótulo); `SET_MODO:ALCANCE` contesta `COMANDO_NO_SOPORTADO` | — |

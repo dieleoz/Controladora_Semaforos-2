@@ -70,6 +70,7 @@
 #include "reloj.h"
 #include "respaldo.h"
 #include "modo_ambar.h"
+#include "modo_manual.h"   // D-173: FORZAR_ROJO desde Automatico pasa a Manual (G6)
 
 // ---------------------------------------------------------------------------
 // EL RELOJ SIMULADO Y LOS PINES OBSERVADOS. Los declara extern Arduino.h; existen
@@ -268,6 +269,7 @@ static void pasoPrincipal() {
       if (modo == MODO_AUTOMATICO) modoAutomatico_setup();
     }
     if (modo == MODO_NOCHE) modoNoche_setup();
+    if (modo == MODO_MANUAL) modoManual_setup();   // D-173, como main.cpp
     if (modo == MODO_AMBAR) { modo_ambar_setup(); g_entradasAmbar++; }
     modoAnterior = modo;
   }
@@ -275,6 +277,7 @@ static void pasoPrincipal() {
   switch (modo) {
     case MODO_AUTOMATICO: modoAutomatico_loop(); break;
     case MODO_AMBAR:      modo_ambar_loop();     break;
+    case MODO_MANUAL:     coordinador_actualizar_background(); modoManual_loop(); break;   // D-173, como main.cpp
     case MODO_NOCHE:      coordinador_actualizar_background(); modoNoche_loop(); break;   // N-179
     default: break;   // los demas modos no se compilan en esta DLL (ver cabecera)
   }
@@ -364,6 +367,8 @@ PUNTA_API long punta_mando(const char* que, long arg) {
     return strcmp(coordinador_estadoEsclavo(), "VERDE") == 0 ? 1 : 0;
   if (!strcmp(que, "reloj_en_hora"))      { g_enHora = (arg != 0); return 1; }
   if (!strcmp(que, "forzar_rojo_total"))  { coordinador_forzarRojoTotal(); return 1; }
+  // D-173: FORZAR_ROJO de la app fuera del Degradado; modo_degradado_forzarRojo() no se compila aqui y llama a esta.
+  if (!strcmp(que, "forzar_rojo_app"))    { modo_ambar_forzarRojoTotal(); return 1; }
   // N-162 (bloque G): DAR PASO, con la MISMA guarda que pedirCambioVerificado() de
   // bluetooth.cpp -que no se compila aqui-: se pregunta listoParaContar() y solo entonces
   // se llama. Devuelve lo que el $ACK diria: 1 aceptado, 0 EN_TRANSICION_REINTENTE.

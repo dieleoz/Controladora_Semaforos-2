@@ -95,7 +95,11 @@ void modo_ambar_loop() {
 // Esclavo volvia a su ambar por orfandad a los SFTY6_SILENCIO_MS con el $ACK diciendo OK. Se pasa a MODO_MANUAL
 // ANTES del rojo: alli el latido manda GO_RED hasta el ACK_RED y no hay cambio programado (N-147), como la
 // salida de la noche (D-111) y la cancelacion del Esclavo (N-152). Sin radio, SFTY-6 sigue siendo la red.
+// D-173 (responsable 10/11): "ROJO TOTAL es rojo total" tambien desde Automatico e Inteligente; alli el ciclo pedia
+// el cambio al vencer la fase. Es el camino de SET_MODO:MANUAL: la via en verde cierra por su amarillo (D-45) y la
+// segunda llamada de modoManual_setup() lo encuentra en S_AMARILLO y no lo toca (bloque S del arnes degradado).
 void modo_ambar_forzarRojoTotal() {
-  if (modoActual_get() == MODO_AMBAR) modoActual_set(MODO_MANUAL);
+  const ModoSistema m = modoActual_get();
+  if (m == MODO_AMBAR || m == MODO_AUTOMATICO || m == MODO_INTELIGENTE) modoActual_set(MODO_MANUAL);
   coordinador_forzarRojoTotal();
 }

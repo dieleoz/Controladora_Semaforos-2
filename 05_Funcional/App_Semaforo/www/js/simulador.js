@@ -108,10 +108,14 @@ const Simulador = (() => {
       if (p.modo === 'DEGRADADO') return Object.assign(rj ? { estado: 'ROJO' } : ciclo(p, p.cicloDesde), sinD);
       if (p.modo === 'AMBAR') return Object.assign({ estado: 'FALLO COM', esc: 'AMBAR' }, sin);   // D-170
       if (p.modo === 'NOCHE') return { estado: p.nocheFase === 'DESTELLO' ? 'AMBAR_INT' : 'ROJO', esc: '?', t: '--' };
-      if (!p.radio) return Object.assign({ estado: 'FALLO COM', esc: '?' }, sin);   // D-171: sin dato fresco
+      if (!p.radio) {   // D-171: ESC:? a SFTY6_SILENCIO_MS sin respuesta (coordinador_estadoEsclavo); antes el ultimo
+        const fresco = p.tEsc !== undefined && reloj.ahora() - p.tEsc <= C.SFTY6_SILENCIO_MS;
+        return Object.assign({ estado: 'FALLO COM', esc: fresco ? p.escUlt : '?' }, sin);
+      }
       const parado = p.rojoFijo || ['MENU', 'MANUAL'].indexOf(p.modo) >= 0;
-      if (parado) return { estado: p.rojoFijo && reloj.ahora() < p.amarM ? 'AMARILLO' : 'ROJO', esc: 'ROJO', t: '--' };
-      return ciclo(p, p.cicloDesde);
+      const l = parado ? { estado: p.rojoFijo && reloj.ahora() < p.amarM ? 'AMARILLO' : 'ROJO', esc: 'ROJO', t: '--' }
+        : ciclo(p, p.cicloDesde);
+      p.tEsc = reloj.ahora(); p.escUlt = l.esc; return l;
     }
     function luzEsclavo(p) {
       avanzar(p);
@@ -338,8 +342,8 @@ const Simulador = (() => {
     }
     function forzarRojoMaestro(p, tx) {
       if (p.modo !== 'DEGRADADO') {   // coordinador_forzarRojoTotal(): cada verde cierra por amarillo (D-45)
-        if (p.modo === 'AMBAR') setModo(p, 'MANUAL');   // D-170: modo_ambar_forzarRojoTotal(), rojo en los dos
         const l = luzMaestro(p), ya = reloj.ahora(), amar = (s) => (s === 'VERDE' ? ya + C.AMARILLO_SEG * 1000 : 0);
+        if (['AMBAR', 'AUTO', 'INTELIGENTE'].indexOf(p.modo) >= 0) setModo(p, 'MANUAL');   // D-170, D-173: a Manual
         Object.assign(p, { rojoFijo: true, amarE: amar(l.esc),
                            amarM: l.estado === 'AMARILLO' ? ya + 1000 * (+l.t || 0) : amar(l.estado) });
         return tx('$ACK,CMD:FORZAR_ROJO,RESULT:OK');

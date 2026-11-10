@@ -2708,11 +2708,10 @@ int main() {
               " ms (-1 = no se abrio en " + std::to_string(TRAS_VERDE) + " ms)");
 
     // ---- G6: ROJO TOTAL con el Esclavo en verde y su GO_RED perdido --------------------
-    // coordinador_forzarRojoTotal() -el rojo de emergencia de la app y del mando, y la
-    // entrada en Manual- manda UN GO_RED y deja la maquina en reposo con nadie en verde. Si
-    // esa trama se pierde, (a) el rojo no llega al otro lado mientras los PING le mantengan
-    // vivo el verde, y (b) la siguiente peticion de cambio abre el verde propio contando con
-    // un despeje "ya pagado" que no vacio nada (el case QV_NINGUNO de pedirCambio, N-147).
+    // FORZAR_ROJO de la app por su camino real (modo_ambar_forzarRojoTotal(), D-173) manda UN GO_RED y deja
+    // la maquina en reposo con nadie en verde. Si esa trama se pierde, (a) el rojo no llega al otro lado mientras
+    // los PING le mantengan vivo el verde. (b) INVERTIDA por D-173 (CLAUDE.md 9): exigia que el Automatico pidiera
+    // el cambio al vencer su rojo; ahora pasa a Manual y NADIE lo pide: ni el Maestro se abre ni el Esclavo.
     //
     // EL BORDE DE (a), escrito al lado (CLAUDE.md 7): una trama perdida solo se descubre
     // porque no vuelve su acuse, y en reposo el unico reintento que tiene el Maestro es el
@@ -2731,7 +2730,7 @@ int main() {
       ok = ok && ESCLAVO.verde();
       const unsigned long perd0 = g_goRojoPerdidos;
       g_goRojoAPerder = 1;
-      MAESTRO.orden("forzar_rojo_total");
+      MAESTRO.orden("forzar_rojo_app");
       c.tCorte = g_t;
       correrG(c, LATIDO_MS_V + 2000);
       if (!(ok && g_goRojoPerdidos - perd0 == 1)) g6SueltaEjercido = false;
@@ -2749,14 +2748,14 @@ int main() {
       ok = ok && ESCLAVO.verde();
       const unsigned long perd0 = g_goRojoPerdidos;
       g_goRojoAPerder = 1;
-      MAESTRO.orden("forzar_rojo_total");
+      MAESTRO.orden("forzar_rojo_app");
       g6.tCorte = g_t;
       correrG(g6, ROJO_MS + TRAS_VERDE);
       finG(g6);
       g6Ejercido = ok && g_goRojoPerdidos - perd0 == 1;
     }
-    imprimirTrazaG("G6 (ROJO TOTAL con el Esclavo en verde, su GO_RED perdido; el Automatico "
-                   "sigue y pide el cambio al vencer su rojo):", g6);
+    imprimirTrazaG("G6 (ROJO TOTAL con el Esclavo en verde, su GO_RED perdido; D-173: pasa a "
+                   "Manual y nadie pide el cambio):", g6);
     comprobar(g6SueltaEjercido && g6Ejercido,
               "G6 (control): en las " + std::to_string(g6Fases + 1) + " corridas se dio el ROJO "
               "TOTAL con el Esclavo en VERDE y se perdio EXACTAMENTE su GO_RED");
@@ -2765,14 +2764,15 @@ int main() {
               "de verde en " + std::to_string(g6SueltaMax) + " ms en la peor fase (" +
               std::to_string(g6PeorOff) + " ms); borde " + std::to_string(BORDE_REINTENTO_MS) +
               " ms (un latido + un tick + un viaje + un tick)");
-    comprobar(acumuladoMsG(g6.v) <= BORDE_MS && g6.v.simultaneo == 0 &&
-              g6.tAperturaM >= 0 && todoRojoMsG(g6) >= (long)DESPEJE_MS,
-              "G6-b: la peticion de cambio que sigue al ROJO TOTAL abre el verde propio con el "
-              "Esclavo en rojo y el todo-rojo entero: ventana " +
-              std::to_string(acumuladoMsG(g6.v)) + " ms, " +
-              std::to_string(g6.v.simultaneo * PASO_MS) + " ms con VERDE EN LAS DOS (borde " +
-              std::to_string(BORDE_MS) + " ms); todo-rojo " + std::to_string(todoRojoMsG(g6)) +
-              " ms, despeje " + std::to_string(DESPEJE_MS) + " ms (-1 = no se abrio)");
+    const long g6Modo = MAESTRO.orden("modo_actual"), g6Man = nIndice(RAIZ + "/Maestro/include/modos.h", "ModoSistema",
+                                                                      "MODO_MANUAL"), g6RojoE = ESCLAVO.rojo();
+    comprobar(acumuladoMsG(g6.v) <= BORDE_MS && g6.v.simultaneo == 0 && g6.tAperturaM < 0 && g6RojoE && g6Modo == g6Man,
+              "G6-b (D-173, INVERTIDA): tras el ROJO TOTAL desde Automatico nadie pide el cambio: modo " +
+              std::to_string(g6Modo) + " (MANUAL " + std::to_string(g6Man) + "), apertura del Maestro " +
+              std::to_string(g6.tAperturaM) + " (-1 = no se abrio en " + std::to_string(ROJO_MS + TRAS_VERDE) +
+              " ms), Esclavo en rojo " + std::to_string(g6RojoE) + "; ventana " + std::to_string(acumuladoMsG(g6.v)) +
+              " ms, " + std::to_string(g6.v.simultaneo * PASO_MS) + " ms con VERDE EN LAS DOS (borde " +
+              std::to_string(BORDE_MS) + " ms)");
 
     // ---- G7: DAR PASO con el despeje "ya pagado" y el rojo del otro lado sin constar ----
     // El case QV_NINGUNO de pedirCambio() abre en el acto si el cruce lleva en rojo mas que

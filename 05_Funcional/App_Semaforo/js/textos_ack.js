@@ -211,14 +211,14 @@ const ACK_TEXTO = {
            'cuando ese todo-rojo termine.',
     toast: 'Aceptada - sale del Degradado por todo-rojo antes de llegar al menu'
   },
-  // SPEC_4 3.1 (D-45, D-170): fuera de Degradado; solo la via en verde pasa por amarillo. Desde Ambar, a Manual
-  // con rojo fijo en las dos; en Automatico e Inteligente el ciclo sigue al vencer su fase (G6, dos puntas).
+  // SPEC_4 3.1 (D-45, D-170, D-173): fuera de Degradado; solo la via en verde pasa por amarillo. Desde Ambar,
+  // Automatico e Inteligente, a Manual con rojo fijo en las dos (bloque S y G6 invertida, dos puntas).
   'FORZAR_ROJO|OK': {
     tono: 'red',
-    texto: 'Equipo: ROJO TOTAL ordenado. La via que estaba en verde pasa por 3 s de amarillo. En Manual y desde ' +
-           'Ambar (pasa a Manual) el rojo se sostiene mientras el Poste 2 lo acuse; sin radio, o con su ambar de ' +
-           'emergencia, a los 28 s vuelve a ambar. En Automatico o Inteligente el ciclo sigue. Compruebe las dos ' +
-           'puntas antes de dejar pasar a nadie.',
+    texto: 'Equipo: ROJO TOTAL ordenado. La via que estaba en verde pasa por 3 s de amarillo. El equipo queda en ' +
+           'Manual y el rojo se sostiene hasta otra orden mientras el Poste 2 lo acuse; sin ' +
+           'radio, o con su ambar de emergencia, a los 28 s vuelve a ambar. Compruebe las dos puntas antes de ' +
+           'dejar pasar a nadie.',
     toast: 'Rojo total: amarillo 3 s solo en la via que estaba en verde'
   },
   // D-51: en Degradado es rojo FIJO en este poste (no salida), y el otro sigue alternando por su reloj.

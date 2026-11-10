@@ -81,6 +81,8 @@ $fuentesMaestro = @(
     # MANUAL. Sin estos dos .cpp la opcion no se vuelve APTO por el camino real.
     (Join-Path $MAESTRO 'src\modo_automatico.cpp'),
     (Join-Path $MAESTRO 'src\modo_manual.cpp'),
+    (Join-Path $MAESTRO 'src\modo_inteligente.cpp'),   # D-173: FORZAR_ROJO desde Inteligente
+    (Join-Path $MAESTRO 'src\demanda.cpp'),            # lo llama modo_inteligente.cpp
     (Join-Path $RR 'rtc_periferico.cpp'),
     (Join-Path $DP 'adaptador_maestro_deg.cpp')
 )
