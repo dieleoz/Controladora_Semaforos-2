@@ -39,8 +39,9 @@ camara, y lo que hace con ella tiene una sola direccion:
 - **Durante el AMARILLO de cierre la pluma SIGUE ARRIBA, y el retardo cuenta desde el ROJO, no desde el amarillo**
   (`D-45`, `N-174`; construido en `cda33df`, sin banco; SPEC 1 §3.2). Es la letra de `D-33` («3 s despues del rojo»)
   y de `D-42` («retardo del rojo sigue en 3 s»): no las reabre. En `escribirPines()` de las dos puntas la condicion
-  `luzPideArriba` es `(verde && !testLedsActivo) || estado == S_FALLO || estado == S_AMARILLO`: sin el ultimo
-  termino el retardo empezaria en el amarillo y, con los dos a 3 s, la pluma bajaria en el instante del rojo, que es
+  `luzPideArriba` es `fuera || (verde && !testLedsActivo) || estado == S_FALLO || estado == S_AMARILLO ||
+  estado == S_AMBAR_INT || estado == S_ROJO_INT`: sin el termino de `S_AMARILLO` el retardo empezaria en el amarillo y,
+  con los dos a 3 s, la pluma bajaria en el instante del rojo, que es
   lo que `D-33` vino a quitar. El amarillo del test de lamparas no cuenta: alli `estado` sigue en `S_ROJO`. Lo
   ejercen las filas 17, 18 y 19 sobre la salida de motor y `maestro_09_test_leds` por texto. El `static_assert`
   del retardo (hoy `PLUMA_RETARDO_MAX_MS`, §8.3) contra `DESPEJE_SEG_MIN` no cambia, porque el
@@ -217,8 +218,8 @@ lo que pide tarjeta con barrera y pila esta en §7 (filas 4, 5 y 7).
   No confundir con `NO_QUEDO_PUESTA` del reloj.
   Literales (`responder()`): `$ACK,CMD:<orden>:<valor>,RESULT:...` y `$ERR,CMD:<orden>:<valor>,DESC:...`; solo
   `FORMATO_INVALIDO` va sin valor: `$ERR,CMD:<orden>,DESC:FORMATO_INVALIDO`.
-  Si no, se escribe la bandera, **la orden vuelve a pasar por la puerta** (6.3) y `$ACK,CMD:<orden>,RESULT:OK` solo si
-  lo leido DESPUES es lo pedido (`D-149`): el getter de la bandera y, para la barrera, `semaforo_plumaFuera()`
+  Si no, se escribe la bandera, **la orden vuelve a pasar por la puerta** (6.3) y `$ACK,CMD:<orden>:<valor>,RESULT:OK`
+  solo si lo leido DESPUES es lo pedido (`D-149`): el getter de la bandera y, para la barrera, `semaforo_plumaFuera()`
   (6.4). Releer el registro solo no basta: un registro recien escrito devuelve siempre lo escrito.
 - **Que es «respaldo invalido» (`D-148`):** `respaldo_valido()` no sirve: `respaldo_setup()` acaba siempre en
   `sellar()`, que pone `contenidoValido = true`, tambien tras `respaldo_borrar()`. El criterio es una bool en RAM que
@@ -295,9 +296,11 @@ y ya tienen su ancho** (cota por buffer, `N-154`), en las dos puntas:
 
 La app pinta los dos en ambar (`D-83`, mirar): la pluma, «BARRERA FUERA DE SERVICIO · arriba tambien en rojo, hasta
 ponerla en servicio» (`PLUMA_LEYENDA`, `js/luces.js`); la camara, «SIN VETO» con «camara sana y sin veto: devolver el
-veto» (`CAM_LEYENDA`). Con cualquiera de los dos, «Averias» de Ajustes se abre con el `<summary>` en ambar
-(`js/pantalla_operario.js`). `app_04_valores_de_status` compara los literales del C++ con `PLUMA_LEYENDA` y
-`CAM_LEYENDA` en los dos sentidos.
+veto» (`CAM_LEYENDA`). Cuando el `$STATUS` publica `PLUMA:FUERA` o `CAM:NOVETO`, «Averias» de Ajustes se abre con el
+`<summary>` en ambar (`js/pantalla_operario.js`); si la camara sigue `PEGADA` o `CIEGA` (`D-151` oculta `NOVETO` en
+`CAM:`, sin bit aparte en `$STATUS` por `D-60`), «Averias» no se abre automaticamente hasta que recupere flancos
+(`CAM:NOVETO`), y el interruptor consta en el registro (`$ACK` / `$EVENT`). `app_04_valores_de_status` compara los
+literales del C++ con `PLUMA_LEYENDA` y `CAM_LEYENDA` en los dos sentidos.
 
 🔴 **Lo que NO garantiza «sacar la barrera de servicio»: que el brazo se quede arriba si se va la
 luz.** Hoy, sin energia la salida cae y el brazo baja; el requisito del 10/11 (arriba, `SPEC_5` §4,
