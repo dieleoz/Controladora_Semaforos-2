@@ -1,39 +1,22 @@
 # ===== banco/packs/costura_01_contratos.py =====
-#
-# LOS CONTRATOS COMPARTIDOS, BYTE A BYTE.
-#
-# Maestro y Esclavo son DOS proyectos PlatformIO separados, con copias FISICAS de
-# los mismos ficheros. No hay enlace simbolico ni carpeta comun: lo unico que
-# mantiene la igualdad es la disciplina de quien edita. Que HOY sean iguales no
-# basta; esta prueba tiene que fallar el dia que dejen de serlo.
-#
-# ⚠️ ESTE PACK CAMBIA DE SIGNIFICADO CON lib/Common (Fase 5 del plan).
-#
-# Hoy la prueba es "las dos copias son identicas". Cuando estos ficheros se muevan
-# a lib/Common ya NO HABRA DOS COPIAS que comparar, y esta prueba aprobaria vacia:
-# comparando nada contra nada. En ese momento -en el MISMO commit que el
-# movimiento- la prueba pasa a ser "NO existe copia local que tape a la comun".
-# Ambas formas estan escritas abajo y el pack elige sola segun lo que encuentre.
+# LOS CONTRATOS COMPARTIDOS, BYTE A BYTE: Maestro y Esclavo mantienen copias fisicas iguales (sin lib/Common aun).
 
 NOMBRE = "costura_01_contratos"
 DESCRIPCION = "identidad byte a byte de los ficheros compartidos entre puntas"
 
 # (nombre, carpeta, fichero, por que importa)
 COMPARTIDOS = [
-    ("include/protocolo.h", "include", "protocolo.h",
-     "los codigos de comando y el formato de trama"),
-    ("include/ciclo_degradado.h", "include", "ciclo_degradado.h",
-     "el calculo de la fase: la unica barrera contra el verde simultaneo"),
-    ("include/respaldo.h", "include", "respaldo.h",
-     "el contrato de lo que sobrevive al corte"),
-    ("src/respaldo.cpp", "src", "respaldo.cpp",
-     "el reparto de registros y la reconstruccion de antiguedad"),
-    ("src/protocolo.cpp", "src", "protocolo.cpp",
-     "el CRC, la rafaga y el filtro de repeticion"),
-    ("include/identidad.h", "include", "identidad.h",
-     "de donde sale la serie del equipo"),
-    ("src/identidad.cpp", "src", "identidad.cpp",
-     "el mezclado del UID: si cada punta derivara distinto, no casarian nunca"),
+    ("include/protocolo.h", "include", "protocolo.h", "codigos de comando y formato de trama"),
+    ("include/ciclo_degradado.h", "include", "ciclo_degradado.h", "calculo de fase"),
+    ("include/respaldo.h", "include", "respaldo.h", "contrato de lo que sobrevive al corte"),
+    ("src/respaldo.cpp", "src", "respaldo.cpp", "reparto de registros y antiguedad"),
+    ("src/protocolo.cpp", "src", "protocolo.cpp", "CRC, rafaga y filtro de repeticion"),
+    ("include/identidad.h", "include", "identidad.h", "serie del equipo"),
+    ("src/identidad.cpp", "src", "identidad.cpp", "mezclado del UID"),
+    ("include/interruptores.h", "include", "interruptores.h", "interruptores de administrador (D-94)"),
+    ("src/interruptores.cpp", "src", "interruptores.cpp", "despacho, relectura y estado (D-149)"),
+    ("include/instalacion.h", "include", "instalacion.h", "parametros de camaras y retardo (N-187)"),
+    ("src/instalacion.cpp", "src", "instalacion.cpp", "guardado en flash y relectura (N-187)"),
 ]
 
 
