@@ -8,9 +8,9 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 **Orden del responsable (09/11, 19:00): «construir todo, que no falte nada», hasta el `.zip` final; con subagentes y
 workflows en paralelo (ficheros disjuntos). Decisiones ya tomadas: no se vuelven a preguntar.**
 
-1. **ENTREGABLE, con `N-187`:** `entregas/Paquete_Semaforos_2026-11-10_c10e60f_SIN_BANCO.zip` (zip `a9e98dd9...`,
-   APK `921e0ab4...`); arquitecto y QA APTO CON CONDICIONES, compuerta 16/17 (solo `D-22`), hoja del 10/11 con la
-   Parte 9 (pruebas 26-34). Radio resuelta (`D-160`: RS485 a 9600 transparente, M0/M1 en ON; 100 % de latidos).
+1. **ENTREGABLE, con `N-187`:** `entregas/Paquete_Semaforos_2026-11-10_6ca489f_SIN_BANCO.zip` (zip `ae1c523f...`,
+   APK `87211871...`); arquitecto y QA APTO CON CONDICIONES, compuerta 16/17 (solo `D-22`), hoja del 10/11 con la
+   Parte 9 (pruebas 26-34) y Parte 10 (35-40, barrera arriba en reposo). Radio: `D-160`.
 2. **`N-187` CONSTRUIDO sin banco (09/11); arquitecto y QA APTO CON CONDICIONES (cerradas: D1 de QA).** Parametros
    de camaras y barrera desde la app, en Ajustes con clave de tecnico y PIN: SPEC_8 §8 y `D-161`..`D-165`.
    Decidido con la simulacion de dos modelos + arbitro (scratchpad `pluma/`, roadmap `N-187`):
@@ -42,7 +42,7 @@ workflows en paralelo (ficheros disjuntos). Decisiones ya tomadas: no se vuelven
 | Maestro `179DB0` (El Sisga) | `7ff7d12` `SIN_BANCO`, probado despues `b354fe9`. Ninguno lleva el veto de camara a la pluma (`363e375`, `D-33`): `Camaras_Sisga_4x.html` se corrige en la MISMA visita en que se cargue un firmware posterior | cinta y diario en `evidencia/` |
 | Esclavo del Sisga | sin medir | su cinta no se ha traido |
 | Maestro `4D2007` y Esclavo `38EB53` (Marco, banco) | `6bd1e4f` en controlador y puente, medido: `$ACK,CMD:VERSION` el 01/10 | `evidencia/011020260934/` |
-| paquete para Marco | `Paquete_Semaforos_2026-11-10_c10e60f_SIN_BANCO` (zip `a9e98dd9...`, APK `921e0ab4...`), sin enviar; en su banco, `8f8dd7e` (mismo codigo de firmware), medido el 09/11 15:42 | `entregas/`, `evidencia/091120261545` |
+| paquete para Marco | `Paquete_Semaforos_2026-11-10_6ca489f_SIN_BANCO` (zip `ae1c523f...`, APK `87211871...`), sin enviar; en su banco, `8f8dd7e` (mismo codigo de firmware), medido el 09/11 15:42 | `entregas/`, `evidencia/091120261545` |
 
 ## Verificacion en escritorio
 

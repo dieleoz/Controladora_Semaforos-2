@@ -87,7 +87,7 @@ python 01_Firmware/Simulaciones/banco/correr.py   # solo los packs. Sirve para i
 
 | # | que | quien / donde | estado |
 |---|---|---|---|
-| 1 | Banco de Marco con `entregas/Paquete_Semaforos_2026-11-10_c10e60f_SIN_BANCO.zip` (zip `a9e98dd9...`, APK `921e0ab4...`) y la hoja del 10/11: Parte 9 (pruebas 26-34, `N-187`) y las de antes | Marco, 10/11 | esperando |
+| 1 | Banco de Marco con `entregas/Paquete_Semaforos_2026-11-10_6ca489f_SIN_BANCO.zip` (zip `ae1c523f...`, APK `87211871...`) y la hoja del 10/11: Parte 9 (pruebas 26-34, `N-187`), Parte 10 (35-40, barrera arriba en reposo) y las de antes | Marco, 10/11 | esperando |
 | 2 | Leer sus registros enteros y contando (`CLAUDE.md` §7): `RTT:` con LoRa, cobertura en metros, tiempo real de subida y bajada del brazo (con >10 s ningun retardo protege), camaras (NA/NC y veto), C5 (la camara no frena una bajada ya ordenada); y lo que las cintas aun deben (`D1`..`D8` de la mudanza del 09/11: `N-172`, `D-40`, `D-38`, camaras con peatones, centralita, `N-116`) | orquestador | tras 1 |
 | 3 | Ajustar los rangos de `N-187` desde la app, sin firmware; si el brazo pide otro rango, cambia solo el rango y su prueba (`D-163`) | orquestador | tras 2 |
 | 4 | Quitar `SIN_BANCO` solo con acta de banco (`evidencia/<fecha>_campo_<tema>.txt` con el hash cargado) | quien lo probo | tras 2 |
