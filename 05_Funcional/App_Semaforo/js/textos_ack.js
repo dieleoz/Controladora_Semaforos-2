@@ -215,8 +215,8 @@ const ACK_TEXTO = {
   // Automatico e Inteligente, a Manual con rojo fijo en las dos (bloque S y G6 invertida, dos puntas).
   'FORZAR_ROJO|OK': {
     tono: 'red',
-    texto: 'Equipo: ROJO TOTAL ordenado. La via que estaba en verde pasa por 3 s de amarillo. El equipo queda en ' +
-           'Manual y el rojo se sostiene hasta otra orden mientras el Poste 2 lo acuse; sin ' +
+    texto: 'Equipo: ROJO TOTAL ordenado. La via que estaba en verde pasa por 3 s de amarillo. Desde Ambar, Automatico ' +
+           'o Inteligente pasa a Manual; el rojo se sostiene hasta otra orden mientras el Poste 2 lo acuse; sin ' +
            'radio, o con su ambar de emergencia, a los 28 s vuelve a ambar. Compruebe las dos puntas antes de ' +
            'dejar pasar a nadie.',
     toast: 'Rojo total: amarillo 3 s solo en la via que estaba en verde'
