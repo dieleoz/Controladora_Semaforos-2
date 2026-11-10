@@ -35,8 +35,8 @@ cabecera con que HEAD y que arbol se midio; las comprueba `documentos_01` en cad
 |---|---|
 | Flash | Maestro **85.2 %** · Esclavo **72.1 %** · ESP32 **35.8 %** |
 | Banco por packs | **1524/1525 comprobaciones** en **70 packs**, 1 FALLA: `D-22` pide una tarjeta delante (`CLAUDE.md` §1) |
-| Arneses de C++ real | 115/115 automatico · 78/78 ciclo · 196/196 dos puntas · 165/165 Degradado a dos puntas |
-| App y puente | **959/959** jsdom · **71/71** funcional · **70/70** unitarios · 92/92 TDD · puente 167/167 |
+| Arneses de C++ real | 115/115 automatico · 78/78 ciclo · 196/196 dos puntas · 179/179 Degradado a dos puntas |
+| App y puente | **967/967** jsdom · **71/71** funcional · **70/70** unitarios · 92/92 TDD · puente 167/167 |
 ## BLOQUEANTES (lo que no cierra el teclado): `roadmap.md` §1 y §4 (`N-108`, `N-120`, `C-6`, `N-116`, §0.2).
 
 ---|---|
