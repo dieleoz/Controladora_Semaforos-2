@@ -5,17 +5,15 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 
 ## Por donde se retoma, en este orden
 
-**Orden del responsable (10/11): «acaba todo», un solo `.zip` a Marco para probar sobre `main`.**
-
-1. **Version 11/11 integrada en `main`:** `D-170` (ROJO TOTAL sostenido desde ambar), `D-171` (`ESC:?` sin dato),
-   `D-166`/`D-169` (veto por camara, camaras malas), `D-168` (`J15` = BAJAR, arranque arriba) y la auditoria
-   `N-182`. Hoja: `05_Funcional/Novedades_y_Pruebas_2026-11-11.html`. Sin banco. Paquete: fila del funcional abajo.
+1. **Paquete `5b6e8f9` en el banco de Marco** (hoja `05_Funcional/Novedades_y_Pruebas_2026-11-11.html`, 12 pruebas): se
+   esperan sus registros, que se leen enteros (`CLAUDE.md` §7), y la cinta de Averias (prueba 30) que se pidio.
 2. **Al cargar `J15:BAJAR`:** central a «sin senal = subir» en la MISMA visita, `J15` suelta entre medias; se anota
    aqui la polaridad por poste. Todos los equipos de la tabla llevan firmware anterior: `J15` conduce = SUBIR.
-3. **Con los registros de Marco:** leerlos enteros (`CLAUDE.md` §7): `RTT:`, cobertura, tiempo del brazo, camaras.
-4. **`D-173`-`D-176`:** ROJO TOTAL a Manual solo con radio y rojo del otro constado; sin radio, AMBAR DE EMERGENCIA en
-   el Poste 2 (`D-176`); pluma arriba en el rojo de espera (`D-175`, F2 y ventana `D-29` pendientes); `D-172` aceptado.
-5. **Frentes:** banco de Marco, El Sisga tras banco, `D-158` tras medir telefonos. Version siguiente: `roadmap.md`.
+3. **Candidata 3 sobre `5b6e8f9`** (`roadmap.md` fila 5d): arquitecto y QA una vez; compuerta hasta dos pasadas iguales;
+   `8a81f1e` y `416766a` a `RETIRADOS/` solo con permiso del responsable.
+4. **`D-175`, casos del responsable sin construir:** F2 (Esclavo reiniciado, pluma arriba hasta 28 s) y la pluma del
+   Maestro en la ventana de `D-29` (`roadmap.md` fila 5g).
+5. **Frentes:** El Sisga tras banco, `D-158` tras medir telefonos. Version siguiente: `roadmap.md`.
 
 ## Que firmware hay en cada equipo (`CLAUDE.md` §0.2)
 
