@@ -2397,7 +2397,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (data.NODE) {
         DegAuto.alStatus(data.NODE); Noche.alStatus(data.NODE);  // A-15 y D-110: consultan al identificar el poste
-        state.node = data.NODE;
+        state.node = data.NODE; Instalacion.alStatus(data.NODE);   // N-187: vacia y reconsulta
         if (nodeNameEl) {
           nodeNameEl.textContent = data.NODE === 'MAESTRO' ? 'MAESTRO (POSTE 1)' : 'ESCLAVO (POSTE 2)';
         }
@@ -3032,7 +3032,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   function olvidarEnlace() {
     state.connected = false; soltarEsperaDegAuto(); revisarGrupo(); PantallaOperario.sinPareja(null);   // QA de U, D3
-    state.node = null; state.firmware = {}; renderLights();   // sin enlace: «SIN ENLACE», no la frase de antes
+    state.node = null; Instalacion.alStatus(null); state.firmware = {}; renderLights();   // sin enlace: «SIN ENLACE»
     // D-23: los contadores de radio son de UN poste y arrancan con su micro. Si no se
     // olvidan al soltar el enlace, la primera muestra del SIGUIENTE poste se resta contra
     // la ultima del anterior y sale un delta inventado -y casi siempre negativo, que
@@ -3283,7 +3283,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // escaneo eso ya no se puede saber al pulsar, y no hace falta: NODE: del $STATUS
       // llega cada segundo y lo escribe abajo (parseNmeaTelemetry). Hasta entonces el
       // rotulo dice lo unico que consta, que es que todavia no se sabe.
-      state.node = null;
+      state.node = null; Instalacion.alStatus(null);
       if (nodeNameEl) nodeNameEl.textContent = 'IDENTIFICANDO...';
       // Con la punta sin identificar actualizarEmergencia() ensena LAS DOS emergencias
       // -cada una con su poste delante- y retira RETIRAR AMBAR, que es la unica que

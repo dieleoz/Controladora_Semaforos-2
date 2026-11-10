@@ -5,7 +5,9 @@
 // LO QUE SE PINTA ES LO QUE CONTESTA EL EQUIPO, nunca lo pulsado: al abrir el plegado se consulta, y tras cada OK
 // se vuelve a consultar. Formato de la consulta (8.6): RESULT:C_NA_D_NA_R3,VE:C0D0. Cada $ACK lleva VE:.
 // El firmware devuelve el CMD con su valor (CMD:SET_CAMARA:C:NC); sin coma en el valor, la coma no parte el campo.
-// Firmware sin N-187: la consulta vuelve AUTH_FAILED (Esclavo) o DESCONOCIDO (Maestro), y el panel lo dice.
+// Firmware sin N-187 (Maestro y Esclavo de 9edb650): la consulta sale sin PIN, no esta en su lista sin PIN y los
+// dos contestan $ERR,CMD:AUTH_FAILED,DESC:PIN_INVALIDO, sin repetir el CMD. El panel lo dice (rechazo()).
+// CADA POSTE EL SUYO (SPEC_4 6): al cambiar de poste o desconectar el panel vuelve a "--" y, abierto, consulta.
 // EL RANGO DEL RETARDO VIVE SOLO AQUI (RETARDO): lo usa el selector y lo lee js/sim_instalacion.js. Decidido por el
 // responsable el 09/11 (P3): 3..5 s enteros, fabrica 3 s. Si el firmware lo cambia, se cambia aqui y en su fuente.
 
@@ -14,6 +16,9 @@ const Instalacion = {
   SIN_FW: 'Este firmware no tiene la instalación de cámaras y barrera. Qué falta: cargar el firmware nuevo en ' +
           'este poste.',
   RETARDO: { MIN: 3, MAX: 5, FABRICA: 3 },
+  // Borde de rechazo(): un AUTH_FAILED se toma por la consulta solo dentro de este plazo desde que salio. Elegido,
+  // no medido: la consulta es local al poste (sin radio) y el AUTH_FAILED sale en el mismo parseo de la orden.
+  PLAZO_MS: 3000,
   VE_AYUDA: 'Con nadie delante debe salir 0; si sale 1, contacto mal declarado o algo delante.',
   CONTACTO: {
     NA: 'NA: la cámara CIERRA el contacto cuando ve algo (de fábrica).',
@@ -105,26 +110,47 @@ const Instalacion = {
              texto: 'Equipo: ' + que + ' guardado y releído.' + cola, toast: 'Instalación guardada en el equipo' };
   },
 
-  // Molde js/noche.js: AUTH_FAILED y DESCONOCIDO no nombran la orden; se toman solo con la consulta en vuelo y
-  // despues de Noche.rechazo() (app.js), que se queda el suyo si la de noche tambien lo esta.
+  // AUTH_FAILED no nombra la orden: se toma por la consulta solo si es lo ultimo que salio de este panel y dentro
+  // de PLAZO_MS (M1: una consulta sin respuesta no se queda la culpa del siguiente PIN mal tecleado). Va despues de
+  // Noche.rechazo() (app.js), que se queda el suyo si la de noche tambien esta en vuelo. DESCONOCIDO no: ningun
+  // firmware lo contesta a la consulta.
   rechazo(data) {
     const cmd = data && String(data.CMD || '');
-    if (this._enCurso && (cmd === 'DESCONOCIDO' || cmd === 'AUTH_FAILED') && data.NODE !== 'PUENTE') {
-      this._enCurso = false;
-      ['inst-c', 'inst-d', 'inst-r', 'inst-ve'].forEach(id => this._pintar(id, '--'));
-      this._pintar('inst-falta', this.SIN_FW);
+    const enVuelo = this._enCurso && Date.now() - this._enCursoDesde <= this.PLAZO_MS;
+    if (cmd === 'AUTH_FAILED' || cmd === this.CONSULTA) this._enCurso = false;
+    if (enVuelo && cmd === 'AUTH_FAILED' && data.NODE !== 'PUENTE') {
+      this._vaciar(this.SIN_FW);
       return { texto: this.SIN_FW, toast: 'Instalación: no está en este firmware' };
     }
     const o = cmd && this._orden(cmd), f = o && this.RECHAZOS[data.DESC];
     return f ? f() : null;
   },
 
-  _consultar() { if (this.ctx && this.ctx.enviarComandoFirmware(this.CONSULTA)) this._enCurso = true; },
+  _consultar() {
+    if (!this.ctx || !this.ctx.enviarComandoFirmware(this.CONSULTA)) return;
+    this._enCurso = true; this._enCursoDesde = Date.now();
+  },
+
+  _vaciar(falta) {
+    ['inst-c', 'inst-d', 'inst-r', 'inst-ve'].forEach(id => this._pintar(id, '--'));
+    this._pintar('inst-falta', falta);
+  },
+
+  // Molde Noche.alStatus(): otro poste (o ninguno) -> lo pintado era del anterior. Se vacia y, con el plegado
+  // abierto y un poste delante, se consulta sin esperar a cerrar y abrir (_abierto no la frena).
+  alStatus(node) {
+    if (node === this._nodo) return;
+    this._nodo = node; this._enCurso = false;
+    this._vaciar(node ? 'Consultando este poste.' : 'Qué falta: conectar con un poste y consultar.');
+    const det = typeof document !== 'undefined' && document.getElementById('instalacion');
+    if (node && det && det.open) this._consultar();
+  },
 
   _enviar(orden, valor) {
     const c = this.ctx;
     if (!c.state.pinVerificado) { c.pedirPin(() => this._enviar(orden, valor)); return; }
     if (!c.enviarComandoFirmware(orden, valor)) return;
+    this._enCurso = false;   // lo ultimo que salio ya no es la consulta
     c.addEvent('cyan', 'Técnico: orden ' + orden + ':' + valor + ' enviada al equipo. Espere el acuse.');
   },
 

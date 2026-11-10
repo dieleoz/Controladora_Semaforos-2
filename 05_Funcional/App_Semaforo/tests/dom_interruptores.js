@@ -175,18 +175,68 @@ module.exports = async function pruebaInterruptores(montarAppLimpia, assert) {
       assert(si.test(ultimo()) && /Qu[eé] falta/.test(ultimo()) && !/sin traducir/.test(ultimo()) && !JERGA.test(toast()),
         `J5: ${carga} -> "${ultimo().slice(0, 220)}" / "${toast()}"`);
     });
-    // J6: firmware sin N-187. La consulta vuelve AUTH_FAILED (Esclavo) o DESCONOCIDO (Maestro): el panel lo dice.
-    [['ERR,CMD:AUTH_FAILED,DESC:PIN_INVALIDO', 'Esclavo'], ['ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO', 'Maestro']]
-      .forEach(([carga, quien]) => {
-        a.tramas.length = 0;
-        d.getElementById('btn-inst-consultar').click();
-        entra(carga);
-        assert(a.tramas.join('|') === 'CMD:CONSULTA_INSTALACION\r\n' && /no tiene la instalaci[oó]n de c[aá]maras y barrera/
-          .test(tx('inst-falta')) && /Qu[eé] falta: cargar el firmware nuevo en este poste/.test(ultimo()),
-          `J6: ${quien} viejo (${carga}) -> panel "${tx('inst-falta')}" / evento "${ultimo().slice(0, 160)}"`);
-      });
-    entra('ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO');   // sin consulta en vuelo no es de la instalacion
-    assert(!/instalaci[oó]n de c[aá]maras/.test(ultimo()),
-      `J6: control: un DESCONOCIDO sin consulta en vuelo no se atribuye a la instalacion: "${ultimo().slice(0, 120)}"`);
+    // J6: firmware sin N-187 (Maestro y Esclavo de 9edb650). La consulta sale sin PIN y ninguno la tiene en su
+    // lista sin PIN: los dos contestan $ERR,CMD:AUTH_FAILED,DESC:PIN_INVALIDO, sin repetir el CMD
+    // (git show 9edb650:01_Firmware/{Maestro,Esclavo}/src/bluetooth.cpp). El panel lo dice.
+    const SIN_FW = /no tiene la instalaci[oó]n de c[aá]maras y barrera/;
+    const viejo = 'ERR,CMD:AUTH_FAILED,DESC:PIN_INVALIDO';
+    ['Maestro', 'Esclavo'].forEach(quien => {
+      a.tramas.length = 0;
+      d.getElementById('btn-inst-consultar').click();
+      entra(viejo);
+      assert(a.tramas.join('|') === 'CMD:CONSULTA_INSTALACION\r\n' && SIN_FW.test(tx('inst-falta')) &&
+             /Qu[eé] falta: cargar el firmware nuevo en este poste/.test(ultimo()),
+        `J6: ${quien} viejo (${viejo}) -> panel "${tx('inst-falta')}" / evento "${ultimo().slice(0, 160)}"`);
+    });
+    entra('ERR,CMD:AUTH_FAILED,DESC:PIN_INVALIDO');   // sin consulta en vuelo no es de la instalacion
+    assert(!SIN_FW.test(ultimo()),
+      `J6: control: un AUTH_FAILED sin consulta en vuelo no se atribuye a la instalacion: "${ultimo().slice(0, 120)}"`);
+    // J6: ningun firmware contesta DESCONOCIDO a la consulta: con ella en vuelo, tampoco se atribuye.
+    d.getElementById('btn-inst-consultar').click();
+    entra('ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO');
+    assert(!SIN_FW.test(ultimo()),   // el panel aun trae el SIN_FW de la vuelta anterior: se mira el evento
+      `J6: DESCONOCIDO con la consulta en vuelo no es "firmware sin instalacion": "${ultimo().slice(0, 120)}"`);
+
+    // J8 (M1): la respuesta de la consulta se pierde. Un AUTH_FAILED pasado el plazo, o tras otra orden de este
+    // panel, es de esa otra orden (un PIN mal tecleado), no "firmware sin instalacion".
+    const reloj = w.Date.now, panel = () => ['c', 'd', 'r'].map(x => tx('inst-' + x)).join('/');
+    d.getElementById('btn-inst-consultar').click(); entra('ACK,CMD:CONSULTA_INSTALACION,RESULT:C_NC_D_NA_R4,VE:C0D0');
+    d.getElementById('btn-inst-consultar').click();   // esta respuesta no llega
+    const t0 = reloj.call(w.Date); w.Date.now = () => t0 + 10000;
+    entra(viejo);
+    w.Date.now = reloj;
+    assert(!SIN_FW.test(ultimo()) && panel() === 'NC/NA/4 s',
+      `J8: AUTH_FAILED 10 s tras consulta sin respuesta no borra el panel: ${panel()} / "${ultimo().slice(0, 90)}"`);
+    d.getElementById('btn-inst-consultar').click();   // tampoco llega
+    d.getElementById('inst-retardo').value = '5'; d.getElementById('btn-inst-retardo').click();
+    entra(viejo);
+    assert(!SIN_FW.test(ultimo()) && panel() === 'NC/NA/4 s',
+      `J8: AUTH_FAILED tras otra orden del panel es de esa orden: ${panel()} / "${ultimo().slice(0, 120)}"`);
+
+    // J7 (D1; SPEC_4 6 y SPEC_4_App_y_Bluetooth.md:421-424): con el plegado ABIERTO se cambia de poste. Lo del poste
+    // anterior no se pinta como de este: se vacia a "--" y se consulta sola; luego pinta lo que contesta el nuevo.
+    const enEsclavo = 'STATUS,NODE:ESCLAVO,SERIE:SEM-E-01,MODO:AUTO,ESTADO:ROJO,T:9,RF:97,RTT:70,BAT:12.9,' +
+                      'HORA:14:32:00';
+    const consultas = () => a.tramas.filter(t => /CONSULTA_INSTALACION/.test(t)).length;
+    d.getElementById('btn-inst-consultar').click(); entra('ACK,CMD:CONSULTA_INSTALACION,RESULT:C_NC_D_NC_R5,VE:C0D0');
+    assert(det.open && panel() === 'NC/NC/5 s', `J7: poste 1 pinta NC/NC/5 s: ${panel()}`);
+    a.tramas.length = 0;
+    entra(enEsclavo);
+    assert(panel() === '--/--/--' && tx('inst-ve') === '--' && consultas() === 1,
+      `J7: al pasar al poste 2 se vacia y reconsulta: ${panel()} ve "${tx('inst-ve')}" consultas ${consultas()}`);
+    entra('ACK,CMD:CONSULTA_INSTALACION,RESULT:C_NA_D_NA_R3,VE:C0D0');
+    assert(panel() === 'NA/NA/3 s', `J7: pinta lo que contesta el poste 2: ${panel()}`);
+    a.tramas.length = 0;
+    entra(enEsclavo);
+    assert(panel() === 'NA/NA/3 s' && consultas() === 0,
+      `J7: control: otro $STATUS del mismo poste no vacia ni reconsulta: ${panel()} consultas ${consultas()}`);
+    // Desconectar vacia; volver al MISMO tipo de poste (otro Esclavo) reconsulta: puede ser otro equipo.
+    d.getElementById('btn-bt-disconnect').click();
+    if (abierto()) aceptar();
+    assert(panel() === '--/--/--', `J7: al desconectar el panel queda en "--": ${panel()}`);
+    d.getElementById('btnDevice').click(); d.querySelector('.bt-device-item').click();
+    a.tramas.length = 0;
+    entra(enEsclavo);
+    assert(consultas() === 1, `J7: al reconectar con el plegado abierto reconsulta (consultas ${consultas()})`);
   }
 };

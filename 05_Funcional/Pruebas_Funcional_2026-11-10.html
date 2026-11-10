@@ -123,7 +123,7 @@ button#btnPdf{
 </div>
 
 <div class="recordatorio">
-  Esta hoja trae <strong>solo lo que falta</strong>. Las radios ya están resueltas el 09/11 (fábrica, M0/M1 en ON, 100 % de latidos): no se vuelven a configurar. Queda la carga de este paquete, el enlace con LoRa y su <strong>cobertura</strong>, la <strong>barrera con puente H</strong>, las <strong>4 cámaras</strong>, los interruptores, un <strong>fin de semana en Degradado con testigo</strong>, la medida de <strong>El Sisga</strong> y la <strong>calle con ménsula</strong>. Haga primero la 1 y la 2; después, en orden, en una o varias jornadas: la hoja guarda lo escrito en el celular. Anote la hora del celular de cada cosa que vea. Lea siempre el recuadro verde &laquo;Debe ver antes de empezar&raquo;; si lo que ve es otra cosa, <strong>no empiece</strong>: arréglelo o avise. Donde dice <strong>&laquo;anote lo medido&raquo;</strong> es que nadie lo ha medido todavía: no hay valor esperado, el valor es el suyo.
+  Esta hoja trae <strong>solo lo que falta</strong>. Las radios ya están resueltas el 09/11 (fábrica, M0/M1 en ON, 100 % de latidos): no se vuelven a configurar. Queda la carga de este paquete, el enlace con LoRa y su <strong>cobertura</strong>, la <strong>barrera con puente H</strong>, las <strong>4 cámaras</strong>, los interruptores, un <strong>fin de semana en Degradado con testigo</strong>, la medida de <strong>El Sisga</strong>, la <strong>calle con ménsula</strong> y, nuevo en esta versión, los <strong>parámetros de instalación de cámaras y barrera</strong> (Parte 9). Haga primero la 1 y la 2; después, en orden, en una o varias jornadas: la hoja guarda lo escrito en el celular. Anote la hora del celular de cada cosa que vea. Lea siempre el recuadro verde &laquo;Debe ver antes de empezar&raquo;; si lo que ve es otra cosa, <strong>no empiece</strong>: arréglelo o avise. Donde dice <strong>&laquo;anote lo medido&raquo;</strong> es que nadie lo ha medido todavía: no hay valor esperado, el valor es el suyo.
 </div>
 
 <div class="recordatorio indice">
@@ -154,6 +154,15 @@ button#btnPdf{
     <li>Calle: cuánto se sostiene el relé de la cámara</li>
     <li>Pendiente: dos parejas de radio a la vez</li>
     <li>Pendiente: una tarjeta para el cristal</li>
+    <li>Instalación: consulta con las borneras vacías</li>
+    <li>Instalación: retardo de bajada 3, 4 y 5 s</li>
+    <li>Instalación: se guarda tras un corte de luz</li>
+    <li>Instalación: cámara en NC sin contacto y con puente</li>
+    <li>Instalación: cambiar el contacto con la pluma retenida</li>
+    <li>Instalación: lo de un poste no cambia el otro</li>
+    <li>Instalación: la radio no cae al cambiar</li>
+    <li>Instalación: volver a cargar devuelve a fábrica</li>
+    <li>Instalación: la app muestra lo del poste conectado</li>
   </ol>
 </div>
 
@@ -189,9 +198,10 @@ button#btnPdf{
     <li>Abra en PlatformIO <strong>01_Firmware/Maestro</strong>, compile y cargue el <strong>Poste 1</strong> por SWD (Upload). Haga lo mismo con <strong>01_Firmware/Esclavo</strong> en el <strong>Poste 2</strong>. La carga usa la configuración que trae el <code>platformio.ini</code> de cada proyecto (<code>mode=UR</code> con <code>-e all</code>): <strong>no la cambie</strong>. Si falla, <strong>reintente igual</strong>, con <code>mode=UR</code>: no cambie a otro modo. Abra el proyecto desde la carpeta del .zip, con su FW_HASH.txt al lado: de ahí sale el código de versión.</li>
     <li>Abra <strong>01_Firmware/ESP32_Expansion</strong> en PlatformIO y cargue el <strong>puente</strong> de los dos postes por USB, como siempre.</li>
     <li>Pulse la pastilla &laquo;Operario&raquo;, ponga la clave de técnico y, en cada poste: pestaña Ajustes &rarr; &laquo;Soporte&raquo; &rarr; <strong>"Consultar version del firmware"</strong>. Lea Eventos y, en Tramas, la línea que empieza por <code>$ACK,CMD:VERSION</code>.</li>
+    <li>En cada poste: Ajustes &rarr; abra el plegado <strong>&laquo;Instalación: cámaras y barrera&raquo;</strong> y apunte lo que dice en <strong>Cámara C</strong>, <strong>Cámara D</strong>, <strong>Retardo de bajada</strong> y <strong>Presencia ahora</strong>. <strong>Cada carga de firmware devuelve el poste a fábrica (NA, NA, 3 s).</strong> Si el poste tenía otra configuración, vuelva a ponerla ahora (Parte 9).</li>
     <li>Ponga la hora en cada poste desde la app.</li>
   </ol>
-  <div class="espera">Se espera: en Eventos, <strong>"Version cargada - Controlador MAESTRO: FW XXXXXXX"</strong> en el Poste 1, <strong>"Version cargada - Controlador ESCLAVO: FW XXXXXXX"</strong> en el Poste 2 y <strong>"Version cargada - Puente (ESP32): FW XXXXXXX"</strong> en los dos. En Tramas, <code>$ACK,CMD:VERSION,RESULT:OK,NODE:MAESTRO,FW:XXXXXXX</code> (y <code>NODE:ESCLAVO</code> en el Poste 2). <strong>El mismo código en los cuatro</strong>, igual al del nombre del .zip, sin +SUCIO. Si alguno no coincide, no siga y avise. Al terminar, el Poste 1 queda en ámbar intermitente, como tras cualquier arranque: sale con <strong>VOLVER AL MENÚ</strong> y <strong>AUTOMÁTICO</strong>.</div>
+  <div class="espera">Se espera: en Eventos, <strong>"Version cargada - Controlador MAESTRO: FW XXXXXXX"</strong> en el Poste 1, <strong>"Version cargada - Controlador ESCLAVO: FW XXXXXXX"</strong> en el Poste 2 y <strong>"Version cargada - Puente (ESP32): FW XXXXXXX"</strong> en los dos. En Tramas, <code>$ACK,CMD:VERSION,RESULT:OK,NODE:MAESTRO,FW:XXXXXXX</code> (y <code>NODE:ESCLAVO</code> en el Poste 2). <strong>El mismo código en los cuatro</strong>, igual al del nombre del .zip, sin +SUCIO. Si alguno no coincide, no siga y avise. Al terminar, el Poste 1 queda en ámbar intermitente, como tras cualquier arranque: sale con <strong>VOLVER AL MENÚ</strong> y <strong>AUTOMÁTICO</strong>. En &laquo;Instalación: cámaras y barrera&raquo;, en los dos postes: <strong>Cámara C NA, Cámara D NA, Retardo de bajada 3 s</strong>.</div>
   <div class="horas">
     <label class="campo">Poste 1 - Controlador: línea $ACK,CMD:VERSION copiada <input type="text" id="h1a" class="hora"></label>
     <label class="campo">Poste 1 - Puente: código <input type="text" id="h1b" class="hora"></label>
@@ -200,6 +210,7 @@ button#btnPdf{
     <label class="campo">¿Guardó leido_poste1.bin y leido_poste2.bin? (sí/no) <input type="text" id="h1e" class="hora"></label>
     <label class="campo">¿Cuántos reintentos hizo falta en cada carga? <input type="text" id="h1f" class="hora"></label>
     <label class="campo">Radios: ¿las dos como en la casilla? (sí/no, qué cambia) <input type="text" id="h1g" class="hora"></label>
+    <label class="campo">Instalación tras cargar, Poste 1 / Poste 2 (C, D, retardo, presencia) <input type="text" id="h1h" class="hora"></label>
   </div>
   <div class="resultado">
     <label><input type="radio" name="r1" value="OK" data-txt="OK"> OK</label>
@@ -247,7 +258,7 @@ button#btnPdf{
 <div class="nota">
   <strong>Cómo responde J15 (para el puente H).</strong> J15 es un <strong>nivel</strong>, no un pulso: la orden se queda puesta mientras dure. Va del micro (PB2) por el opto U15 al MOSFET Q10 y de ahí a J15.
   <ul>
-    <li><strong>J15 conduce = SUBIR.</strong> Durante el verde de ese poste, su amarillo de cierre y los primeros <strong>3 s</strong> del rojo, más lo que la cámara la retenga (pruebas 10 a 12). También todo el tiempo en <strong>ámbar intermitente</strong> (prueba 5) y con la <strong>barrera fuera de servicio</strong> (prueba 14).</li>
+    <li><strong>J15 conduce = SUBIR.</strong> Durante el verde de ese poste, su amarillo de cierre y los primeros <strong>3 s</strong> del rojo (el retardo de bajada: de fábrica 3 s, ajustable de 3 a 5 s, Parte 9), más lo que la cámara la retenga (pruebas 10 a 12). También todo el tiempo en <strong>ámbar intermitente</strong> (prueba 5) y con la <strong>barrera fuera de servicio</strong> (prueba 14).</li>
     <li><strong>J15 no conduce = BAJAR.</strong> El resto del rojo, y sin energía.</li>
   </ul>
   El poste <strong>no sabe cuánto tarda el brazo</strong> ni lee final de carrera. El puente H sube hasta su final de carrera de arriba mientras J15 conduce y baja hasta el de abajo mientras no conduce. El diseño de <strong>10 s de 0 a 90 grados</strong> que está haciendo encaja así, <strong>sin cambiar el firmware</strong>.
@@ -966,6 +977,263 @@ button#btnPdf{
   <div class="print-only" id="pr25"></div>
 </section>
 
+<div class="parte">
+  <h2>Parte 9 (pruebas 26 a 34): parámetros de instalación de cámaras y barrera (nuevo en esta versión)</h2>
+  <div class="alto"><strong>Firmware y app SIN BANCO.</strong> Antes de empezar, anote en cada poste el código que da <strong>"Consultar version del firmware"</strong> (como en la prueba 1).</div>
+  Dónde: con la clave de técnico, pestaña <strong>Ajustes</strong>, plegado <strong>&laquo;Instalación: cámaras y barrera&raquo;</strong>. Al abrirlo, el poste dice lo que tiene. Vale <strong>solo para el poste conectado</strong> (no va por radio); cambiar pide el <strong>PIN</strong>, consultar no.
+  <ul>
+    <li><strong>Cámara C</strong> (la cámara 1, J16 pata 9-10) y <strong>Cámara D</strong> (la cámara 2, pata 11-12): botones <strong>&laquo;Cámara C: NA&raquo;</strong>, <strong>&laquo;Cámara C: NC&raquo;</strong>, y lo mismo para la D. <strong>NA</strong>: la cámara cierra el contacto cuando ve algo (de fábrica). <strong>NC</strong>: lo abre cuando ve algo. Se pone el que tenga el relé de esa cámara.</li>
+    <li><strong>Retardo de bajada</strong>: segundos que la barrera espera, con la luz ya en rojo, antes de bajar. Se elige <strong>3, 4 o 5 s</strong> y se pulsa <strong>&laquo;Aplicar retardo&raquo;</strong>. De fábrica 3 s. Nunca baja en amarillo ni en ámbar.</li>
+    <li><strong>Presencia ahora</strong>: <strong>C 0 · D 0</strong>. Con nadie delante debe salir 0; si sale 1, contacto mal declarado o algo delante. <strong>&laquo;Consultar otra vez&raquo;</strong> la vuelve a pedir.</li>
+  </ul>
+  Se espera, en cada cambio aceptado: en Eventos <strong>"Equipo: el contacto de la cámara guardado y releído."</strong> (o <strong>"el retardo de la barrera"</strong>) y el panel con el valor nuevo. Si el equipo no lo acepta, la app dice por qué y qué falta. <strong>Cada carga de firmware deja el poste en fábrica (NA, NA, 3 s).</strong> Al terminar la parte, deje cada poste con el contacto de sus cámaras reales y 3 s, y anótelo en la prueba 33.
+</div>
+
+<section class="prueba" id="p26">
+  <h2>26. Consulta con las borneras de cámara vacías</h2>
+  <div class="porque"><b class="t">Por qué</b>Es el punto de partida: un poste recién cargado está en fábrica y, sin nada en las borneras de cámara, no debe ver nada.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Prueba 1 en OK. Las borneras de cámara <strong>vacías</strong>: hágala tras la prueba 1, antes de la 2, o suelte con el poste <strong>sin energía</strong> los cables de J16 pata 9-10 y 11-12. <strong>Nunca toque la pata 1.</strong></li>
+  </ul></div>
+  <ol>
+    <li>En el Poste 1, abra &laquo;Instalación: cámaras y barrera&raquo; y copie lo que dice.</li>
+    <li>Lo mismo en el Poste 2.</li>
+  </ol>
+  <div class="espera">Se espera, en los dos: <strong>Cámara C NA</strong>, <strong>Cámara D NA</strong>, <strong>Retardo de bajada 3 s</strong>, <strong>Presencia ahora C 0 · D 0</strong>. En Eventos <strong>"Equipo: cámara C NA, cámara D NA, retardo 3 s."</strong> Si sale <strong>"Este firmware no tiene la instalación de cámaras y barrera"</strong>, ese poste no tiene el firmware de este paquete: vuelva a la prueba 1.</div>
+  <div class="horas">
+    <label class="campo">Poste 1: C, D, retardo, presencia <input type="text" id="h26a" class="hora"></label>
+    <label class="campo">Poste 2: C, D, retardo, presencia <input type="text" id="h26b" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r26" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r26" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r26" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v26" placeholder="Lo que vio distinto"></textarea>
+  <div class="print-only" id="pr26"></div>
+</section>
+
+<section class="prueba" id="p27">
+  <h2>27. Retardo de bajada: 3, 4 y 5 s</h2>
+  <div class="porque"><b class="t">Por qué</b>El retardo es el tiempo, con la luz ya en rojo, que la pluma sigue arriba antes de bajar. Solo se acepta de 3 a 5 s. Hay que medir que cada valor da lo que dice.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Prueba 26 en OK. Poste 1 en <strong>AUTOMÁTICO</strong>, dando ciclos, con <strong>nada delante de las cámaras</strong> (Presencia C 0 · D 0).</li>
+    <li>Mejor osciloscopio o analizador: una punta en la luz roja del poste y otra en <strong>J15 pata 1-2</strong>. Si no, cronómetro o vídeo.</li>
+  </ul></div>
+  <ol>
+    <li>Mire qué valores ofrece el selector del retardo.</li>
+    <li>Con <strong>3 s</strong>: en tres rojos, mida desde que se enciende el rojo hasta que J15 deja de conducir (orden de BAJAR).</li>
+    <li>Elija <strong>4 s</strong>, pulse &laquo;Aplicar retardo&raquo;, meta el PIN y mida igual en tres rojos.</li>
+    <li>Lo mismo con <strong>5 s</strong>.</li>
+    <li>Repita en el Poste 2 si tiene tiempo. Al terminar, deje 3 s.</li>
+  </ol>
+  <div class="espera">Se espera: el selector ofrece <strong>solo 3, 4 y 5 s</strong> (el 3 marcado &laquo;fábrica&raquo;); no hay forma de pedir otro valor. J15 deja de conducir a los <strong>3, 4 y 5 s</strong> del rojo (&plusmn;0,3 s con osciloscopio; con cronómetro, anote lo medido). La app pasa a "▼ PLUMA ABAJO" en ese momento. Si alguna vez sale <strong>"El equipo NO cambió el retardo: está fuera de 3 a 5 s"</strong>, anótelo.</div>
+  <div class="horas">
+    <label class="campo">Valores del selector <input type="text" id="h27a" class="hora"></label>
+    <label class="campo">Instrumento (osciloscopio / analizador / cronómetro) <input type="text" id="h27b" class="hora"></label>
+    <label class="campo">Retardo 3 s: tres medidas (s) <input type="text" id="h27c" class="hora"></label>
+    <label class="campo">Retardo 4 s: tres medidas (s) <input type="text" id="h27d" class="hora"></label>
+    <label class="campo">Retardo 5 s: tres medidas (s) <input type="text" id="h27e" class="hora"></label>
+    <label class="campo">Poste 2: lo mismo (medidas) <input type="text" id="h27f" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r27" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r27" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r27" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v27" placeholder="Lo que vio distinto. Si puede, foto de la pantalla del osciloscopio"></textarea>
+  <div class="print-only" id="pr27"></div>
+</section>
+
+<section class="prueba" id="p28">
+  <h2>28. Lo puesto sigue tras un corte de luz</h2>
+  <div class="porque"><b class="t">Por qué</b>Es la única prueba de que el poste lo guarda de verdad y no solo lo recuerda mientras tiene luz.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Prueba 27 en OK. Poste 1 en AUTOMÁTICO. Un puente de cable entre <strong>J16 pata 9 y 10</strong> (con la cámara C en NC, el puente es &laquo;nadie delante&raquo;); la cámara 1 suelta de esas patas.</li>
+  </ul></div>
+  <ol>
+    <li>En el Poste 1 ponga <strong>Retardo 5 s</strong> y <strong>Cámara C: NC</strong>, con el puente 9-10 puesto. Consulte: copie lo que dice.</li>
+    <li>Corte la luz del Poste 1 un minuto y vuélvala. Salga del ámbar con <strong>VOLVER AL MENÚ</strong> y <strong>AUTOMÁTICO</strong>.</li>
+    <li>Abra otra vez el plegado (o &laquo;Consultar otra vez&raquo;) y copie lo que dice.</li>
+    <li>Mida la bajada en dos rojos, como en la prueba 27.</li>
+    <li>Al terminar: en un <strong>verde</strong>, vuelva C a <strong>NA</strong> y el retardo a <strong>3 s</strong>; quite el puente y vuelva a conectar la cámara 1.</li>
+  </ol>
+  <div class="espera">Se espera: antes y después del corte, <strong>Cámara C NC</strong>, <strong>Cámara D NA</strong>, <strong>Retardo 5 s</strong>, <strong>Presencia C 0 · D 0</strong>. La bajada, a los <strong>5 s</strong> del rojo. Si tras el corte sale NA o 3 s, el poste no lo guardó: <strong>NO OK</strong>.</div>
+  <div class="horas">
+    <label class="campo">Antes del corte: C, D, retardo, presencia <input type="text" id="h28a" class="hora"></label>
+    <label class="campo">Después del corte: C, D, retardo, presencia <input type="text" id="h28b" class="hora"></label>
+    <label class="campo">Bajada tras el corte, dos medidas (s) <input type="text" id="h28c" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r28" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r28" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r28" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v28" placeholder="Lo que vio distinto"></textarea>
+  <div class="print-only" id="pr28"></div>
+</section>
+
+<section class="prueba" id="p29">
+  <h2>29. Cámara en NC: sin contacto ve presencia, con puente no</h2>
+  <div class="porque"><b class="t">Por qué</b>Con NC, contacto abierto quiere decir &laquo;hay algo&raquo;. Si se declara NC una cámara que es NA, o un cable se corta, el poste ve presencia todo el rato: la pluma <strong>no baja</strong> en rojo y avisa. Es el lado seguro, y así se detecta el error.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Prueba 28 hecha. Poste 1 en AUTOMÁTICO, con barrera. <strong>Nadie en el recorrido del brazo.</strong></li>
+    <li>J16 pata 9-10 <strong>sin nada</strong> (cámara 1 suelta, con el poste sin energía) y un puente de cable a mano. La cámara 2 como esté, sin nada delante.</li>
+  </ul></div>
+  <ol>
+    <li>En un <strong>verde</strong>, ponga <strong>Cámara C: NC</strong> (Cámara D en NA). Copie lo que dice Eventos y Presencia ahora.</li>
+    <li>Mire el siguiente rojo y espere <strong>90 s</strong> con la pluma retenida. Copie el aviso.</li>
+    <li>Ponga el puente entre <strong>J16 pata 9 y 10</strong>. Pulse &laquo;Consultar otra vez&raquo; y mire la pluma. En el siguiente rojo, mida cuándo baja.</li>
+    <li>Quite el puente y, en un <strong>verde</strong>, vuelva C a <strong>NA</strong>. Repita los pasos 1 a 3 con la <strong>Cámara D</strong> en NC y J16 pata <strong>11-12</strong>. Al terminar, D en <strong>NA</strong> y las cámaras conectadas otra vez.</li>
+  </ol>
+  <div class="espera">Se espera: en el paso 1, <strong>Presencia C 1 · D 0</strong> y <strong>"Qué falta: con nadie delante, revisar el contacto declarado de la cámara C o lo que tiene delante."</strong> En el rojo la pluma <strong>no baja</strong> y, a los 90 s, <strong>"⛔ La cámara retiene la barrera ARRIBA: mire debajo del brazo antes de tocar nada."</strong> Con el puente: <strong>Presencia C 0 · D 0</strong>; si estaba retenida en rojo, baja en ese momento, y en el rojo siguiente baja al cumplir el retardo. Con la D, lo mismo con <strong>C 0 · D 1</strong>. Si al cambiar el contacto sale <strong>"El equipo NO cambió el contacto: la cámara está reteniendo la barrera..."</strong>, espere al verde y repita (prueba 30).</div>
+  <div class="horas">
+    <label class="campo">Cámara C en NC sin puente: presencia y aviso de la app <input type="text" id="h29a" class="hora"></label>
+    <label class="campo">¿Bajó la pluma en rojo? Hora del aviso de 90 s <input type="text" id="h29b" class="hora"></label>
+    <label class="campo">Con puente 9-10: presencia y segundos de bajada <input type="text" id="h29c" class="hora"></label>
+    <label class="campo">Cámara D en NC sin puente: presencia, ¿bajó?, aviso <input type="text" id="h29d" class="hora"></label>
+    <label class="campo">Con puente 11-12: presencia y segundos de bajada <input type="text" id="h29e" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r29" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r29" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r29" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v29" placeholder="Copie los avisos de Eventos tal cual"></textarea>
+  <div class="print-only" id="pr29"></div>
+</section>
+
+<section class="prueba" id="p30">
+  <h2>30. Cambiar el contacto con la pluma retenida: se rechaza</h2>
+  <div class="porque"><b class="t">Por qué</b>Cambiar el contacto no puede soltar una pluma que la cámara está reteniendo. Para corregir una cámara mal declarada que retiene la pluma, primero se saca del veto.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Prueba 29 hecha. Poste 1 en AUTOMÁTICO, <strong>Cámara C NA</strong>. Puente en J16 pata 9-10 (cámara 1 suelta). <strong>Nadie en el recorrido del brazo.</strong></li>
+  </ul></div>
+  <ol>
+    <li>Con el puente puesto, espere a un rojo en que la pluma quede <strong>retenida arriba</strong> (como en la prueba 10).</li>
+    <li>Con la pluma retenida, pulse <strong>&laquo;Cámara C: NC&raquo;</strong> y meta el PIN. Copie lo que dice la app.</li>
+    <li>En Averías, <strong>&laquo;Sacar las cámaras del veto&raquo;</strong>. Mire la pluma.</li>
+    <li>Pulse otra vez <strong>&laquo;Cámara C: NC&raquo;</strong>. Copie Presencia ahora.</li>
+    <li>En Averías, <strong>&laquo;Devolver el veto&raquo;</strong>.</li>
+    <li>Al terminar: quite el puente, en un <strong>verde</strong> vuelva C a <strong>NA</strong> y conecte la cámara 1.</li>
+  </ol>
+  <div class="espera">Se espera: en el paso 2, <strong>"El equipo NO cambió el contacto: la cámara está reteniendo la barrera ahora mismo, y el cambio no suelta un veto en curso."</strong> con los cuatro pasos, y el panel sigue en <strong>NA</strong>; la pluma sigue arriba. En el paso 3 la pluma <strong>baja</strong>. En el paso 4, el cambio se acepta: <strong>Cámara C NC</strong> y <strong>Presencia C 0 · D 0</strong> (con NC, el puente es &laquo;nadie delante&raquo;). En el paso 5, <strong>"Equipo: veto de las cámaras DEVUELTO..."</strong>.</div>
+  <div class="horas">
+    <label class="campo">Paso 2: aviso de la app (copie) <input type="text" id="h30a" class="hora"></label>
+    <label class="campo">Paso 3: ¿bajó la pluma? (sí/no) <input type="text" id="h30b" class="hora"></label>
+    <label class="campo">Paso 4: Cámara C y presencia <input type="text" id="h30c" class="hora"></label>
+    <label class="campo">Paso 5: ¿veto devuelto? (sí/no) <input type="text" id="h30d" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r30" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r30" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r30" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v30" placeholder="Copie los avisos de Eventos tal cual"></textarea>
+  <div class="print-only" id="pr30"></div>
+</section>
+
+<section class="prueba" id="p31">
+  <h2>31. Lo que se cambia en un poste no cambia el otro</h2>
+  <div class="porque"><b class="t">Por qué</b>Cada poste tiene sus cámaras y su barrera. La instalación no va por radio.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Los dos postes en fábrica (NA, NA, 3 s) y con enlace.</li>
+  </ul></div>
+  <ol>
+    <li>Conectado al Poste 1, ponga <strong>Retardo 5 s</strong> y <strong>Cámara D: NC</strong>.</li>
+    <li>Conéctese al Poste 2, abra el plegado y copie lo que dice. Mida la bajada en un rojo del Poste 2.</li>
+    <li>Vuelva al Poste 1 y déjelo en NA, NA, 3 s.</li>
+  </ol>
+  <div class="espera">Se espera: el Poste 2 sigue en <strong>Cámara C NA, Cámara D NA, Retardo 3 s</strong>, y su pluma baja a los <strong>3 s</strong> del rojo.</div>
+  <div class="horas">
+    <label class="campo">Poste 2: C, D, retardo, presencia <input type="text" id="h31a" class="hora"></label>
+    <label class="campo">Poste 2: bajada medida (s) <input type="text" id="h31b" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r31" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r31" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r31" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v31" placeholder="Lo que vio distinto"></textarea>
+  <div class="print-only" id="pr31"></div>
+</section>
+
+<section class="prueba" id="p32">
+  <h2>32. Al aceptar un cambio, la radio no cae</h2>
+  <div class="porque"><b class="t">Por qué</b>Al aceptar un cambio el poste lo guarda en su memoria. Eso no debe cortar el enlace con el otro poste.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Los dos postes en AUTOMÁTICO con radio, alternando. Se hace a la vez que las pruebas 27 a 31.</li>
+  </ul></div>
+  <ol>
+    <li>En cada cambio aceptado de las pruebas 27 a 31, mire Tráfico en los dos postes durante 30 s.</li>
+  </ol>
+  <div class="espera">Se espera: <strong>nunca FALLO COM</strong> ni ámbar intermitente, y los dos postes siguen alternando. Si ve un salto en las luces, anote la hora y qué cambio acababa de aceptar.</div>
+  <div class="horas">
+    <label class="campo">¿Cuántos cambios miró? <input type="text" id="h32a" class="hora"></label>
+    <label class="campo">¿Algún FALLO COM o ámbar? (hora y qué cambio) <input type="text" id="h32b" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r32" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r32" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r32" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v32" placeholder="Lo que vio distinto"></textarea>
+  <div class="print-only" id="pr32"></div>
+</section>
+
+<section class="prueba" id="p33">
+  <h2>33. Volver a cargar el firmware devuelve el poste a fábrica</h2>
+  <div class="porque"><b class="t">Por qué</b>La carga borra la memoria entera. Un poste con una cámara NC queda declarado NA tras cargar y ve presencia todo el rato (la pluma no baja en rojo y avisa): hay que volver a ponerlo cada vez.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Pruebas 26 a 32 hechas. El PC y el programador como en la prueba 1.</li>
+  </ul></div>
+  <ol>
+    <li>En el Poste 1 ponga <strong>Cámara C: NC</strong> y <strong>Retardo 4 s</strong>. Consulte y copie.</li>
+    <li>Vuelva a cargar el Poste 1 como en la prueba 1 (paso 3).</li>
+    <li>Abra el plegado y copie lo que dice.</li>
+    <li>Ponga en cada poste el contacto de sus cámaras reales y 3 s, y anótelo.</li>
+  </ol>
+  <div class="espera">Se espera: tras cargar, <strong>Cámara C NA, Cámara D NA, Retardo 3 s</strong>, y el mismo código de versión que antes.</div>
+  <div class="horas">
+    <label class="campo">Antes de cargar: C, D, retardo <input type="text" id="h33a" class="hora"></label>
+    <label class="campo">Después de cargar: C, D, retardo, presencia <input type="text" id="h33b" class="hora"></label>
+    <label class="campo">Cómo quedó cada poste al terminar (Poste 1 / Poste 2) <input type="text" id="h33c" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r33" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r33" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r33" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v33" placeholder="Lo que vio distinto"></textarea>
+  <div class="print-only" id="pr33"></div>
+</section>
+
+<section class="prueba" id="p34">
+  <h2>34. Al cambiar de poste, la app muestra lo del poste conectado</h2>
+  <div class="porque"><b class="t">Por qué</b>Si el panel se quedara con lo del poste anterior, el técnico creería que un poste tiene una configuración que no tiene.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>El Poste 1 con <strong>Retardo 5 s</strong> y el Poste 2 con <strong>3 s</strong>.</li>
+  </ul></div>
+  <ol>
+    <li>Conectado al Poste 1, abra el plegado y déjelo <strong>abierto</strong>.</li>
+    <li>Cambie al Poste 2 como lo hace siempre. Sin tocar nada, copie lo que dice el panel.</li>
+    <li>Pulse &laquo;Consultar otra vez&raquo; y copie lo que dice.</li>
+    <li>Al terminar, deje el Poste 1 en 3 s.</li>
+  </ol>
+  <div class="espera">Se espera: el panel muestra lo del <strong>Poste 2</strong> (3 s), o nada hasta consultar. Si en el paso 2 muestra los <strong>5 s</strong> del Poste 1, anótelo: <strong>es un defecto</strong>.</div>
+  <div class="horas">
+    <label class="campo">Paso 2: lo que mostraba el panel sin tocar <input type="text" id="h34a" class="hora"></label>
+    <label class="campo">Paso 3: tras consultar <input type="text" id="h34b" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r34" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r34" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r34" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v34" placeholder="Lo que vio distinto"></textarea>
+  <div class="print-only" id="pr34"></div>
+</section>
+
 <section class="prueba" id="pF">
   <h2>Algo más</h2>
   <textarea id="vF" placeholder="Otra cosa que quiera anotar"></textarea>
@@ -1038,7 +1306,7 @@ button#btnPdf{
   // escrito, en texto llano. Asi, al imprimir, se ve la respuesta aunque el
   // telefono no dibuje los controles marcados. Las horas anotadas van tambien.
   var ids = [];
-  for (var i = 1; i <= 25; i++) ids.push(String(i));
+  for (var i = 1; i <= 34; i++) ids.push(String(i));
   function refrescarImpresion() {
     ids.forEach(function (n) {
       var pr = document.getElementById('pr' + n);
