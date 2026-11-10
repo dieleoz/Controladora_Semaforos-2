@@ -68,6 +68,11 @@ bool semaforo_plumaArriba();
 bool semaforo_plumaVetada();
 // D-169 (SPEC_8 9.2): true si la pluma sigue arriba en el rojo porque una camara MALA y su MALAx = ARRIBA.
 bool semaforo_plumaRetenidaMala();
+// D-175 (SPEC_8 8.4): el ROJO DE ESPERA. Con true, R no empieza: la pluma arriba se queda arriba, la abajo no sube.
+void semaforo_fijarRojoEspera(bool espera);
+bool semaforo_rojoEspera();
+// D-175: la regla del Esclavo sobre una trama ya aceptada (main.cpp, antes del despacho).
+void semaforo_esperaPorTrama(uint8_t cmd, uint8_t param);
 // ---------------------------------------------------------------------------
 // D-150 (SPEC_8 6.4): true si la ultima orden de escribirPines() abrio la pluma POR EL
 // INTERRUPTOR de barrera fuera de servicio (D-96). Es una ANOTACION de la misma orden que

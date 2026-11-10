@@ -379,7 +379,8 @@ los numeros de apartado no se tocan, `CLAUDE.md` cabecera.)
   **Por eso firmware y central cambian en la MISMA visita, con `J15` suelta entre medias** (para este cambio NO vale
   «firmware primero» de `CLAUDE.md` §3): `J15` suelta; central a «sin senal = subir» y comprobar que sube; carga SWD;
   leer la polaridad por la app; reconectar `J15`; casillas: verde = arriba, rojo tras R sin nadie = abajo, quitar
-  `J15` = sube, reset = sube y vuelve a bajar tras R. El puente H del banco se reconfigura en la misma sesion.
+  `J15` = sube, reset = sube y se queda arriba hasta que el Poste 1 arranque un modo; entonces baja tras R (`D-175`,
+  §8.4). El puente H del banco se reconfigura en la misma sesion.
 - **Salida por PULSO: NO en esta version.** `J15` es UNA salida con dos estados (1 = bajar y 0 = subir, `D-168`). Un
   pulso necesita un tercer estado (motor parado) o una central paso a paso, y una paso a paso que pierda un pulso
   queda **invertida para siempre** (arriba en rojo, abajo en verde) sin que el firmware lo sepa: no hay fin de carrera
@@ -435,12 +436,24 @@ la rama de bajada.
 | barrera fuera (`FLAG_BARRERA_FUERA`) | no cuenta | no cuenta | 1 | arriba | `D-96` |
 | camara fuera del veto (las dos) | ignorada | 3..5 | 0 tras R | baja | `D-96`; una sola o camara mala: §9.3 |
 | camara mala (`CAM_PEGADA`/`CAM_CIEGA`), `MALAx=ARRIBA` (fabrica) | ignorada | no cuenta | 1 | arriba, `$ALARM` | `D-169`, §9.3 E2-E4 |
-| arranque, reset, corte, SWD | no cuenta | no cuenta | 1 (`LOW`) | arriba con la central viva; corte general, lo que haga la central (`SPEC_5` §4, pruebas 36-37); 1.a bajada tras R y veto | `D-168` |
+| ROJO de espera (Maestro `MENU`/`C_MENU_IDLE`; Esclavo desde el arranque o con `GO_RED_ESPERA`) | no cuenta | no empieza | 1 si ya arriba, 0 si ya abajo | se queda; R y veto desde la 1.a orden de ciclo o ROJO TOTAL | `D-175` |
+| arranque, reset, corte, SWD | no cuenta | no cuenta | 1 (`LOW`) | arriba con la central viva; corte general, lo que haga la central (`SPEC_5` §4, pruebas 36-37); 1.a bajada tras la 1.a orden de ciclo, R y veto (`D-175`) | `D-168` |
+
+**El rojo de espera (`D-175`).** Es el rojo sin ciclo: el Maestro en `MENU` (solo `coordinador_forzarMenu()`, tambien
+el de la rama `D-29` del arranque) y el Esclavo desde su arranque hasta la primera trama de gobierno, o mientras el
+ultimo `GO_RED` traiga `GO_RED_ESPERA` (SPEC 2 §1). Lo borran la 1.a orden de ciclo (Automatico, Inteligente, Manual,
+noche), ROJO TOTAL (tambien desde `MENU`), el Degradado (el del Esclavo; el rojo sin hora del Maestro, `D-47`) y el
+`PING`. Solo RETIENE: una pluma abajo no sube. Las luces no cambian. **Modos de fallo que trae:** F1, en `MENU` las
+dos plumas pueden quedar arriba sin tope con las dos luces en rojo; F2, un Esclavo reiniciado con el otro en verde la
+suelta con el primer `PING` + R (sin perdidas <= 3 + 5 s; con perdidas, hasta su ambar a los 28 s); F4, en un `MENU`
+de dias la camara acumula silencio con la pluma arriba (`CAM_CIEGA` a 24 h). F3 (ROJO TOTAL desde `MENU` con la orden
+y dos latidos perdidos: el despeje cuenta desde la orden, no desde el acuse) queda sin construir.
 
 **Las cuatro comprobaciones, con lo que las garantiza:**
 1. **Pluma arriba en rojo solo en los casos ya aceptados.** Los parametros no tocan `luzPideArriba` ni la rama «ya
    abajo»; cambian R (acotado a 5 s por la orden y el `static_assert` de la cota), que pin es presencia y, con
-   `D-169`, la camara mala con `MALAx=ARRIBA` (`plumaRetenidaMala`, solo en la rama de bajada: no sube una pluma abajo).
+   `D-169`, la camara mala con `MALAx=ARRIBA` (`plumaRetenidaMala`, solo en la rama de bajada: no sube una pluma abajo),
+   y el rojo de espera (`D-175`), solo reteniendo.
    🔴 **Lo nuevo:** un contacto mal declarado entra por el caso de veto (`D-33`, «ante error no baja y avisa»): ver 8.5.
 2. **Nunca baja sobre el amarillo ni dentro de R.** `S_AMARILLO` esta en `luzPideArriba`; R cuenta desde el rojo y su
    minimo es 3 s (P3).

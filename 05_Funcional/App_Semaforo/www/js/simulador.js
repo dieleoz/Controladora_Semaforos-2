@@ -29,8 +29,7 @@ const Simulador = (() => {
     DEG_AUTO_ACUSE_MS: [10000, 'Maestro/include/deg_auto.h:DEG_AUTO_ACUSE_MS'],
     FW_SIN_SELLO: ['--', 'Maestro/include/version_fw.h:FW_SIN_SELLO'],
     J15: ['BAJAR', 'Maestro/include/pines.h:TALANQUERA_J15']   // D-168: la polaridad de fabrica
-  };
-  const C = {}, ORIGEN = {};
+  }; const C = {}, ORIGEN = {};
   Object.keys(DEF).forEach(k => { C[k] = DEF[k][0]; ORIGEN[k] = DEF[k][1]; });
   const PREF_PIN = 'CMD:PIN:' + C.PIN + ':';
   // Las que el despachador del Maestro admite sin PIN (bluetooth.cpp, la lista de antes de AUTH_FAILED).
@@ -53,8 +52,7 @@ const Simulador = (() => {
   //         noche:{tr, franjas:[{dias,inicio,fin,rojo}], fase, rojo}, enHora, desde }
   function crear(opciones) {
     const reloj = opciones.reloj || relojReal(), emitir = opciones.emitir || (() => {});
-    const timers = new Set();
-    const postes = (opciones.postes || []).map(nuevoPoste);
+    const timers = new Set(); const postes = (opciones.postes || []).map(nuevoPoste);
     postes.forEach(p => { if (p.pareja) p.otro = postes.find(q => q !== p && q.pareja === p.pareja) || null; });
 
     function nuevoPoste(d) {
@@ -132,7 +130,9 @@ const Simulador = (() => {
     const estadoLuz = (p) => (p.nodo === 'MAESTRO' ? luzMaestro(p).estado : luzEsclavo(p));
     const plumaArriba = (e) => ['VERDE', 'FALLO COM', 'AMARILLO', 'AMBAR_INT', 'ROJO_INT'].indexOf(e) >= 0;
     // D-97/D-150: la barrera fuera publica FUERA, tambien en rojo. D-151/D-166: CAM: en js/sim_interruptores.js.
-    const plumaCam = (p, e) => ',PLUMA:' + (p.barreraFuera ? 'FUERA' : plumaArriba(e) ? 'ARRIBA' : 'ABAJO') + ',CAM:' +
+    const enEspera = (p, m = p.nodo === 'MAESTRO' ? p : p.otro) => !!m && m.modo === 'MENU' && !m.rojoFijo;   // D-175
+    const arriba = (p, e) => (p.plumaAnt = plumaArriba(e) || (enEspera(p) && p.plumaAnt === true));   // solo retiene
+    const plumaCam = (p, e) => ',PLUMA:' + (p.barreraFuera ? 'FUERA' : arriba(p, e) ? 'ARRIBA' : 'ABAJO') + ',CAM:' +
                                SimInterruptores.cam(p);
     // ---- lo que pasa solo con el tiempo: modoNoche_loop/vigilar, salida del Degradado ----
     function setModo(p, m) {

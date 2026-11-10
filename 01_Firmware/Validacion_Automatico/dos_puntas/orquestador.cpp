@@ -440,8 +440,7 @@ static unsigned long g_reanudaciones = 0;
 
 // N-162 (bloque G, G9): un ACK_RED RETENIDO en el aire y soltado cuando el escenario diga.
 // Es la unica forma en que un acuse viejo puede enganar al Maestro -llegar despues de que
-// el Esclavo haya vuelto a verde-, y el arnes no la produce sola: el canal es FIFO y de
-// latencia fija.
+// el Esclavo haya vuelto a verde-, y el arnes no la produce sola: el canal es FIFO y de latencia fija.
 static uint8_t CMD_ACK_RED_V = 0;
 static long g_ackRojoARetener = 0;
 static bool g_hayAckRojoRetenido = false;
@@ -470,7 +469,8 @@ static unsigned long g_ticksVerdeMaestro = 0;
 static unsigned long g_ticksVerdeEsclavo = 0;
 static unsigned long g_enclavamientoRoto = 0;   // rojo y verde a la vez EN LA MISMA punta
 static unsigned long g_talanqueraSinVerde = 0;
-static bool excepcionFueraOrq(int i), excepcionVetoOrq(int i);   // SPEC_8 6.3 / 8.5: en sus .inc
+static bool excepcionFueraOrq(int i), excepcionVetoOrq(int i), excepcionEsperaOrq(int i);   // en sus .inc
+static void esperaAlEntregar(const unsigned char* trama);   // D-175: el modelo de la espera del Esclavo
 
 // D-33 - LA INVARIANTE DE LA PLUMA, REPARTIDA (CLAUDE.md 9): "pluma arriba siempre con razon
 // nombrada" y "la unica excepcion nombrada es S_FALLO" se conservan; "la razon es el verde"
@@ -526,8 +526,7 @@ static unsigned long g_tVerdeDesde[2] = { 0, 0 };
 static unsigned long g_verdeMinMs[2] = { 0, 0 }, g_verdeMaxMs[2] = { 0, 0 }, g_verdesCompletos[2] = { 0, 0 };
 
 // El detector, aislado en una funcion para que el control negativo del bloque E pueda
-// ejercerlo con valores sinteticos. Un detector que solo se prueba a si mismo cuando
-// nada falla es un adorno.
+// ejercerlo con valores sinteticos. Un detector que solo se prueba a si mismo cuando nada falla es un adorno.
 static bool hayVerdeSimultaneo(bool verdeA, bool verdeB) { return verdeA && verdeB; }
 
 static void vigilar(unsigned long t) {
@@ -586,10 +585,10 @@ static void vigilar(unsigned long t) {
     // S_FALLO va por nombre, y la del retardo va CRONOMETRADA -no por nombre-: se cuenta
     // violacion solo cuando la ventana ya paso del plazo que el C++ declara.
     // D-45: y el amarillo de cierre, que pide la pluma arriba como el verde (SPEC_8 1).
-    if (p->pin(MOTOR_TALANQUERA) == TALANQUERA_ABRIR &&
-        p->pin(VERDE1) != HIGH && p->pin(VERDE2) != HIGH &&
+    if (p->pin(MOTOR_TALANQUERA) == TALANQUERA_ABRIR && p->pin(VERDE1) != HIGH && p->pin(VERDE2) != HIGH &&
         p->estado() != S_FALLO && p->estado() != S_AMARILLO_V && p->estado() != S_AMBAR_INT_V &&
-        p->estado() != S_ROJO_INT_V && !excepcionFueraOrq(i) && !excepcionVetoOrq(i)) {   // N-179; D-96, D-33
+        p->estado() != S_ROJO_INT_V && !excepcionFueraOrq(i) && !excepcionVetoOrq(i) &&   // N-179; D-96, D-33
+        !excepcionEsperaOrq(i)) {   // D-175
       if (g_plumaSinVerdeDesde[i] == 0) g_plumaSinVerdeDesde[i] = g_t + 1;
       const unsigned long dur = g_t - (g_plumaSinVerdeDesde[i] - 1);
       if (dur > g_peorVentanaPlumaMs[i]) g_peorVentanaPlumaMs[i] = dur;
@@ -674,6 +673,7 @@ static void unTick() {
       if (g_aire[i].destino == 1 && g_aire[i].trama[1] == CMD_GO_RED_V) g_goRojoEntregados++;
       // N-163: el reloj de silencio de cada punta, fechado sobre la ENTREGA.
       if (g_aire[i].destino == 1) {
+        esperaAlEntregar(g_aire[i].trama);   // D-175
         const uint8_t c163 = g_aire[i].trama[1];
         // D-34: el GO_GREEN que encuentra la luz en AMARILLO, VERDE o (D-53) ROJO+AMARILLO es
         // repeticion y NO refresca tUltimoComando (guarda de main.cpp); la luz se mira ANTES de
@@ -857,8 +857,7 @@ static void escenarioLimpio(long tiemposMaestro, bool exigirTiempos = false) {
 static void relojDelBancoACero() {
   g_t = 0;
   // La racha de "el Esclavo publica verde y tiene rojo" se cuenta con restas de g_t: si
-  // quedara abierta al saltar el reloj, la resta daria un plazo enorme y contaria un
-  // largo que no ocurrio.
+  // quedara abierta al saltar el reloj, la resta daria un plazo enorme y contaria un largo que no ocurrio.
   g_escVerdeRojoEnCurso = false;
 }
 
@@ -1097,6 +1096,7 @@ static void imprimirTrazaG(const char* titulo, const CorridaG& c) {
 #include "orquestador_noche.inc"   // N-179: BLOQUE N, el modo noche
 #include "orquestador_interruptores.inc"   // BLOQUE S: SPEC_8 6 en el Esclavo REAL
 #include "orquestador_instalacion.inc"     // BLOQUE I: SPEC_8 8 (N-187) en las dos puntas
+#include "orquestador_espera.inc"          // BLOQUE RE: D-175, el rojo de espera
 // ---------------------------------------------------------------------------
 int main() {
   std::printf("==============================================================\n");
@@ -3988,7 +3988,7 @@ int main() {
   }
 
   bloqueNoche();   // N-179 (D-106..D-111)
-  bloqueInterruptores(); bloqueInstalacion();   // SPEC_8 6 (D-148..D-152) y 8 (N-187)
+  bloqueInterruptores(); bloqueInstalacion(); bloqueEspera();   // SPEC_8 6, 8 (N-187) y 8.4 (D-175)
   // reportar(): no cuenta. Lo que la excepcion de A9 dejo pasar en los bloques A a F. MEDIDO
   // el 11/09: la racha larga es del bloque D -D5/D6-, el Esclavo dando verde POR RELOJ en su
   // Degradado con el Maestro en S_FALLO (el Degradado del Maestro no se compila aqui): A9 la

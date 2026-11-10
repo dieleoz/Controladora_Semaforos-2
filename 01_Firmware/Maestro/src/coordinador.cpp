@@ -345,8 +345,7 @@ static_assert((AVISO_AMBAR_REINTENTOS + 1) * (2 * ENVIO_RAFAGA_MS) <= PRESUPUEST
 // (tUltimoComando, Esclavo/src/main.cpp) y esta punta desde la respuesta que le
 // CONTESTARON (tUltimaRespuestaEsclavo; hasta 1.49c era la ultima trama que llegara, fuera
 // o no una respuesta). Entre esos dos instantes hay el retardo de cortesia
-// del Esclavo -RETARDO_RESPUESTA_MS, SFTY-17- mas el viaje de vuelta, y ese desfase es
-// exactamente la ventana.
+// del Esclavo -RETARDO_RESPUESTA_MS, SFTY-17- mas el viaje de vuelta, y ese desfase es exactamente la ventana.
 //
 // DE DONDE SALE EL MARGEN, Y POR QUE CUBRE EL PEOR CASO: es TIMEOUT_ACK_MS, y no es una
 // holgura elegida. El desfase entre los dos instantes es un TROZO del viaje de ida y
@@ -794,17 +793,18 @@ void coordinador_forzarMenu() {
   quienVerde = QV_NINGUNO;
   rojoEsclavoConfirmado = false;   // N-162: cuenta el acuse de ESTA orden, no uno de antes
   verdeSoltadoPorMargen = false;   // N-163: esta orden redefine la intencion; no se reanuda nada
+  semaforo_fijarRojoEspera(true);   // D-175 (SPEC_8 8.4): rojo de ESPERA en las dos; la pluma arriba se queda
   semaforo_forzarRojo();
   protocolo_resetReplayProtection();
-  protocolo_enviarPaquete(CMD_GO_RED);
+  protocolo_enviarPaquete(CMD_GO_RED, GO_RED_ESPERA);
 }
 
 void coordinador_forzarRojoTotal() {
   quienVerde = QV_NINGUNO;
-  // N-162: y aqui con mas razon. Un rojo acusado ANTES no dice que el otro lado siga en
-  // rojo: pudo irse a su ambar de emergencia por su cuenta -N-142, con el aviso perdido-,
-  // y el DAR PASO de despues abriria contando con el.
+  // N-162: y aqui con mas razon. Un rojo acusado ANTES no dice que el otro lado siga en rojo: pudo irse a su
+  // ambar de emergencia por su cuenta -N-142, con el aviso perdido-, y el DAR PASO de despues abriria contando con el.
   rojoEsclavoConfirmado = false;
+  semaforo_fijarRojoEspera(false);   // D-175: rojo de accidente, tambien desde MENU: R y veto
   semaforo_forzarRojo();
   verdeSoltadoPorMargen = false;   // N-163: esta orden redefine la intencion; no se reanuda nada
   protocolo_resetReplayProtection();
@@ -816,17 +816,15 @@ void coordinador_forzarRojoTotal() {
   estadoC = C_IDLE; // Queda en Rojo Fijo en ambos semáforos indefinidamente
 }
 
-// N-162 (bloque G): EL DESPEJE DE ENTRADA EMPIEZA CON EL ACUSE, NO CON LA ORDEN.
-//
-// Aqui se mandaba UN GO_RED y se pasaba a C_INICIAL_ESPERA_ESTATICO, que a los
-// tiempoDespejeMs abre el verde propio sin haber oido nada del otro lado. Medido en el
-// arnes de las dos puntas (G5): entrando en Automatico con el Esclavo en verde y perdida
-// esa unica trama, 180 s de verde en las dos. Ahora se entra por la MISMA espera que usa
-// pedirCambio() desde QV_ESCLAVO -con sus reintentos y su C_FALLO si se agotan- y el
-// despeje se cuenta desde el ACK_RED (case C_ESPERANDO_ACK_RED).
+// N-162 (bloque G): EL DESPEJE DE ENTRADA EMPIEZA CON EL ACUSE, NO CON LA ORDEN. Aqui se mandaba UN GO_RED y se
+// pasaba a C_INICIAL_ESPERA_ESTATICO, que a los tiempoDespejeMs abre el verde propio sin haber oido nada del otro
+// lado. Medido en el arnes de las dos puntas (G5): entrando en Automatico con el Esclavo en verde y perdida esa unica
+// trama, 180 s de verde en las dos. Ahora se entra por la MISMA espera que usa pedirCambio() desde QV_ESCLAVO -con
+// sus reintentos y su C_FALLO si se agotan- y el despeje se cuenta desde el ACK_RED (case C_ESPERANDO_ACK_RED).
 void coordinador_iniciarModo() {
   quienVerde = QV_NINGUNO;
   rojoEsclavoConfirmado = false;
+  semaforo_fijarRojoEspera(false);   // D-175: la 1.a orden de ciclo; su GO_RED sale sin el bit
   semaforo_forzarRojo();
   verdeSoltadoPorMargen = false;   // N-163: esta orden redefine la intencion; no se reanuda nada
   protocolo_resetReplayProtection();
@@ -1120,7 +1118,7 @@ void coordinador_actualizar() {
       protocolo_enviarPaquete(toca ? CMD_GO_NOCHE : CMD_PING, toca ? paramNoche : 0);
       respuestaEsperada = CMD_PONG;   // el Esclavo contesta PONG a las dos
     } else if (rojoSinConstar || estadoC == C_MENU_IDLE || estadoC == C_FALLO) {
-      protocolo_enviarPaquete(CMD_GO_RED); // Exige Rojo Fijo en Esclavo durante Menú o Fallo
+      protocolo_enviarPaquete(CMD_GO_RED, estadoC == C_MENU_IDLE ? GO_RED_ESPERA : 0);   // rojo fijo; MENU: D-175
       respuestaEsperada = CMD_ACK_RED;     // el Esclavo confirma el Rojo
     } else {
       protocolo_enviarPaquete(CMD_PING);
@@ -1500,6 +1498,7 @@ bool coordinador_rojoConstaEnLosDos() {
 bool coordinador_entrarNoche(bool rojoPoste2) {
   if (!vetoVerde || !coordinador_rojoConstaEnLosDos() || !semaforo_iniciarNoche(false)) return false;
   paramNoche = rojoPoste2 ? NOCHE_ROJO_INT : 0;
+  semaforo_fijarRojoEspera(false);   // D-175: la noche es un modo de ciclo (sus destellos ya piden la pluma arriba)
   rojoEsclavoConfirmado = false;   // desde aqui el Esclavo destella: su rojo ya no consta
   nocheSinRadioAvisado = false;
   protocolo_enviarPaquete(CMD_GO_NOCHE, paramNoche);

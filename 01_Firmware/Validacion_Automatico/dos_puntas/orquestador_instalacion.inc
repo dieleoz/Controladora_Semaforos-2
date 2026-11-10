@@ -68,6 +68,7 @@ static long iCorte(Punta& p, bool conserva, int nivelC = 0, int nivelD = 0, bool
   }
   const long env = envenenar ? p.orden("arranque_envenenado") : 0;
   p.arrancar();
+  g_plumaSinVerdeDesde[&p == &MAESTRO ? 0 : 1] = 0;   // D-168: un arranque deja la pluma arriba con R nuevo
   if (&p == &MAESTRO) MAESTRO.orden("arrancar_automatico");
   return env;
 }

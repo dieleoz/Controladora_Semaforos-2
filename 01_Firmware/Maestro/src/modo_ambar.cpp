@@ -105,7 +105,9 @@ void modo_ambar_loop() {
 // renueva el reloj de la respuesta. false = ese caso (rojo solo en este poste); true en el resto.
 bool modo_ambar_forzarRojoTotal() {
   const ModoSistema m = modoActual_get();
-  const bool conRadio = coordinador_msDesdeRespuesta() <= SFTY6_SILENCIO_MS;
+  // y con el rojo del otro constado (el '?' de D-171): la gracia de iniciarModo() o de un ROJO TOTAL anterior
+  // renueva el reloj sin que el Poste 2 conteste (revision de D-174).
+  const bool conRadio = coordinador_msDesdeRespuesta() <= SFTY6_SILENCIO_MS && coordinador_estadoEsclavo()[0] != '?';
   const bool ciclaSolo = (m == MODO_AUTOMATICO || m == MODO_INTELIGENTE);
   if (m == MODO_AMBAR || (ciclaSolo && conRadio)) modoActual_set(MODO_MANUAL);
   coordinador_forzarRojoTotal();

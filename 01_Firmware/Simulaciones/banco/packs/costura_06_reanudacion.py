@@ -361,7 +361,7 @@ def correr(b, fw):
     # Lo que SI rescata el caso, y conviene tenerlo escrito: si el radio vive, la
     # punta que no reanuda vuelve al menu, el coordinador emite CMD_GO_RED cada 3 s y
     # eso saca al Esclavo del Degradado por la via ordenada.
-    menu_emite_rojo = bool(re.search(r"estadoC\s*==\s*C_MENU_IDLE\s*\|\|\s*estadoC\s*==\s*C_FALLO\)\s*\{\s*\n\s*protocolo_enviarPaquete\(CMD_GO_RED\)",
+    menu_emite_rojo = bool(re.search(r"estadoC\s*==\s*C_MENU_IDLE\s*\|\|\s*estadoC\s*==\s*C_FALLO\)\s*\{\s*\n\s*protocolo_enviarPaquete\(CMD_GO_RED\b",   # D-175: con su param
                                      T_M_COORD_C))
     gobierno_saca = bool(re.search(r"degradado_gobiernaLuz\(\)\s*&&\s*\n?\s*\(pkt\.command\s*==\s*CMD_PING\s*\|\|\s*pkt\.command\s*==\s*CMD_GO_RED\s*\|\|\s*pkt\.command\s*==\s*CMD_GO_GREEN\)\)\s*\{\s*\n\s*degradado_salir\(\)",
                                    T_E_MAIN_C))

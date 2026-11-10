@@ -206,11 +206,18 @@ struct Cola {
 };
 static Cola g_tx, g_rx;
 static unsigned long g_tramasEmitidas = 0;
+// D-175: el MAESTRO VIEJO (anterior a GO_RED_ESPERA). Con la orden "go_red_sin_bit" el aire pierde el bit 0x01 de
+// los GO_RED que emite el coordinador REAL: es lo que manda un firmware que no lo conoce (bloque E, E5).
+static bool g_goRedSinBit = false;
+// D-175: MENU corre el latido como main.cpp (coordinador_actualizar_background()) solo desde la orden
+// "forzar_menu": el MENU de antes de "arrancar_automatico" no lo corria y los bloques de siempre no cambian.
+static bool g_menuVivo = false;
 
 void protocolo_setup() {}
 void protocolo_resetReplayProtection() {}
 
 void protocolo_enviarPaquete(uint8_t cmd, uint8_t param) {
+  if (g_goRedSinBit && cmd == CMD_GO_RED) param &= (uint8_t)~GO_RED_ESPERA;
   RF_Packet p; p.msgID = 0; p.command = cmd; p.param = param; p.crc = 0;
   g_tramasEmitidas++;
   g_tx.meter(p);
@@ -279,6 +286,7 @@ static void pasoPrincipal() {
     case MODO_AMBAR:      modo_ambar_loop();     break;
     case MODO_MANUAL:     coordinador_actualizar_background(); modoManual_loop(); break;   // D-173, como main.cpp
     case MODO_NOCHE:      coordinador_actualizar_background(); modoNoche_loop(); break;   // N-179
+    case MENU:            if (g_menuVivo) coordinador_actualizar_background(); break;   // D-175, como main.cpp
     default: break;   // los demas modos no se compilan en esta DLL (ver cabecera)
   }
 
@@ -367,6 +375,16 @@ PUNTA_API long punta_mando(const char* que, long arg) {
     return strcmp(coordinador_estadoEsclavo(), "VERDE") == 0 ? 1 : 0;
   if (!strcmp(que, "reloj_en_hora"))      { g_enHora = (arg != 0); return 1; }
   if (!strcmp(que, "forzar_rojo_total"))  { coordinador_forzarRojoTotal(); return 1; }
+  // D-175: el MENU del operario (menu.cpp: modoActual_set(MENU) y menu_setup() -> coordinador_forzarMenu()).
+  if (!strcmp(que, "forzar_menu"))   { g_menuVivo = true; modoActual_set(MENU); coordinador_forzarMenu(); return 1; }
+  if (!strcmp(que, "menu_a_automatico")) {   // D-175: de MENU al Automatico SIN coordinador_setup(), como main.cpp
+    g_modoActual = MODO_AUTOMATICO;
+    modoAutomatico_setup();
+    for (int i = 0; i < 3; i++) { modoAutomatico_loop(); }
+    return modoAutomatico_enMarcha() ? 1 : 0;
+  }
+  if (!strcmp(que, "go_red_sin_bit")) { g_goRedSinBit = (arg != 0); return 1; }
+  if (!strcmp(que, "rojo_espera"))    return semaforo_rojoEspera() ? 1 : 0;   // el getter REAL
   // D-173: FORZAR_ROJO de la app fuera del Degradado; modo_degradado_forzarRojo() no se compila aqui y llama a esta.
   if (!strcmp(que, "forzar_rojo_app"))    { modo_ambar_forzarRojoTotal(); return 1; }
   // N-162 (bloque G): DAR PASO, con la MISMA guarda que pedirCambioVerificado() de

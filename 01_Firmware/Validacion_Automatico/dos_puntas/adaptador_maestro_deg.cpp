@@ -402,6 +402,7 @@ PUNTA_API long punta_mando(const char* que, long arg) {
   // camino de main.cpp, con su borrado de indicador incluido. No hay puerta trasera.
   if (!strcmp(que, "set_modo"))           { modoActual_set((ModoSistema)arg); return 1; }
   if (!strcmp(que, "modo_actual"))        return (long)modoActual_get();
+  if (!strcmp(que, "rojo_espera"))        return semaforo_rojoEspera() ? 1 : 0;   // D-175, el getter REAL
   if (!strcmp(que, "deg_pedir_salida"))   return modo_degradado_pedirSalida() ? 1 : 0;
 
   // --- Lo que sobrevive al corte -------------------------------------------

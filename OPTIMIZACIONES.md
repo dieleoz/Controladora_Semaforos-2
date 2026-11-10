@@ -112,7 +112,7 @@ que no la comprueba es **peor** que una fila vacía, porque la vacía al menos n
 | SFTY-25 | **— solo diseño.** Cero etiquetas en el firmware | — |
 | SFTY-26 | **— solo diseño.** Cero etiquetas en el firmware | — |
 | **SFTY-27** | 🔴 **DOS REGLAS CON EL MISMO NÚMERO — ver el aviso justo debajo.** Este documento lo define como *«matrícula de pareja»*, sin implementar; las **8 etiquetas del firmware** dicen otra cosa · SPEC: el sentido del firmware (el Esclavo pide, el Maestro decide), `SPEC_2` §1; la matricula, ninguna | — |
-| **SFTY-28** | `*/src/semaforo.cpp` *(dentro de `escribirPines()`)* · `*/include/pines.h` · `*/include/instalacion.h` *(el retardo de bajada, 3..5 s, que lee `escribirPines()` por `instalacion_retardoPlumaMs()`; `N-187`, sin banco)* | ✅ `barrera_03_talanquera` · `maestro_09_test_leds` · I6 de «dos puntas» · 🟡 *`D-168` (reposo y sin energía = ARRIBA, `J15` activa = bajar, polaridad en `VERSION`) construido sin banco: `SPEC_8` §8.2* |
+| **SFTY-28** | `*/src/semaforo.cpp` *(dentro de `escribirPines()`)* · `*/include/pines.h` · `*/include/instalacion.h` *(el retardo de bajada, 3..5 s, que lee `escribirPines()` por `instalacion_retardoPlumaMs()`; `N-187`, sin banco)* | ✅ `barrera_03_talanquera` · `maestro_09_test_leds` · I6 de «dos puntas» · 🟡 *rojo de espera (`D-175`): M1-M5 de `arnes_automatico`, RE1-RE7 de «dos puntas» y J3E del Degradado, sin banco* · 🟡 *`D-168` (reposo y sin energía = ARRIBA, `J15` activa = bajar, polaridad en `VERSION`) construido sin banco: `SPEC_8` §8.2* |
 | **SFTY-29** | **— solo diseño.** Presencia como veto del todo-rojo y sensor de pluma | — |
 
 > ⚠️ **CÓMO SE LEE UN ✅ DE ESTA TABLA. Sin esto promete más de lo que cubre** *(auditorías del 28/08
@@ -867,7 +867,8 @@ exactamente lo que hace hoy—.
 > 🟢 **Su mitad de «nunca al revés» la derogó `D-33` (14/09):** la pluma sigue a la luz para SUBIR y la cámara
 > sólo retiene la bajada. Manda `05_Funcional/SPEC_8` §1; lo de abajo es la regla de antes de esa fecha.
 > 🔴 **Y `D-96` (09/11) la deroga por su NOMBRE para `FLAG_BARRERA_FUERA`:** con la barrera fuera de servicio la pluma
-> va ARRIBA en cualquier luz, también en rojo (`SPEC_8` §6.3). Es la única excepción; no se ensancha a «con rojo».
+> va ARRIBA en cualquier luz, también en rojo (`SPEC_8` §6.3). Tres excepciones por NOMBRE, ninguna «con rojo»:
+> barrera fuera (`D-96`), cámara mala (`D-169`) y rojo de espera (`D-175`, `SPEC_8` §8.4; sólo retienen).
 
 **Estado:** anotado el 26/08/2026 y **construido el 27/08** en las dos puntas. La orden sale de
 `escribirPines()` —**la misma puerta que las lámparas**— y sigue al `verde` YA enclavado. 🟡 **`D-168` (10/11,

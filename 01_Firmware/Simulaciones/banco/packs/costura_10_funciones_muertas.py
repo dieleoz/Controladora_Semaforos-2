@@ -58,6 +58,8 @@ CONOCIDAS = {
         # D-169: la anotacion de escribirPines() "arriba por camara mala"; la lee el arnes para su excepcion por
         # NOMBRE (SPEC_8 9.2), como semaforo_plumaVetada(); el firmware no publica un campo mas (D-60).
         "semaforo_plumaRetenidaMala",
+        # D-175: la anotacion del rojo de espera; la lee el arnes para su excepcion por NOMBRE (SPEC_8 8.4).
+        "semaforo_rojoEspera",
     },
     "Esclavo": {
         # N-133: respaldo.cpp/.h gemelos byte a byte (maestro_02_respaldo). El ciclo
@@ -72,6 +74,8 @@ CONOCIDAS = {
         "reloj_dia",
         # D-169: como en el Maestro, la lee el arnes de dos puntas (excepcion por NOMBRE).
         "semaforo_plumaRetenidaMala",
+        # D-175: como en el Maestro, la lee el arnes de dos puntas (excepcion por NOMBRE).
+        "semaforo_rojoEspera",
         # D-44: SALEN DE LA LISTA, retiradas del firmware: bluetooth_testLedsActivo,
         # botonArriba/Abajo/Aceptar/Cancelar, semaforo_toggle, semaforo_iniciarTestLeds y
         # los getters de pantalla del Degradado (degradado_textoEstado, textoFase,

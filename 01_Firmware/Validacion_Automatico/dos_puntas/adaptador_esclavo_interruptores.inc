@@ -31,6 +31,7 @@ static long arnesInterruptores_mando(const char* que, long arg) {
     return 1;
   }
   if (!strcmp(que, "pluma_fuera"))        return semaforo_plumaFuera() ? 1 : 0;
+  if (!strcmp(que, "rojo_espera"))        return semaforo_rojoEspera() ? 1 : 0;   // D-175, el getter REAL
   if (!strcmp(que, "respaldo_perdido"))   return respaldo_perdidoAlArrancar() ? 1 : 0;
 #ifndef ARNES_RELOJ_REAL
   if (!strncmp(que, "evento:", 7))        return strstr(g_btUltimoEvento, que + 7) ? 1 : 0;

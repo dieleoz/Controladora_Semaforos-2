@@ -96,6 +96,8 @@ const Luces = {
         // (N-187, SPEC_8 8). La app no sabe ese retardo: la frase no da cifra.
         if (state.estadoLuces === 'AMARILLO') return 'amarillo de cierre: baja unos segundos después del rojo';
         if (state.estadoLuces === 'ROJO' || state.estadoLuces === 'ROJO+AMAR') {  // D-53: la pluma sube con el VERDE
+          // D-175 (SPEC_8 8.4): en MENU el rojo es de ESPERA y la pluma que estaba arriba se queda: no es un veto.
+          if (state.modo === 'MENU') return 'rojo de espera: sigue arriba hasta que arranque un modo';
           // D-13. Con las camaras habra ratos de LUZ ROJA CON LA PLUMA ARRIBA: hay algo
           // debajo y la barrera no baja. Hoy un operario eso lo lee como averia y llama.
           // La frase lo DICE, no lo insinua.

@@ -59,8 +59,7 @@
 //
 // Querer una semana de autonomia obligaria a un todo-rojo de ~90 s, que destroza la
 // fluidez del paso. No es una limitacion del diseno, es la fisica de dos cristales
-// sin disciplinar. La alternativa real no es alargar el plazo: es ir a arreglar el
-// radio.
+// sin disciplinar. La alternativa real no es alargar el plazo: es ir a arreglar el radio.
 //
 // EL VERDE. Hasta el 13/09 se igualaba al despeje (30 s), y a esa eleccion se le
 // atribuian DOS razones que, recontadas, son FALSAS -se dejan escritas y REFUTADAS en
@@ -645,10 +644,11 @@ static void irARojoSinHora() {
   rojoFijo();
 }
 
-// D-47 (02/10): arranque tras un corte con el rojo fijo por falta de hora en la pila. El
-// modo vuelve en DEG_ROJO_SIN_HORA, no en el ambar de arranque de D-40: el otro poste puede
-// seguir alternando por reloj. Se sale como de ese estado hoy: pedirSalida().
+// D-47 (02/10): arranque tras un corte con el rojo fijo por falta de hora en la pila. El modo vuelve en
+// DEG_ROJO_SIN_HORA, no en el ambar de arranque de D-40: el otro poste puede seguir alternando por reloj. Se sale
+// como de ese estado hoy: pedirSalida(). D-175: por eso NO es rojo de espera (tambien desde el MENU de D-29).
 void modo_degradado_arrancarEnRojoSinHora() {
+  semaforo_fijarRojoEspera(false);
   testigo = false;
   motivo = MDG_OK;
   reanudacionPendiente = false;

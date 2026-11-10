@@ -182,6 +182,7 @@ static long discrepanciasPluma = 0;
 #include "interruptores.h"
 #include "interruptores_modelo.inc"   // SPEC_8 6: el DR4 doblado y la excepcion por NOMBRE
 #include "instalacion_modelo.inc"     // N-187: la pagina de instalacion doblada
+#include "espera_bloque.inc"          // D-175: la excepcion por NOMBRE del rojo de espera (primera inclusion)
 
 // D-53 (05/10): ROJO - ROJO+AMARILLO (2 s) - VERDE. Manual de Senalizacion Vial 4.4.2 y
 // Fig. 4-9. Viene de la DECISION, no del fuente: leida de protocolo.h, sin la constante el
@@ -240,8 +241,8 @@ static void vigilarEnclavamiento() {
   }
   // D-45: el amarillo de cierre es la otra luz que pide la pluma arriba (SPEC_8 1); la
   // ventana del retardo se abre con el ROJO. Que la pluma no baje ANTES lo mide el bloque A.
-  if (arnes_pines[MOTOR_TALANQUERA] == TALANQUERA_ABRIR && !excepcionBarreraFuera() && !excepcionMala() &&
-      arnes_pines[VERDE1] != HIGH && arnes_pines[VERDE2] != HIGH &&
+  if (!excepcionEspera() && arnes_pines[MOTOR_TALANQUERA] == TALANQUERA_ABRIR && !excepcionBarreraFuera() &&
+      !excepcionMala() && arnes_pines[VERDE1] != HIGH && arnes_pines[VERDE2] != HIGH &&   // D-175, D-96, D-169
       semaforo_estado() != S_FALLO && semaforo_estado() != S_AMARILLO) {
     // D-33: la ventana se abre en el primer tick sin luz y se cierra sola. Se fecha con
     // el reloj del arnes, no con una bandera del firmware.
@@ -1882,13 +1883,12 @@ int main() {
 
 #include "interruptores_bloque.inc"   // Bloque I: SPEC_8 6 (D-94..D-97, D-148..D-151)
 #include "instalacion_bloque.inc"     // Bloque K: N-187, parametros de instalacion
+#include "espera_bloque.inc"          // Bloque M: D-175, el rojo de espera (segunda inclusion)
   // ===========================================================================
-  // LO QUE SE REPARTIO DEL BLOQUE D AL RETIRAR EL MANDO (D-30, CLAUDE.md 9). Estas cuatro
-  // vivian en el fuzz D9 sin medir el mando (son D-33 y N-153) y se mudaron aqui. Siguen
-  // midiendo TODO el barrido: violacionesTalanquera y discrepanciasPluma son globales que
-  // vigilarEnclavamiento() alimenta en cada tick y nadie reinicia. LO QUE SE PERDIO: la
-  // agitacion de modos del fuzz (A.A.A, B.B.B, A.B.A.B); aqui no hay otro camino para
-  // provocarla, y no se sustituye por un fuzz inventado.
+  // LO QUE SE REPARTIO DEL BLOQUE D AL RETIRAR EL MANDO (D-30, CLAUDE.md 9). Estas cuatro vivian en el fuzz D9 sin
+  // medir el mando (son D-33 y N-153) y se mudaron aqui. Siguen midiendo TODO el barrido: violacionesTalanquera y
+  // discrepanciasPluma son globales que vigilarEnclavamiento() alimenta en cada tick y nadie reinicia. LO QUE SE
+  // PERDIO: la agitacion de modos del fuzz (A.A.A, B.B.B, A.B.A.B); no se sustituye por un fuzz inventado.
   comprobar(violacionesTalanquera == 0,
           "en NINGUN instante del barrido la talanquera estuvo ARRIBA sin una razon "
           "nombrada (SFTY-28 con la derogacion parcial de D-33, medido sobre el pin que "

@@ -351,6 +351,7 @@ void loop() {
   // nada; su unico efecto es mantener viva la cuenta atras del limite.
   degradado_actualizar();
   degAuto_loop();   // A-15: cuenta, entrada automatica y PRESENTE en Degradado
+  if (degradado_gobiernaLuz()) semaforo_fijarRojoEspera(false);   // D-175: el reloj gobierna; no hay espera
 
   RF_Packet pkt;
   static unsigned long tUltimoComando = millis();
@@ -364,12 +365,11 @@ void loop() {
 
   // A-15: PRESENTE se filtra AQUI, antes de reloj_notarRadio(): no es radio que gobierne.
   if (protocolo_hayPaqueteDisponible(&pkt) && !degAuto_alRecibir(&pkt)) {
-    // D-26 (3): LA RADIO SE OYE. Con CUALQUIER trama valida, de gobierno o de servicio, y
-    // antes de mirar cual es: lo que se anota no es "el Maestro gobierna" -eso es
-    // tUltimoComando, mas abajo, y NO lo refrescan ni la hora ni un PING en ambar- sino
-    // "la radio del Maestro llega", que es lo que decide si la hora de esta punta la manda
-    // la radio o su propio ESP32. Son dos preguntas y por eso dos marcas (reloj.h).
+    // D-26 (3): LA RADIO SE OYE. Con CUALQUIER trama valida, antes de mirar cual es: no es "el Maestro gobierna"
+    // (tUltimoComando, mas abajo) sino "la radio del Maestro llega", que decide si la hora de esta punta la manda la
+    // radio o su ESP32. Dos preguntas, dos marcas (reloj.h). D-175: y la espera, con cada trama de gobierno.
     reloj_notarRadio();
+    semaforo_esperaPorTrama(pkt.command, pkt.param);
 
     // SFTY-21: SI VUELVE EL RADIO, EL MAESTRO MANDA.
     //

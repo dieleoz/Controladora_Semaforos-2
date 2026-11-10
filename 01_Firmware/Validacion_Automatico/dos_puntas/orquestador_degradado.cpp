@@ -212,9 +212,10 @@ static std::vector<EnVuelo> g_aire;
 static bool g_enlace = true, g_cortaME = false, g_cortaEM = false;   // bloque H: corte por sentido
 static unsigned long g_latenciaMs = 50;
 static unsigned long g_tramasEntregadas = 0;
-// El instante del banco en que el Esclavo recibio su ultima trama: su main.cpp REAL llama a
-// reloj_notarRadio() en ESE tick, y de ahi cuenta reloj_radioManda() los 25 s (bloque F5).
+// El instante del banco en que el Esclavo recibio su ultima trama: su main.cpp REAL llama a reloj_notarRadio() en
+// ESE tick, y de ahi cuenta reloj_radioManda() los 25 s (bloque F5).
 static unsigned long g_tUltimaEntregaEsclavo = 0;
+#include "orquestador_deg_espera.inc"   // D-175: la excepcion del rojo de espera
 
 // EL ESP32 DE CADA POSTE (D-21 (1)): cada SIEMBRA_INTERVALO_MS (contrato.h del ESP32) manda a SU
 // punta CMD:HORA_ESP32. ECO: la hora que la punta ya tiene (bloques B..E). DS3231: la del banco
@@ -366,7 +367,7 @@ static void vigilar() {
     // D-45: el amarillo de cierre pide la pluma arriba como el verde (SPEC_8 1).
     if (p->pin(MOTOR_TALANQUERA) == TALANQUERA_ABRIR &&
         p->pin(VERDE1) != HIGH && p->pin(VERDE2) != HIGH &&
-        p->estado() != S_FALLO && p->estado() != g_sAmarillo) {
+        p->estado() != S_FALLO && p->estado() != g_sAmarillo && !excepcionEsperaDeg(i)) {   // D-175
       if (g_plumaSinVerdeDesde[i] == 0) g_plumaSinVerdeDesde[i] = g_t + 1;
       const unsigned long dur = g_t - (g_plumaSinVerdeDesde[i] - 1);
       if (dur > g_peorVentanaPlumaMs[i]) g_peorVentanaPlumaMs[i] = dur;
@@ -407,7 +408,7 @@ static void unTick() {
       Punta& d = (g_aire[i].destino == 0) ? MAESTRO : ESCLAVO;
       d.rx(g_aire[i].trama);
       g_tramasEntregadas++;
-      if (g_aire[i].destino == 1) g_tUltimaEntregaEsclavo = g_t;
+      if (g_aire[i].destino == 1) { g_tUltimaEntregaEsclavo = g_t; g_entregasEsclavo++; }
       g_aire.erase(g_aire.begin() + i);
     } else {
       i++;
@@ -492,8 +493,7 @@ static void arrancarLasDos() {
   MAESTRO.descargar(); MAESTRO.cargar();
   ESCLAVO.descargar(); ESCLAVO.cargar();
   // 1.49b3 (G8): el cristal que NO ARRANCA, puesto en el silicio ANTES de reloj_setup(). La
-  // DLL recien cargada trae LSERDY en 1, asi que sin esta perilla todos los demas escenarios
-  // siguen como estaban.
+  // DLL recien cargada trae LSERDY en 1, asi que sin esta perilla todos los demas escenarios siguen como estaban.
   if (g_sinCristalAlArrancar) {
     MAESTRO.orden("lse_listo", 0);
     ESCLAVO.orden("lse_listo", 0);

@@ -32,7 +32,7 @@ identificador, comando, **un solo byte** de parámetro y CRC, y cada envío sale
 | comando | dirección | qué es |
 |---|---|---|
 | `CMD_GO_GREEN` / `CMD_ACK_GREEN` | M→E / E→M | la única orden que abre paso en el Poste 2, y su «verde encendido y estable» (con `D-53`, tras el rojo+amarillo; §2.2.ter, sin banco) |
-| `CMD_GO_RED` / `CMD_ACK_RED` | M→E / E→M | la orden que cierra —también es el latido cuando el rojo no consta— y su «estoy en rojo», que desde `D-45` (`cda33df`) acusa el ROJO ENCENDIDO, tras el amarillo (§2.2.bis) |
+| `CMD_GO_RED` / `CMD_ACK_RED` | M→E / E→M | la orden que cierra —también es el latido cuando el rojo no consta— y su «estoy en rojo», que desde `D-45` (`cda33df`) acusa el ROJO ENCENDIDO, tras el amarillo (§2.2.bis). Param bit0 `GO_RED_ESPERA` (`0x01`, `D-175`): rojo de ESPERA (Maestro en `MENU`), la pluma del Esclavo no empieza a contar R (SPEC 8 §8.4); sin el bit, rojo de ciclo |
 | `CMD_PING` / `CMD_PONG` · `CMD_GO_AMBAR` | M→E / E→M | el latido, que mide que el enlace vive · y el ámbar ordenado, siempre detrás de una orden de rojo previa |
 | `CMD_AMBAR_ESCLAVO` / `CMD_ACK_AVISO_AMBAR` | E→M / M→E | el Poste 2 avisa de su ámbar de emergencia, y el acuse (`D-31`) |
 | `CMD_CANCELA_AMBAR_ESCLAVO` | E→M | el Poste 2 lo retira. **No se acusa, y es la regla** (§6) |
@@ -428,7 +428,7 @@ escribe una vez por testigo, con el poste en ROJO, y lleva su propia suma. `resp
 | `DEG_AUTO_ROJO_MIN_S` | 420 | rojo fijo mínimo antes de `inicio`, (b) |
 | verde / despeje | 180 / 30 | fijos en el automatico (`DEG_VERDE_SEG`/`TESTIGO_VERDE_SEG`, `TESTIGO_DESPEJE_MIN`); el testigo manual elige el verde (`D-59`) |
 | `CMD_PRESENTE` | `0x17` | primer código libre de la cabecera de protocolo (la última es `CMD_ACK_AVISO_AMBAR` `0x16`); el siguiente, `CMD_GO_NOCHE` `0x18` (param bit0 = Poste 2 rojo intermitente), es la orden de gobierno del modo noche, construida en `N-179` (`8526f84`), sin banco: SPEC 0 §5.10 (e) |
-| `DEG_AUTO_APTO` / `DEG_AUTO_ECO` | `0x02` / `0x04` del param | `0x01` es `PONG_VERDE_SOLTADO` (`D-34`) |
+| `DEG_AUTO_APTO` / `DEG_AUTO_ECO` | `0x02` / `0x04` del param | `0x01` es `PONG_VERDE_SOLTADO` (`D-34`) en el PONG y `GO_RED_ESPERA` (`D-175`) en el `GO_RED` |
 | `FLAG_DEG_AUTO` / `FLAG_OTRO_APTO` | bit4 / bit5 de `REG_FLAGS` | libres; bit3 es `FLAG_TESTIGO` |
 | `FLAG_RENDIDO` / `FLAG_APTO_DADO` | bit6 / bit7 de `REG_FLAGS` | la rendición sin intercambio sano después, (b); el `ECO` oído del otro, (a) |
 | `PRESENTE_S` | 10 | Maestro en `s % 10 == 0`, Esclavo en `s % 10 == 5` (segundo de pared propio) |

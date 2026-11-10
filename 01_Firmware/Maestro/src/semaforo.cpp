@@ -111,6 +111,10 @@ static bool plumaVetada = false;
 // D-169 (SPEC_8 9.2): Y UNA TERCERA, "arriba porque una camara MALA y su MALAx = ARRIBA". No es veto: nadie
 // ve nada debajo; si fuera plumaVetada, el aviso de 90 s y PLUMA_VETADA mandarian a mirar debajo de una CIEGA.
 static bool plumaRetenidaMala = false;
+// D-175 (SPEC_8 8.4): ROJO DE ESPERA. Mientras es true, R no empieza a contar: una pluma ARRIBA se queda arriba
+// y una ABAJO no sube (solo RETIENE). La arman pocos y por su nombre: forzarMenu() en el Maestro; en el Esclavo,
+// el arranque y el GO_RED con GO_RED_ESPERA. La borra la 1.a orden de ciclo, ROJO TOTAL o el Degradado.
+static bool rojoEspera = false;
 
 static void escribirPines(bool rojo, bool amarillo, bool verde) {
   digitalWrite(ROJO1, rojo);
@@ -260,7 +264,7 @@ static void escribirPines(bool rojo, bool amarillo, bool verde) {
     plumaVetada = plumaRetenidaMala = false;
     plumaArriba = false;
   } else {
-    if (!plumaCierrePendiente) {
+    if (!plumaCierrePendiente || rojoEspera) {   // D-175: en el rojo de espera R no empieza
       plumaCierrePendiente = true;
       tPlumaCierrePedido = millis();
     }
@@ -319,6 +323,7 @@ void semaforo_setup() {
   // abajo (S_ROJO) arma el cierre con su R desde AHORA, y la 1.a bajada pasa por R y por el veto (SPEC_8 8.4).
   plumaCierrePendiente = false;
   plumaVetada = plumaRetenidaMala = false;
+  rojoEspera = false;   // D-175: el Maestro decide su modo en setup(); la espera la pone forzarMenu()
 
   semaforo_apagarTodo();
 }
@@ -394,6 +399,8 @@ bool semaforo_plumaVetada() {
   return plumaVetada;
 }
 bool semaforo_plumaRetenidaMala() { return plumaRetenidaMala; }   // D-169: la tercera bandera, arriba
+void semaforo_fijarRojoEspera(bool espera) { rojoEspera = espera; }   // D-175
+bool semaforo_rojoEspera() { return rojoEspera; }
 
 void semaforo_actualizar() {
   unsigned long ahora = millis();

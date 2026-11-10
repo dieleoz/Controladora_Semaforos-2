@@ -363,6 +363,9 @@
 #define CMD_PRESENTE   0x17
 #define DEG_AUTO_APTO  0x02
 #define DEG_AUTO_ECO   0x04
+// D-175 (SPEC_2 1, SPEC_8 8.4): bit0 del param de CMD_GO_RED = ROJO DE ESPERA (Maestro en MENU): la pluma del
+// Esclavo no empieza a contar R. Sin el bit es rojo de ciclo, como antes: un extremo viejo nunca la deja arriba.
+#define GO_RED_ESPERA  0x01
 
 // D-107 (SPEC_0 5.10 (e)): EL MODO NOCHE. El Maestro manda CMD_GO_NOCHE tras su todo-rojo y lo
 // repite cada NOCHE_REENVIO_MS mientras dure; el Esclavo lo toma como orden de gobierno (renueva

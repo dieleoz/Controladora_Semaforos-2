@@ -381,6 +381,32 @@ static void bloqueJ(unsigned long despejeS) {
                 cifrasJ(o) + "; modo " + std::to_string(modo) + ", permiso " + std::to_string(pila) + ")");
     }
   }
+  // J3E (D-175): la ventana de D-29 con lo que hace el menu_setup() REAL de main.cpp (aqui un doble vacio):
+  // coordinador_forzarMenu() pone el rojo de ESPERA y la pluma del arranque se queda arriba. FORZAR_ROJO lleva al
+  // rojo fijo sin hora, donde el otro poste puede estar alternando por reloj (D-47): la espera no puede seguir. Baja
+  // tras R y no vuelve a subir.
+  {
+    prepararSincronizadas(15, 8, 0, 0);
+    activarDs3231(1000, 7000);
+    entrarEnDegradadoLasDos(0);
+    avanzar(300000UL);
+    corteConSiembra();
+    MAESTRO.orden("forzar_menu");   // lo que hace menu_setup() en la rama D-29 de main.cpp
+    const bool ventana = MAESTRO.orden("modo_actual") == MENU_V && MAESTRO.orden("rojo_espera") == 1;
+    MAESTRO.orden("forzar_rojo_app");
+    avanzar(g_retardoPlumaMs + 1000UL);
+    bool abajo = MAESTRO.pin(MOTOR_TALANQUERA) != TALANQUERA_ABRIR;
+    for (unsigned long h = 0; h < 60000UL; h += 50UL) {
+      avanzar(50UL);
+      abajo = abajo && MAESTRO.pin(MOTOR_TALANQUERA) != TALANQUERA_ABRIR;
+    }
+    const long modo = MAESTRO.orden("modo_actual"), espera = MAESTRO.orden("rojo_espera");
+    comprobar(ventana && modo == MODO_DEGRADADO_V && espera == 0 && abajo,
+              "J3E (D-175, D-29, D-47): MENU con espera en la ventana de D-29 (" + std::to_string(ventana) +
+              ") + FORZAR_ROJO: rojo fijo sin hora (modo " + std::to_string(modo) + "), sin espera (" +
+              std::to_string(espera) + ") y la pluma del Maestro ABAJO desde R + 1 s y durante 60 s (" +
+              std::to_string(abajo) + ")");
+  }
   bloqueJ456(despejeS);
   bloqueK();
   bloqueL();
