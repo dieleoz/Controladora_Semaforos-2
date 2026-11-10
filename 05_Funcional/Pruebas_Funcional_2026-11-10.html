@@ -123,7 +123,7 @@ button#btnPdf{
 </div>
 
 <div class="recordatorio">
-  Esta hoja trae <strong>solo lo que falta</strong>. Las radios ya están resueltas el 09/11 (fábrica, M0/M1 en ON, 100 % de latidos): no se vuelven a configurar. Queda la carga de este paquete, el enlace con LoRa y su <strong>cobertura</strong>, la <strong>barrera con puente H</strong>, las <strong>4 cámaras</strong>, los interruptores, un <strong>fin de semana en Degradado con testigo</strong>, la medida de <strong>El Sisga</strong>, la <strong>calle con ménsula</strong> y, nuevo en esta versión, los <strong>parámetros de instalación de cámaras y barrera</strong> (Parte 9). Haga primero la 1 y la 2; después, en orden, en una o varias jornadas: la hoja guarda lo escrito en el celular. Anote la hora del celular de cada cosa que vea. Lea siempre el recuadro verde &laquo;Debe ver antes de empezar&raquo;; si lo que ve es otra cosa, <strong>no empiece</strong>: arréglelo o avise. Donde dice <strong>&laquo;anote lo medido&raquo;</strong> es que nadie lo ha medido todavía: no hay valor esperado, el valor es el suyo.
+  Esta hoja trae <strong>solo lo que falta</strong>. Las radios ya están resueltas el 09/11 (fábrica, M0/M1 en ON, 100 % de latidos): no se vuelven a configurar. Queda la carga de este paquete, el enlace con LoRa y su <strong>cobertura</strong>, la <strong>barrera con puente H</strong>, las <strong>4 cámaras</strong>, los interruptores, un <strong>fin de semana en Degradado con testigo</strong>, la medida de <strong>El Sisga</strong>, la <strong>calle con ménsula</strong> y, nuevo en esta versión, los <strong>parámetros de instalación de cámaras y barrera</strong> (Parte 9) y el <strong>requisito de la barrera: arriba en reposo y sin energía</strong> (Parte 10). Haga primero la 1 y la 2; después, en orden, en una o varias jornadas: la hoja guarda lo escrito en el celular. Anote la hora del celular de cada cosa que vea. Lea siempre el recuadro verde &laquo;Debe ver antes de empezar&raquo;; si lo que ve es otra cosa, <strong>no empiece</strong>: arréglelo o avise. Donde dice <strong>&laquo;anote lo medido&raquo;</strong> es que nadie lo ha medido todavía: no hay valor esperado, el valor es el suyo.
 </div>
 
 <div class="recordatorio indice">
@@ -163,6 +163,12 @@ button#btnPdf{
     <li>Instalación: la radio no cae al cambiar</li>
     <li>Instalación: volver a cargar devuelve a fábrica</li>
     <li>Instalación: la app muestra lo del poste conectado</li>
+    <li>Requisito barrera: J15 suelta, ¿dónde queda el brazo?</li>
+    <li>Requisito barrera: sin alimentación con el brazo abajo</li>
+    <li>Requisito barrera: sin alimentación a medio recorrido</li>
+    <li>Requisito barrera: al volver la luz no baja sin orden</li>
+    <li>Requisito barrera: qué entrada de la central hace bajar</li>
+    <li>Requisito barrera: opciones del proveedor</li>
   </ol>
 </div>
 
@@ -356,6 +362,9 @@ button#btnPdf{
   <h2>6. Corte de luz con la pluma a medias</h2>
   <div class="porque"><b class="t">Por qué</b>Sin energía la salida J15 deja de conducir, que es la orden de bajar. Lo que hace de verdad el brazo depende del puente H y del motor, y eso no está medido: por eso se mira. Al volver la luz, el poste manda primero <strong>bajar</strong>; después el Poste 1 arranca en <strong>ámbar intermitente</strong> (como tras cualquier corte) y manda al Poste 2 a ámbar, así que las dos plumas pasan a <strong>subir</strong>.</div>
   <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Esta prueba es con la central o puente H <strong>como está hoy</strong> y J15 conectada al controlador. Si ya hizo la
+      Parte 10 y dejó la central en «reposo = arriba», <strong>no haga esta prueba</strong>: déjelo anotado (con este
+      firmware la pluma quedaría invertida). Lo que el responsable exige ahora es la Parte 10.</li>
     <li>Poste 1 en <strong>AUTOMÁTICO</strong>, dando ciclos. A mano cómo cortar la luz de un poste <strong>entero</strong> (controlador y puente H).</li>
     <li>Cronómetro, vídeo si puede, y <strong>20 minutos</strong> libres.</li>
   </ul></div>
@@ -1234,6 +1243,173 @@ button#btnPdf{
   <div class="print-only" id="pr34"></div>
 </section>
 
+<div class="parte">
+  <h2>Parte 10 (pruebas 35 a 40): requisito de la barrera — arriba en reposo y sin energía (lo exige el responsable; condición para aceptar la barrera)</h2>
+  <div class="alto"><strong>Esto es un REQUISITO que la barrera y su central o puente H deben cumplir, y que el banco o el proveedor debe garantizar:</strong> sin orden y sin energía, el brazo queda <strong>ARRIBA</strong>. Aquí no se ajusta nada del firmware ni de la app. Si no se cumple, se anota lo que hace, con foto o vídeo, y se avisa.</div>
+  Estas pruebas miden <strong>la barrera y su central o puente H solos</strong>, con <strong>J15 desconectada del controlador</strong>. El firmware de este paquete todavía manda <strong>J15 conduce = SUBIR</strong>: por eso no se usa aquí. Antes de empezar, anote <strong>marca y modelo</strong> de la central o puente H y del motor o actuador (prueba 39). <strong>Nadie en el recorrido del brazo</strong> en ninguna de estas pruebas.
+</div>
+
+<section class="prueba" id="p35">
+  <h2>35. J15 suelta: sin señal de mando, ¿dónde queda el brazo?</h2>
+  <div class="porque"><b class="t">Por qué</b>En reposo, sin ninguna orden, la barrera debe dejar la vía abierta. Si sin señal baja, un controlador apagado o un cable cortado cierra la vía.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Con el poste <strong>sin energía</strong>, suelte los cables de <strong>J15</strong> (o los del relé a la entrada de la central). Aíslelos. <strong>Nunca toque J16 pata 1.</strong></li>
+    <li>La central o puente H <strong>alimentada</strong>. Nadie en el recorrido del brazo.</li>
+  </ul></div>
+  <ol>
+    <li>Con J15 suelta, encienda la central. Espere 1 minuto. Anote dónde está el brazo.</li>
+    <li>Si estaba abajo, súbalo como diga la central (botón, mando) y espere otro minuto: ¿se queda arriba o baja solo?</li>
+  </ol>
+  <div class="espera">Se espera: brazo <strong>ARRIBA</strong> y quieto. Si queda abajo o baja solo, <strong>NO OK</strong>: anote qué hace y avise.</div>
+  <div class="horas">
+    <label class="campo">Dónde quedó el brazo al minuto (arriba / abajo / a medias) <input type="text" id="h35a" class="hora"></label>
+    <label class="campo">Si se subió a mano: ¿se quedó arriba? (sí/no, cuánto tardó en bajar) <input type="text" id="h35b" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r35" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r35" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r35" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v35" placeholder="Lo que vio distinto. Foto o vídeo del brazo"></textarea>
+  <div class="print-only" id="pr35"></div>
+</section>
+
+<section class="prueba" id="p36">
+  <h2>36. Quitar la alimentación con el brazo ABAJO</h2>
+  <div class="porque"><b class="t">Por qué</b>Si se va la luz con la vía cerrada, el brazo debe abrirla solo (muelle, peso o lo que traiga la barrera). Si se queda abajo, la vía queda cerrada sin nadie que la abra.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Prueba 35 hecha. J15 suelta. Brazo <strong>ABAJO</strong> (bajado con la central). Nadie en el recorrido del brazo.</li>
+    <li>Cronómetro, y vídeo si puede.</li>
+  </ul></div>
+  <ol>
+    <li>Corte la alimentación de la central o puente H. Anote la hora y qué hace el brazo.</li>
+    <li>Si sube, mida cuánto tarda en llegar arriba. Espere 2 minutos y mire si se queda.</li>
+  </ol>
+  <div class="espera">Se espera: el brazo <strong>sube solo</strong> y se queda arriba. <strong>Anote lo medido</strong> (el tiempo). Si se queda abajo o a medias, <strong>NO OK</strong>.</div>
+  <div class="horas">
+    <label class="campo">Qué hizo el brazo al cortar <input type="text" id="h36a" class="hora"></label>
+    <label class="campo">Tiempo hasta arriba (s) <input type="text" id="h36b" class="hora"></label>
+    <label class="campo">A los 2 minutos, dónde estaba <input type="text" id="h36c" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r36" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r36" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r36" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v36" placeholder="Lo que vio distinto. Vídeo del brazo al cortar"></textarea>
+  <div class="print-only" id="pr36"></div>
+</section>
+
+<section class="prueba" id="p37">
+  <h2>37. Quitar la alimentación con el brazo a medio recorrido</h2>
+  <div class="porque"><b class="t">Por qué</b>El corte puede llegar con el brazo moviéndose. Tiene que acabar arriba igual.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Prueba 36 hecha. J15 suelta. Central alimentada. Nadie en el recorrido del brazo.</li>
+  </ul></div>
+  <ol>
+    <li>Mande bajar con la central y, con el brazo <strong>a medias bajando</strong>, corte la alimentación. Anote qué hace y cuánto tarda en llegar arriba.</li>
+    <li>Vuelva la alimentación, deje el brazo arriba y repita cortando con el brazo <strong>a medias subiendo</strong>.</li>
+  </ol>
+  <div class="espera">Se espera: en los dos casos el brazo <strong>acaba arriba</strong> y se queda. <strong>Anote lo medido</strong> (el tiempo).</div>
+  <div class="horas">
+    <label class="campo">Bajando a medias: qué hizo y tiempo hasta arriba (s) <input type="text" id="h37a" class="hora"></label>
+    <label class="campo">Subiendo a medias: qué hizo y tiempo hasta arriba (s) <input type="text" id="h37b" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r37" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r37" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r37" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v37" placeholder="Lo que vio distinto. Vídeo del brazo al cortar"></textarea>
+  <div class="print-only" id="pr37"></div>
+</section>
+
+<section class="prueba" id="p38">
+  <h2>38. Volver la alimentación: no baja sin orden</h2>
+  <div class="porque"><b class="t">Por qué</b>Al volver la luz nadie ha mandado bajar. Si la central baja el brazo sola al arrancar (para buscar su posición, por ejemplo), cierra la vía sin orden.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Prueba 37 hecha. J15 suelta. Brazo arriba y central <strong>sin alimentación</strong>. Nadie en el recorrido del brazo.</li>
+  </ul></div>
+  <ol>
+    <li>Vuelva la alimentación de la central. Mire el brazo 2 minutos. Anote todo movimiento.</li>
+    <li>Repítalo dos veces más (corte de 30 s y vuelta).</li>
+  </ol>
+  <div class="espera">Se espera: el brazo <strong>no se mueve hacia abajo</strong> en ninguna de las tres vueltas. Cualquier bajada, aunque sea corta y vuelva a subir, es <strong>NO OK</strong>: anote cuánto bajó.</div>
+  <div class="horas">
+    <label class="campo">Vuelta 1: ¿se movió? (qué y cuánto) <input type="text" id="h38a" class="hora"></label>
+    <label class="campo">Vuelta 2 <input type="text" id="h38b" class="hora"></label>
+    <label class="campo">Vuelta 3 <input type="text" id="h38c" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r38" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r38" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r38" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v38" placeholder="Lo que vio distinto. Vídeo de la vuelta de la luz"></textarea>
+  <div class="print-only" id="pr38"></div>
+</section>
+
+<section class="prueba" id="p39">
+  <h2>39. Qué entrada de la central hace BAJAR</h2>
+  <div class="porque"><b class="t">Por qué</b>El firmware nuevo mandará <strong>bajar</strong> por J15 y, sin orden, dejará la barrera arriba. Para escribirlo hay que saber qué bornes de la central piden bajar y cómo.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>J15 suelta. El manual de la central o el proveedor al teléfono. Si se prueba la entrada a mano con un puente, <strong>nadie en el recorrido del brazo</strong>.</li>
+  </ul></div>
+  <ol>
+    <li>Anote marca y modelo de la central o puente H, y del motor o actuador. Foto de la placa de datos.</li>
+    <li>Anote los bornes de la entrada que manda <strong>bajar</strong> (nombre impreso en la bornera).</li>
+    <li>Anote cómo se manda: <strong>contacto NA</strong> (cerrar para bajar) o <strong>NC</strong> (abrir para bajar); <strong>contacto seco</strong> o <strong>tensión</strong> (cuántos voltios); <strong>sostenido</strong> (baja mientras dura) o <strong>pulso</strong>.</li>
+    <li>Anote qué pasa al quitar la orden: ¿sube sola o se queda abajo hasta otra orden?</li>
+  </ol>
+  <div class="espera">Se espera: los datos completos. <strong>Anote lo medido</strong>; no hay valor esperado. Si algo sale del manual y no de una prueba, dígalo.</div>
+  <div class="horas">
+    <label class="campo">Central o puente H: marca y modelo <input type="text" id="h39a" class="hora"></label>
+    <label class="campo">Motor o actuador: marca y modelo <input type="text" id="h39b" class="hora"></label>
+    <label class="campo">Bornes de la entrada de BAJAR <input type="text" id="h39c" class="hora"></label>
+    <label class="campo">NA o NC; seco o tensión (V); sostenido o pulso <input type="text" id="h39d" class="hora"></label>
+    <label class="campo">Al quitar la orden: ¿sube o se queda? <input type="text" id="h39e" class="hora"></label>
+    <label class="campo">¿Probado o leído en el manual? <input type="text" id="h39f" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r39" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r39" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r39" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v39" placeholder="Lo que vio distinto. Foto de la bornera y de la placa de datos"></textarea>
+  <div class="print-only" id="pr39"></div>
+</section>
+
+<section class="prueba" id="p40">
+  <h2>40. Si la central no admite &laquo;reposo = arriba&raquo;: qué ofrece el proveedor</h2>
+  <div class="porque"><b class="t">Por qué</b>Si alguna de las pruebas 35 a 38 sale NO OK, la barrera no se acepta así. Hace falta saber qué solución da el proveedor para decidir.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Pruebas 35 a 38 hechas. Si todas dieron OK, marque OK y pase a lo siguiente.</li>
+  </ul></div>
+  <ol>
+    <li>Pregunte al proveedor si la central se puede configurar para que en reposo y sin energía quede arriba (puente, interruptor, menú).</li>
+    <li>Pregunte si hay muelle o contrapeso de subida, u otro actuador que lo haga.</li>
+    <li>Anote cada opción con lo que cuesta y cuánto tarda, si lo dice.</li>
+  </ol>
+  <div class="espera">Se espera: las opciones anotadas, con el nombre de quien las da. No se cambia nada en el equipo hasta que lo decida el responsable.</div>
+  <div class="horas">
+    <label class="campo">Quién respondió y cuándo <input type="text" id="h40a" class="hora"></label>
+    <label class="campo">Opción por configuración <input type="text" id="h40b" class="hora"></label>
+    <label class="campo">Opción por muelle o contrapeso <input type="text" id="h40c" class="hora"></label>
+    <label class="campo">Opción por otro actuador <input type="text" id="h40d" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r40" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r40" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r40" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v40" placeholder="Lo que dijo el proveedor"></textarea>
+  <div class="print-only" id="pr40"></div>
+</section>
+
+<div class="alto">
+  <strong>Hasta que se cargue un firmware con J15 invertido, NO cablee J15 a una central configurada &laquo;reposo = arriba&raquo;.</strong> El firmware de este paquete manda J15 conduce = SUBIR: con esa central la pluma quedaría al revés, <strong>abajo en verde</strong>. Al terminar la Parte 10, deje la central configurada como estaba al empezar la parte, o J15 suelta, y anote cuál.
+</div>
+
 <section class="prueba" id="pF">
   <h2>Algo más</h2>
   <textarea id="vF" placeholder="Otra cosa que quiera anotar"></textarea>
@@ -1241,7 +1417,7 @@ button#btnPdf{
 </section>
 
 <div class="recordatorio">
-  <strong>Al terminar cada jornada:</strong> conéctese a <strong>cada</strong> poste, exporte su registro (pestaña Eventos &rarr; "Exportar registro") y envíe este PDF con <strong>todos los archivos IOTVIAL_</strong>, uno de <strong>cada</strong> poste por jornada; los <strong>leido_poste1.bin</strong> y <strong>leido_poste2.bin</strong> de la prueba 1; los <strong>SESION_</strong> de El Sisga (prueba 21) y del fin de semana (prueba 19) y los vídeos de la calle (pruebas 22 y 23).
+  <strong>Al terminar cada jornada:</strong> conéctese a <strong>cada</strong> poste, exporte su registro (pestaña Eventos &rarr; "Exportar registro") y envíe este PDF con <strong>todos los archivos IOTVIAL_</strong>, uno de <strong>cada</strong> poste por jornada; los <strong>leido_poste1.bin</strong> y <strong>leido_poste2.bin</strong> de la prueba 1; los <strong>SESION_</strong> de El Sisga (prueba 21) y del fin de semana (prueba 19) los vídeos de la calle (pruebas 22 y 23) y las fotos y vídeos de la barrera (pruebas 35 a 40).
 </div>
 
 </main>
@@ -1306,7 +1482,7 @@ button#btnPdf{
   // escrito, en texto llano. Asi, al imprimir, se ve la respuesta aunque el
   // telefono no dibuje los controles marcados. Las horas anotadas van tambien.
   var ids = [];
-  for (var i = 1; i <= 34; i++) ids.push(String(i));
+  for (var i = 1; i <= 40; i++) ids.push(String(i));
   function refrescarImpresion() {
     ids.forEach(function (n) {
       var pr = document.getElementById('pr' + n);
