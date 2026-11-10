@@ -1,7 +1,7 @@
 ACTA DE VERIFICACION - Controladora de Semaforos
 ==============================================================================
 Fecha        : 2026-11-10
-HEAD         : 1fb834c   rama: main
+HEAD         : bb600af   rama: main
 Arbol        : LIMPIO
 Modo         : completo
 PlatformIO   : PlatformIO Core, version 6.1.19
@@ -19,7 +19,7 @@ RESULTADOS
   PASS      test unitarios de la app          RESUMEN DE PRUEBAS: 70 PASS | 0 FALLAS  (Total: 70)
   PASS      test unitarios TDD de la app      RESUMEN TDD: 92 PASS | 0 FALLAS  (Total: 92)
   PASS      app ejecutada en DOM              RESULTADO JSDOM: 971 PASS | 0 FALLAS
-  FALLA     banco por packs                   RESUMEN: 1523/1525 comprobaciones  |  packs: 68 PASS, 2 FALLA, 0 ABORTADO
+  FALLA     banco por packs                   RESUMEN: 1524/1525 comprobaciones  |  packs: 69 PASS, 1 FALLA, 0 ABORTADO
   PASS      arnes del ciclo                   RESULTADO: 78/78 comprobaciones OK
   PASS      arnes del respaldo                respaldo.cpp y respaldo.h identicos entre puntas | arnes vivo (PING/PONG)
   PASS      arnes del automatico              RESULTADO: 120/120 comprobaciones OK
@@ -30,5 +30,5 @@ RESULTADOS
   RESUMEN: 16 PASS | 1 FALLA | 0 ABORTADO
 
 ABORTADO no es PASS: una comprobacion que no pudo correr no dice nada del
-firmware. Esta acta se verifica volviendo a 1fb834c y re-corriendo
+firmware. Esta acta se verifica volviendo a bb600af y re-corriendo
 python 01_Firmware/compuerta.py.
