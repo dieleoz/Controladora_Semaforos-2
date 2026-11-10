@@ -90,6 +90,7 @@ python 01_Firmware/Simulaciones/banco/correr.py   # solo los packs. Sirve para i
 | 1 | `N-186` paquete para Marco `db07446` (3 puntas, APK de hoy, hoja del 10/11 de lo pendiente) | `entregas/` | HECHO, QA APTO |
 | 2 | `N-187` construir: NA/NC por camara y retardo de bajada 3..5 s (fabrica = hoy), flash propia, app, simulador | worktrees | SIGUIENTE (ESTADO punto 2) |
 | 3 | Runbook de `N-187`: arquitecto antes, compuerta x2, QA, APK, telefono, UN `.zip` nuevo | orquestador | tras 2 |
+| 3b | `RTT:` con LoRa MEDIDO (09/11 17:27, `evidencia/091120261729`, 166 tramas): mediana 752 ms, max 952 (incluye los 200 de `RETARDO_RESPUESTA_MS`); ida ~275-375 ms < 500 de `D-34`, sin cambio de tiempos; RF 100 % en 120, 90/80 % en 23 | medido | vigilar con la cobertura |
 | 4 | Registros de Marco del 10/11: `RTT:`, cobertura, tiempo del brazo, camaras, C5 -> rangos desde la app | orquestador | esperando |
 | 5 | Version siguiente: `D-98` tandas 4 y ultima, BT con clave (`D-158`), §7.5 Alcance, El Sisga tras banco | — | — |
 

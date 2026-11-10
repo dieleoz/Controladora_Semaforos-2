@@ -1,0 +1,1862 @@
+IOT-VIAL - DIARIO DE ORDENES
+App: IOT-VIAL V9.0 (Controladora Semaforos)
+Cruce: SIN GRUPO
+Equipo: sin identificar (ningun $STATUS con NODE)
+Serie: 179DB0
+Firmware: sin pedir (pulse Consultar version)
+Modo: MANUAL
+Estado: ROJO
+Hora_RTC: sin telemetria
+Exportado: 2026-11-09T22:27:34.577Z
+
+QUE ES ESTO: una entrada por cada orden que se dio desde este telefono, con
+lo que se mando, lo que el equipo contesto y lo que se vio cambiar despues.
+El PIN sale tapado con asteriscos; al equipo se le manda entero.
+
+LO QUE ESTE DIARIO NO SABE, para que no se lea de mas:
+  - No sabe si el equipo RECIBIO la orden, solo que la app la escribio.
+  - "NO CAMBIO NADA" significa que MODO y ESTADO no se movieron en las
+    tramas que llegaron. No significa que el firmware desobedeciera.
+  - No ve las luces del poste: ve lo que el equipo dice por $STATUS.
+  - No sabe de ordenes dadas desde otro telefono, el mando o los botones.
+  - Pero cuando pone ESCRITA SIN ENLACE si sabe una cosa: que el equipo
+    llevaba segundos sin hablar cuando esa orden salio. Esas NO se pueden
+    leer como un rechazo del equipo, ni como un fallo del firmware.
+
+RESUMEN
+  ordenes anotadas       : 59
+  no llegaron a salir    : 2
+  sin respuesta          : 21
+  de esas, ESCRITAS SIN ENLACE: 0  (el equipo no hablaba cuando salieron)
+  rechazadas por el equipo: 0
+  no movieron MODO ni ESTADO: 12
+  efecto que no se pudo ver : 0
+  respuestas sueltas     : 21  (llegaron sin una orden de esta app a la que atribuirlas)
+
+LAS ORDENES, DE LA MAS ANTIGUA A LA MAS NUEVA
+
+17:15:01  ORDEN      CMD:LOG,DESDE:200\r\n
+          RESPUESTA  SIN RESPUESTA: el equipo no contesto en 5,0 s. Eso NO quiere decir que rechazara la orden: quiere decir que esta app no oyo nada
+          EFECTO     CAMBIO: ESTADO: FALLO COM -> ROJO (a los 10,1 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+17:15:01  RESPUESTA SUELTA  $ACK,NODE:PUENTE,CMD:LOG,RESULT:OK,DESDE:200,HASTA:215,ULT:414,PRIMERO:1,CONG:0,CRC:0,LARGO:0,ANILLO:0,FLASH:0,MALOS:0*4D
+          ninguna orden de esta app esperaba respuesta al comando LOG. Puede venir de otro telefono, del otra via o de una orden anterior al arranque de la app
+
+17:15:01  ORDEN      CMD:LOG,DESDE:216\r\n
+          RESPUESTA  SIN RESPUESTA: el equipo no contesto en 5,0 s. Eso NO quiere decir que rechazara la orden: quiere decir que esta app no oyo nada
+          EFECTO     CAMBIO: ESTADO: FALLO COM -> ROJO (a los 10,0 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+17:15:01  RESPUESTA SUELTA  $ACK,NODE:PUENTE,CMD:LOG,RESULT:OK,DESDE:216,HASTA:231,ULT:414,PRIMERO:1,CONG:0,CRC:0,LARGO:0,ANILLO:0,FLASH:0,MALOS:0*4C
+          ninguna orden de esta app esperaba respuesta al comando LOG. Puede venir de otro telefono, del otra via o de una orden anterior al arranque de la app
+
+17:15:01  ORDEN      CMD:LOG,DESDE:232\r\n
+          RESPUESTA  SIN RESPUESTA: el equipo no contesto en 5,0 s. Eso NO quiere decir que rechazara la orden: quiere decir que esta app no oyo nada
+          EFECTO     CAMBIO: ESTADO: FALLO COM -> ROJO (a los 9,7 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+17:15:01  RESPUESTA SUELTA  $ACK,NODE:PUENTE,CMD:LOG,RESULT:OK,DESDE:232,HASTA:247,ULT:414,PRIMERO:1,CONG:0,CRC:0,LARGO:0,ANILLO:0,FLASH:0,MALOS:0*4B
+          ninguna orden de esta app esperaba respuesta al comando LOG. Puede venir de otro telefono, del otra via o de una orden anterior al arranque de la app
+
+17:15:01  ORDEN      CMD:LOG,DESDE:248\r\n
+          RESPUESTA  SIN RESPUESTA: el equipo no contesto en 5,0 s. Eso NO quiere decir que rechazara la orden: quiere decir que esta app no oyo nada
+          EFECTO     CAMBIO: ESTADO: FALLO COM -> ROJO (a los 9,6 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+17:15:01  RESPUESTA SUELTA  $ACK,NODE:PUENTE,CMD:LOG,RESULT:OK,DESDE:248,HASTA:263,ULT:414,PRIMERO:1,CONG:0,CRC:0,LARGO:0,ANILLO:0,FLASH:0,MALOS:0*40
+          ninguna orden de esta app esperaba respuesta al comando LOG. Puede venir de otro telefono, del otra via o de una orden anterior al arranque de la app
+
+17:15:01  ORDEN      CMD:LOG,DESDE:264\r\n
+          RESPUESTA  SIN RESPUESTA: el equipo no contesto en 5,0 s. Eso NO quiere decir que rechazara la orden: quiere decir que esta app no oyo nada
+          EFECTO     CAMBIO: ESTADO: FALLO COM -> ROJO (a los 9,4 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+17:15:01  RESPUESTA SUELTA  $ACK,NODE:PUENTE,CMD:LOG,RESULT:OK,DESDE:264,HASTA:279,ULT:414,PRIMERO:1,CONG:0,CRC:0,LARGO:0,ANILLO:0,FLASH:0,MALOS:0*45
+          ninguna orden de esta app esperaba respuesta al comando LOG. Puede venir de otro telefono, del otra via o de una orden anterior al arranque de la app
+
+17:15:02  ORDEN      CMD:LOG,DESDE:280\r\n
+          RESPUESTA  SIN RESPUESTA: el equipo no contesto en 5,0 s. Eso NO quiere decir que rechazara la orden: quiere decir que esta app no oyo nada
+          EFECTO     CAMBIO: ESTADO: FALLO COM -> ROJO (a los 9,3 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+17:15:02  RESPUESTA SUELTA  $ACK,NODE:PUENTE,CMD:LOG,RESULT:OK,DESDE:280,HASTA:295,ULT:414,PRIMERO:1,CONG:0,CRC:0,LARGO:0,ANILLO:0,FLASH:0,MALOS:0*4D
+          ninguna orden de esta app esperaba respuesta al comando LOG. Puede venir de otro telefono, del otra via o de una orden anterior al arranque de la app
+
+17:15:02  ORDEN      CMD:LOG,DESDE:296\r\n
+          RESPUESTA  SIN RESPUESTA: el equipo no contesto en 5,0 s. Eso NO quiere decir que rechazara la orden: quiere decir que esta app no oyo nada
+          EFECTO     CAMBIO: ESTADO: FALLO COM -> ROJO (a los 9,2 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+17:15:02  RESPUESTA SUELTA  $ACK,NODE:PUENTE,CMD:LOG,RESULT:OK,DESDE:296,HASTA:311,ULT:414,PRIMERO:1,CONG:0,CRC:0,LARGO:0,ANILLO:0,FLASH:0,MALOS:0*47
+          ninguna orden de esta app esperaba respuesta al comando LOG. Puede venir de otro telefono, del otra via o de una orden anterior al arranque de la app
+
+17:15:02  ORDEN      CMD:LOG,DESDE:312\r\n
+          RESPUESTA  SIN RESPUESTA: el equipo no contesto en 5,0 s. Eso NO quiere decir que rechazara la orden: quiere decir que esta app no oyo nada
+          EFECTO     CAMBIO: ESTADO: FALLO COM -> ROJO (a los 9,0 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+17:15:02  RESPUESTA SUELTA  $ACK,NODE:PUENTE,CMD:LOG,RESULT:OK,DESDE:312,HASTA:327,ULT:414,PRIMERO:1,CONG:0,CRC:0,LARGO:0,ANILLO:0,FLASH:0,MALOS:0*4F
+          ninguna orden de esta app esperaba respuesta al comando LOG. Puede venir de otro telefono, del otra via o de una orden anterior al arranque de la app
+
+17:15:02  ORDEN      CMD:LOG,DESDE:328\r\n
+          RESPUESTA  SIN RESPUESTA: el equipo no contesto en 5,0 s. Eso NO quiere decir que rechazara la orden: quiere decir que esta app no oyo nada
+          EFECTO     CAMBIO: ESTADO: FALLO COM -> ROJO (a los 8,9 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+17:15:02  RESPUESTA SUELTA  $ACK,NODE:PUENTE,CMD:LOG,RESULT:OK,DESDE:328,HASTA:343,ULT:414,PRIMERO:1,CONG:0,CRC:0,LARGO:0,ANILLO:0,FLASH:0,MALOS:0*44
+          ninguna orden de esta app esperaba respuesta al comando LOG. Puede venir de otro telefono, del otra via o de una orden anterior al arranque de la app
+
+17:15:02  ORDEN      CMD:LOG,DESDE:344\r\n
+          RESPUESTA  SIN RESPUESTA: el equipo no contesto en 5,0 s. Eso NO quiere decir que rechazara la orden: quiere decir que esta app no oyo nada
+          EFECTO     CAMBIO: ESTADO: FALLO COM -> ROJO (a los 8,8 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+17:15:02  RESPUESTA SUELTA  $ACK,NODE:PUENTE,CMD:LOG,RESULT:OK,DESDE:344,HASTA:359,ULT:414,PRIMERO:1,CONG:0,CRC:0,LARGO:0,ANILLO:0,FLASH:0,MALOS:0*45
+          ninguna orden de esta app esperaba respuesta al comando LOG. Puede venir de otro telefono, del otra via o de una orden anterior al arranque de la app
+
+17:15:02  ORDEN      CMD:LOG,DESDE:360\r\n
+          RESPUESTA  SIN RESPUESTA: el equipo no contesto en 5,0 s. Eso NO quiere decir que rechazara la orden: quiere decir que esta app no oyo nada
+          EFECTO     CAMBIO: ESTADO: FALLO COM -> ROJO (a los 8,6 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+17:15:02  RESPUESTA SUELTA  $ACK,NODE:PUENTE,CMD:LOG,RESULT:OK,DESDE:360,HASTA:375,ULT:414,PRIMERO:1,CONG:0,CRC:0,LARGO:0,ANILLO:0,FLASH:0,MALOS:0*4D
+          ninguna orden de esta app esperaba respuesta al comando LOG. Puede venir de otro telefono, del otra via o de una orden anterior al arranque de la app
+
+17:15:02  ORDEN      CMD:LOG,DESDE:376\r\n
+          RESPUESTA  SIN RESPUESTA: el equipo no contesto en 5,0 s. Eso NO quiere decir que rechazara la orden: quiere decir que esta app no oyo nada
+          EFECTO     CAMBIO: ESTADO: FALLO COM -> ROJO (a los 8,4 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+17:15:02  RESPUESTA SUELTA  $ACK,NODE:PUENTE,CMD:LOG,RESULT:OK,DESDE:376,HASTA:391,ULT:414,PRIMERO:1,CONG:0,CRC:0,LARGO:0,ANILLO:0,FLASH:0,MALOS:0*40
+          ninguna orden de esta app esperaba respuesta al comando LOG. Puede venir de otro telefono, del otra via o de una orden anterior al arranque de la app
+
+17:15:03  ORDEN      CMD:LOG,DESDE:392\r\n
+          RESPUESTA  SIN RESPUESTA: el equipo no contesto en 5,0 s. Eso NO quiere decir que rechazara la orden: quiere decir que esta app no oyo nada
+          EFECTO     CAMBIO: ESTADO: FALLO COM -> ROJO (a los 8,3 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+17:15:03  RESPUESTA SUELTA  $ACK,NODE:PUENTE,CMD:LOG,RESULT:OK,DESDE:392,HASTA:407,ULT:414,PRIMERO:1,CONG:0,CRC:0,LARGO:0,ANILLO:0,FLASH:0,MALOS:0*42
+          ninguna orden de esta app esperaba respuesta al comando LOG. Puede venir de otro telefono, del otra via o de una orden anterior al arranque de la app
+
+17:15:03  ORDEN      CMD:LOG,DESDE:408\r\n
+          RESPUESTA  SIN RESPUESTA: el equipo no contesto en 5,0 s. Eso NO quiere decir que rechazara la orden: quiere decir que esta app no oyo nada
+          EFECTO     CAMBIO: ESTADO: FALLO COM -> ROJO (a los 8,2 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+17:15:03  ORDEN      CMD:CONSULTA_DEG_AUTO\r\n
+17:15:03  RESPUESTA  $ACK,CMD:CONSULTA_DEG_AUTO,RESULT:ESTE_OFF_OTRO_OFF_APTO_NO*0B   (+0,2 s)
+          EFECTO     CAMBIO: ESTADO: FALLO COM -> ROJO (a los 8,1 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+17:15:03  RESPUESTA SUELTA  $ACK,NODE:PUENTE,CMD:LOG,RESULT:OK,DESDE:408,HASTA:414,ULT:414,PRIMERO:1,CONG:0,CRC:0,LARGO:0,ANILLO:0,FLASH:0,MALOS:0*44
+          ninguna orden de esta app esperaba respuesta al comando LOG. Puede venir de otro telefono, del otra via o de una orden anterior al arranque de la app
+
+17:15:03  ORDEN      CMD:CONSULTA_NOCHE\r\n
+          RESPUESTA  SIN RESPUESTA: el equipo no contesto en 5,0 s. Eso NO quiere decir que rechazara la orden: quiere decir que esta app no oyo nada
+          EFECTO     CAMBIO: ESTADO: FALLO COM -> ROJO (a los 8,0 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+17:15:03  RESPUESTA SUELTA  $ACK,CMD:NOCHE,RESULT:OK,TR:180,F1:--------0000-0000-OFF,F2:--------0000-0000-OFF,F3:--------0000-0000-OFF,F4:--------0000-0000-OFF*6C
+          ninguna orden de esta app esperaba respuesta al comando NOCHE. Puede venir de otro telefono, del otra via o de una orden anterior al arranque de la app
+
+17:15:03  ORDEN      CMD:CONSULTA_DEG_FIN\r\n
+17:15:03  RESPUESTA  $ACK,CMD:CONSULTA_DEG_FIN,RESULT:NINGUNA*44   (+0,1 s)
+          EFECTO     CAMBIO: ESTADO: FALLO COM -> ROJO (a los 7,6 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+17:15:04  ORDEN      CMD:VERSION\r\n
+17:15:04  RESPUESTA  $ACK,CMD:VERSION,RESULT:OK,NODE:MAESTRO,FW:8f8dd7e*22   (+0,1 s)
+          EFECTO     CAMBIO: ESTADO: FALLO COM -> ROJO (a los 6,6 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+17:15:10  ORDEN      CMD:FORZAR_ROJO\r\n
+17:15:11  RESPUESTA  $ACK,CMD:FORZAR_ROJO,RESULT:OK*5B   (+0,6 s)
+          EFECTO     CAMBIO: ESTADO: FALLO COM -> ROJO (a los 0,9 s)
+
+17:15:19  ORDEN      CMD:FORZAR_ROJO\r\n
+17:15:19  RESPUESTA  $ACK,CMD:FORZAR_ROJO,RESULT:OK*5B   (+0,1 s)
+          EFECTO     CAMBIO: ESTADO: ROJO -> FALLO COM (a los 15,8 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+17:15:22  ORDEN      CMD:FORZAR_ROJO\r\n
+17:15:22  RESPUESTA  $ACK,CMD:FORZAR_ROJO,RESULT:OK*5B   (+0,1 s)
+          EFECTO     CAMBIO: ESTADO: ROJO -> FALLO COM (a los 13,2 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+17:15:27  ORDEN      CMD:REINICIOS\r\n
+17:15:27  RESPUESTA  $ACK,CMD:REINICIOS,RESULT:OK,NODE:MAESTRO,REIN:1,CAUSA:CORTE,UP:90,ANTES:0*5E   (+0,4 s)
+          EFECTO     CAMBIO: ESTADO: ROJO -> FALLO COM (a los 8,2 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+17:15:33  ORDEN      CMD:PIN:****:SET_MODO:AMBAR\r\n
+17:15:33  RESPUESTA  $ACK,CMD:SET_MODO:AMBAR,RESULT:REARMADO*7A   (+0,5 s)
+          EFECTO     CAMBIO: ESTADO: ROJO -> FALLO COM (a los 2,2 s)
+
+17:15:46  ORDEN      CMD:FORZAR_ROJO\r\n
+17:15:47  RESPUESTA  $ACK,CMD:FORZAR_ROJO,RESULT:OK*5B   (+0,2 s)
+          EFECTO     CAMBIO: ESTADO: FALLO COM -> ROJO (a los 0,5 s)
+
+17:16:01  ORDEN      CMD:FORZAR_ROJO\r\n
+17:16:02  RESPUESTA  $ACK,CMD:FORZAR_ROJO,RESULT:OK*5B   (+0,2 s)
+          EFECTO     NO CAMBIO NADA: MODO siguio en AMBAR y ESTADO siguio en ROJO y ESC siguio en AMBAR en los 6 $STATUS de los 95,0 s posteriores
+
+17:16:07  ORDEN      CMD:FORZAR_ROJO\r\n
+17:16:08  RESPUESTA  $ACK,CMD:FORZAR_ROJO,RESULT:OK*5B   (+0,2 s)
+          EFECTO     NO CAMBIO NADA: MODO siguio en AMBAR y ESTADO siguio en ROJO y ESC siguio en AMBAR en los 3 $STATUS de los 95,0 s posteriores
+
+17:16:08  ORDEN      CMD:FORZAR_ROJO\r\n
+17:16:08  RESPUESTA  $ACK,CMD:FORZAR_ROJO,RESULT:OK*5B   (+0,6 s)
+          EFECTO     NO CAMBIO NADA: MODO siguio en AMBAR y ESTADO siguio en ROJO y ESC siguio en AMBAR en los 3 $STATUS de los 95,0 s posteriores
+
+17:16:08  ORDEN      CMD:FORZAR_ROJO\r\n
+17:16:08  RESPUESTA  $ACK,CMD:FORZAR_ROJO,RESULT:OK*5B   (+0,0 s)
+          EFECTO     NO CAMBIO NADA: MODO siguio en AMBAR y ESTADO siguio en ROJO y ESC siguio en AMBAR en los 3 $STATUS de los 95,0 s posteriores
+
+17:16:08  ORDEN      CMD:FORZAR_ROJO\r\n
+17:16:08  RESPUESTA  $ACK,CMD:FORZAR_ROJO,RESULT:OK*5B   (+0,0 s)
+          EFECTO     NO CAMBIO NADA: MODO siguio en AMBAR y ESTADO siguio en ROJO y ESC siguio en AMBAR en los 3 $STATUS de los 95,0 s posteriores
+
+17:19:51  ORDEN      CMD:LOG,DESDE:415\r\n
+          RESPUESTA  SIN RESPUESTA: el equipo no contesto en 5,0 s. Eso NO quiere decir que rechazara la orden: quiere decir que esta app no oyo nada
+          EFECTO     CAMBIO: ESTADO: FALLO COM -> ROJO (a los 16,1 s, TARDIO) · MODO: AMBAR -> AUTO (a los 44,1 s, TARDIO) · ESC: AMBAR -> ROJO (a los 44,1 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+17:19:51  RESPUESTA SUELTA  $ACK,NODE:PUENTE,CMD:LOG,RESULT:OK,DESDE:415,HASTA:430,ULT:445,PRIMERO:1,CONG:0,CRC:1,LARGO:0,ANILLO:0,FLASH:0,MALOS:0*4B
+          ninguna orden de esta app esperaba respuesta al comando LOG. Puede venir de otro telefono, del otra via o de una orden anterior al arranque de la app
+
+17:19:51  ORDEN      CMD:LOG,DESDE:431\r\n
+          RESPUESTA  SIN RESPUESTA: el equipo no contesto en 5,0 s. Eso NO quiere decir que rechazara la orden: quiere decir que esta app no oyo nada
+          EFECTO     CAMBIO: ESTADO: FALLO COM -> ROJO (a los 15,8 s, TARDIO) · MODO: AMBAR -> AUTO (a los 43,7 s, TARDIO) · ESC: AMBAR -> ROJO (a los 43,7 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+17:19:51  RESPUESTA SUELTA  $ACK,NODE:PUENTE,CMD:LOG,RESULT:OK,DESDE:431,HASTA:445,ULT:445,PRIMERO:1,CONG:0,CRC:1,LARGO:0,ANILLO:0,FLASH:0,MALOS:0*4F
+          ninguna orden de esta app esperaba respuesta al comando LOG. Puede venir de otro telefono, del otra via o de una orden anterior al arranque de la app
+
+17:19:53  ORDEN      CMD:CONSULTA_DEG_AUTO\r\n
+17:19:53  RESPUESTA  $ACK,CMD:CONSULTA_DEG_AUTO,RESULT:ESTE_OFF_OTRO_OFF_APTO_NO*0B   (+0,3 s)
+          EFECTO     CAMBIO: ESTADO: FALLO COM -> ROJO (a los 14,1 s, TARDIO) · MODO: AMBAR -> AUTO (a los 42,1 s, TARDIO) · ESC: AMBAR -> ROJO (a los 42,1 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+17:19:53  ORDEN      CMD:CONSULTA_NOCHE\r\n
+          RESPUESTA  SIN RESPUESTA: el equipo no contesto en 5,0 s. Eso NO quiere decir que rechazara la orden: quiere decir que esta app no oyo nada
+          EFECTO     CAMBIO: ESTADO: FALLO COM -> ROJO (a los 13,8 s, TARDIO) · MODO: AMBAR -> AUTO (a los 41,8 s, TARDIO) · ESC: AMBAR -> ROJO (a los 41,8 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+17:19:53  ORDEN      CMD:CONSULTA_DEG_FIN\r\n
+17:19:54  RESPUESTA  $ACK,CMD:CONSULTA_DEG_FIN,RESULT:NINGUNA*44   (+0,2 s)
+          EFECTO     CAMBIO: ESTADO: FALLO COM -> ROJO (a los 13,6 s, TARDIO) · MODO: AMBAR -> AUTO (a los 41,6 s, TARDIO) · ESC: AMBAR -> ROJO (a los 41,6 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+17:19:54  RESPUESTA SUELTA  $ACK,CMD:NOCHE,RESULT:OK,TR:180,F1:--------0000-0000-OFF,F2:--------0000-0000-OFF,F3:--------0000-0000-OFF,F4:--------0000-0000-OFF*6C
+          ninguna orden de esta app esperaba respuesta al comando NOCHE. Puede venir de otro telefono, del otra via o de una orden anterior al arranque de la app
+
+17:19:54  ORDEN      CMD:VERSION\r\n
+17:19:55  RESPUESTA  $ACK,CMD:VERSION,RESULT:OK,NODE:MAESTRO,FW:8f8dd7e*22   (+0,2 s)
+          EFECTO     CAMBIO: ESTADO: FALLO COM -> ROJO (a los 12,6 s, TARDIO) · MODO: AMBAR -> AUTO (a los 40,6 s, TARDIO) · ESC: AMBAR -> ROJO (a los 40,6 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+17:19:59  ORDEN      CMD:REINICIOS\r\n
+17:19:59  RESPUESTA  $ACK,CMD:REINICIOS,RESULT:OK,NODE:MAESTRO,REIN:1,CAUSA:CORTE,UP:30,ANTES:0*54   (+0,4 s)
+          EFECTO     CAMBIO: ESTADO: FALLO COM -> ROJO (a los 8,1 s, TARDIO) · MODO: AMBAR -> AUTO (a los 36,0 s, TARDIO) · ESC: AMBAR -> ROJO (a los 36,0 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+17:20:00  ORDEN      CMD:PIN:****:SET_MODO:AMBAR\r\n
+17:20:00  RESPUESTA  $ACK,CMD:SET_MODO:AMBAR,RESULT:REARMADO*7A   (+0,2 s)
+          EFECTO     CAMBIO: ESTADO: FALLO COM -> ROJO (a los 7,2 s, TARDIO) · MODO: AMBAR -> AUTO (a los 35,1 s, TARDIO) · ESC: AMBAR -> ROJO (a los 35,1 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+17:20:06  ORDEN      CMD:FORZAR_ROJO\r\n
+17:20:06  RESPUESTA  $ACK,CMD:FORZAR_ROJO,RESULT:OK*5B   (+0,3 s)
+          EFECTO     CAMBIO: ESTADO: FALLO COM -> ROJO (a los 1,1 s) · MODO: AMBAR -> AUTO (a los 29,1 s, TARDIO) · ESC: AMBAR -> ROJO (a los 29,1 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+17:20:08  ORDEN      CMD:FORZAR_ROJO\r\n
+17:20:08  RESPUESTA  $ACK,CMD:FORZAR_ROJO,RESULT:OK*5B   (+0,2 s)
+          EFECTO     CAMBIO: ESTADO: ROJO -> FALLO COM (a los 13,1 s, TARDIO) · MODO: AMBAR -> AUTO (a los 27,1 s, TARDIO) · ESC: AMBAR -> ROJO (a los 27,1 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+17:20:09  ORDEN      CMD:FORZAR_ROJO\r\n
+17:20:09  RESPUESTA  $ACK,CMD:FORZAR_ROJO,RESULT:OK*5B   (+0,2 s)
+          EFECTO     CAMBIO: ESTADO: ROJO -> FALLO COM (a los 12,1 s, TARDIO) · MODO: AMBAR -> AUTO (a los 26,2 s, TARDIO) · ESC: AMBAR -> ROJO (a los 26,2 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+17:20:09  ORDEN      CMD:FORZAR_ROJO\r\n
+17:20:09  RESPUESTA  $ACK,CMD:FORZAR_ROJO,RESULT:OK*5B   (+0,2 s)
+          EFECTO     CAMBIO: ESTADO: ROJO -> FALLO COM (a los 11,8 s, TARDIO) · MODO: AMBAR -> AUTO (a los 25,9 s, TARDIO) · ESC: AMBAR -> ROJO (a los 25,9 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+17:20:11  ORDEN      CMD:FORZAR_ROJO\r\n
+17:20:12  RESPUESTA  $ACK,CMD:FORZAR_ROJO,RESULT:OK*5B   (+0,2 s)
+          EFECTO     CAMBIO: ESTADO: ROJO -> FALLO COM (a los 9,6 s, TARDIO) · MODO: AMBAR -> AUTO (a los 23,6 s, TARDIO) · ESC: AMBAR -> ROJO (a los 23,6 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+17:20:12  ORDEN      CMD:FORZAR_ROJO\r\n
+17:20:13  RESPUESTA  $ACK,CMD:FORZAR_ROJO,RESULT:OK*5B   (+0,2 s)
+          EFECTO     CAMBIO: ESTADO: ROJO -> FALLO COM (a los 8,6 s, TARDIO) · MODO: AMBAR -> AUTO (a los 22,6 s, TARDIO) · ESC: AMBAR -> ROJO (a los 22,6 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+17:20:20  ORDEN      CMD:PIN:****:SET_MODO:AMBAR\r\n
+17:20:20  RESPUESTA  $ACK,CMD:SET_MODO:AMBAR,RESULT:REARMADO*7A   (+0,2 s)
+          EFECTO     CAMBIO: ESTADO: ROJO -> FALLO COM (a los 1,1 s) · MODO: AMBAR -> AUTO (a los 15,1 s, TARDIO) · ESC: AMBAR -> ROJO (a los 15,1 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+17:20:29  ORDEN      CMD:FORZAR_ROJO\r\n
+17:20:29  RESPUESTA  $ACK,CMD:FORZAR_ROJO,RESULT:OK*5B   (+0,2 s)
+          EFECTO     CAMBIO: ESTADO: FALLO COM -> ROJO (a los 0,4 s) · MODO: AMBAR -> AUTO (a los 6,4 s, TARDIO) · ESC: AMBAR -> ROJO (a los 6,4 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+17:20:33  ORDEN      CMD:PIN:****:SET_MODO:AUTO\r\n
+17:20:34  RESPUESTA  $ACK,CMD:SET_MODO:AUTO,RESULT:OK*2F   (+0,2 s)
+          EFECTO     CAMBIO: MODO: AMBAR -> AUTO (a los 1,6 s) · ESC: AMBAR -> ROJO (a los 1,6 s) · ESTADO: ROJO -> ROJO+AMAR (a los 19,6 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+17:21:33  ORDEN      CMD:LOG,DESDE:446\r\n
+          RESPUESTA  SIN RESPUESTA: el equipo no contesto en 5,0 s. Eso NO quiere decir que rechazara la orden: quiere decir que esta app no oyo nada
+          EFECTO     NO CAMBIO NADA: MODO siguio en AUTO y ESTADO siguio en VERDE y ESC siguio en ROJO en los 47 $STATUS de los 95,0 s posteriores
+
+17:21:33  RESPUESTA SUELTA  $ACK,NODE:PUENTE,CMD:LOG,RESULT:OK,DESDE:446,HASTA:461,ULT:476,PRIMERO:1,CONG:0,CRC:1,LARGO:0,ANILLO:0,FLASH:0,MALOS:0*49
+          ninguna orden de esta app esperaba respuesta al comando LOG. Puede venir de otro telefono, del otra via o de una orden anterior al arranque de la app
+
+17:21:33  ORDEN      CMD:LOG,DESDE:462\r\n
+          RESPUESTA  SIN RESPUESTA: el equipo no contesto en 5,0 s. Eso NO quiere decir que rechazara la orden: quiere decir que esta app no oyo nada
+          EFECTO     NO CAMBIO NADA: MODO siguio en AUTO y ESTADO siguio en VERDE y ESC siguio en ROJO en los 47 $STATUS de los 95,0 s posteriores
+
+17:21:33  RESPUESTA SUELTA  $ACK,NODE:PUENTE,CMD:LOG,RESULT:OK,DESDE:462,HASTA:476,ULT:476,PRIMERO:1,CONG:0,CRC:1,LARGO:0,ANILLO:0,FLASH:0,MALOS:0*49
+          ninguna orden de esta app esperaba respuesta al comando LOG. Puede venir de otro telefono, del otra via o de una orden anterior al arranque de la app
+
+17:21:35  ORDEN      CMD:CONSULTA_DEG_AUTO\r\n
+17:21:35  RESPUESTA  $ACK,CMD:CONSULTA_DEG_AUTO,RESULT:ESTE_OFF_OTRO_OFF_APTO_NO*0B   (+0,2 s)
+          EFECTO     NO CAMBIO NADA: MODO siguio en AUTO y ESTADO siguio en VERDE y ESC siguio en ROJO en los 48 $STATUS de los 95,0 s posteriores
+
+17:21:35  ORDEN      CMD:CONSULTA_NOCHE\r\n
+          RESPUESTA  SIN RESPUESTA: el equipo no contesto en 5,0 s. Eso NO quiere decir que rechazara la orden: quiere decir que esta app no oyo nada
+          EFECTO     NO CAMBIO NADA: MODO siguio en AUTO y ESTADO siguio en VERDE y ESC siguio en ROJO en los 47 $STATUS de los 95,0 s posteriores
+
+17:21:35  ORDEN      CMD:CONSULTA_DEG_FIN\r\n
+17:21:36  RESPUESTA  $ACK,CMD:CONSULTA_DEG_FIN,RESULT:NINGUNA*44   (+0,2 s)
+          EFECTO     NO CAMBIO NADA: MODO siguio en AUTO y ESTADO siguio en VERDE y ESC siguio en ROJO en los 47 $STATUS de los 95,0 s posteriores
+
+17:21:35  RESPUESTA SUELTA  $ACK,CMD:NOCHE,RESULT:OK,TR:180,F1:--------0000-0000-OFF,F2:--------0000-0000-OFF,F3:--------0000-0000-OFF,F4:--------0000-0000-OFF*6C
+          ninguna orden de esta app esperaba respuesta al comando NOCHE. Puede venir de otro telefono, del otra via o de una orden anterior al arranque de la app
+
+17:21:37  ORDEN      CMD:VERSION\r\n
+17:21:38  RESPUESTA  $ACK,CMD:VERSION,RESULT:OK,NODE:MAESTRO,FW:8f8dd7e*22   (+0,5 s)
+          EFECTO     NO CAMBIO NADA: MODO siguio en AUTO y ESTADO siguio en VERDE y ESC siguio en ROJO en los 47 $STATUS de los 95,0 s posteriores
+
+17:21:59  ORDEN      CMD:REINICIOS\r\n
+17:21:59  RESPUESTA  $ACK,CMD:REINICIOS,RESULT:OK,NODE:MAESTRO,REIN:1,CAUSA:CORTE,UP:150,ANTES:0*63   (+0,3 s)
+          EFECTO     NO CAMBIO NADA: MODO siguio en AUTO y ESTADO siguio en VERDE y ESC siguio en ROJO en los 47 $STATUS de los 95,0 s posteriores
+
+17:24:12  ORDEN      CMD:PIN:****:SET_MODO:MANUAL\r\n
+17:24:12  RESPUESTA  $ACK,CMD:SET_MODO:MANUAL,RESULT:OK*3A   (+0,2 s)
+          EFECTO     CAMBIO: MODO: AUTO -> MANUAL (a los 0,9 s) · ESC: VERDE -> ROJO (a los 0,9 s) · ESTADO: ROJO -> ROJO+AMAR (a los 22,9 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+17:24:20  ORDEN      CMD:FORZAR_ROJO\r\n
+17:24:20  RESPUESTA  $ACK,CMD:FORZAR_ROJO,RESULT:OK*5B   (+0,2 s)
+          EFECTO     CAMBIO: ESTADO: ROJO -> ROJO+AMAR (a los 15,0 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+17:24:27  ORDEN      CMD:PIN:****:MANUAL:CAMBIAR_TURNO\r\n
+17:24:28  RESPUESTA  $ACK,CMD:CAMBIAR_TURNO,RESULT:OK*54   (+0,3 s)   [el equipo contesta al comando CAMBIAR_TURNO para una orden que se manda como MANUAL:CAMBIAR_TURNO: lo hace asi el firmware]
+          EFECTO     CAMBIO: ESTADO: ROJO -> ROJO+AMAR (a los 7,5 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+17:24:44  ORDEN      CMD:PIN:****:MANUAL:CAMBIAR_TURNO\r\n
+17:24:45  RESPUESTA  $ACK,CMD:CAMBIAR_TURNO,RESULT:OK*54   (+0,6 s)   [el equipo contesta al comando CAMBIAR_TURNO para una orden que se manda como MANUAL:CAMBIAR_TURNO: lo hace asi el firmware]
+          EFECTO     CAMBIO: ESTADO: VERDE -> AMARILLO (a los 2,7 s)
+
+17:27:17  ORDEN      SET_MODO:MANUAL   NO SALIO: sin enlace Bluetooth abierto (no llego a escribirse al cable, asi que no esta en la cinta)
+          RESPUESTA  no hay respuesta que esperar: la orden no salio
+          EFECTO     no hay efecto que mirar: la orden no salio
+
+17:27:20  ORDEN      SET_MODO:MANUAL   NO SALIO: sin enlace Bluetooth abierto (no llego a escribirse al cable, asi que no esta en la cinta)
+          RESPUESTA  no hay respuesta que esperar: la orden no salio
+          EFECTO     no hay efecto que mirar: la orden no salio
+
+
+
+========================================================================
+
+IOT-VIAL - CINTA DE TRAMAS EN CRUDO
+App: IOT-VIAL V9.0 (Controladora Semaforos)
+Cruce: SIN GRUPO
+Equipo: sin identificar (ningun $STATUS con NODE)
+Serie: 179DB0
+Firmware: sin pedir (pulse Consultar version)
+Modo: MANUAL
+Estado: ROJO
+Hora_RTC: sin telemetria
+Pluma: sin telemetria
+Camaras: sin telemetria
+Enlace: 100% a las 17:24:59
+Exportado: 2026-11-09T22:27:34.580Z
+
+CONTADORES DE LOS ULTIMOS 5 MINUTOS
+  tramas entradas : 86
+  aceptadas       : 86 (73 con algun campo sin medida)
+  rechazadas      : 0
+  ordenes enviadas: 4  (lo que la app escribio al cable; la terna orden/respuesta/efecto va en el DIARIO DE ORDENES, que se exporta aparte)
+  (210 tramas mas viejas que la ventana siguen en la cinta y NO se cuentan arriba)
+  RECORTADO: se tiraron las 329 tramas mas antiguas al llegar al tope de 300. Lo de antes de eso no esta aqui.
+
+LA CINTA, DE LA MAS ANTIGUA A LA MAS NUEVA
+Los caracteres de control salen escapados (\r, \n, \xNN); la trama entro tal cual.
+"<--" es lo que ENTRO por el cable; "-->" es lo que la app ESCRIBIO al cable.
+El PIN de las ordenes sale tapado con asteriscos. Al equipo se le manda entero: solo se tapa aqui.
+
+17:19:51  -->  [ENVIADA]
+    CMD:LOG,DESDE:415\r\n
+17:19:51  <--  [ACEPTADA]
+    $ACK,NODE:PUENTE,CMD:LOG,RESULT:OK,DESDE:415,HASTA:430,ULT:445,PRIMERO:1,CONG:0,CRC:1,LARGO:0,ANILLO:0,FLASH:0,MALOS:0*4B
+17:19:51  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:415,UP:56,FECHA:-,HORA:-,C:E,D:ACK;CMD=CONSULTA_DEG_AUTO;RESULT=ESTE_OFF_OTRO_OFF_APTO_NO*3C
+17:19:51  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:416,UP:57,FECHA:-,HORA:-,C:E,D:ACK;CMD=NOCHE;RESULT=OK;TR=180;F1=--------0000-0000-OFF;F2=--------0000-0000-OFF;F3=--------0000-0000-OFF;F4=~*78
+17:19:51  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:417,UP:57,FECHA:-,HORA:-,C:E,D:ACK;CMD=CONSULTA_DEG_FIN;RESULT=NINGUNA*70
+17:19:51  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:418,UP:58,FECHA:-,HORA:-,C:E,D:ACK;CMD=VERSION;RESULT=OK;NODE=MAESTRO;FW=8f8dd7e*16
+17:19:51  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:419,UP:64,FECHA:-,HORA:-,C:E,D:ACK;CMD=FORZAR_ROJO;RESULT=OK*61
+17:19:51  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:420,UP:64,FECHA:-,HORA:-,C:E,D:EVENT;NODE=MAESTRO;ORIGEN=APP_BLUETOOTH;DETALLE=FORZAR_ROJO_SIN_PIN;HORA=--=--=--*6C
+17:19:51  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:421,UP:64,FECHA:-,HORA:-,C:S,D:STATUS;NODE=MAESTRO;SERIE=179DB0;MODO=AMBAR;ESTADO=ROJO;T=--;RF=--;RTT=--;BAT=--;HORA=--=--=--;ESC=AMBAR;PLUM~*7D
+17:19:51  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:422,UP:73,FECHA:-,HORA:-,C:E,D:ACK;CMD=FORZAR_ROJO;RESULT=OK*6F
+17:19:51  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:423,UP:73,FECHA:-,HORA:-,C:E,D:EVENT;NODE=MAESTRO;ORIGEN=APP_BLUETOOTH;DETALLE=FORZAR_ROJO_SIN_PIN;HORA=--=--=--*69
+17:19:51  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:424,UP:75,FECHA:-,HORA:-,C:E,D:ACK;CMD=FORZAR_ROJO;RESULT=OK*6F
+17:19:51  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:425,UP:75,FECHA:-,HORA:-,C:E,D:EVENT;NODE=MAESTRO;ORIGEN=APP_BLUETOOTH;DETALLE=FORZAR_ROJO_SIN_PIN;HORA=--=--=--*69
+17:19:51  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:426,UP:80,FECHA:-,HORA:-,C:E,D:ACK;CMD=REINICIOS;RESULT=OK;NODE=MAESTRO;REIN=1;CAUSA=CORTE;UP=90;ANTES=0*72
+17:19:51  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:427,UP:86,FECHA:-,HORA:-,C:E,D:ACK;CMD=SET_MODO=AMBAR;RESULT=REARMADO*46
+17:19:51  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:428,UP:86,FECHA:-,HORA:-,C:E,D:EVENT;NODE=MAESTRO;ORIGEN=APP_BLUETOOTH;DETALLE=SET_MODO_AMBAR;HORA=--=--=--*28
+17:19:51  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:429,UP:88,FECHA:-,HORA:-,C:S,D:STATUS;NODE=MAESTRO;SERIE=179DB0;MODO=AMBAR;ESTADO=FALLO COM;T=--;RF=--;RTT=--;BAT=--;HORA=--=--=--;ESC=AMBAR~*79
+17:19:51  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:430,UP:100,FECHA:-,HORA:-,C:E,D:ACK;CMD=FORZAR_ROJO;RESULT=OK*59
+17:19:51  -->  [ENVIADA]
+    CMD:LOG,DESDE:431\r\n
+17:19:51  <--  [ACEPTADA]
+    $ACK,NODE:PUENTE,CMD:LOG,RESULT:OK,DESDE:431,HASTA:445,ULT:445,PRIMERO:1,CONG:0,CRC:1,LARGO:0,ANILLO:0,FLASH:0,MALOS:0*4F
+17:19:51  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:431,UP:100,FECHA:-,HORA:-,C:E,D:EVENT;NODE=MAESTRO;ORIGEN=APP_BLUETOOTH;DETALLE=FORZAR_ROJO_SIN_PIN;HORA=--=--=--*5F
+17:19:51  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:432,UP:100,FECHA:-,HORA:-,C:S,D:STATUS;NODE=MAESTRO;SERIE=179DB0;MODO=AMBAR;ESTADO=ROJO;T=--;RF=--;RTT=--;BAT=--;HORA=--=--=--;ESC=AMBAR;PLUM~*4C
+17:19:51  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:433,UP:115,FECHA:-,HORA:-,C:E,D:ACK;CMD=FORZAR_ROJO;RESULT=OK*5E
+17:19:51  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:434,UP:115,FECHA:-,HORA:-,C:E,D:EVENT;NODE=MAESTRO;ORIGEN=APP_BLUETOOTH;DETALLE=FORZAR_ROJO_SIN_PIN;HORA=--=--=--*5E
+17:19:51  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:435,UP:121,FECHA:-,HORA:-,C:E,D:ACK;CMD=FORZAR_ROJO;RESULT=OK*5F
+17:19:51  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:436,UP:121,FECHA:-,HORA:-,C:E,D:EVENT;NODE=MAESTRO;ORIGEN=APP_BLUETOOTH;DETALLE=FORZAR_ROJO_SIN_PIN;HORA=--=--=--*5B
+17:19:51  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:437,UP:121,FECHA:-,HORA:-,C:E,D:ACK;CMD=FORZAR_ROJO;RESULT=OK*5D
+17:19:51  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:438,UP:121,FECHA:-,HORA:-,C:E,D:EVENT;NODE=MAESTRO;ORIGEN=APP_BLUETOOTH;DETALLE=FORZAR_ROJO_SIN_PIN;HORA=--=--=--*55
+17:19:51  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:439,UP:121,FECHA:-,HORA:-,C:E,D:ACK;CMD=FORZAR_ROJO;RESULT=OK*53
+17:19:51  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:440,UP:122,FECHA:-,HORA:-,C:E,D:EVENT;NODE=MAESTRO;ORIGEN=APP_BLUETOOTH;DETALLE=FORZAR_ROJO_SIN_PIN;HORA=--=--=--*59
+17:19:51  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:441,UP:122,FECHA:-,HORA:-,C:E,D:ACK;CMD=FORZAR_ROJO;RESULT=OK*5F
+17:19:51  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:442,UP:122,FECHA:-,HORA:-,C:E,D:EVENT;NODE=MAESTRO;ORIGEN=APP_BLUETOOTH;DETALLE=FORZAR_ROJO_SIN_PIN;HORA=--=--=--*5B
+17:19:51  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:443,UP:0,FECHA:-,HORA:-,C:P,D:EVENT;NODE=PUENTE;EVT=ARRANQUE;CAUSA=SUBIDA_DE_TENSION;ARRANQUES=1;PERRO=ARMADO;WDT_MS=2000;LOG=442*56
+17:19:51  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:444,UP:4,FECHA:-,HORA:-,C:E,D:EVENT;NODE=MAESTRO;ORIGEN=J17;DETALLE=MUDO=4s;MAX=4s;N=1;HORA=--=--=--*0F
+17:19:51  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:445,UP:5,FECHA:-,HORA:-,C:S,D:STATUS;NODE=MAESTRO;SERIE=179DB0;MODO=AMBAR;ESTADO=FALLO COM;T=--;RF=--;RTT=--;BAT=--;HORA=--=--=--;ESC=AMBAR~*46
+17:19:53  -->  [ENVIADA]
+    CMD:CONSULTA_DEG_AUTO\r\n
+17:19:53  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:--,RTT:--,BAT:--,HORA:--:--:--,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*14
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+17:19:53  <--  [ACEPTADA]
+    $ACK,CMD:CONSULTA_DEG_AUTO,RESULT:ESTE_OFF_OTRO_OFF_APTO_NO*0B
+17:19:53  -->  [ENVIADA]
+    CMD:CONSULTA_NOCHE\r\n
+17:19:53  -->  [ENVIADA]
+    CMD:CONSULTA_DEG_FIN\r\n
+17:19:54  <--  [ACEPTADA]
+    $ACK,CMD:NOCHE,RESULT:OK,TR:180,F1:--------0000-0000-OFF,F2:--------0000-0000-OFF,F3:--------0000-0000-OFF,F4:--------0000-0000-OFF*6C
+17:19:54  <--  [ACEPTADA]
+    $ACK,CMD:CONSULTA_DEG_FIN,RESULT:NINGUNA*44
+17:19:54  -->  [ENVIADA]
+    CMD:VERSION\r\n
+17:19:55  <--  [ACEPTADA]
+    $ACK,CMD:VERSION,RESULT:OK,NODE:MAESTRO,FW:8f8dd7e*22
+17:19:55  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:--,RTT:--,BAT:--,HORA:--:--:--,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*14
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+17:19:57  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:--,RTT:--,BAT:--,HORA:--:--:--,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*14
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+17:19:59  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:ENLACE_RF,DETALLE:RX:0 OK:0 RUIDO:0 REIN:1 AMBAR:ARRANQUE,HORA:--:--:--*3B
+17:19:59  -->  [ENVIADA]
+    CMD:REINICIOS\r\n
+17:19:59  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:--,RTT:--,BAT:--,HORA:--:--:--,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*14
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+17:19:59  <--  [ACEPTADA]
+    $ACK,CMD:REINICIOS,RESULT:OK,NODE:MAESTRO,REIN:1,CAUSA:CORTE,UP:30,ANTES:0*54
+17:20:00  -->  [ENVIADA]
+    CMD:PIN:****:SET_MODO:AMBAR\r\n
+17:20:00  <--  [ACEPTADA]
+    $ACK,CMD:SET_MODO:AMBAR,RESULT:REARMADO*7A
+17:20:00  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:SET_MODO_AMBAR,HORA:--:--:--*1C
+17:20:01  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:--,RTT:--,BAT:--,HORA:--:--:--,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*14
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+17:20:03  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:--,RTT:--,BAT:--,HORA:--:--:--,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*14
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+17:20:05  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:--,RTT:--,BAT:--,HORA:--:--:--,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*14
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+17:20:06  -->  [ENVIADA]
+    CMD:FORZAR_ROJO\r\n
+17:20:06  <--  [ACEPTADA]
+    $ACK,CMD:FORZAR_ROJO,RESULT:OK*5B
+17:20:06  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:--:--:--*5C
+17:20:07  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:ROJO,T:--,RF:--,RTT:--,BAT:--,HORA:--:--:--,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*25
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+17:20:08  -->  [ENVIADA]
+    CMD:FORZAR_ROJO\r\n
+17:20:08  <--  [ACEPTADA]
+    $ACK,CMD:FORZAR_ROJO,RESULT:OK*5B
+17:20:08  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:--:--:--*5C
+17:20:09  -->  [ENVIADA]
+    CMD:FORZAR_ROJO\r\n
+17:20:09  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:ROJO,T:--,RF:--,RTT:--,BAT:--,HORA:--:--:--,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*25
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+17:20:09  <--  [ACEPTADA]
+    $ACK,CMD:FORZAR_ROJO,RESULT:OK*5B
+17:20:09  -->  [ENVIADA]
+    CMD:FORZAR_ROJO\r\n
+17:20:09  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:--:--:--*5C
+17:20:09  <--  [ACEPTADA]
+    $ACK,CMD:FORZAR_ROJO,RESULT:OK*5B
+17:20:09  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:--:--:--*5C
+17:20:11  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:ROJO,T:--,RF:--,RTT:--,BAT:--,HORA:--:--:--,ESC:AMBAR,PLUMA:ABAJO,CAM:?*69
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+17:20:11  -->  [ENVIADA]
+    CMD:FORZAR_ROJO\r\n
+17:20:12  <--  [ACEPTADA]
+    $ACK,CMD:FORZAR_ROJO,RESULT:OK*5B
+17:20:12  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:--:--:--*5C
+17:20:12  -->  [ENVIADA]
+    CMD:FORZAR_ROJO\r\n
+17:20:13  <--  [ACEPTADA]
+    $ACK,CMD:FORZAR_ROJO,RESULT:OK*5B
+17:20:13  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:--:--:--*5C
+17:20:13  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:ROJO,T:--,RF:--,RTT:--,BAT:--,HORA:--:--:--,ESC:AMBAR,PLUMA:ABAJO,CAM:?*69
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+17:20:15  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:ROJO,T:--,RF:--,RTT:--,BAT:--,HORA:--:--:--,ESC:AMBAR,PLUMA:ABAJO,CAM:?*69
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+17:20:17  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:ROJO,T:--,RF:--,RTT:--,BAT:--,HORA:--:--:--,ESC:AMBAR,PLUMA:ABAJO,CAM:?*69
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+17:20:19  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:ROJO,T:--,RF:--,RTT:--,BAT:--,HORA:--:--:--,ESC:AMBAR,PLUMA:ABAJO,CAM:?*69
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+17:20:20  -->  [ENVIADA]
+    CMD:PIN:****:SET_MODO:AMBAR\r\n
+17:20:20  <--  [ACEPTADA]
+    $ACK,CMD:SET_MODO:AMBAR,RESULT:REARMADO*7A
+17:20:20  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:SET_MODO_AMBAR,HORA:--:--:--*1C
+17:20:21  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:--,RTT:--,BAT:--,HORA:--:--:--,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*14
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+17:20:23  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:--,RTT:--,BAT:--,HORA:--:--:--,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*14
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+17:20:25  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:--,RTT:--,BAT:--,HORA:--:--:--,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*14
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+17:20:27  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:--,RTT:--,BAT:--,HORA:--:--:--,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*14
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+17:20:29  -->  [ENVIADA]
+    CMD:FORZAR_ROJO\r\n
+17:20:29  <--  [ACEPTADA]
+    $ACK,CMD:FORZAR_ROJO,RESULT:OK*5B
+17:20:29  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:--:--:--*5C
+17:20:29  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:ROJO,T:--,RF:--,RTT:--,BAT:--,HORA:--:--:--,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*25
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+17:20:29  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:ENLACE_RF,DETALLE:RX:48 OK:12 RUIDO:0 REIN:1 AMBAR:APP,HORA:--:--:--*7A
+17:20:31  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:ROJO,T:--,RF:--,RTT:--,BAT:--,HORA:--:--:--,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*25
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+17:20:33  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:ROJO,T:--,RF:--,RTT:--,BAT:--,HORA:--:--:--,ESC:AMBAR,PLUMA:ABAJO,CAM:?*69
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+17:20:33  -->  [ENVIADA]
+    CMD:PIN:****:SET_MODO:AUTO\r\n
+17:20:34  <--  [ACEPTADA]
+    $ACK,CMD:SET_MODO:AUTO,RESULT:OK*2F
+17:20:34  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:SET_MODO_AUTO,HORA:--:--:--*4E
+17:20:35  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:ROJO,T:--,RF:--,RTT:--,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ABAJO,CAM:?*7E
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+17:20:37  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:ROJO,T:--,RF:--,RTT:--,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ABAJO,CAM:?*7E
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+17:20:39  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:ROJO,T:--,RF:--,RTT:--,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ABAJO,CAM:?*7E
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+17:20:41  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:ROJO,T:--,RF:--,RTT:--,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ABAJO,CAM:?*7E
+    reparo: el enlace no venia medido (RF:--)
+    reparo: el RTT no venia medido (RTT:--)
+    reparo: la bateria no venia medida (BAT:--)
+17:20:43  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:ROJO,T:8,RF:100%,RTT:737ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ABAJO,CAM:?*7F
+    reparo: la bateria no venia medida (BAT:--)
+17:20:43  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:ENLACE_RF,DETALLE:OK_RF:100%,HORA:--:--:--*68
+17:20:45  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:ROJO,T:6,RF:100%,RTT:737ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ABAJO,CAM:?*71
+    reparo: la bateria no venia medida (BAT:--)
+17:20:47  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:ROJO,T:4,RF:100%,RTT:740ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ABAJO,CAM:?*73
+    reparo: la bateria no venia medida (BAT:--)
+17:20:49  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:ROJO,T:2,RF:100%,RTT:743ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ABAJO,CAM:?*76
+    reparo: la bateria no venia medida (BAT:--)
+17:20:51  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:ROJO,T:0,RF:100%,RTT:743ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ABAJO,CAM:?*74
+    reparo: la bateria no venia medida (BAT:--)
+17:20:53  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:ROJO+AMAR,T:--,RF:100%,RTT:745ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ABAJO,CAM:?*76
+    reparo: la bateria no venia medida (BAT:--)
+17:20:55  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:178,RF:100%,RTT:747ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6A
+    reparo: la bateria no venia medida (BAT:--)
+17:20:57  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:176,RF:100%,RTT:747ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*64
+    reparo: la bateria no venia medida (BAT:--)
+17:20:59  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:174,RF:100%,RTT:748ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*69
+    reparo: la bateria no venia medida (BAT:--)
+17:20:59  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:ENLACE_RF,DETALLE:RX:149 OK:37 RUIDO:0 REIN:1,HORA:--:--:--*4B
+17:21:01  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:172,RF:100%,RTT:749ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6E
+    reparo: la bateria no venia medida (BAT:--)
+17:21:03  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:170,RF:100%,RTT:749ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6C
+    reparo: la bateria no venia medida (BAT:--)
+17:21:05  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:168,RF:100%,RTT:749ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*65
+    reparo: la bateria no venia medida (BAT:--)
+17:21:07  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:166,RF:100%,RTT:750ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*63
+    reparo: la bateria no venia medida (BAT:--)
+17:21:09  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:164,RF:100%,RTT:750ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*61
+    reparo: la bateria no venia medida (BAT:--)
+17:21:11  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:162,RF:100%,RTT:750ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*67
+    reparo: la bateria no venia medida (BAT:--)
+17:21:13  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:160,RF:100%,RTT:750ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*65
+    reparo: la bateria no venia medida (BAT:--)
+17:21:15  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:158,RF:100%,RTT:774ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*68
+    reparo: la bateria no venia medida (BAT:--)
+17:21:17  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:156,RF:100%,RTT:768ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6B
+    reparo: la bateria no venia medida (BAT:--)
+17:21:19  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:154,RF:100%,RTT:768ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*69
+    reparo: la bateria no venia medida (BAT:--)
+17:21:21  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:152,RF:100%,RTT:775ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*63
+    reparo: la bateria no venia medida (BAT:--)
+17:21:23  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:150,RF:100%,RTT:769ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6C
+    reparo: la bateria no venia medida (BAT:--)
+17:21:25  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:148,RF:100%,RTT:769ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*65
+    reparo: la bateria no venia medida (BAT:--)
+17:21:27  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:146,RF:100%,RTT:764ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*66
+    reparo: la bateria no venia medida (BAT:--)
+17:21:29  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:144,RF:100%,RTT:761ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*61
+    reparo: la bateria no venia medida (BAT:--)
+17:21:29  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:ENLACE_RF,DETALLE:RX:269 OK:67 RUIDO:0 REIN:1,HORA:--:--:--*4F
+17:21:31  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:142,RF:100%,RTT:761ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*67
+    reparo: la bateria no venia medida (BAT:--)
+17:21:32  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:VERSION,FW:8f8dd7e*7D
+17:21:32  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:ARRANQUE,CAUSA:SUBIDA_DE_TENSION,ARRANQUES:1,PERRO:ARMADO,WDT_MS:2000,LOG:476*53
+17:21:33  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:140,RF:100%,RTT:759ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6E
+    reparo: la bateria no venia medida (BAT:--)
+17:21:33  -->  [ENVIADA]
+    CMD:LOG,DESDE:446\r\n
+17:21:33  <--  [ACEPTADA]
+    $ACK,NODE:PUENTE,CMD:LOG,RESULT:OK,DESDE:446,HASTA:461,ULT:476,PRIMERO:1,CONG:0,CRC:1,LARGO:0,ANILLO:0,FLASH:0,MALOS:0*49
+17:21:33  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:446,UP:23,FECHA:-,HORA:-,C:E,D:ACK;CMD=CONSULTA_DEG_AUTO;RESULT=ESTE_OFF_OTRO_OFF_APTO_NO*38
+17:21:33  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:447,UP:24,FECHA:-,HORA:-,C:E,D:ACK;CMD=NOCHE;RESULT=OK;TR=180;F1=--------0000-0000-OFF;F2=--------0000-0000-OFF;F3=--------0000-0000-OFF;F4=~*78
+17:21:33  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:448,UP:24,FECHA:-,HORA:-,C:E,D:ACK;CMD=CONSULTA_DEG_FIN;RESULT=NINGUNA*7E
+17:21:33  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:449,UP:25,FECHA:-,HORA:-,C:E,D:ACK;CMD=VERSION;RESULT=OK;NODE=MAESTRO;FW=8f8dd7e*18
+17:21:33  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:450,UP:29,FECHA:-,HORA:-,C:E,D:ACK;CMD=REINICIOS;RESULT=OK;NODE=MAESTRO;REIN=1;CAUSA=CORTE;UP=30;ANTES=0*7A
+17:21:33  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:451,UP:30,FECHA:-,HORA:-,C:E,D:ACK;CMD=SET_MODO=AMBAR;RESULT=REARMADO*4A
+17:21:33  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:452,UP:30,FECHA:-,HORA:-,C:E,D:EVENT;NODE=MAESTRO;ORIGEN=APP_BLUETOOTH;DETALLE=SET_MODO_AMBAR;HORA=--=--=--*28
+17:21:33  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:453,UP:36,FECHA:-,HORA:-,C:E,D:ACK;CMD=FORZAR_ROJO;RESULT=OK*68
+17:21:33  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:454,UP:37,FECHA:-,HORA:-,C:E,D:EVENT;NODE=MAESTRO;ORIGEN=APP_BLUETOOTH;DETALLE=FORZAR_ROJO_SIN_PIN;HORA=--=--=--*69
+17:21:33  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:455,UP:37,FECHA:-,HORA:-,C:S,D:STATUS;NODE=MAESTRO;SERIE=179DB0;MODO=AMBAR;ESTADO=ROJO;T=--;RF=--;RTT=--;BAT=--;HORA=--=--=--;ESC=AMBAR;PLUM~*78
+17:21:33  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:456,UP:38,FECHA:-,HORA:-,C:E,D:ACK;CMD=FORZAR_ROJO;RESULT=OK*63
+17:21:33  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:457,UP:38,FECHA:-,HORA:-,C:E,D:EVENT;NODE=MAESTRO;ORIGEN=APP_BLUETOOTH;DETALLE=FORZAR_ROJO_SIN_PIN;HORA=--=--=--*65
+17:21:33  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:458,UP:39,FECHA:-,HORA:-,C:E,D:ACK;CMD=FORZAR_ROJO;RESULT=OK*6C
+17:21:33  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:459,UP:39,FECHA:-,HORA:-,C:E,D:EVENT;NODE=MAESTRO;ORIGEN=APP_BLUETOOTH;DETALLE=FORZAR_ROJO_SIN_PIN;HORA=--=--=--*6A
+17:21:33  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:460,UP:40,FECHA:-,HORA:-,C:E,D:ACK;CMD=FORZAR_ROJO;RESULT=OK*69
+17:21:33  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:461,UP:40,FECHA:-,HORA:-,C:E,D:EVENT;NODE=MAESTRO;ORIGEN=APP_BLUETOOTH;DETALLE=FORZAR_ROJO_SIN_PIN;HORA=--=--=--*6F
+17:21:33  -->  [ENVIADA]
+    CMD:LOG,DESDE:462\r\n
+17:21:33  <--  [ACEPTADA]
+    $ACK,NODE:PUENTE,CMD:LOG,RESULT:OK,DESDE:462,HASTA:476,ULT:476,PRIMERO:1,CONG:0,CRC:1,LARGO:0,ANILLO:0,FLASH:0,MALOS:0*49
+17:21:33  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:462,UP:42,FECHA:-,HORA:-,C:E,D:ACK;CMD=FORZAR_ROJO;RESULT=OK*69
+17:21:33  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:463,UP:42,FECHA:-,HORA:-,C:E,D:EVENT;NODE=MAESTRO;ORIGEN=APP_BLUETOOTH;DETALLE=FORZAR_ROJO_SIN_PIN;HORA=--=--=--*6F
+17:21:33  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:464,UP:43,FECHA:-,HORA:-,C:E,D:ACK;CMD=FORZAR_ROJO;RESULT=OK*6E
+17:21:33  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:465,UP:43,FECHA:-,HORA:-,C:E,D:EVENT;NODE=MAESTRO;ORIGEN=APP_BLUETOOTH;DETALLE=FORZAR_ROJO_SIN_PIN;HORA=--=--=--*68
+17:21:33  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:466,UP:50,FECHA:-,HORA:-,C:E,D:ACK;CMD=SET_MODO=AMBAR;RESULT=REARMADO*48
+17:21:33  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:467,UP:50,FECHA:-,HORA:-,C:E,D:EVENT;NODE=MAESTRO;ORIGEN=APP_BLUETOOTH;DETALLE=SET_MODO_AMBAR;HORA=--=--=--*28
+17:21:33  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:468,UP:51,FECHA:-,HORA:-,C:S,D:STATUS;NODE=MAESTRO;SERIE=179DB0;MODO=AMBAR;ESTADO=FALLO COM;T=--;RF=--;RTT=--;BAT=--;HORA=--=--=--;ESC=AMBAR~*78
+17:21:33  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:469,UP:59,FECHA:-,HORA:-,C:E,D:ACK;CMD=FORZAR_ROJO;RESULT=OK*68
+17:21:33  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:470,UP:59,FECHA:-,HORA:-,C:E,D:EVENT;NODE=MAESTRO;ORIGEN=APP_BLUETOOTH;DETALLE=FORZAR_ROJO_SIN_PIN;HORA=--=--=--*67
+17:21:33  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:471,UP:59,FECHA:-,HORA:-,C:S,D:STATUS;NODE=MAESTRO;SERIE=179DB0;MODO=AMBAR;ESTADO=ROJO;T=--;RF=--;RTT=--;BAT=--;HORA=--=--=--;ESC=AMBAR;PLUM~*76
+17:21:33  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:472,UP:64,FECHA:-,HORA:-,C:E,D:ACK;CMD=SET_MODO=AUTO;RESULT=OK*1F
+17:21:33  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:473,UP:64,FECHA:-,HORA:-,C:E,D:EVENT;NODE=MAESTRO;ORIGEN=APP_BLUETOOTH;DETALLE=SET_MODO_AUTO;HORA=--=--=--*78
+17:21:33  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:474,UP:65,FECHA:-,HORA:-,C:S,D:STATUS;NODE=MAESTRO;SERIE=179DB0;MODO=AUTO;ESTADO=ROJO;T=--;RF=--;RTT=--;BAT=--;HORA=--=--=--;ESC=ROJO;PLUMA=~*17
+17:21:33  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:475,UP:83,FECHA:-,HORA:-,C:S,D:STATUS;NODE=MAESTRO;SERIE=179DB0;MODO=AUTO;ESTADO=ROJO+AMAR;T=--;RF=100%;RTT=745ms;BAT=--;HORA=--=--=--;ESC=R~*1F
+17:21:33  <--  [ACEPTADA]
+    $EVENT,NODE:PUENTE,EVT:LOG,N:476,UP:85,FECHA:-,HORA:-,C:S,D:STATUS;NODE=MAESTRO;SERIE=179DB0;MODO=AUTO;ESTADO=VERDE;T=178;RF=100%;RTT=747ms;BAT=--;HORA=--=--=--;ESC=ROJO~*00
+17:21:35  -->  [ENVIADA]
+    CMD:CONSULTA_DEG_AUTO\r\n
+17:21:35  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:138,RF:100%,RTT:757ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6F
+    reparo: la bateria no venia medida (BAT:--)
+17:21:35  <--  [ACEPTADA]
+    $ACK,CMD:CONSULTA_DEG_AUTO,RESULT:ESTE_OFF_OTRO_OFF_APTO_NO*0B
+17:21:35  -->  [ENVIADA]
+    CMD:CONSULTA_NOCHE\r\n
+17:21:35  -->  [ENVIADA]
+    CMD:CONSULTA_DEG_FIN\r\n
+17:21:35  <--  [ACEPTADA]
+    $ACK,CMD:NOCHE,RESULT:OK,TR:180,F1:--------0000-0000-OFF,F2:--------0000-0000-OFF,F3:--------0000-0000-OFF,F4:--------0000-0000-OFF*6C
+17:21:36  <--  [ACEPTADA]
+    $ACK,CMD:CONSULTA_DEG_FIN,RESULT:NINGUNA*44
+17:21:37  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:136,RF:100%,RTT:757ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*61
+    reparo: la bateria no venia medida (BAT:--)
+17:21:37  -->  [ENVIADA]
+    CMD:VERSION\r\n
+17:21:38  <--  [ACEPTADA]
+    $ACK,CMD:VERSION,RESULT:OK,NODE:MAESTRO,FW:8f8dd7e*22
+17:21:39  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:134,RF:100%,RTT:756ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*62
+    reparo: la bateria no venia medida (BAT:--)
+17:21:41  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:132,RF:100%,RTT:755ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*67
+    reparo: la bateria no venia medida (BAT:--)
+17:21:43  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:130,RF:100%,RTT:755ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*65
+    reparo: la bateria no venia medida (BAT:--)
+17:21:45  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:128,RF:100%,RTT:754ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6D
+    reparo: la bateria no venia medida (BAT:--)
+17:21:47  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:126,RF:100%,RTT:753ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*64
+    reparo: la bateria no venia medida (BAT:--)
+17:21:49  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:124,RF:100%,RTT:753ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*66
+    reparo: la bateria no venia medida (BAT:--)
+17:21:51  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:122,RF:100%,RTT:766ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*66
+    reparo: la bateria no venia medida (BAT:--)
+17:21:53  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:120,RF:100%,RTT:762ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*60
+    reparo: la bateria no venia medida (BAT:--)
+17:21:55  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:118,RF:100%,RTT:762ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6B
+    reparo: la bateria no venia medida (BAT:--)
+17:21:57  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:116,RF:100%,RTT:764ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*63
+    reparo: la bateria no venia medida (BAT:--)
+17:21:59  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:114,RF:100%,RTT:761ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*64
+    reparo: la bateria no venia medida (BAT:--)
+17:21:59  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:ENLACE_RF,DETALLE:RX:389 OK:97 RUIDO:0 REIN:1,HORA:--:--:--*4F
+17:21:59  -->  [ENVIADA]
+    CMD:REINICIOS\r\n
+17:21:59  <--  [ACEPTADA]
+    $ACK,CMD:REINICIOS,RESULT:OK,NODE:MAESTRO,REIN:1,CAUSA:CORTE,UP:150,ANTES:0*63
+17:22:01  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:112,RF:100%,RTT:761ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*62
+    reparo: la bateria no venia medida (BAT:--)
+17:22:03  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:110,RF:100%,RTT:758ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6A
+    reparo: la bateria no venia medida (BAT:--)
+17:22:05  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:108,RF:100%,RTT:756ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6D
+    reparo: la bateria no venia medida (BAT:--)
+17:22:07  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:106,RF:100%,RTT:756ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*63
+    reparo: la bateria no venia medida (BAT:--)
+17:22:09  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:104,RF:100%,RTT:754ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*63
+    reparo: la bateria no venia medida (BAT:--)
+17:22:11  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:102,RF:100%,RTT:753ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*62
+    reparo: la bateria no venia medida (BAT:--)
+17:22:13  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:100,RF:100%,RTT:753ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*60
+    reparo: la bateria no venia medida (BAT:--)
+17:22:15  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:98,RF:100%,RTT:752ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*51
+    reparo: la bateria no venia medida (BAT:--)
+17:22:17  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:96,RF:100%,RTT:752ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*5F
+    reparo: la bateria no venia medida (BAT:--)
+17:22:19  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:94,RF:100%,RTT:752ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*5D
+    reparo: la bateria no venia medida (BAT:--)
+17:22:21  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:92,RF:100%,RTT:752ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*5B
+    reparo: la bateria no venia medida (BAT:--)
+17:22:23  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:90,RF:100%,RTT:752ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*59
+    reparo: la bateria no venia medida (BAT:--)
+17:22:25  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:88,RF:100%,RTT:752ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*50
+    reparo: la bateria no venia medida (BAT:--)
+17:22:27  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:86,RF:100%,RTT:765ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*5A
+    reparo: la bateria no venia medida (BAT:--)
+17:22:29  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:84,RF:100%,RTT:761ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*5C
+    reparo: la bateria no venia medida (BAT:--)
+17:22:29  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:ENLACE_RF,DETALLE:RX:509 OK:127 RUIDO:0 REIN:1,HORA:--:--:--*7B
+17:22:31  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:82,RF:100%,RTT:761ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*5A
+    reparo: la bateria no venia medida (BAT:--)
+17:22:33  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:80,RF:100%,RTT:764ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*5D
+    reparo: la bateria no venia medida (BAT:--)
+17:22:35  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:78,RF:100%,RTT:761ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*5F
+    reparo: la bateria no venia medida (BAT:--)
+17:22:37  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:76,RF:100%,RTT:761ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*51
+    reparo: la bateria no venia medida (BAT:--)
+17:22:39  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:74,RF:100%,RTT:759ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*58
+    reparo: la bateria no venia medida (BAT:--)
+17:22:41  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:72,RF:100%,RTT:757ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*50
+    reparo: la bateria no venia medida (BAT:--)
+17:22:43  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:70,RF:100%,RTT:757ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*52
+    reparo: la bateria no venia medida (BAT:--)
+17:22:45  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:68,RF:100%,RTT:755ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*59
+    reparo: la bateria no venia medida (BAT:--)
+17:22:47  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:66,RF:100%,RTT:754ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*56
+    reparo: la bateria no venia medida (BAT:--)
+17:22:49  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:64,RF:100%,RTT:754ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*54
+    reparo: la bateria no venia medida (BAT:--)
+17:22:51  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:62,RF:100%,RTT:753ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*55
+    reparo: la bateria no venia medida (BAT:--)
+17:22:53  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:60,RF:100%,RTT:753ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*57
+    reparo: la bateria no venia medida (BAT:--)
+17:22:55  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:58,RF:100%,RTT:753ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*5C
+    reparo: la bateria no venia medida (BAT:--)
+17:22:57  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:56,RF:100%,RTT:752ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*53
+    reparo: la bateria no venia medida (BAT:--)
+17:22:59  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:54,RF:100%,RTT:752ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*51
+    reparo: la bateria no venia medida (BAT:--)
+17:22:59  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:ENLACE_RF,DETALLE:RX:629 OK:157 RUIDO:0 REIN:1,HORA:--:--:--*7D
+17:23:01  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:52,RF:100%,RTT:752ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*57
+    reparo: la bateria no venia medida (BAT:--)
+17:23:03  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:50,RF:100%,RTT:752ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*55
+    reparo: la bateria no venia medida (BAT:--)
+17:23:05  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:48,RF:100%,RTT:752ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*5C
+    reparo: la bateria no venia medida (BAT:--)
+17:23:07  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:46,RF:100%,RTT:752ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*52
+    reparo: la bateria no venia medida (BAT:--)
+17:23:09  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:44,RF:100%,RTT:752ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*50
+    reparo: la bateria no venia medida (BAT:--)
+17:23:11  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:42,RF:100%,RTT:752ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*56
+    reparo: la bateria no venia medida (BAT:--)
+17:23:13  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:40,RF:100%,RTT:752ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*54
+    reparo: la bateria no venia medida (BAT:--)
+17:23:15  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:38,RF:100%,RTT:752ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*5B
+    reparo: la bateria no venia medida (BAT:--)
+17:23:17  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:36,RF:100%,RTT:752ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*55
+    reparo: la bateria no venia medida (BAT:--)
+17:23:19  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:34,RF:100%,RTT:752ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*57
+    reparo: la bateria no venia medida (BAT:--)
+17:23:21  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:32,RF:100%,RTT:752ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*51
+    reparo: la bateria no venia medida (BAT:--)
+17:23:23  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:30,RF:100%,RTT:752ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*53
+    reparo: la bateria no venia medida (BAT:--)
+17:23:25  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:28,RF:100%,RTT:752ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*5A
+    reparo: la bateria no venia medida (BAT:--)
+17:23:27  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:26,RF:100%,RTT:752ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*54
+    reparo: la bateria no venia medida (BAT:--)
+17:23:29  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:24,RF:100%,RTT:752ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*56
+    reparo: la bateria no venia medida (BAT:--)
+17:23:29  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:ENLACE_RF,DETALLE:RX:749 OK:187 RUIDO:0 REIN:1,HORA:--:--:--*77
+17:23:31  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:22,RF:100%,RTT:752ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*50
+    reparo: la bateria no venia medida (BAT:--)
+17:23:33  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:20,RF:100%,RTT:752ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*52
+    reparo: la bateria no venia medida (BAT:--)
+17:23:35  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:18,RF:100%,RTT:752ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*59
+    reparo: la bateria no venia medida (BAT:--)
+17:23:37  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:16,RF:100%,RTT:752ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*57
+    reparo: la bateria no venia medida (BAT:--)
+17:23:39  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:14,RF:100%,RTT:752ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*55
+    reparo: la bateria no venia medida (BAT:--)
+17:23:41  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:12,RF:100%,RTT:752ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*53
+    reparo: la bateria no venia medida (BAT:--)
+17:23:43  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:10,RF:100%,RTT:752ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*51
+    reparo: la bateria no venia medida (BAT:--)
+17:23:45  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:8,RF:100%,RTT:751ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6B
+    reparo: la bateria no venia medida (BAT:--)
+17:23:47  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:6,RF:100%,RTT:751ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*65
+    reparo: la bateria no venia medida (BAT:--)
+17:23:49  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:4,RF:100%,RTT:751ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*67
+    reparo: la bateria no venia medida (BAT:--)
+17:23:51  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:2,RF:100%,RTT:751ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*61
+    reparo: la bateria no venia medida (BAT:--)
+17:23:53  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:0,RF:100%,RTT:751ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*63
+    reparo: la bateria no venia medida (BAT:--)
+17:23:55  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:AMARILLO,T:--,RF:100%,RTT:751ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*0A
+    reparo: la bateria no venia medida (BAT:--)
+17:23:57  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:ROJO,T:9,RF:100%,RTT:751ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*32
+    reparo: la bateria no venia medida (BAT:--)
+17:23:59  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:ENLACE_RF,DETALLE:RX:869 OK:217 RUIDO:0 REIN:1,HORA:--:--:--*70
+17:23:59  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:ROJO,T:7,RF:100%,RTT:751ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*3C
+    reparo: la bateria no venia medida (BAT:--)
+17:24:01  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:ROJO,T:5,RF:100%,RTT:751ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ABAJO,CAM:?*72
+    reparo: la bateria no venia medida (BAT:--)
+17:24:03  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:ROJO,T:3,RF:100%,RTT:751ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ABAJO,CAM:?*74
+    reparo: la bateria no venia medida (BAT:--)
+17:24:05  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:ROJO,T:1,RF:100%,RTT:751ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ABAJO,CAM:?*76
+    reparo: la bateria no venia medida (BAT:--)
+17:24:07  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:ROJO,T:--,RF:100%,RTT:751ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ABAJO,CAM:?*47
+    reparo: la bateria no venia medida (BAT:--)
+17:24:09  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:ROJO,T:179,RF:100%,RTT:751ms,BAT:--,HORA:--:--:--,ESC:VERDE,PLUMA:ABAJO,CAM:?*20
+    reparo: la bateria no venia medida (BAT:--)
+17:24:11  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:ROJO,T:177,RF:100%,RTT:752ms,BAT:--,HORA:--:--:--,ESC:VERDE,PLUMA:ABAJO,CAM:?*2D
+    reparo: la bateria no venia medida (BAT:--)
+17:24:12  -->  [ENVIADA]
+    CMD:PIN:****:SET_MODO:MANUAL\r\n
+17:24:12  <--  [ACEPTADA]
+    $ACK,CMD:SET_MODO:MANUAL,RESULT:OK*3A
+17:24:12  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:SET_MODO_MANUAL,HORA:--:--:--*5B
+17:24:13  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:MANUAL,ESTADO:ROJO,T:--,RF:100%,RTT:752ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ABAJO,CAM:?*51
+    reparo: la bateria no venia medida (BAT:--)
+17:24:15  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:MANUAL,ESTADO:ROJO,T:--,RF:90%,RTT:752ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ABAJO,CAM:?*69
+    reparo: la bateria no venia medida (BAT:--)
+17:24:17  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:MANUAL,ESTADO:ROJO,T:--,RF:90%,RTT:952ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ABAJO,CAM:?*67
+    reparo: la bateria no venia medida (BAT:--)
+17:24:19  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:MANUAL,ESTADO:ROJO,T:--,RF:90%,RTT:902ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ABAJO,CAM:?*62
+    reparo: la bateria no venia medida (BAT:--)
+17:24:20  -->  [ENVIADA]
+    CMD:FORZAR_ROJO\r\n
+17:24:20  <--  [ACEPTADA]
+    $ACK,CMD:FORZAR_ROJO,RESULT:OK*5B
+17:24:20  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:--:--:--*5C
+17:24:21  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:MANUAL,ESTADO:ROJO,T:--,RF:90%,RTT:902ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ABAJO,CAM:?*62
+    reparo: la bateria no venia medida (BAT:--)
+17:24:23  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:MANUAL,ESTADO:ROJO,T:--,RF:90%,RTT:902ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ABAJO,CAM:?*62
+    reparo: la bateria no venia medida (BAT:--)
+17:24:25  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:MANUAL,ESTADO:ROJO,T:--,RF:80%,RTT:864ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ABAJO,CAM:?*62
+    reparo: la bateria no venia medida (BAT:--)
+17:24:27  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:MANUAL,ESTADO:ROJO,T:--,RF:80%,RTT:864ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ABAJO,CAM:?*62
+    reparo: la bateria no venia medida (BAT:--)
+17:24:27  -->  [ENVIADA]
+    CMD:PIN:****:MANUAL:CAMBIAR_TURNO\r\n
+17:24:28  <--  [ACEPTADA]
+    $ACK,CMD:CAMBIAR_TURNO,RESULT:OK*54
+17:24:28  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:CAMBIAR_TURNO_MANUAL,HORA:--:--:--*15
+17:24:29  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:ENLACE_RF,DETALLE:RX:958 OK:239 RUIDO:0 REIN:1,HORA:--:--:--*7F
+17:24:29  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:MANUAL,ESTADO:ROJO,T:5,RF:80%,RTT:836ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ABAJO,CAM:?*50
+    reparo: la bateria no venia medida (BAT:--)
+17:24:31  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:MANUAL,ESTADO:ROJO,T:3,RF:80%,RTT:815ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ABAJO,CAM:?*57
+    reparo: la bateria no venia medida (BAT:--)
+17:24:33  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:MANUAL,ESTADO:ROJO,T:1,RF:80%,RTT:815ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ABAJO,CAM:?*55
+    reparo: la bateria no venia medida (BAT:--)
+17:24:35  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:MANUAL,ESTADO:ROJO+AMAR,T:--,RF:80%,RTT:799ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ABAJO,CAM:?*5B
+    reparo: la bateria no venia medida (BAT:--)
+17:24:37  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:MANUAL,ESTADO:VERDE,T:--,RF:80%,RTT:787ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*74
+    reparo: la bateria no venia medida (BAT:--)
+17:24:39  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:MANUAL,ESTADO:VERDE,T:--,RF:80%,RTT:787ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*74
+    reparo: la bateria no venia medida (BAT:--)
+17:24:41  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:MANUAL,ESTADO:VERDE,T:--,RF:80%,RTT:778ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*74
+    reparo: la bateria no venia medida (BAT:--)
+17:24:43  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:MANUAL,ESTADO:VERDE,T:--,RF:90%,RTT:771ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*7C
+    reparo: la bateria no venia medida (BAT:--)
+17:24:44  -->  [ENVIADA]
+    CMD:PIN:****:MANUAL:CAMBIAR_TURNO\r\n
+17:24:45  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:MANUAL,ESTADO:VERDE,T:--,RF:90%,RTT:771ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*7C
+    reparo: la bateria no venia medida (BAT:--)
+17:24:45  <--  [ACEPTADA]
+    $ACK,CMD:CAMBIAR_TURNO,RESULT:OK*54
+17:24:45  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:CAMBIAR_TURNO_MANUAL,HORA:--:--:--*15
+17:24:47  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:MANUAL,ESTADO:AMARILLO,T:--,RF:90%,RTT:766ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*23
+    reparo: la bateria no venia medida (BAT:--)
+17:24:49  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:MANUAL,ESTADO:ROJO,T:9,RF:90%,RTT:766ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*1B
+    reparo: la bateria no venia medida (BAT:--)
+17:24:51  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:MANUAL,ESTADO:ROJO,T:7,RF:90%,RTT:780ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*1D
+    reparo: la bateria no venia medida (BAT:--)
+17:24:53  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:MANUAL,ESTADO:ROJO,T:5,RF:100%,RTT:773ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ABAJO,CAM:?*67
+    reparo: la bateria no venia medida (BAT:--)
+17:24:55  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:MANUAL,ESTADO:ROJO,T:3,RF:100%,RTT:773ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ABAJO,CAM:?*61
+    reparo: la bateria no venia medida (BAT:--)
+17:24:57  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:MANUAL,ESTADO:ROJO,T:1,RF:100%,RTT:774ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ABAJO,CAM:?*64
+    reparo: la bateria no venia medida (BAT:--)
+17:24:59  <--  [ACEPTADA]
+    $EVENT,NODE:MAESTRO,ORIGEN:ENLACE_RF,DETALLE:RX:1078 OK:269 RUIDO:0 REIN:1,HORA:--:--:--*40
+17:24:59  <--  [ACEPTADA]
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:MANUAL,ESTADO:ROJO,T:--,RF:100%,RTT:768ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ABAJO,CAM:?*58
+    reparo: la bateria no venia medida (BAT:--)
+
+
+========================================================================
+
+IOT-VIAL - CAMBIOS DE ESTADO
+Un $STATUS por cambio de MODO, ESTADO, ESC (por NODE), desde que se abrio la app.
+En memoria; tope 2000. No se corta con la cinta.
+
+17:15:01  INICIO MAESTRO: MODO AMBAR, ESTADO FALLO COM, ESC AMBAR
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:--,RTT:--,BAT:--,HORA:--:--:--,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*14
+17:15:11  CAMBIO MAESTRO: ESTADO: FALLO COM -> ROJO
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:ROJO,T:--,RF:--,RTT:--,BAT:--,HORA:--:--:--,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*25
+17:15:35  CAMBIO MAESTRO: ESTADO: ROJO -> FALLO COM
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:--,RTT:--,BAT:--,HORA:--:--:--,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*14
+17:15:47  CAMBIO MAESTRO: ESTADO: FALLO COM -> ROJO
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:ROJO,T:--,RF:--,RTT:--,BAT:--,HORA:--:--:--,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*25
+17:19:51  CAMBIO MAESTRO: ESTADO: ROJO -> FALLO COM
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:--,RTT:--,BAT:--,HORA:--:--:--,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*14
+17:20:07  CAMBIO MAESTRO: ESTADO: FALLO COM -> ROJO
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:ROJO,T:--,RF:--,RTT:--,BAT:--,HORA:--:--:--,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*25
+17:20:21  CAMBIO MAESTRO: ESTADO: ROJO -> FALLO COM
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:--,RTT:--,BAT:--,HORA:--:--:--,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*14
+17:20:29  CAMBIO MAESTRO: ESTADO: FALLO COM -> ROJO
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:ROJO,T:--,RF:--,RTT:--,BAT:--,HORA:--:--:--,ESC:AMBAR,PLUMA:ARRIBA,CAM:?*25
+17:20:35  CAMBIO MAESTRO: MODO: AMBAR -> AUTO; ESC: AMBAR -> ROJO
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:ROJO,T:--,RF:--,RTT:--,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ABAJO,CAM:?*7E
+17:20:53  CAMBIO MAESTRO: ESTADO: ROJO -> ROJO+AMAR
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:ROJO+AMAR,T:--,RF:100%,RTT:745ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ABAJO,CAM:?*76
+17:20:55  CAMBIO MAESTRO: ESTADO: ROJO+AMAR -> VERDE
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:178,RF:100%,RTT:747ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*6A
+17:23:55  CAMBIO MAESTRO: ESTADO: VERDE -> AMARILLO
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:AMARILLO,T:--,RF:100%,RTT:751ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*0A
+17:23:57  CAMBIO MAESTRO: ESTADO: AMARILLO -> ROJO
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:ROJO,T:9,RF:100%,RTT:751ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*32
+17:24:09  CAMBIO MAESTRO: ESC: ROJO -> VERDE
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:ROJO,T:179,RF:100%,RTT:751ms,BAT:--,HORA:--:--:--,ESC:VERDE,PLUMA:ABAJO,CAM:?*20
+17:24:13  CAMBIO MAESTRO: MODO: AUTO -> MANUAL; ESC: VERDE -> ROJO
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:MANUAL,ESTADO:ROJO,T:--,RF:100%,RTT:752ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ABAJO,CAM:?*51
+17:24:35  CAMBIO MAESTRO: ESTADO: ROJO -> ROJO+AMAR
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:MANUAL,ESTADO:ROJO+AMAR,T:--,RF:80%,RTT:799ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ABAJO,CAM:?*5B
+17:24:37  CAMBIO MAESTRO: ESTADO: ROJO+AMAR -> VERDE
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:MANUAL,ESTADO:VERDE,T:--,RF:80%,RTT:787ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*74
+17:24:47  CAMBIO MAESTRO: ESTADO: VERDE -> AMARILLO
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:MANUAL,ESTADO:AMARILLO,T:--,RF:90%,RTT:766ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*23
+17:24:49  CAMBIO MAESTRO: ESTADO: AMARILLO -> ROJO
+    $STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:MANUAL,ESTADO:ROJO,T:9,RF:90%,RTT:766ms,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:ARRIBA,CAM:?*1B
+
+
+========================================================================
+
+IOT-VIAL - REGISTRO DEL EQUIPO
+Lo que el puente guardo en su flash (SPEC_4 9.8), pedido por la app en esta sesion.
+Ultimo $ACK: DESDE:462 HASTA:476 ULT:476 PRIMERO:1 CONG:0 CRC:1 LARGO:0 ANILLO:0 FLASH:0 MALOS:0
+
+N:200  2026-11-09 16:29:51  E  ACK,CMD:CONSULTA_DEG_AUTO,RESULT:ESTE_OFF_OTRO_OFF_APTO_NO
+N:201  2026-11-09 16:29:51  E  ACK,CMD:NOCHE,RESULT:OK,TR:180,F1:--------0000-0000-OFF,F2:--------0000-0000-OFF,F3:--------0000-0000-OFF,F4:~
+N:202  2026-11-09 16:29:51  E  ACK,CMD:CONSULTA_DEG_FIN,RESULT:NINGUNA
+N:203  2026-11-09 16:29:52  E  ACK,CMD:VERSION,RESULT:OK,NODE:MAESTRO,FW:8f8dd7e
+N:204  2026-11-09 16:30:00  E  ACK,CMD:SET_MODO:AMBAR,RESULT:REARMADO
+N:205  2026-11-09 16:30:00  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:SET_MODO_AMBAR,HORA:16:29:59
+N:206  2026-11-09 16:30:08  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:207  2026-11-09 16:30:08  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:30:07
+N:208  2026-11-09 16:30:08  S  STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:ROJO,T:--,RF:--,RTT:--,BAT:--,HORA:16:30:07,ESC:AMBAR,PLUM~
+N:209  2026-11-09 16:30:12  E  ACK,CMD:REINICIOS,RESULT:OK,NODE:MAESTRO,REIN:1,CAUSA:CORTE,UP:210,ANTES:0
+N:210  2026-11-09 16:32:32  E  ACK,CMD:SET_MODO:MANUAL,RESULT:OK
+N:211  2026-11-09 16:32:32  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:SET_MODO_MANUAL,HORA:16:32:31
+N:212  2026-11-09 16:32:32  S  STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:MANUAL,ESTADO:ROJO,T:--,RF:--,RTT:--,BAT:--,HORA:16:32:31,ESC:ROJO,PLUM~
+N:213  2026-11-09 16:32:51  E  ACK,CMD:SET_MODO:AMBAR,RESULT:OK
+N:214  2026-11-09 16:32:51  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:SET_MODO_AMBAR,HORA:16:32:51
+N:215  2026-11-09 16:32:52  S  STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:0%,RTT:0ms,BAT:--,HORA:16:32:51,ESC:AMBA~
+N:216  2026-11-09 16:33:01  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:217  2026-11-09 16:33:01  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:33:01
+N:218  2026-11-09 16:33:02  S  STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:ROJO,T:--,RF:0%,RTT:0ms,BAT:--,HORA:16:33:01,ESC:AMBAR,PLU~
+N:219  2026-11-09 16:33:06  E  ACK,CMD:SET_MODO:AMBAR,RESULT:REARMADO
+N:220  2026-11-09 16:33:06  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:SET_MODO_AMBAR,HORA:16:33:06
+N:221  2026-11-09 16:33:08  S  STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:0%,RTT:0ms,BAT:--,HORA:16:33:07,ESC:AMBA~
+N:222  2026-11-09 16:33:11  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:223  2026-11-09 16:33:11  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:33:10
+N:224  2026-11-09 16:33:12  S  STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:ROJO,T:--,RF:0%,RTT:0ms,BAT:--,HORA:16:33:11,ESC:AMBAR,PLU~
+N:225  2026-11-09 16:33:13  E  ACK,CMD:SET_MODO:AMBAR,RESULT:REARMADO
+N:226  2026-11-09 16:33:13  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:SET_MODO_AMBAR,HORA:16:33:13
+N:227  2026-11-09 16:33:14  S  STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:0%,RTT:0ms,BAT:--,HORA:16:33:13,ESC:AMBA~
+N:228  2026-11-09 16:33:17  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:229  2026-11-09 16:33:17  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:33:17
+N:230  2026-11-09 16:33:18  S  STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:ROJO,T:--,RF:0%,RTT:0ms,BAT:--,HORA:16:33:17,ESC:AMBAR,PLU~
+N:231  2026-11-09 16:33:18  E  ACK,CMD:SET_MODO:AMBAR,RESULT:REARMADO
+N:232  2026-11-09 16:33:18  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:SET_MODO_AMBAR,HORA:16:33:18
+N:233  2026-11-09 16:33:20  S  STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:0%,RTT:0ms,BAT:--,HORA:16:33:19,ESC:AMBA~
+N:234  2026-11-09 16:33:20  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:235  2026-11-09 16:33:20  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:33:20
+N:236  2026-11-09 16:33:22  S  STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:ROJO,T:--,RF:0%,RTT:0ms,BAT:--,HORA:16:33:21,ESC:AMBAR,PLU~
+N:237  2026-11-09 16:33:25  E  ACK,CMD:SET_MODO:AMBAR,RESULT:REARMADO
+N:238  2026-11-09 16:33:25  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:SET_MODO_AMBAR,HORA:16:33:25
+N:239  2026-11-09 16:33:26  S  STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:0%,RTT:0ms,BAT:--,HORA:16:33:25,ESC:AMBA~
+N:240  2026-11-09 16:33:27  E  ACK,CMD:SET_MODO:AMBAR,RESULT:REARMADO
+N:241  2026-11-09 16:33:27  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:SET_MODO_AMBAR,HORA:16:33:27
+N:242  2026-11-09 16:33:28  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:243  2026-11-09 16:33:28  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:33:28
+N:244  2026-11-09 16:33:29  E  ACK,CMD:SET_MODO:AMBAR,RESULT:REARMADO
+N:245  2026-11-09 16:33:30  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:SET_MODO_AMBAR,HORA:16:33:29
+N:246  2026-11-09 16:33:30  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:247  2026-11-09 16:33:30  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:33:30
+N:248  2026-11-09 16:33:32  S  STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:ROJO,T:--,RF:0%,RTT:0ms,BAT:--,HORA:16:33:31,ESC:AMBAR,PLU~
+N:249  2026-11-09 16:33:34  E  ACK,CMD:SET_MODO:AMBAR,RESULT:REARMADO
+N:250  2026-11-09 16:33:34  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:SET_MODO_AMBAR,HORA:16:33:34
+N:251  2026-11-09 16:33:36  S  STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:0%,RTT:0ms,BAT:--,HORA:16:33:35,ESC:AMBA~
+N:252  2026-11-09 16:33:38  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:253  2026-11-09 16:33:38  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:33:38
+N:254  2026-11-09 16:33:40  S  STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:ROJO,T:--,RF:0%,RTT:0ms,BAT:--,HORA:16:33:39,ESC:AMBAR,PLU~
+N:255  2026-11-09 16:33:42  E  ACK,CMD:SET_MODO:AMBAR,RESULT:REARMADO
+N:256  2026-11-09 16:33:42  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:SET_MODO_AMBAR,HORA:16:33:42
+N:257  2026-11-09 16:33:44  S  STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:0%,RTT:0ms,BAT:--,HORA:16:33:43,ESC:AMBA~
+N:258  2026-11-09 16:33:44  E  ERR,CMD:CAMBIAR_TURNO,DESC:MODO_SIN_CICLO_SALGA_PRIMERO
+N:259  2026-11-09 16:33:45  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:260  2026-11-09 16:33:45  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:33:45
+N:261  2026-11-09 16:33:46  S  STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:ROJO,T:--,RF:0%,RTT:0ms,BAT:--,HORA:16:33:45,ESC:AMBAR,PLU~
+N:262  2026-11-09 16:33:52  E  ACK,CMD:SET_MODO:AMBAR,RESULT:REARMADO
+N:263  2026-11-09 16:33:52  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:SET_MODO_AMBAR,HORA:16:33:52
+N:264  2026-11-09 16:33:53  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:265  2026-11-09 16:33:53  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:33:53
+N:266  2026-11-09 16:33:55  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:267  2026-11-09 16:33:55  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:33:55
+N:268  2026-11-09 16:33:55  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:269  2026-11-09 16:33:55  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:33:55
+N:270  2026-11-09 16:33:56  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:271  2026-11-09 16:33:56  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:33:56
+N:272  2026-11-09 16:33:56  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:273  2026-11-09 16:33:56  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:33:56
+N:274  2026-11-09 16:33:56  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:275  2026-11-09 16:33:56  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:33:56
+N:276  2026-11-09 16:33:56  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:277  2026-11-09 16:33:56  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:33:56
+N:278  2026-11-09 16:33:57  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:279  2026-11-09 16:33:57  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:33:56
+N:280  2026-11-09 16:33:57  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:281  2026-11-09 16:33:57  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:33:57
+N:282  2026-11-09 16:33:57  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:283  2026-11-09 16:33:57  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:33:57
+N:284  2026-11-09 16:33:57  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:285  2026-11-09 16:33:57  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:33:57
+N:286  2026-11-09 16:33:57  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:287  2026-11-09 16:33:57  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:33:57
+N:288  2026-11-09 16:33:57  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:289  2026-11-09 16:33:57  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:33:57
+N:290  2026-11-09 16:34:01  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:291  2026-11-09 16:34:01  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:34:01
+N:292  2026-11-09 16:34:01  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:293  2026-11-09 16:34:01  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:34:01
+N:294  2026-11-09 16:34:01  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:295  2026-11-09 16:34:02  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:34:01
+N:296  2026-11-09 16:34:02  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:297  2026-11-09 16:34:02  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:34:02
+N:298  2026-11-09 16:34:02  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:299  2026-11-09 16:34:02  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:34:02
+N:300  2026-11-09 16:34:02  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:301  2026-11-09 16:34:02  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:34:02
+N:302  2026-11-09 16:35:52  E  ACK,CMD:SET_MODO:AUTO,RESULT:OK
+N:303  2026-11-09 16:35:52  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:SET_MODO_AUTO,HORA:16:35:52
+N:304  2026-11-09 16:35:54  S  STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:ROJO,T:--,RF:0%,RTT:0ms,BAT:--,HORA:16:35:53,ESC:ROJO,PLUMA~
+N:305  2026-11-09 16:36:20  E  ALARM,NODE:MAESTRO,EVENTO:FALLO_RF,CAUSA:SILENCIO_28000ms,RF:0%,RTT:0ms,SINRESP:7,ACCION:CAMBIO_A_AMBAR,HORA:~
+N:306  2026-11-09 16:36:22  S  STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:FALLO COM,T:--,RF:0%,RTT:0ms,BAT:--,HORA:16:36:21,ESC:?,PLU~
+N:307  2026-11-09 16:36:29  E  ACK,CMD:SET_MODO:AUTO,RESULT:OK
+N:308  2026-11-09 16:36:30  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:SET_MODO_AUTO,HORA:16:36:29
+N:309  2026-11-09 16:36:30  S  STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:ROJO,T:--,RF:0%,RTT:0ms,BAT:--,HORA:16:36:29,ESC:ROJO,PLUMA~
+N:310  2026-11-09 16:36:55  E  ACK,CMD:SET_MODO:AMBAR,RESULT:OK
+N:311  2026-11-09 16:36:55  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:SET_MODO_AMBAR,HORA:16:36:55
+N:312  2026-11-09 16:36:56  S  STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:0%,RTT:0ms,BAT:--,HORA:16:36:55,ESC:AMBA~
+N:313  2026-11-09 16:38:32  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:314  2026-11-09 16:38:32  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:38:32
+N:315  2026-11-09 16:38:33  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:316  2026-11-09 16:38:33  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:38:33
+N:317  2026-11-09 16:38:34  S  STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:ROJO,T:--,RF:0%,RTT:0ms,BAT:--,HORA:16:38:33,ESC:AMBAR,PLU~
+N:318  2026-11-09 16:38:34  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:319  2026-11-09 16:38:34  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:38:34
+N:320  2026-11-09 16:38:35  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:321  2026-11-09 16:38:35  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:38:35
+N:322  2026-11-09 16:38:35  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:323  2026-11-09 16:38:35  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:38:35
+N:324  2026-11-09 16:38:36  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:325  2026-11-09 16:38:36  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:38:36
+N:326  2026-11-09 16:38:37  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:327  2026-11-09 16:38:37  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:38:37
+N:328  2026-11-09 16:38:38  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:329  2026-11-09 16:38:38  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:38:38
+N:330  2026-11-09 16:38:38  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:331  2026-11-09 16:38:38  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:38:38
+N:332  2026-11-09 16:38:39  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:333  2026-11-09 16:38:39  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:38:39
+N:334  2026-11-09 16:39:08  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:335  2026-11-09 16:39:08  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:39:08
+N:336  2026-11-09 16:39:10  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:337  2026-11-09 16:39:10  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:39:10
+N:338  2026-11-09 16:39:11  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:339  2026-11-09 16:39:11  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:39:11
+N:340  2026-11-09 16:39:13  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:341  2026-11-09 16:39:13  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:39:13
+N:342  2026-11-09 16:39:14  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:343  2026-11-09 16:39:14  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:39:14
+N:344  2026-11-09 16:39:15  E  ACK,CMD:SET_MODO:AMBAR,RESULT:REARMADO
+N:345  2026-11-09 16:39:15  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:SET_MODO_AMBAR,HORA:16:39:15
+N:346  2026-11-09 16:39:16  S  STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:0%,RTT:0ms,BAT:--,HORA:16:39:15,ESC:AMBA~
+N:347  2026-11-09 16:39:26  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:348  2026-11-09 16:39:26  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:39:26
+N:349  2026-11-09 16:39:27  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:350  2026-11-09 16:39:27  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:39:27
+N:351  2026-11-09 16:39:28  S  STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:ROJO,T:--,RF:0%,RTT:0ms,BAT:--,HORA:16:39:27,ESC:AMBAR,PLU~
+N:352  2026-11-09 16:39:28  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:353  2026-11-09 16:39:28  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:39:28
+N:354  2026-11-09 16:40:41  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:355  2026-11-09 16:40:41  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:40:41
+N:356  2026-11-09 16:40:43  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:357  2026-11-09 16:40:44  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:40:43
+N:358  2026-11-09 16:40:45  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:359  2026-11-09 16:40:45  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:40:45
+N:360  2026-11-09 16:40:58  E  ACK,CMD:SET_MODO:AMBAR,RESULT:REARMADO
+N:361  2026-11-09 16:40:58  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:SET_MODO_AMBAR,HORA:16:40:58
+N:362  2026-11-09 16:41:00  S  STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:0%,RTT:0ms,BAT:--,HORA:16:40:59,ESC:AMBA~
+N:363  2026-11-09 16:41:00  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:364  2026-11-09 16:41:00  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:41:00
+N:365  2026-11-09 16:41:02  S  STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:ROJO,T:--,RF:0%,RTT:0ms,BAT:--,HORA:16:41:01,ESC:AMBAR,PLU~
+N:366  2026-11-09 16:41:02  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:367  2026-11-09 16:41:02  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:41:02
+N:368  2026-11-09 16:41:04  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:369  2026-11-09 16:41:04  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:41:04
+N:370  2026-11-09 16:41:06  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:371  2026-11-09 16:41:06  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:41:06
+N:372  2026-11-09 16:41:12  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:373  2026-11-09 16:41:12  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:41:12
+N:374  2026-11-09 16:41:14  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:375  2026-11-09 16:41:14  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:41:14
+N:376  2026-11-09 16:41:15  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:377  2026-11-09 16:41:16  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:41:15
+N:378  2026-11-09 16:41:16  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:379  2026-11-09 16:41:16  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:41:16
+N:380  2026-11-09 16:41:18  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:381  2026-11-09 16:41:18  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:41:18
+N:382  2026-11-09 16:41:20  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:383  2026-11-09 16:41:20  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:41:20
+N:384  2026-11-09 16:41:21  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:385  2026-11-09 16:41:21  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:41:21
+N:386  2026-11-09 16:41:21  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:387  2026-11-09 16:41:21  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:41:21
+N:388  2026-11-09 16:41:22  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:389  2026-11-09 16:41:22  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:41:22
+N:390  2026-11-09 16:41:48  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:391  2026-11-09 16:41:48  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:41:48
+N:392  2026-11-09 16:41:49  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:393  2026-11-09 16:41:49  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:41:49
+N:394  2026-11-09 16:41:50  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:395  2026-11-09 16:41:50  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:41:50
+N:396  2026-11-09 16:41:54  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:397  2026-11-09 16:41:54  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:41:54
+N:398  2026-11-09 16:41:55  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:399  2026-11-09 16:41:55  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:41:55
+N:400  2026-11-09 16:42:09  E  ACK,CMD:SET_MODO:AUTO,RESULT:OK
+N:401  2026-11-09 16:42:09  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:SET_MODO_AUTO,HORA:16:42:09
+N:402  2026-11-09 16:42:10  S  STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:ROJO,T:--,RF:0%,RTT:0ms,BAT:--,HORA:16:42:09,ESC:ROJO,PLUMA~
+N:403  2026-11-09 16:42:11  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:404  2026-11-09 16:42:11  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:42:11
+N:405  2026-11-09 16:42:12  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:406  2026-11-09 16:42:13  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:42:12
+N:407  2026-11-09 16:42:14  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:408  2026-11-09 16:42:14  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:42:14
+N:409  2026-11-09 16:42:15  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:410  2026-11-09 16:42:16  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:16:42:15
+N:411  +0 s, sin hora  P  EVENT,NODE:PUENTE,EVT:ARRANQUE,CAUSA:SUBIDA_DE_TENSION,ARRANQUES:1,PERRO:ARMADO,WDT_MS:2000,LOG:410
+N:412  +0 s, sin hora  P  EVENT,NODE:PUENTE,EVT:ARRANQUE,CAUSA:OTRO_PERRO,ARRANQUES:1,PERRO:ARMADO,WDT_MS:2000,LOG:411
+N:413  +0 s, sin hora  S  STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:--,RTT:--,BAT:--,HORA:--:--:--,ESC:AMBAR~
+N:414  +2 s, sin hora  E  EVENT,NODE:MAESTRO,ORIGEN:J17,DETALLE:MUDO:11s,MAX:11s,N:1,HORA:--:--:--
+N:415  +56 s, sin hora  E  ACK,CMD:CONSULTA_DEG_AUTO,RESULT:ESTE_OFF_OTRO_OFF_APTO_NO
+N:416  +57 s, sin hora  E  ACK,CMD:NOCHE,RESULT:OK,TR:180,F1:--------0000-0000-OFF,F2:--------0000-0000-OFF,F3:--------0000-0000-OFF,F4:~
+N:417  +57 s, sin hora  E  ACK,CMD:CONSULTA_DEG_FIN,RESULT:NINGUNA
+N:418  +58 s, sin hora  E  ACK,CMD:VERSION,RESULT:OK,NODE:MAESTRO,FW:8f8dd7e
+N:419  +64 s, sin hora  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:420  +64 s, sin hora  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:--:--:--
+N:421  +64 s, sin hora  S  STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:ROJO,T:--,RF:--,RTT:--,BAT:--,HORA:--:--:--,ESC:AMBAR,PLUM~
+N:422  +73 s, sin hora  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:423  +73 s, sin hora  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:--:--:--
+N:424  +75 s, sin hora  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:425  +75 s, sin hora  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:--:--:--
+N:426  +80 s, sin hora  E  ACK,CMD:REINICIOS,RESULT:OK,NODE:MAESTRO,REIN:1,CAUSA:CORTE,UP:90,ANTES:0
+N:427  +86 s, sin hora  E  ACK,CMD:SET_MODO:AMBAR,RESULT:REARMADO
+N:428  +86 s, sin hora  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:SET_MODO_AMBAR,HORA:--:--:--
+N:429  +88 s, sin hora  S  STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:--,RTT:--,BAT:--,HORA:--:--:--,ESC:AMBAR~
+N:430  +100 s, sin hora  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:431  +100 s, sin hora  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:--:--:--
+N:432  +100 s, sin hora  S  STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:ROJO,T:--,RF:--,RTT:--,BAT:--,HORA:--:--:--,ESC:AMBAR,PLUM~
+N:433  +115 s, sin hora  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:434  +115 s, sin hora  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:--:--:--
+N:435  +121 s, sin hora  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:436  +121 s, sin hora  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:--:--:--
+N:437  +121 s, sin hora  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:438  +121 s, sin hora  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:--:--:--
+N:439  +121 s, sin hora  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:440  +122 s, sin hora  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:--:--:--
+N:441  +122 s, sin hora  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:442  +122 s, sin hora  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:--:--:--
+N:443  +0 s, sin hora  P  EVENT,NODE:PUENTE,EVT:ARRANQUE,CAUSA:SUBIDA_DE_TENSION,ARRANQUES:1,PERRO:ARMADO,WDT_MS:2000,LOG:442
+N:444  +4 s, sin hora  E  EVENT,NODE:MAESTRO,ORIGEN:J17,DETALLE:MUDO:4s,MAX:4s,N:1,HORA:--:--:--
+N:445  +5 s, sin hora  S  STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:--,RTT:--,BAT:--,HORA:--:--:--,ESC:AMBAR~
+N:446  +23 s, sin hora  E  ACK,CMD:CONSULTA_DEG_AUTO,RESULT:ESTE_OFF_OTRO_OFF_APTO_NO
+N:447  +24 s, sin hora  E  ACK,CMD:NOCHE,RESULT:OK,TR:180,F1:--------0000-0000-OFF,F2:--------0000-0000-OFF,F3:--------0000-0000-OFF,F4:~
+N:448  +24 s, sin hora  E  ACK,CMD:CONSULTA_DEG_FIN,RESULT:NINGUNA
+N:449  +25 s, sin hora  E  ACK,CMD:VERSION,RESULT:OK,NODE:MAESTRO,FW:8f8dd7e
+N:450  +29 s, sin hora  E  ACK,CMD:REINICIOS,RESULT:OK,NODE:MAESTRO,REIN:1,CAUSA:CORTE,UP:30,ANTES:0
+N:451  +30 s, sin hora  E  ACK,CMD:SET_MODO:AMBAR,RESULT:REARMADO
+N:452  +30 s, sin hora  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:SET_MODO_AMBAR,HORA:--:--:--
+N:453  +36 s, sin hora  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:454  +37 s, sin hora  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:--:--:--
+N:455  +37 s, sin hora  S  STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:ROJO,T:--,RF:--,RTT:--,BAT:--,HORA:--:--:--,ESC:AMBAR,PLUM~
+N:456  +38 s, sin hora  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:457  +38 s, sin hora  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:--:--:--
+N:458  +39 s, sin hora  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:459  +39 s, sin hora  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:--:--:--
+N:460  +40 s, sin hora  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:461  +40 s, sin hora  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:--:--:--
+N:462  +42 s, sin hora  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:463  +42 s, sin hora  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:--:--:--
+N:464  +43 s, sin hora  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:465  +43 s, sin hora  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:--:--:--
+N:466  +50 s, sin hora  E  ACK,CMD:SET_MODO:AMBAR,RESULT:REARMADO
+N:467  +50 s, sin hora  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:SET_MODO_AMBAR,HORA:--:--:--
+N:468  +51 s, sin hora  S  STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:FALLO COM,T:--,RF:--,RTT:--,BAT:--,HORA:--:--:--,ESC:AMBAR~
+N:469  +59 s, sin hora  E  ACK,CMD:FORZAR_ROJO,RESULT:OK
+N:470  +59 s, sin hora  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:FORZAR_ROJO_SIN_PIN,HORA:--:--:--
+N:471  +59 s, sin hora  S  STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AMBAR,ESTADO:ROJO,T:--,RF:--,RTT:--,BAT:--,HORA:--:--:--,ESC:AMBAR,PLUM~
+N:472  +64 s, sin hora  E  ACK,CMD:SET_MODO:AUTO,RESULT:OK
+N:473  +64 s, sin hora  E  EVENT,NODE:MAESTRO,ORIGEN:APP_BLUETOOTH,DETALLE:SET_MODO_AUTO,HORA:--:--:--
+N:474  +65 s, sin hora  S  STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:ROJO,T:--,RF:--,RTT:--,BAT:--,HORA:--:--:--,ESC:ROJO,PLUMA:~
+N:475  +83 s, sin hora  S  STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:ROJO+AMAR,T:--,RF:100%,RTT:745ms,BAT:--,HORA:--:--:--,ESC:R~
+N:476  +85 s, sin hora  S  STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:VERDE,T:178,RF:100%,RTT:747ms,BAT:--,HORA:--:--:--,ESC:ROJO~
+
+
+========================================================================
+
+IOT-VIAL - REGISTRO DEL ENLACE
+Persistido en el telefono; tope 400 anotaciones. Celda vacia = no medido, no 0.
+
+Fecha_ISO,Hora_local,Clase,Enlace_pct,RTT_ms,Detalle
+2026-11-09T20:10:40.701Z,"15:10:40","EVENTO",,,"Equipo [PUENTE]: EVT:ARRANQUE CAUSA:SUBIDA_DE_TENSION ARRANQUES:1 -> ESTE POSTE SE QUEDO SIN LUZ (arranque por subida de tension). No se sabe cuando fue: la trama no trae la hora, sale en cada conexion y tambien tras el primer encendido. Revise el modo en que quedo y de la orden. Arranques contados: 1."
+2026-11-09T20:10:40.725Z,"15:10:40","MUESTRA",,,"el equipo hablo pero el enlace no venia medido (RF:--)"
+2026-11-09T20:10:44.634Z,"15:10:44","EVENTO",,,"Diagnóstico del enlace de este poste (D-23): la radio lleva 23 bytes recibidos, 0 tramas buenas y 0 descartadas desde que arrancó. A partir de aquí solo se anota lo que cambie; el detalle al día está en la ventana de diagnóstico."
+2026-11-09T20:10:44.639Z,"15:10:44","EVENTO",,,"ámbar de este poste: ámbar de arranque (poste reiniciado): pasar con precaución"
+2026-11-09T20:10:45.526Z,"15:10:45","EVENTO",,,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - --:--:--"
+2026-11-09T20:10:53.818Z,"15:10:53","EVENTO",,,"Equipo [APP_BLUETOOTH]: SET_MODO_AMBAR - --:--:--"
+2026-11-09T20:11:03.786Z,"15:11:03","EVENTO",,,"Equipo [APP_BLUETOOTH]: SET_MODO_AMBAR - --:--:--"
+2026-11-09T20:11:14.735Z,"15:11:14","EVENTO",,,"La radio de este poste NO recibió un solo byte en los últimos 30 s. No es ruido ni CRC malo: no está entrando nada por la línea."
+2026-11-09T20:11:14.741Z,"15:11:14","EVENTO",,,"ámbar de este poste: ámbar pedido por el operario: pasar con precaución"
+2026-11-09T20:11:26.118Z,"15:11:26","EVENTO",,,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - --:--:--"
+2026-11-09T20:11:40.696Z,"15:11:40","EVENTO",,,"Equipo [APP_BLUETOOTH]: SET_MODO_MENU - --:--:--"
+2026-11-09T20:11:40.840Z,"15:11:40","MUESTRA",,,"el equipo hablo pero el enlace no venia medido (RF:--)"
+2026-11-09T20:11:44.847Z,"15:11:44","MUESTRA",0,0,"el enlace paso de NO SE SABE a ENLACE CAYENDO"
+2026-11-09T20:11:44.856Z,"15:11:44","EVENTO",0,0,"Equipo [ENLACE_RF]: OK_RF:0% - --:--:--"
+2026-11-09T20:11:45.384Z,"15:11:45","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_AMBAR - --:--:--"
+2026-11-09T20:12:14.504Z,"15:12:14","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_MENU - --:--:--"
+2026-11-09T20:12:22.722Z,"15:12:22","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_AMBAR - --:--:--"
+2026-11-09T20:12:28.223Z,"15:12:28","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_AMBAR - --:--:--"
+2026-11-09T20:12:31.933Z,"15:12:31","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - --:--:--"
+2026-11-09T20:12:44.606Z,"15:12:44","EVENTO",0,0,"ámbar de este poste: ámbar pedido por el operario: pasar con precaución"
+2026-11-09T20:12:44.985Z,"15:12:44","MUESTRA",0,0,"ENLACE CAYENDO (latidos contestados en los ultimos 30 s)"
+2026-11-09T20:13:08.050Z,"15:13:08","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: TIEMPOS_CAMBIADOS - --:--:--"
+2026-11-09T20:13:10.905Z,"15:13:10","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_AUTO - --:--:--"
+2026-11-09T20:13:39.036Z,"15:13:39","ALARMA",0,0,"Caja Negra: FALLO_RF - SILENCIO_28000ms (Accion: CAMBIO_A_AMBAR) -> VAYA AL GABINETE DEL ESCLAVO (poste 2), CONECTESE A EL Y PONGALE LA HORA DESDE EL TELEFONO: pestana Tecnico, boton Sincronizar. Se ha perdido la radio entre los dos postes: sin ella, el Esclavo ya no recibe la hora del Maestro y toma la de su propio ESP32, que es la que hay que dejar bien. Y revise la radio: el ultimo tramo que acompana a esta alarma dice como venia el enlace cuando se cayo. [ultimo tramo: latidos sin respuesta: 5, RTT: 0ms]"
+2026-11-09T20:13:41.182Z,"15:13:41","EVENTO",0,0,"Equipo [ENLACE_RF]: PERDIDO_RF:0% - --:--:--"
+2026-11-09T20:13:46.771Z,"15:13:46","MUESTRA",0,0,"ENLACE CAYENDO (latidos contestados en los ultimos 30 s)"
+2026-11-09T20:14:01.028Z,"15:14:01","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_MENU - --:--:--"
+2026-11-09T20:14:02.831Z,"15:14:02","EVENTO",0,0,"Equipo [ENLACE_RF]: OK_RF:0% - --:--:--"
+2026-11-09T20:14:14.596Z,"15:14:14","ALARMA",0,0,"Caja Negra: HORA_ESP32 - SIN_HORA_DEL_ESP32 (Accion: SIGUE_SU_HORA) -> PONGALE LA HORA DESDE EL TELEFONO AQUI, EN EL GABINETE DE ESTE POSTE (MAESTRO, poste 1): pestana Tecnico, boton Sincronizar. La controladora si oye a su modulo ESP32, pero el reloj del ESP32 no tiene una hora fiable que darle, y sin ella no le manda ninguna. Mientras tanto la controladora sigue con la hora que tenia, sin nadie que se la corrija desde su ESP32. Si al sincronizar el equipo contesta con un rechazo del reloj, ese motivo dice que tocar (pila o modulo). Si la hora queda puesta y este aviso vuelve a salir, el ESP32 de este poste no esta mandando la hora: revise que firmware lleva. [ultimo tramo: latidos sin respuesta: 17, RTT: 0ms]"
+2026-11-09T20:14:17.626Z,"15:14:17","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - --:--:--"
+2026-11-09T20:14:22.530Z,"15:14:22","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_AMBAR - --:--:--"
+2026-11-09T20:14:31.315Z,"15:14:31","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_MANUAL - --:--:--"
+2026-11-09T20:14:39.482Z,"15:14:39","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: CAMBIAR_TURNO_MANUAL - --:--:--"
+2026-11-09T20:14:46.786Z,"15:14:46","MUESTRA",0,0,"ENLACE CAYENDO (latidos contestados en los ultimos 30 s)"
+2026-11-09T20:14:59.462Z,"15:14:59","ALARMA",0,0,"Caja Negra: FALLO_RF - SILENCIO_28000ms (Accion: CAMBIO_A_AMBAR) -> VAYA AL GABINETE DEL ESCLAVO (poste 2), CONECTESE A EL Y PONGALE LA HORA DESDE EL TELEFONO: pestana Tecnico, boton Sincronizar. Se ha perdido la radio entre los dos postes: sin ella, el Esclavo ya no recibe la hora del Maestro y toma la de su propio ESP32, que es la que hay que dejar bien. Y revise la radio: el ultimo tramo que acompana a esta alarma dice como venia el enlace cuando se cayo. [ultimo tramo: latidos sin respuesta: 23, RTT: 0ms]"
+2026-11-09T20:15:00.872Z,"15:15:00","EVENTO",0,0,"Equipo [ENLACE_RF]: PERDIDO_RF:0% - --:--:--"
+2026-11-09T20:15:26.195Z,"15:15:26","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - --:--:--"
+2026-11-09T20:15:26.835Z,"15:15:26","EVENTO",0,0,"Equipo [ENLACE_RF]: OK_RF:0% - --:--:--"
+2026-11-09T20:15:35.075Z,"15:15:35","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: CAMBIAR_TURNO_MANUAL - --:--:--"
+2026-11-09T20:15:46.981Z,"15:15:46","MUESTRA",0,0,"ENLACE CAYENDO (latidos contestados en los ultimos 30 s)"
+2026-11-09T20:15:54.190Z,"15:15:54","ALARMA",0,0,"Caja Negra: FALLO_RF - SILENCIO_28000ms (Accion: CAMBIO_A_AMBAR) -> VAYA AL GABINETE DEL ESCLAVO (poste 2), CONECTESE A EL Y PONGALE LA HORA DESDE EL TELEFONO: pestana Tecnico, boton Sincronizar. Se ha perdido la radio entre los dos postes: sin ella, el Esclavo ya no recibe la hora del Maestro y toma la de su propio ESP32, que es la que hay que dejar bien. Y revise la radio: el ultimo tramo que acompana a esta alarma dice como venia el enlace cuando se cayo. [ultimo tramo: latidos sin respuesta: 35, RTT: 0ms]"
+2026-11-09T20:15:54.903Z,"15:15:54","EVENTO",0,0,"Equipo [ENLACE_RF]: PERDIDO_RF:0% - --:--:--"
+2026-11-09T20:16:48.782Z,"15:16:48","MUESTRA",0,0,"ENLACE CAYENDO (latidos contestados en los ultimos 30 s)"
+2026-11-09T20:17:21.087Z,"15:17:21","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - --:--:--"
+2026-11-09T20:17:22.892Z,"15:17:22","EVENTO",0,0,"Equipo [ENLACE_RF]: OK_RF:0% - --:--:--"
+2026-11-09T20:17:24.145Z,"15:17:24","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_AMBAR - --:--:--"
+2026-11-09T20:17:32.293Z,"15:17:32","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_MENU - --:--:--"
+2026-11-09T20:17:36.690Z,"15:17:36","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_MANUAL - --:--:--"
+2026-11-09T20:17:41.208Z,"15:17:41","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: CAMBIAR_TURNO_MANUAL - --:--:--"
+2026-11-09T20:17:50.788Z,"15:17:50","MUESTRA",0,0,"ENLACE CAYENDO (latidos contestados en los ultimos 30 s)"
+2026-11-09T20:18:05.042Z,"15:18:05","ALARMA",0,0,"Caja Negra: FALLO_RF - SILENCIO_28000ms (Accion: CAMBIO_A_AMBAR) -> VAYA AL GABINETE DEL ESCLAVO (poste 2), CONECTESE A EL Y PONGALE LA HORA DESDE EL TELEFONO: pestana Tecnico, boton Sincronizar. Se ha perdido la radio entre los dos postes: sin ella, el Esclavo ya no recibe la hora del Maestro y toma la de su propio ESP32, que es la que hay que dejar bien. Y revise la radio: el ultimo tramo que acompana a esta alarma dice como venia el enlace cuando se cayo. [ultimo tramo: latidos sin respuesta: 68, RTT: 0ms]"
+2026-11-09T20:18:06.861Z,"15:18:06","EVENTO",0,0,"Equipo [ENLACE_RF]: PERDIDO_RF:0% - --:--:--"
+2026-11-09T20:18:22.616Z,"15:18:22","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - --:--:--"
+2026-11-09T20:18:22.976Z,"15:18:22","EVENTO",0,0,"Equipo [ENLACE_RF]: OK_RF:0% - --:--:--"
+2026-11-09T20:18:28.996Z,"15:18:28","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_AUTO - --:--:--"
+2026-11-09T20:18:53.056Z,"15:18:53","MUESTRA",0,0,"ENLACE CAYENDO (latidos contestados en los ultimos 30 s)"
+2026-11-09T20:18:57.080Z,"15:18:57","ALARMA",0,0,"Caja Negra: FALLO_RF - SILENCIO_28000ms (Accion: CAMBIO_A_AMBAR) -> VAYA AL GABINETE DEL ESCLAVO (poste 2), CONECTESE A EL Y PONGALE LA HORA DESDE EL TELEFONO: pestana Tecnico, boton Sincronizar. Se ha perdido la radio entre los dos postes: sin ella, el Esclavo ya no recibe la hora del Maestro y toma la de su propio ESP32, que es la que hay que dejar bien. Y revise la radio: el ultimo tramo que acompana a esta alarma dice como venia el enlace cuando se cayo. [ultimo tramo: latidos sin respuesta: 77, RTT: 0ms]"
+2026-11-09T20:18:59.002Z,"15:18:59","EVENTO",0,0,"Equipo [ENLACE_RF]: PERDIDO_RF:0% - --:--:--"
+2026-11-09T20:19:54.836Z,"15:19:54","MUESTRA",0,0,"ENLACE CAYENDO (latidos contestados en los ultimos 30 s)"
+2026-11-09T20:20:14.496Z,"15:20:14","ALARMA",0,0,"Caja Negra: HORA_ESP32 - SIN_HORA_DEL_ESP32 (Accion: SIGUE_SU_HORA) -> PONGALE LA HORA DESDE EL TELEFONO AQUI, EN EL GABINETE DE ESTE POSTE (MAESTRO, poste 1): pestana Tecnico, boton Sincronizar. La controladora si oye a su modulo ESP32, pero el reloj del ESP32 no tiene una hora fiable que darle, y sin ella no le manda ninguna. Mientras tanto la controladora sigue con la hora que tenia, sin nadie que se la corrija desde su ESP32. Si al sincronizar el equipo contesta con un rechazo del reloj, ese motivo dice que tocar (pila o modulo). Si la hora queda puesta y este aviso vuelve a salir, el ESP32 de este poste no esta mandando la hora: revise que firmware lleva. [ultimo tramo: latidos sin respuesta: 103, RTT: 0ms]"
+2026-11-09T20:20:56.821Z,"15:20:56","MUESTRA",0,0,"ENLACE CAYENDO (latidos contestados en los ultimos 30 s)"
+2026-11-09T20:21:59.150Z,"15:21:59","MUESTRA",0,0,"ENLACE CAYENDO (latidos contestados en los ultimos 30 s)"
+2026-11-09T20:23:00.834Z,"15:23:00","MUESTRA",0,0,"ENLACE CAYENDO (latidos contestados en los ultimos 30 s)"
+2026-11-09T20:24:00.837Z,"15:24:00","MUESTRA",0,0,"ENLACE CAYENDO (latidos contestados en los ultimos 30 s)"
+2026-11-09T20:24:41.347Z,"15:24:41","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_AMBAR - --:--:--"
+2026-11-09T20:24:42.813Z,"15:24:42","EVENTO",0,0,"Equipo [ENLACE_RF]: OK_RF:0% - --:--:--"
+2026-11-09T20:24:44.548Z,"15:24:44","EVENTO",0,0,"ámbar de este poste: ámbar pedido por el operario: pasar con precaución"
+2026-11-09T20:24:49.411Z,"15:24:49","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - --:--:--"
+2026-11-09T20:24:53.605Z,"15:24:53","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_AUTO - --:--:--"
+2026-11-09T20:25:02.755Z,"15:25:02","MUESTRA",0,0,"ENLACE CAYENDO (latidos contestados en los ultimos 30 s)"
+2026-11-09T20:25:21.652Z,"15:25:21","ALARMA",0,0,"Caja Negra: FALLO_RF - SILENCIO_28000ms (Accion: CAMBIO_A_AMBAR) -> VAYA AL GABINETE DEL ESCLAVO (poste 2), CONECTESE A EL Y PONGALE LA HORA DESDE EL TELEFONO: pestana Tecnico, boton Sincronizar. Se ha perdido la radio entre los dos postes: sin ella, el Esclavo ya no recibe la hora del Maestro y toma la de su propio ESP32, que es la que hay que dejar bien. Y revise la radio: el ultimo tramo que acompana a esta alarma dice como venia el enlace cuando se cayo. [ultimo tramo: latidos sin respuesta: 193, RTT: 0ms]"
+2026-11-09T20:25:21.763Z,"15:25:21","EVENTO",0,0,"Equipo [ESP32]: HORA_ESP32_SEMBRADA - 15:25:20 -> La controladora de este poste (MAESTRO, poste 1) ha tomado la hora de su modulo ESP32. Si habia un aviso de la hora del ESP32 en este poste, ya esta resuelto."
+2026-11-09T20:25:22.855Z,"15:25:22","EVENTO",0,0,"Equipo [ENLACE_RF]: PERDIDO_RF:0% - 15:25:21"
+2026-11-09T20:26:03.195Z,"15:26:03","MUESTRA",0,0,"ENLACE CAYENDO (latidos contestados en los ultimos 30 s)"
+2026-11-09T20:26:03.195Z,"15:26:03","HUECO",,,"sin una sola trama durante 824 s"
+2026-11-09T20:39:46.742Z,"15:39:46","EVENTO",,,"Equipo [PUENTE]: EVT:ARRANQUE CAUSA:SUBIDA_DE_TENSION ARRANQUES:1 -> ESTE POSTE SE QUEDO SIN LUZ (arranque por subida de tension). No se sabe cuando fue: la trama no trae la hora, sale en cada conexion y tambien tras el primer encendido. Revise el modo en que quedo y de la orden. Arranques contados: 1."
+2026-11-09T20:39:46.764Z,"15:39:46","MUESTRA",0,0,"ENLACE CAYENDO (latidos contestados en los ultimos 30 s)"
+2026-11-09T20:40:14.606Z,"15:40:14","EVENTO",0,0,"Diagnóstico del enlace de este poste (D-23): la radio lleva 23 bytes recibidos, 0 tramas buenas y 0 descartadas desde que arrancó. A partir de aquí solo se anota lo que cambie; el detalle al día está en la ventana de diagnóstico."
+2026-11-09T20:40:34.032Z,"15:40:34","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_AMBAR - 15:40:32"
+2026-11-09T20:40:34.802Z,"15:40:34","EVENTO",0,0,"Equipo [ENLACE_RF]: OK_RF:0% - 15:40:33"
+2026-11-09T20:40:38.192Z,"15:40:38","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 15:40:36"
+2026-11-09T20:40:42.111Z,"15:40:42","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_AUTO - 15:40:40"
+2026-11-09T20:40:44.517Z,"15:40:44","EVENTO",0,0,"La radio de este poste NO recibió un solo byte en los últimos 30 s. No es ruido ni CRC malo: no está entrando nada por la línea."
+2026-11-09T20:40:46.783Z,"15:40:46","MUESTRA",0,0,"ENLACE CAYENDO (latidos contestados en los ultimos 30 s)"
+2026-11-09T20:41:10.132Z,"15:41:10","ALARMA",0,0,"Caja Negra: FALLO_RF - SILENCIO_28000ms (Accion: CAMBIO_A_AMBAR) -> VAYA AL GABINETE DEL ESCLAVO (poste 2), CONECTESE A EL Y PONGALE LA HORA DESDE EL TELEFONO: pestana Tecnico, boton Sincronizar. Se ha perdido la radio entre los dos postes: sin ella, el Esclavo ya no recibe la hora del Maestro y toma la de su propio ESP32, que es la que hay que dejar bien. Y revise la radio: el ultimo tramo que acompana a esta alarma dice como venia el enlace cuando se cayo. [ultimo tramo: latidos sin respuesta: 497, RTT: 0ms]"
+2026-11-09T20:41:10.883Z,"15:41:10","EVENTO",0,0,"Equipo [ENLACE_RF]: PERDIDO_RF:0% - 15:41:09"
+2026-11-09T20:41:17.718Z,"15:41:17","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_MANUAL - 15:41:15"
+2026-11-09T20:41:18.876Z,"15:41:18","EVENTO",0,0,"Equipo [ENLACE_RF]: OK_RF:0% - 15:41:17"
+2026-11-09T20:41:20.139Z,"15:41:20","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_MANUAL - 15:41:18"
+2026-11-09T20:41:23.269Z,"15:41:23","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_MENU - 15:41:21"
+2026-11-09T20:41:26.690Z,"15:41:26","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_ALCANCE - 15:41:24"
+2026-11-09T20:41:28.721Z,"15:41:28","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_MANUAL - 15:41:26"
+2026-11-09T20:41:34.040Z,"15:41:34","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: CAMBIAR_TURNO_MANUAL - 15:41:32"
+2026-11-09T20:41:47.189Z,"15:41:47","MUESTRA",0,0,"ENLACE CAYENDO (latidos contestados en los ultimos 30 s)"
+2026-11-09T20:41:56.951Z,"15:41:56","ALARMA",0,0,"Caja Negra: FALLO_RF - SILENCIO_28000ms (Accion: CAMBIO_A_AMBAR) -> VAYA AL GABINETE DEL ESCLAVO (poste 2), CONECTESE A EL Y PONGALE LA HORA DESDE EL TELEFONO: pestana Tecnico, boton Sincronizar. Se ha perdido la radio entre los dos postes: sin ella, el Esclavo ya no recibe la hora del Maestro y toma la de su propio ESP32, que es la que hay que dejar bien. Y revise la radio: el ultimo tramo que acompana a esta alarma dice como venia el enlace cuando se cayo. [ultimo tramo: latidos sin respuesta: 505, RTT: 0ms]"
+2026-11-09T20:41:59.054Z,"15:41:59","EVENTO",0,0,"Equipo [ENLACE_RF]: PERDIDO_RF:0% - 15:41:57"
+2026-11-09T20:42:48.791Z,"15:42:48","MUESTRA",0,0,"ENLACE CAYENDO (latidos contestados en los ultimos 30 s)"
+2026-11-09T20:43:50.797Z,"15:43:50","MUESTRA",0,0,"ENLACE CAYENDO (latidos contestados en los ultimos 30 s)"
+2026-11-09T20:44:53.271Z,"15:44:53","MUESTRA",0,0,"ENLACE CAYENDO (latidos contestados en los ultimos 30 s)"
+2026-11-09T20:45:55.144Z,"15:45:55","MUESTRA",0,0,"ENLACE CAYENDO (latidos contestados en los ultimos 30 s)"
+2026-11-09T20:46:56.804Z,"15:46:56","MUESTRA",0,0,"ENLACE CAYENDO (latidos contestados en los ultimos 30 s)"
+2026-11-09T20:47:58.895Z,"15:47:58","MUESTRA",0,0,"ENLACE CAYENDO (latidos contestados en los ultimos 30 s)"
+2026-11-09T20:48:58.906Z,"15:48:58","MUESTRA",0,0,"ENLACE CAYENDO (latidos contestados en los ultimos 30 s)"
+2026-11-09T20:49:55.288Z,"15:49:55","EVENTO",0,0,"Equipo [PUENTE]: EVT:ARRANQUE CAUSA:SUBIDA_DE_TENSION ARRANQUES:1 -> ESTE POSTE SE QUEDO SIN LUZ (arranque por subida de tension). No se sabe cuando fue: la trama no trae la hora, sale en cada conexion y tambien tras el primer encendido. Revise el modo en que quedo y de la orden. Arranques contados: 1."
+2026-11-09T20:50:00.828Z,"15:50:00","MUESTRA",0,0,"ENLACE CAYENDO (latidos contestados en los ultimos 30 s)"
+2026-11-09T20:50:01.364Z,"15:50:01","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 15:49:59"
+2026-11-09T20:50:02.887Z,"15:50:02","EVENTO",0,0,"Equipo [ENLACE_RF]: OK_RF:0% - 15:50:01"
+2026-11-09T20:50:05.216Z,"15:50:05","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: CAMBIAR_TURNO_MANUAL - 15:50:03"
+2026-11-09T20:50:13.744Z,"15:50:13","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_AMBAR - 15:50:11"
+2026-11-09T20:50:14.566Z,"15:50:14","EVENTO",0,0,"Diagnóstico del enlace de este poste (D-23): la radio lleva 33 bytes recibidos, 0 tramas buenas y 0 descartadas desde que arrancó. A partir de aquí solo se anota lo que cambie; el detalle al día está en la ventana de diagnóstico."
+2026-11-09T20:50:14.572Z,"15:50:14","EVENTO",0,0,"ámbar de este poste: ámbar pedido por el operario: pasar con precaución"
+2026-11-09T20:50:15.807Z,"15:50:15","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 15:50:13"
+2026-11-09T20:51:00.853Z,"15:51:00","MUESTRA",0,0,"ENLACE CAYENDO (latidos contestados en los ultimos 30 s)"
+2026-11-09T20:51:14.963Z,"15:51:14","EVENTO",0,0,"La radio de este poste NO recibió un solo byte en los últimos 30 s. No es ruido ni CRC malo: no está entrando nada por la línea."
+2026-11-09T20:51:21.466Z,"15:51:21","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_AMBAR - 15:51:19"
+2026-11-09T20:51:25.467Z,"15:51:25","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 15:51:23"
+2026-11-09T20:51:34.380Z,"15:51:34","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 15:51:32"
+2026-11-09T20:51:38.770Z,"15:51:38","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_MENU - 15:51:37"
+2026-11-09T20:51:42.298Z,"15:51:42","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_AUTO - 15:51:40"
+2026-11-09T20:51:44.556Z,"15:51:44","EVENTO",0,0,"Vuelven a entrar bytes por la radio de este poste (8 en los últimos 30 s)."
+2026-11-09T20:51:55.990Z,"15:51:55","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_MENU - 15:51:54"
+2026-11-09T20:52:00.982Z,"15:52:00","MUESTRA",0,0,"ENLACE CAYENDO (latidos contestados en los ultimos 30 s)"
+2026-11-09T20:52:09.077Z,"15:52:09","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_AMBAR - 15:52:07"
+2026-11-09T20:52:14.856Z,"15:52:14","EVENTO",0,0,"ámbar de este poste: ámbar pedido por el operario: pasar con precaución"
+2026-11-09T20:52:44.568Z,"15:52:44","EVENTO",0,0,"La radio de este poste NO recibió un solo byte en los últimos 30 s. No es ruido ni CRC malo: no está entrando nada por la línea."
+2026-11-09T20:53:03.348Z,"15:53:03","MUESTRA",0,0,"ENLACE CAYENDO (latidos contestados en los ultimos 30 s)"
+2026-11-09T20:53:04.711Z,"15:53:04","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_AUTO - 15:53:02"
+2026-11-09T20:53:32.840Z,"15:53:32","ALARMA",0,0,"Caja Negra: FALLO_RF - SILENCIO_28000ms (Accion: CAMBIO_A_AMBAR) -> VAYA AL GABINETE DEL ESCLAVO (poste 2), CONECTESE A EL Y PONGALE LA HORA DESDE EL TELEFONO: pestana Tecnico, boton Sincronizar. Se ha perdido la radio entre los dos postes: sin ella, el Esclavo ya no recibe la hora del Maestro y toma la de su propio ESP32, que es la que hay que dejar bien. Y revise la radio: el ultimo tramo que acompana a esta alarma dice como venia el enlace cuando se cayo. [ultimo tramo: latidos sin respuesta: 675, RTT: 0ms]"
+2026-11-09T20:53:33.156Z,"15:53:33","EVENTO",0,0,"Equipo [ENLACE_RF]: PERDIDO_RF:0% - 15:53:31"
+2026-11-09T20:53:52.555Z,"15:53:52","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 15:53:50"
+2026-11-09T20:53:52.991Z,"15:53:52","EVENTO",0,0,"Equipo [ENLACE_RF]: OK_RF:0% - 15:53:51"
+2026-11-09T20:54:04.195Z,"15:54:04","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_AMBAR - 15:54:02"
+2026-11-09T20:54:04.910Z,"15:54:04","MUESTRA",0,0,"ENLACE CAYENDO (latidos contestados en los ultimos 30 s)"
+2026-11-09T20:54:14.514Z,"15:54:14","EVENTO",0,0,"ámbar de este poste: ámbar pedido por el operario: pasar con precaución"
+2026-11-09T20:54:20.323Z,"15:54:20","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_AUTO - 15:54:18"
+2026-11-09T20:54:48.423Z,"15:54:48","ALARMA",0,0,"Caja Negra: FALLO_RF - SILENCIO_28000ms (Accion: CAMBIO_A_AMBAR) -> VAYA AL GABINETE DEL ESCLAVO (poste 2), CONECTESE A EL Y PONGALE LA HORA DESDE EL TELEFONO: pestana Tecnico, boton Sincronizar. Se ha perdido la radio entre los dos postes: sin ella, el Esclavo ya no recibe la hora del Maestro y toma la de su propio ESP32, que es la que hay que dejar bien. Y revise la radio: el ultimo tramo que acompana a esta alarma dice como venia el enlace cuando se cayo. [ultimo tramo: latidos sin respuesta: 687, RTT: 0ms]"
+2026-11-09T20:54:48.990Z,"15:54:48","EVENTO",0,0,"Equipo [ENLACE_RF]: PERDIDO_RF:0% - 15:54:46"
+2026-11-09T20:55:04.934Z,"15:55:04","MUESTRA",0,0,"ENLACE CAYENDO (latidos contestados en los ultimos 30 s)"
+2026-11-09T20:55:26.144Z,"15:55:26","CAIDA",,,"silencio de mas de 5 s; la ultima medida fue 0% a las 15:55:20"
+2026-11-09T20:55:26.144Z,"15:55:26","HUECO",,,"sin una sola trama durante 2062 s"
+2026-11-09T21:29:48.545Z,"16:29:48","EVENTO",,,"Equipo [PUENTE]: EVT:ARRANQUE CAUSA:SUBIDA_DE_TENSION ARRANQUES:1 -> ESTE POSTE SE QUEDO SIN LUZ (arranque por subida de tension). No se sabe cuando fue: la trama no trae la hora, sale en cada conexion y tambien tras el primer encendido. Revise el modo en que quedo y de la orden. Arranques contados: 1."
+2026-11-09T21:29:50.426Z,"16:29:50","REGRESO",,,"el equipo vuelve a emitir telemetria"
+2026-11-09T21:29:50.459Z,"16:29:50","MUESTRA",,,"el equipo hablo pero el enlace no venia medido (RF:--)"
+2026-11-09T21:30:02.100Z,"16:30:02","EVENTO",,,"Equipo [APP_BLUETOOTH]: SET_MODO_AMBAR - 16:29:59"
+2026-11-09T21:30:10.156Z,"16:30:10","EVENTO",,,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:30:07"
+2026-11-09T21:30:14.344Z,"16:30:14","EVENTO",,,"Diagnóstico del enlace de este poste (D-23): la radio lleva 1 bytes recibidos, 0 tramas buenas y 0 descartadas desde que arrancó. A partir de aquí solo se anota lo que cambie; el detalle al día está en la ventana de diagnóstico."
+2026-11-09T21:30:14.351Z,"16:30:14","EVENTO",,,"ámbar de este poste: ámbar pedido por el operario: pasar con precaución"
+2026-11-09T21:30:44.473Z,"16:30:44","EVENTO",,,"La radio de este poste NO recibió un solo byte en los últimos 30 s. No es ruido ni CRC malo: no está entrando nada por la línea."
+2026-11-09T21:30:52.433Z,"16:30:52","MUESTRA",,,"el equipo hablo pero el enlace no venia medido (RF:--)"
+2026-11-09T21:31:44.365Z,"16:31:44","EVENTO",,,"Vuelven a entrar bytes por la radio de este poste (13 en los últimos 30 s)."
+2026-11-09T21:31:54.479Z,"16:31:54","MUESTRA",,,"el equipo hablo pero el enlace no venia medido (RF:--)"
+2026-11-09T21:32:14.562Z,"16:32:14","EVENTO",,,"La radio de este poste NO recibió un solo byte en los últimos 30 s. No es ruido ni CRC malo: no está entrando nada por la línea."
+2026-11-09T21:32:33.858Z,"16:32:33","EVENTO",,,"Equipo [APP_BLUETOOTH]: SET_MODO_MANUAL - 16:32:31"
+2026-11-09T21:32:38.421Z,"16:32:38","MUESTRA",0,0,"el enlace paso de NO SE SABE a ENLACE CAYENDO"
+2026-11-09T21:32:38.473Z,"16:32:38","EVENTO",0,0,"Equipo [ENLACE_RF]: OK_RF:0% - 16:32:36"
+2026-11-09T21:32:54.203Z,"16:32:54","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_AMBAR - 16:32:51"
+2026-11-09T21:33:03.557Z,"16:33:03","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:33:01"
+2026-11-09T21:33:08.740Z,"16:33:08","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_AMBAR - 16:33:06"
+2026-11-09T21:33:13.481Z,"16:33:13","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:33:10"
+2026-11-09T21:33:14.329Z,"16:33:14","EVENTO",0,0,"ámbar de este poste: ámbar pedido por el operario: pasar con precaución"
+2026-11-09T21:33:15.751Z,"16:33:15","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_AMBAR - 16:33:13"
+2026-11-09T21:33:19.680Z,"16:33:19","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:33:17"
+2026-11-09T21:33:21.297Z,"16:33:21","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_AMBAR - 16:33:18"
+2026-11-09T21:33:22.710Z,"16:33:22","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:33:20"
+2026-11-09T21:33:28.075Z,"16:33:28","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_AMBAR - 16:33:25"
+2026-11-09T21:33:30.004Z,"16:33:30","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_AMBAR - 16:33:27"
+2026-11-09T21:33:30.885Z,"16:33:30","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:33:28"
+2026-11-09T21:33:32.394Z,"16:33:32","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_AMBAR - 16:33:29"
+2026-11-09T21:33:33.059Z,"16:33:33","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:33:30"
+2026-11-09T21:33:36.739Z,"16:33:36","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_AMBAR - 16:33:34"
+2026-11-09T21:33:38.532Z,"16:33:38","MUESTRA",0,0,"ENLACE CAYENDO (latidos contestados en los ultimos 30 s)"
+2026-11-09T21:33:41.247Z,"16:33:41","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:33:38"
+2026-11-09T21:33:44.739Z,"16:33:44","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_AMBAR - 16:33:42"
+2026-11-09T21:33:47.848Z,"16:33:47","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:33:45"
+2026-11-09T21:33:55.012Z,"16:33:55","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_AMBAR - 16:33:52"
+2026-11-09T21:33:56.242Z,"16:33:56","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:33:53"
+2026-11-09T21:33:57.683Z,"16:33:57","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:33:55"
+2026-11-09T21:33:58.353Z,"16:33:58","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:33:55"
+2026-11-09T21:33:58.797Z,"16:33:58","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:33:56"
+2026-11-09T21:33:59.008Z,"16:33:59","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:33:56"
+2026-11-09T21:33:59.184Z,"16:33:59","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:33:56"
+2026-11-09T21:33:59.343Z,"16:33:59","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:33:56"
+2026-11-09T21:33:59.550Z,"16:33:59","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:33:56"
+2026-11-09T21:33:59.681Z,"16:33:59","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:33:57"
+2026-11-09T21:33:59.835Z,"16:33:59","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:33:57"
+2026-11-09T21:33:59.940Z,"16:33:59","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:33:57"
+2026-11-09T21:34:00.070Z,"16:34:00","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:33:57"
+2026-11-09T21:34:00.253Z,"16:34:00","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:33:57"
+2026-11-09T21:34:03.743Z,"16:34:03","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:34:01"
+2026-11-09T21:34:04.219Z,"16:34:04","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:34:01"
+2026-11-09T21:34:04.395Z,"16:34:04","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:34:01"
+2026-11-09T21:34:04.733Z,"16:34:04","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:34:02"
+2026-11-09T21:34:04.791Z,"16:34:04","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:34:02"
+2026-11-09T21:34:04.989Z,"16:34:04","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:34:02"
+2026-11-09T21:34:40.599Z,"16:34:40","MUESTRA",0,0,"ENLACE CAYENDO (latidos contestados en los ultimos 30 s)"
+2026-11-09T21:35:42.548Z,"16:35:42","MUESTRA",0,0,"ENLACE CAYENDO (latidos contestados en los ultimos 30 s)"
+2026-11-09T21:35:54.991Z,"16:35:54","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_AUTO - 16:35:52"
+2026-11-09T21:36:23.098Z,"16:36:23","ALARMA",0,0,"Caja Negra: FALLO_RF - SILENCIO_28000ms (Accion: CAMBIO_A_AMBAR) -> VAYA AL GABINETE DEL ESCLAVO (poste 2), CONECTESE A EL Y PONGALE LA HORA DESDE EL TELEFONO: pestana Tecnico, boton Sincronizar. Se ha perdido la radio entre los dos postes: sin ella, el Esclavo ya no recibe la hora del Maestro y toma la de su propio ESP32, que es la que hay que dejar bien. Y revise la radio: el ultimo tramo que acompana a esta alarma dice como venia el enlace cuando se cayo. [ultimo tramo: latidos sin respuesta: 7, RTT: 0ms]"
+2026-11-09T21:36:24.582Z,"16:36:24","EVENTO",0,0,"Equipo [ENLACE_RF]: PERDIDO_RF:0% - 16:36:22"
+2026-11-09T21:36:32.410Z,"16:36:32","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_AUTO - 16:36:29"
+2026-11-09T21:36:32.657Z,"16:36:32","EVENTO",0,0,"Equipo [ENLACE_RF]: OK_RF:0% - 16:36:30"
+2026-11-09T21:36:44.546Z,"16:36:44","MUESTRA",0,0,"ENLACE CAYENDO (latidos contestados en los ultimos 30 s)"
+2026-11-09T21:36:58.159Z,"16:36:58","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_AMBAR - 16:36:55"
+2026-11-09T21:37:14.269Z,"16:37:14","EVENTO",0,0,"ámbar de este poste: ámbar pedido por el operario: pasar con precaución"
+2026-11-09T21:37:46.703Z,"16:37:46","MUESTRA",0,0,"ENLACE CAYENDO (latidos contestados en los ultimos 30 s)"
+2026-11-09T21:38:34.920Z,"16:38:34","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:38:32"
+2026-11-09T21:38:35.545Z,"16:38:35","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:38:33"
+2026-11-09T21:38:36.850Z,"16:38:36","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:38:34"
+2026-11-09T21:38:37.540Z,"16:38:37","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:38:35"
+2026-11-09T21:38:38.066Z,"16:38:38","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:38:35"
+2026-11-09T21:38:38.864Z,"16:38:38","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:38:36"
+2026-11-09T21:38:39.958Z,"16:38:39","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:38:37"
+2026-11-09T21:38:40.744Z,"16:38:40","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:38:38"
+2026-11-09T21:38:41.186Z,"16:38:41","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:38:38"
+2026-11-09T21:38:42.170Z,"16:38:42","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:38:39"
+2026-11-09T21:38:48.621Z,"16:38:48","MUESTRA",0,0,"ENLACE CAYENDO (latidos contestados en los ultimos 30 s)"
+2026-11-09T21:39:11.274Z,"16:39:11","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:39:08"
+2026-11-09T21:39:13.135Z,"16:39:13","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:39:10"
+2026-11-09T21:39:14.217Z,"16:39:14","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:39:11"
+2026-11-09T21:39:15.581Z,"16:39:15","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:39:13"
+2026-11-09T21:39:16.837Z,"16:39:16","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:39:14"
+2026-11-09T21:39:18.324Z,"16:39:18","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_AMBAR - 16:39:15"
+2026-11-09T21:39:28.778Z,"16:39:28","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:39:26"
+2026-11-09T21:39:30.208Z,"16:39:30","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:39:27"
+2026-11-09T21:39:31.396Z,"16:39:31","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:39:28"
+2026-11-09T21:39:50.535Z,"16:39:50","MUESTRA",0,0,"ENLACE CAYENDO (latidos contestados en los ultimos 30 s)"
+2026-11-09T21:40:44.312Z,"16:40:44","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:40:41"
+2026-11-09T21:40:46.454Z,"16:40:46","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:40:43"
+2026-11-09T21:40:48.204Z,"16:40:48","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:40:45"
+2026-11-09T21:40:50.553Z,"16:40:50","MUESTRA",0,0,"ENLACE CAYENDO (latidos contestados en los ultimos 30 s)"
+2026-11-09T21:41:00.991Z,"16:41:00","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_AMBAR - 16:40:58"
+2026-11-09T21:41:02.782Z,"16:41:02","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:41:00"
+2026-11-09T21:41:04.977Z,"16:41:04","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:41:02"
+2026-11-09T21:41:06.914Z,"16:41:06","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:41:04"
+2026-11-09T21:41:09.369Z,"16:41:09","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:41:06"
+2026-11-09T21:41:14.827Z,"16:41:14","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:41:12"
+2026-11-09T21:41:16.950Z,"16:41:16","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:41:14"
+2026-11-09T21:41:18.428Z,"16:41:18","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:41:15"
+2026-11-09T21:41:19.329Z,"16:41:19","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:41:16"
+2026-11-09T21:41:21.045Z,"16:41:21","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:41:18"
+2026-11-09T21:41:22.730Z,"16:41:22","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:41:20"
+2026-11-09T21:41:23.564Z,"16:41:23","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:41:21"
+2026-11-09T21:41:24.225Z,"16:41:24","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:41:21"
+2026-11-09T21:41:24.697Z,"16:41:24","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:41:22"
+2026-11-09T21:41:50.855Z,"16:41:50","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:41:48"
+2026-11-09T21:41:51.824Z,"16:41:51","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:41:49"
+2026-11-09T21:41:52.506Z,"16:41:52","MUESTRA",0,0,"ENLACE CAYENDO (latidos contestados en los ultimos 30 s)"
+2026-11-09T21:41:52.696Z,"16:41:52","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:41:50"
+2026-11-09T21:41:57.277Z,"16:41:57","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:41:54"
+2026-11-09T21:41:58.207Z,"16:41:58","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:41:55"
+2026-11-09T21:42:12.266Z,"16:42:12","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: SET_MODO_AUTO - 16:42:09"
+2026-11-09T21:42:14.204Z,"16:42:14","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:42:11"
+2026-11-09T21:42:15.389Z,"16:42:15","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:42:12"
+2026-11-09T21:42:16.757Z,"16:42:16","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:42:14"
+2026-11-09T21:42:18.430Z,"16:42:18","EVENTO",0,0,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - 16:42:15"
+2026-11-09T21:42:46.380Z,"16:42:46","CAIDA",,,"silencio de mas de 5 s; la ultima medida fue 0% a las 16:42:40"
+2026-11-09T21:42:46.380Z,"16:42:46","HUECO",,,"sin una sola trama durante 1933 s"
+2026-11-09T22:14:59.731Z,"17:14:59","EVENTO",,,"Equipo [PUENTE]: EVT:ARRANQUE CAUSA:OTRO_PERRO ARRANQUES:1 -> El modulo ESP32 de este poste arranco: el perro guardian del ESP32 lo reinicio (se habia colgado). No se sabe cuando fue. Arranques contados: 1."
+2026-11-09T22:15:01.235Z,"17:15:01","MUESTRA",,,"el equipo hablo pero el enlace no venia medido (RF:--)"
+2026-11-09T22:15:11.207Z,"17:15:11","EVENTO",,,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - --:--:--"
+2026-11-09T22:15:19.761Z,"17:15:19","EVENTO",,,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - --:--:--"
+2026-11-09T22:15:22.297Z,"17:15:22","EVENTO",,,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - --:--:--"
+2026-11-09T22:15:27.161Z,"17:15:27","EVENTO",,,"Diagnóstico del enlace de este poste (D-23): la radio lleva 4 bytes recibidos, 0 tramas buenas y 0 descartadas desde que arrancó. A partir de aquí solo se anota lo que cambie; el detalle al día está en la ventana de diagnóstico."
+2026-11-09T22:15:27.168Z,"17:15:27","EVENTO",,,"ámbar de este poste: ámbar de arranque (poste reiniciado): pasar con precaución"
+2026-11-09T22:15:33.582Z,"17:15:33","EVENTO",,,"Equipo [APP_BLUETOOTH]: SET_MODO_AMBAR - --:--:--"
+2026-11-09T22:15:47.127Z,"17:15:47","EVENTO",,,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - --:--:--"
+2026-11-09T22:15:57.125Z,"17:15:57","EVENTO",,,"ámbar de este poste: ámbar pedido por el operario: pasar con precaución"
+2026-11-09T22:16:01.333Z,"17:16:01","MUESTRA",,,"el equipo hablo pero el enlace no venia medido (RF:--)"
+2026-11-09T22:16:02.165Z,"17:16:02","EVENTO",,,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - --:--:--"
+2026-11-09T22:16:08.145Z,"17:16:08","EVENTO",,,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - --:--:--"
+2026-11-09T22:16:08.399Z,"17:16:08","EVENTO",,,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - --:--:--"
+2026-11-09T22:16:08.607Z,"17:16:08","EVENTO",,,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - --:--:--"
+2026-11-09T22:16:08.844Z,"17:16:08","EVENTO",,,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - --:--:--"
+2026-11-09T22:16:20.209Z,"17:16:20","CAIDA",,,"silencio de mas de 5 s; no se llego a medir el enlace en esta sesion"
+2026-11-09T22:16:20.209Z,"17:16:20","HUECO",,,"sin una sola trama durante 204 s"
+2026-11-09T22:19:44.316Z,"17:19:44","EVENTO",,,"Equipo [PUENTE]: EVT:ARRANQUE CAUSA:SUBIDA_DE_TENSION ARRANQUES:1 -> ESTE POSTE SE QUEDO SIN LUZ (arranque por subida de tension). No se sabe cuando fue: la trama no trae la hora, sale en cada conexion y tambien tras el primer encendido. Revise el modo en que quedo y de la orden. Arranques contados: 1."
+2026-11-09T22:19:49.923Z,"17:19:49","EVENTO",,,"Equipo [PUENTE]: EVT:ARRANQUE CAUSA:SUBIDA_DE_TENSION ARRANQUES:1 -> ESTE POSTE SE QUEDO SIN LUZ (arranque por subida de tension). No se sabe cuando fue: la trama no trae la hora, sale en cada conexion y tambien tras el primer encendido. Revise el modo en que quedo y de la orden. Arranques contados: 1."
+2026-11-09T22:19:51.395Z,"17:19:51","REGRESO",,,"el equipo vuelve a emitir telemetria"
+2026-11-09T22:19:51.419Z,"17:19:51","MUESTRA",,,"el equipo hablo pero el enlace no venia medido (RF:--)"
+2026-11-09T22:19:59.429Z,"17:19:59","EVENTO",,,"Diagnóstico del enlace de este poste (D-23): la radio lleva 0 bytes recibidos, 0 tramas buenas y 0 descartadas desde que arrancó. A partir de aquí solo se anota lo que cambie; el detalle al día está en la ventana de diagnóstico."
+2026-11-09T22:19:59.438Z,"17:19:59","EVENTO",,,"ámbar de este poste: ámbar de arranque (poste reiniciado): pasar con precaución"
+2026-11-09T22:20:00.672Z,"17:20:00","EVENTO",,,"Equipo [APP_BLUETOOTH]: SET_MODO_AMBAR - --:--:--"
+2026-11-09T22:20:06.801Z,"17:20:06","EVENTO",,,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - --:--:--"
+2026-11-09T22:20:08.694Z,"17:20:08","EVENTO",,,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - --:--:--"
+2026-11-09T22:20:09.621Z,"17:20:09","EVENTO",,,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - --:--:--"
+2026-11-09T22:20:09.939Z,"17:20:09","EVENTO",,,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - --:--:--"
+2026-11-09T22:20:12.158Z,"17:20:12","EVENTO",,,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - --:--:--"
+2026-11-09T22:20:13.147Z,"17:20:13","EVENTO",,,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - --:--:--"
+2026-11-09T22:20:20.659Z,"17:20:20","EVENTO",,,"Equipo [APP_BLUETOOTH]: SET_MODO_AMBAR - --:--:--"
+2026-11-09T22:20:29.358Z,"17:20:29","EVENTO",,,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - --:--:--"
+2026-11-09T22:20:29.653Z,"17:20:29","EVENTO",,,"ámbar de este poste: ámbar pedido por el operario: pasar con precaución"
+2026-11-09T22:20:34.161Z,"17:20:34","EVENTO",,,"Equipo [APP_BLUETOOTH]: SET_MODO_AUTO - --:--:--"
+2026-11-09T22:20:43.450Z,"17:20:43","MUESTRA",100,737,"el enlace paso de NO SE SABE a ENLACE BUENO"
+2026-11-09T22:20:43.665Z,"17:20:43","EVENTO",100,737,"Equipo [ENLACE_RF]: OK_RF:100% - --:--:--"
+2026-11-09T22:21:32.838Z,"17:21:32","EVENTO",100,761,"Equipo [PUENTE]: EVT:ARRANQUE CAUSA:SUBIDA_DE_TENSION ARRANQUES:1 -> ESTE POSTE SE QUEDO SIN LUZ (arranque por subida de tension). No se sabe cuando fue: la trama no trae la hora, sale en cada conexion y tambien tras el primer encendido. Revise el modo en que quedo y de la orden. Arranques contados: 1."
+2026-11-09T22:21:43.582Z,"17:21:43","MUESTRA",100,755,"ENLACE BUENO (latidos contestados en los ultimos 30 s)"
+2026-11-09T22:21:59.590Z,"17:21:59","EVENTO",100,761,"Diagnóstico del enlace de este poste (D-23): la radio lleva 389 bytes recibidos, 97 tramas buenas y 0 descartadas desde que arrancó. A partir de aquí solo se anota lo que cambie; el detalle al día está en la ventana de diagnóstico."
+2026-11-09T22:22:45.500Z,"17:22:45","MUESTRA",100,755,"ENLACE BUENO (latidos contestados en los ultimos 30 s)"
+2026-11-09T22:23:47.861Z,"17:23:47","MUESTRA",100,751,"ENLACE BUENO (latidos contestados en los ultimos 30 s)"
+2026-11-09T22:24:12.948Z,"17:24:12","EVENTO",100,752,"Equipo [APP_BLUETOOTH]: SET_MODO_MANUAL - --:--:--"
+2026-11-09T22:24:20.829Z,"17:24:20","EVENTO",90,902,"Equipo [APP_BLUETOOTH]: FORZAR_ROJO_SIN_PIN - --:--:--"
+2026-11-09T22:24:28.419Z,"17:24:28","EVENTO",80,864,"Equipo [APP_BLUETOOTH]: CAMBIAR_TURNO_MANUAL - --:--:--"
+2026-11-09T22:24:45.605Z,"17:24:45","EVENTO",90,771,"Equipo [APP_BLUETOOTH]: CAMBIAR_TURNO_MANUAL - --:--:--"
+2026-11-09T22:24:49.498Z,"17:24:49","MUESTRA",90,766,"ENLACE BUENO (latidos contestados en los ultimos 30 s)"
+2026-11-09T22:25:05.530Z,"17:25:05","CAIDA",,,"silencio de mas de 5 s; la ultima medida fue 100% a las 17:24:59"
+
+
+========================================================================
+
+IOT-VIAL - FICHERO DE LA SESION
+ESCRIBIENDO en Android/data/com.iotvial.semaforos/files/SESION_20261109-171459.txt (676 lineas, 100 KB)
