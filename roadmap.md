@@ -37,7 +37,7 @@ entregable: los tres defectos del banco del 03-04/09 pasaron la compuerta entera
 | 3 | `D-166` + `D-169`: veto por camara y camaras malas (`MALA1`/`MALA2`) | workflow | HECHO `3facd6d`, sin banco |
 | 4 | `D-168`: `J15` = BAJAR, barrera arriba en reposo y al arrancar; VERSION dice `J15:` | workflow | HECHO `3facd6d`, sin banco |
 | 5 | Candidata: compuerta 16/17 (solo `D-22`, acta de `37f42ce`), arquitecto y QA APTO CON CONDICIONES, auditoria `N-182` integrada, APK y `Paquete_Semaforos_2026-11-11_8a81f1e_SIN_BANCO.zip` (`129a1157...`, APK `c9b82b1a...`); `6ca489f` a `RETIRADOS/` | orquestador | HECHO `8a81f1e` |
-| 5b | **Para el responsable, antes de cargar `J15:BAJAR` en campo (arquitecto):** con `D-168` un corto de `Q10` o del opto deja la pluma ABAJO con verde y el firmware no lo ve (`SPEC_5` §4, tabla de fallos); antes la dejaba arriba. Aceptarlo en una fila o esperar al fin de carrera leido. Y: `FORZAR_ROJO` en Automatico/Inteligente no es rojo fijo (el ciclo sigue) | responsable | abierto |
+| 5b | **Para el responsable:** el corto de `Q10` con `D-168`, ACEPTADO (`D-172`, 10/11). Queda: `FORZAR_ROJO` en Automatico/Inteligente no es rojo fijo (el ciclo sigue) | responsable | abierto |
 | 5c | Menores de la revision: `ESC:ROJO` hasta 12 s tras ROJO TOTAL por la gracia de `tUltimaRespuestaEsclavo` (cumple SPEC_4, no la letra de `D-171`); la Practica da `ESC:?` al instante y `CONSULTA_VETO` siempre `?`; polaridad por `PLATFORMIO_BUILD_FLAGS` sin abortar; QA pide medir los ms del arranque del Maestro hasta el primer `escribirPines` | version siguiente | no bloquea |
 | 6 | **Banco de Marco:** hojas del 11/11 (1-12) y del 10/11 (1-40) (Parte 9 `N-187`, Parte 10 barrera arriba) y lo POR VALIDAR de §5. Sus registros se leen enteros y contando (`CLAUDE.md` §7): `RTT:` con LoRa, cobertura en metros, subida y bajada real del brazo, camaras (NA/NC y veto), C5, y lo que deben las cintas (`D1`..`D8` de la mudanza del 09/11: `N-172`, `D-40`, `D-38`, camaras con peatones, centralita, `N-116`). Rangos de `N-187` desde la app, sin firmware (`D-163`). `SIN_BANCO` sale solo con acta `evidencia/<fecha>_campo_<tema>.txt` y el hash cargado | Marco; lee el orquestador | ya |
 | 7 | **Brazo lento:** cuando bajar y subir (con el verde, el ambar, tras el rojo, N s antes) con el tiempo medido en 6 (prueba 4) y una simulacion de dos modelos y arbitro a 10, 30 y 60 s. «Sin barrera» ya existe (`D-96`); no crear «abajo fija»: el rojo fijo ya la baja | orquestador mide; decide el responsable | tras 6 |
@@ -47,6 +47,8 @@ entregable: los tres defectos del banco del 03-04/09 pasaron la compuerta entera
 
 **Version siguiente menor (fila 10):**
 
+- `D-172`: leer un final de carrera de la barrera (pluma abajo con verde = alarma). Primero SPEC_5: que entrada libre,
+  su cobre medido en `17_...` y el contacto del final de carrera de la central; despues firmware y app.
 - `D-98`, tanda ultima de `app.js` (modales y PIN), con su condicion en
   [`ROADMAP_APP.md`](05_Funcional/App_Semaforo/ROADMAP_APP.md); Pasos Peatonales, alli.
 - De arquitecto y QA de `N-187`: `camara_02_j16` no ve el `!= nc`; prueba de la pegada y del aviso de 90 s tras

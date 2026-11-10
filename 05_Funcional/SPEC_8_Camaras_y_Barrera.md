@@ -374,7 +374,7 @@ los numeros de apartado no se tocan, `CLAUDE.md` cabecera.)
   `coordinador_setup()`; Esclavo: R es >= 3 s y el bucle empieza tras los 2 s del arranque). Ejercido: I6 de dos
   puntas, el arranque del bloque A de «automatico» y `barrera_03_talanquera`.
   **Modo de fallo que trae:** cada reset, carga o cuelgue SUBE la pluma, tambien en rojo (aceptado: la barrera es
-  complemento); `Q10` u opto en corto la deja ABAJO fija con verde, en silencio (`SPEC_5` §4, sin aceptar ni medir);
+  complemento); `Q10` u opto en corto la deja ABAJO fija con verde, en silencio (`SPEC_5` §4; aceptado, `D-172`);
   y la mezcla de firmware y central la invierte sin que nadie salvo el que mira el brazo lo note.
   **Por eso firmware y central cambian en la MISMA visita, con `J15` suelta entre medias** (para este cambio NO vale
   «firmware primero» de `CLAUDE.md` §3): `J15` suelta; central a «sin senal = subir» y comprobar que sube; carga SWD;
@@ -517,7 +517,7 @@ cambiar el contacto, comprobar `VE:0` y devolver el veto.
   subir» y central «sin senal = bajar»; DEROGADO el 10/11 por el responsable: J15 activa = BAJAR, polaridad fijada al
   compilar (un binario por polaridad, declarada en la version), arranque que no baja la pluma, central «sin senal =
   subir» y firmware y central en la MISMA visita con `J15` suelta (8.2, `SPEC_5` §4).** Modo de fallo: sube con cada
-  corte o reinicio (aceptado) y baja fija con `Q10` en corto (sin aceptar). **Construido sin banco (`D-168`).**
+  corte o reinicio (aceptado) y baja fija con `Q10` en corto (aceptado, `D-172`). **Construido sin banco (`D-168`).**
 
 **P1..P4 decididas el 09/11** (simulacion de dos modelos y arbitro): P1 y P4 como se recomienda, P2 ARRIBA fija,
 P3 3..5 s. Revision de arquitectura antes de construir: APTO CON CONDICIONES (C1..C5, cerradas en este apartado).

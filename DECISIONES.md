@@ -172,6 +172,7 @@ Derogadas: D-6, D-63, D-90, D-159
 | **D-168** | Barrera en reposo y SIN ENERGIA, ARRIBA: `J15` conduce = BAJAR (`TALANQUERA_CERRAR HIGH`, ancla en `pines.h`), polaridad fijada al compilar y dicha en `VERSION` (`J15:BAJAR`; la vieja, `TALANQUERA_POLARIDAD_VIEJA`, `J15:SUBIR`); el arranque escribe ABRIR y la 1.a bajada pasa por R y el veto; central y firmware en la MISMA visita con `J15` suelta. Responsable, 10/11; sin banco. | SPEC_5 §4, SPEC_8 §8.2/8.4/8.7 | firmware | `D-164` en el sentido: `J15` activa = subir, central «sin senal = bajar»; arranque que baja la pluma |
 | **D-170** | `FORZAR_ROJO` con el Maestro en `MODO_AMBAR`: rojo en los dos, y el Maestro lo recuerda por latido y reenvio (`GO_RED` hasta `ACK_RED`): pasa a `MODO_MANUAL` antes del `$ACK`, hasta otra orden. Responsable, 10/11. | SPEC_4 §3.1, SPEC_1 §4 | firmware, app | el rojo solo del Maestro con el modo en ambar (el Esclavo volvia a ambar a los 28 s) |
 | **D-171** | Sin dato fresco del Poste 2 (sin respuesta o con mas de `SFTY6_SILENCIO_MS`), `ESC:?` en todo modo salvo Ambar; tambien en `MENU`. Responsable, 10/11. | SPEC_4 §6 | firmware | `ESC:ROJO` en `MENU` sin radio |
+| **D-172** | Se acepta que, con `D-168`, un corto de `Q10` o del opto deje la pluma ABAJO fija, tambien en verde, sin aviso. Lo cierra la version siguiente leyendo un final de carrera (entrada y cobre, primero en SPEC_5 y medidos). Responsable, 10/11. | SPEC_5 §4, SPEC_8 §8.2 | firmware, campo | «sin aceptar» (arquitecto 10/11) |
 
 ## Abiertas
 
