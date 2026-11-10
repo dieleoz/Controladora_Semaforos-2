@@ -118,10 +118,10 @@ const Interruptores = {
     // D-148: el arranque encontro el respaldo invalido y lo borro. Lo que no sobreviviria al corte no se
     // pone; lo de fabrica si se acepta, asi que esto solo llega con OFF o BAJA.
     RESPALDO_INVALIDO: {
-      texto: 'El equipo NO lo puso: al arrancar encontró perdido lo que guarda con la pila (pila ' +
-             'agotada, equipo nuevo o pila recién cambiada), y este interruptor no sobreviviría a un ' +
-             'corte de luz. Compruebe la pila, reinicie el equipo una vez y repita.',
-      toast: 'No se puso: revise la pila y reinicie el equipo'
+      texto: 'El equipo NO cambió nada: esta placa pierde sus ajustes en cada corte de luz (sin pila de ' +
+             'respaldo o gastada). Sigue como de fábrica: las dos cámaras vetan la barrera y la barrera en ' +
+             'servicio. Que falta: poner o cambiar la pila de la placa y repetir; reiniciar no basta.',
+      toast: 'No se cambió: la placa no tiene pila de respaldo'
     },
     // SPEC_8 6.1 (D-149): escrito y releido, lo leido no es lo pedido. No es NO_QUEDO_PUESTA (reloj, textos_err.js).
     NO_QUEDO_PUESTO: {
