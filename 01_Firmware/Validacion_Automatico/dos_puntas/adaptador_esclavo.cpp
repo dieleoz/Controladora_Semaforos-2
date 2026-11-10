@@ -22,7 +22,7 @@
 // guardas de N-83 -las que revocan el ambar de la app- viven EXACTAMENTE ahi.
 //
 // LO QUE SE SUSTITUYE, Y ES TODO LO QUE NO DECIDE UNA LUZ: pantalla (lcd, menu),
-// botones, el RTC y la radio. Ninguno de esos cuatro puede encender un verde; los tres
+// botones (N-187: real sin ARNES_RELOJ_REAL), el RTC y la radio. Ninguno enciende un verde; los tres
 // que si pueden -radio, Degradado- se compilan de verdad.
 //
 // 11/09 (N-142, §3.16-A): Y EL BLUETOOTH DEJA DE ESTAR EN ESA LISTA. bluetooth.cpp del
@@ -92,17 +92,8 @@ IWatchdogClase IWatchdog;
 
 static_assert(sizeof(RF_Packet) == 4, "RF_Packet dejo de medir 4 bytes");
 
-// D-44: aqui vivian los cuatro botones simulados; el firmware ya no los lee.
-void botones_setup() {}
-void botones_actualizar() {}
-// D-33 (14/09/2026): NO HAY CAMARAS EN ESTE BANCO, y por eso contesta que no hay nadie.
-// Es la respuesta correcta para un equipo con las borneras de J16 vacias -el pull-down
-// de 10K deja los pines bajos para siempre-, no un "por ahora". Lo que este arnes mide
-// es el reparto del verde entre las dos puntas; quien ejerce el veto con camaras de
-// verdad es el Bloque F/G de arnes_automatico.cpp, que compila botones.cpp REAL.
-bool camara_presenciaJ16(int) { return false; }
-#include "../instalacion_dobles.inc"
-bool camara_leerPin(uint8_t pin, bool nc) { return (digitalRead(pin) == HIGH) != nc; }  // N-187: firma real
+// D-44: aqui vivian los cuatro botones simulados. N-187: botones.cpp, real o doble, ver alli.
+#include "adaptador_esclavo_instalacion.inc"
 
 // D-44: aqui vivian lcd_setup(), la bienvenida, menu_setup() y menu_loop(); main.cpp no los llama.
 #include "adaptador_esclavo_interruptores.inc"  // SPEC_8 6: camara_estado(), $EVENT/$STATUS, ordenes
@@ -125,14 +116,14 @@ bool camara_leerPin(uint8_t pin, bool nc) { return (digitalRead(pin) == HIGH) !=
 //
 // SE INCLUYE EL .cpp, como arnes_respaldo.cpp con respaldo.cpp: el fuente entra intacto,
 // byte por byte, y lo que se sustituye es el SILICIO de alrededor -el puerto serie- mas
-// los cuatro modulos que esta DLL no compila (protocolo, identidad, botones y el RTC).
+// los modulos que esta DLL no compila (protocolo, identidad y el RTC; botones, N-187).
 //
 // LO QUE ESTO ANADE AL ARNES, Y NO ES POCO: el $ACK que el telefono recibe pasa a ser
 // observable. Hasta hoy ninguna prueba de este repositorio leia lo que el equipo CONTESTA
 // mientras la luz se movia; se leia por texto en los packs. Ver las ordenes "bt:" y "ack:".
 //
-// LO QUE NO ENTRA: protocolo.cpp (CRC, rafaga y replay), identidad.cpp y botones.cpp. Los
-// tres se doblan aqui abajo y ninguno decide una luz. Y el reloj sigue siendo el modelo de
+// LO QUE NO ENTRA: protocolo.cpp (CRC, rafaga y replay) e identidad.cpp (botones.cpp, desde N-187,
+// SI). Se doblan aqui abajo y ninguno decide una luz. Y el reloj sigue siendo el modelo de
 // periferico de siempre; la rama CMD:HORA_ESP32 del despachador se puede ejercer, pero
 // quien mide la hora es el arnes del Degradado, con reloj.cpp real.
 // ---------------------------------------------------------------------------
@@ -456,7 +447,7 @@ PUNTA_API const char* punta_nombre(void) { return "ESCLAVO"; }
 // decide si tras un corte esta punta REANUDA el Modo Degradado o cae a ambar, y es
 // justo lo que hay que ejercer en el escenario de microcorte.
 PUNTA_API void punta_arrancar(void) {
-  for (int i = 0; i < 64; i++) { arnes_pines[i] = LOW; arnes_entradas[i] = LOW; }
+  for (int i = 0; i < 64; i++) { arnes_pines[i] = LOW; arnes_entradas[i] = g_entradaAlArrancar[i]; }  // N-187
   arnes_escrituras = 0;
   for (int i = 0; i < 64; i++) arnes_toques[i] = 0;
   setup();
@@ -496,6 +487,7 @@ PUNTA_API void punta_entrada(int pin, int nivel) {
 
 PUNTA_API long punta_mando(const char* que, long arg) {
   { const long r = arnesInterruptores_mando(que, arg); if (r != PUNTA_DESCONOCIDO) return r; }  // SPEC_8 6
+  { const long r = arnesInstEsc_mando(que, arg); if (r != PUNTA_DESCONOCIDO) return r; }  // N-187
 #ifdef ARNES_RELOJ_REAL
   { const long r = arnesDegAuto_mando(que, arg); if (r != PUNTA_DESCONOCIDO) return r; }  // A-15
   // Con el reloj.cpp real no hay doble que cuente las llamadas a reloj_notarRadio(): se le

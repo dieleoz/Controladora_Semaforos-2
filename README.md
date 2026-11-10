@@ -117,7 +117,7 @@ publicaba 32 rutas y 86,4 % de flash cuando el acta que ella misma citaba medía
 | arnés del ciclo | ✅ | **78/78** — corre sobre el `ciclo_degradado.h` real compilado, sin espejo en Python |
 | arnés del respaldo | ✅ | compila el `calcularSuma()` real; identidad de `respaldo.cpp` entre puntas + prueba de vida |
 | arnés del Degradado a dos puntas | ✅ | **161/161** — las dos puntas en Degradado **cada una con su reloj**. Entrega **el número**: el cruce aguanta **29 s** de desfase contra los **20,2 s** que el equipo puede acumular en 48 h, o sea factor **1,44** — y no el 2 que afirmaban los comentarios de las dos puntas |
-| arnés de las dos puntas | ✅ | **184/184** — el C++ **real de las DOS puntas** en el mismo proceso y el mismo instante: verde simultáneo en **0** instantes. Cubre `G3`/`N-163` (suelta del verde), `D-34` (verde del Esclavo frente al ámbar del Maestro, `G12`–`G14`) y `D-53` (rojo+amarillo antes de cada verde). Sin banco |
+| arnés de las dos puntas | ✅ | **193/193** — el C++ **real de las DOS puntas** en el mismo proceso y el mismo instante: verde simultáneo en **0** instantes. Cubre `G3`/`N-163` (suelta del verde), `D-34` (verde del Esclavo frente al ámbar del Maestro, `G12`–`G14`) y `D-53` (rojo+amarillo antes de cada verde). Sin banco |
 | arnés del automático | ✅ | **109/109** — compila `coordinador.cpp` + `semaforo.cpp` + `modo_automatico.cpp` + `modo_inteligente.cpp`, `demanda.cpp` y el `botones.cpp` real, y comprueba SFTY-2 sobre las escrituras de pin. Las 16 nuevas son el **Bloque G de `D-33`**: el retardo de bajada de la pluma y el veto de la cámara, ejecutados |
 
 > 🛑 **Aquí había una fila más, `arnés de pantalla`, y NO se actualiza: se RETIRA.** Compilaba los cuatro

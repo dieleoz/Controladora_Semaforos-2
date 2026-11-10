@@ -118,8 +118,9 @@ Regla desde el 09/11: cada cambio lleva su spec en el MISMO commit y un grep de 
 - Hueco medido (`N-182`): tras un corte con la barrera fuera, la pluma sube en la siguiente escritura de la luz, no al
   arrancar. Sin medir: el telefono (scroll a 360x640, 320 px, toques de 48 px; CDP 9333).
 - Sin teclado: `G-RF`, dos parejas en banco (mismo canal y distintos, `D-118`) antes del filtro de pareja (SFTY-27).
-- Para el responsable: inhibir UNA camara o dos (hoy `D-94` es un solo interruptor) y barrera ABAJO desde la app
-  (`D-96` solo da fuera de servicio = arriba; sin fila).
+- Decidido el 09/11 noche, sin construir: veto POR CAMARA (una, dos o ninguna, cada una NA/NC; `D-166`, medir antes
+  los bits de `D-95`) y clave BT comun configurable desde la app (`D-158`). Para el responsable: barrera ABAJO desde
+  la app (`D-96` solo da fuera de servicio = arriba; sin fila) y Modo Alcance (retirar o medir).
 - `N-166`, colision de nombre `A-15` (sin medir si sigue).
 - Gobernanza, con tope semanal: dictamen de SPEC y manuales (`6f38ba4`, fase F); grafo fuera del repo (traerlo a
   `entregas/` o rehacerlo); repo ordenado (F1/F2); tras banco, lo duplicado Maestro/Esclavo a `lib/`.

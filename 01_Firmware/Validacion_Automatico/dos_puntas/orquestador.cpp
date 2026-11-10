@@ -470,19 +470,18 @@ static unsigned long g_ticksVerdeMaestro = 0;
 static unsigned long g_ticksVerdeEsclavo = 0;
 static unsigned long g_enclavamientoRoto = 0;   // rojo y verde a la vez EN LA MISMA punta
 static unsigned long g_talanqueraSinVerde = 0;
-static bool excepcionFueraOrq(int i);   // SPEC_8 6.3: en orquestador_interruptores.inc
+static bool excepcionFueraOrq(int i), excepcionVetoOrq(int i);   // SPEC_8 6.3 / 8.5: en sus .inc
 
 // D-33 - LA INVARIANTE DE LA PLUMA, REPARTIDA (CLAUDE.md 9): "pluma arriba siempre con razon
 // nombrada" y "la unica excepcion nombrada es S_FALLO" se conservan; "la razon es el verde"
 // vale fuera de la bajada, y dentro la razon es el retardo de D-33. LA EXCEPCION ES UNA COTA
 // QUE SE MIDE: cada ventana de "pluma arriba sin verde" se cronometra contra
 // PLUMA_RETARDO_BAJADA_MS leido del C++; sin eso aprobaria una pluma arriba diez minutos.
-// AQUI NO HAY CAMARAS (camara_presenciaJ16 contesta false): el veto lo ejerce el arnes de una
-// punta, que compila botones.cpp REAL. g_t se declara aqui porque el observador lo usa.
+// CAMARAS: solo las del Esclavo en el bloque I (N-187); su veto, por NOMBRE. g_t: lo usa el observador.
 static unsigned long g_t = 0;
 static unsigned long g_plumaSinVerdeDesde[2] = {0, 0};   // 0 = ninguna ventana abierta
 static unsigned long g_peorVentanaPlumaMs[2] = {0, 0};
-static unsigned long g_retardoPlumaMs = 0;               // leido del C++ en main()
+static unsigned long g_retardoPlumaMs = 0, g_retardoPlumaIMs[2] = {0, 0};   // C++; I: el PEDIDO
 static unsigned long g_verdeSinRojoEnfrente = 0;
 
 // N-162 - EL CAMPO ESC: DEL $STATUS (lo que el Maestro publica del Esclavo). La cinta del
@@ -590,11 +589,11 @@ static void vigilar(unsigned long t) {
     if (p->pin(MOTOR_TALANQUERA) == TALANQUERA_ABRIR &&
         p->pin(VERDE1) != HIGH && p->pin(VERDE2) != HIGH &&
         p->estado() != S_FALLO && p->estado() != S_AMARILLO_V && p->estado() != S_AMBAR_INT_V &&
-        p->estado() != S_ROJO_INT_V && !excepcionFueraOrq(i)) {   // N-179 noche (SPEC_0 5.10 (a)); D-96 por NOMBRE
+        p->estado() != S_ROJO_INT_V && !excepcionFueraOrq(i) && !excepcionVetoOrq(i)) {   // N-179; D-96, D-33
       if (g_plumaSinVerdeDesde[i] == 0) g_plumaSinVerdeDesde[i] = g_t + 1;
       const unsigned long dur = g_t - (g_plumaSinVerdeDesde[i] - 1);
       if (dur > g_peorVentanaPlumaMs[i]) g_peorVentanaPlumaMs[i] = dur;
-      if (dur > g_retardoPlumaMs) {
+      if (dur > (g_retardoPlumaIMs[i] ? g_retardoPlumaIMs[i] : g_retardoPlumaMs)) {
         g_talanqueraSinVerde++;
       }
     } else {
@@ -1097,6 +1096,7 @@ static void imprimirTrazaG(const char* titulo, const CorridaG& c) {
 
 #include "orquestador_noche.inc"   // N-179: BLOQUE N, el modo noche
 #include "orquestador_interruptores.inc"   // BLOQUE S: SPEC_8 6 en el Esclavo REAL
+#include "orquestador_instalacion.inc"     // BLOQUE I: SPEC_8 8 (N-187) en las dos puntas
 // ---------------------------------------------------------------------------
 int main() {
   std::printf("==============================================================\n");
@@ -3989,7 +3989,7 @@ int main() {
   }
 
   bloqueNoche();   // N-179 (D-106..D-111)
-  bloqueInterruptores();   // SPEC_8 6 (D-148..D-152)
+  bloqueInterruptores(); bloqueInstalacion();   // SPEC_8 6 (D-148..D-152) y 8 (N-187)
   // reportar(): no cuenta. Lo que la excepcion de A9 dejo pasar en los bloques A a F. MEDIDO
   // el 11/09: la racha larga es del bloque D -D5/D6-, el Esclavo dando verde POR RELOJ en su
   // Degradado con el Maestro en S_FALLO (el Degradado del Maestro no se compila aqui): A9 la
@@ -4015,7 +4015,7 @@ int main() {
         "RESUMEN (SFTY-28 con la derogacion parcial de D-33): en ninguno de esos "
         "instantes hubo pluma arriba sin verde encendido fuera de S_FALLO MAS ALLA del "
         "retardo de bajada. La ventana mas larga medida fue de %lu ms en el Maestro y "
-        "%lu ms en el Esclavo, contra los %lu ms que declara el C++ real: la excepcion "
+        "%lu ms en el Esclavo, contra los %lu de fabrica o el R que pidio el bloque I: la excepcion "
         "de D-33 esta ACOTADA, no concedida",
         g_peorVentanaPlumaMs[0], g_peorVentanaPlumaMs[1], g_retardoPlumaMs);
     comprobar(g_talanqueraSinVerde == 0, msg);

@@ -95,9 +95,8 @@ void botones_actualizar() {}
 // verdad es el Bloque F/G de arnes_automatico.cpp, que compila botones.cpp REAL.
 bool camara_presenciaJ16(int) { return false; }
 // N-187: instalacion.cpp entra REAL (semaforo.cpp lee de el el retardo de la pluma). La
-// pagina no existe en el PC: borrada = fabrica (NA, NA, 3 s), y no se escribe.
-uint16_t instalacionFlash_leerHw(uint8_t) { return 0xFFFFU; }
-bool instalacionFlash_escribir(const uint16_t*) { return false; }
+// pagina, modelada con memoria y borrada al cargar (fabrica NA, NA, 3 s): ver el .inc.
+#include "instalacion_mandos.inc"
 void camaras_sembrar() {}
 
 
@@ -329,6 +328,7 @@ PUNTA_API void punta_entrada(int pin, int nivel) {
 
 PUNTA_API long punta_mando(const char* que, long arg) {
   if (!strcmp(que, "pluma_fuera")) return semaforo_plumaFuera() ? 1 : 0;   // SPEC_8 6 (D-150)
+  { const long r = arnesInstalacion_mando(que, arg); if (r != PUNTA_DESCONOCIDO) return r; }  // N-187
   // Arranca un modo Automatico limpio: CONFIG_ROJO -> CONFIG_VERDE -> CONFIG_ESTATICO
   // -> CORRIENDO, aceptando lo configurado. Es la puerta de entrada real al ciclo.
   if (!strcmp(que, "arrancar_automatico")) {

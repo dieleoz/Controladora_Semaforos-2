@@ -9,6 +9,10 @@
 static uint16_t g_instPag[INSTALACION_FLASH_HW];
 static bool g_instFalla = false;
 static int g_instEscrituras = 0;
+// Corte de luz A MITAD de la escritura (dos_puntas, bloque I): borrada la pagina, solo se
+// programan las g_instCorteTras primeras medias palabras (-1 = sin corte). Lo que haga el
+// firmware despues no cuenta: el orquestador recarga la DLL en ese mismo tick.
+static int g_instCorteTras = -1;
 
 uint16_t instalacionFlash_leerHw(uint8_t i) {
   return i < INSTALACION_FLASH_HW ? (uint16_t)(g_instPag[i] ^ 0xFFFFU) : (uint16_t)0xFFFFU;
@@ -16,7 +20,8 @@ uint16_t instalacionFlash_leerHw(uint8_t i) {
 bool instalacionFlash_escribir(const uint16_t hw[INSTALACION_FLASH_HW]) {
   g_instEscrituras++;
   for (uint8_t i = 0; i < INSTALACION_FLASH_HW; i++) {
-    g_instPag[i] = g_instFalla ? (uint16_t)0 : (uint16_t)(hw[i] ^ 0xFFFFU);
+    const bool programada = !g_instFalla && (g_instCorteTras < 0 || i < g_instCorteTras);
+    g_instPag[i] = programada ? (uint16_t)(hw[i] ^ 0xFFFFU) : (uint16_t)0;
   }
   for (uint8_t i = 0; i < INSTALACION_FLASH_HW; i++) {
     if (instalacionFlash_leerHw(i) != hw[i]) return false;
