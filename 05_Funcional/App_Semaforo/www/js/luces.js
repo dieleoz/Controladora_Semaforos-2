@@ -92,8 +92,9 @@ const Luces = {
             : 'sin radio entre postes: se pasa con precaución';
         }
         // D-45 (SPEC_4 6 (2)): el amarillo es el CIERRE de cada verde, y la pluma sigue arriba
-        // en el por diseno (SFTY-28), no por un veto: baja al llegar el rojo.
-        if (state.estadoLuces === 'AMARILLO') return 'amarillo de cierre: baja al pasar a rojo';
+        // en el por diseno (SFTY-28), no por un veto: baja tras el rojo, con el retardo de 3..5 s del poste
+        // (N-187, SPEC_8 8). La app no sabe ese retardo: la frase no da cifra.
+        if (state.estadoLuces === 'AMARILLO') return 'amarillo de cierre: baja unos segundos después del rojo';
         if (state.estadoLuces === 'ROJO' || state.estadoLuces === 'ROJO+AMAR') {  // D-53: la pluma sube con el VERDE
           // D-13. Con las camaras habra ratos de LUZ ROJA CON LA PLUMA ARRIBA: hay algo
           // debajo y la barrera no baja. Hoy un operario eso lo lee como averia y llama.

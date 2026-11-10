@@ -403,7 +403,7 @@ aqui** (§14).
 Hasta `cda33df` salia al ABRIR (de rojo a verde); ahora sale al CERRAR, durante `AMARILLO_SEG` al final de cada
 verde, y despues `ROJO` (`semaforo_nombreEstado()`; SPEC 1 §3.2). Consecuencias para la app: **(1)** su frase
 *«AMARILLO, este poste esta cerrando su paso»* (`app.js`) es ahora cierta; **(2)** con la luz
-en `AMARILLO` la app pinta «amarillo de cierre: baja al pasar a rojo» (`app.js`, frase de la pluma): en el amarillo la
+en `AMARILLO` la app pinta «amarillo de cierre: baja unos segundos después del rojo» (`js/luces.js`): en el amarillo la
 pluma esta arriba por diseno (`luzPideArriba`), no por un veto (SPEC 8 §1); **(3)**
 `FORZAR_ROJO` contesta `$ACK` al aceptar la orden y el `ROJO` llega tras el amarillo.
 🔴 **ABIERTO: `ESC:AMARILLO` no se construyo.** `coordinador_estadoEsclavo()` publica lo ultimo que consta del Poste
@@ -1285,7 +1285,7 @@ Ficheros: `Maestro/src/bluetooth.cpp`, `App_Semaforo/js/diagnostico_enlace.js`, 
 `App_Semaforo/tests/dom_cabecera_fase.js` y las copias en `www/`. Medida de §8: ~25 lineas de producto contra ~15 de
 test; la razon instrumentos/producto no sube.
 
-### 9.12 `app.js` en modulos, por tandas y con salida identica (`N-178` M13; `D-98`) — tandas 1 a 3 construidas
+### 9.12 `app.js` en modulos, por tandas y con salida identica (`N-178` M13; `D-98`) — tandas 1 a 4.a construidas
 
 Fuente: `ROADMAP_APP.md` 8. Decidido por Fable por delegacion del responsable, 14/10. Medido sobre el arbol del 14/10:
 `app.js` es UN cierre (`document.addEventListener('DOMContentLoaded', () => { ... })`) de 5860 lineas con 240 nombres
@@ -1320,9 +1320,9 @@ que lee las tablas en su modulo). Prueba en `tests/test_unitarios.js`: orden de 
 pintores a `js/luces.js` (`Luces.instalar(dep)`, 14 nombres del cierre; `renderLights`, `pintarPluma`, `pintarCamaras`
 quedan de envoltorio en `app.js`), `app_04` lee los tres ficheros; TDD 87|4 antes, 91|0 despues; 3.a depuracion, el
 09/11, a `js/depuracion_vista.js` (`DepuracionVista.instalar(dep)`, 4 nombres; sus 9 elementos con ella; quedan de
-envoltorio `renderDepuracion()` y `textoDepuracion()`), TDD 88|3 antes y 91|0 despues; 4.a el enlace y los equipos (648
-lineas, 21 nombres); la ULTIMA, los modales y el PIN (189 lineas), barrera de §4: solo con `dom_claves.js` delante y
-`app_01`/`app_05` recontados. **Sin construir** (`app.js` de 4319 lineas): la 4.a y la ultima.
+envoltorio `renderDepuracion()` y `textoDepuracion()`), TDD 88|3 antes y 91|0 despues; 4.a el enlace y los equipos, el
+09/11, a `js/enlace_equipos.js` y `js/busqueda_equipos.js`, TDD 90|2 antes y 92|0 despues; la ULTIMA (modales y PIN, 189
+lineas; barrera de §4) solo con `dom_claves.js` delante y `app_01`/`app_05` recontados. **Sin construir:** la ultima.
 
 ### 9.13 Firmware y APK del MISMO paquete, y la APK primero (`D-102`) — decidido el 15/10, regla de campo
 

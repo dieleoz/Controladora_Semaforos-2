@@ -441,7 +441,7 @@ async function pruebasExportar12() {
     'Un fallo de la hoja que no es cancelar se propaga (la app lo pinta en rojo)');
 }
 
-console.log('\n--- 13. app.js en modulos, tandas 1 a 3 (SPEC_4 9.12, D-98) ---');
+console.log('\n--- 13. app.js en modulos, tandas 1 a 4.a (SPEC_4 9.12, D-98) ---');
 // Corte sin cambio de comportamiento: tablas y vistas salen de app.js a js/. La guarda (4) es el modo de
 // fallo del corte: un modulo que lea un nombre del cierre de app.js como global revienta en el telefono.
 const fs13 = require('fs'); const path13 = require('path');
@@ -468,12 +468,16 @@ assert(/<script src="js\/depuracion_vista\.js"><\/script>[\s\S]*<script src="app
 assert(!/^\s+(function (_textoContadores|nombreFicheroDepuracion)\(|const depuListaEl = )/m.test(app13) &&
        /^  function renderDepuracion\(\)/m.test(app13) && !!depu13 && typeof depu13.instalar === 'function',
   'app.js ya no declara la pantalla de depuracion (queda renderDepuracion de envoltorio); DepuracionVista.instalar');
+const iEnl13 = html13.indexOf('src="js/enlace_equipos.js"'), iBus13 = html13.indexOf('src="js/busqueda_equipos.js"');
+assert(iEnl13 >= 0 && iEnl13 < iBus13 && iBus13 < html13.indexOf('src="app.js"') &&   // Tanda 4.a
+       !/^  (function (olvidarEnlace|abrirEnlace|cambiarDeEquipo|pintarEquipos)\(|let equiposVistos )/m.test(app13),
+  'index.html carga js/enlace_equipos.js y js/busqueda_equipos.js antes de app.js, que ya no declara el enlace');
 // (4) Ningun nombre del cierre (a dos espacios en app.js) en un modulo partido, salvo declarado o recibido por dep.
-const PARTIDOS13 = ['textos_ack.js', 'textos_err.js', 'luces_tablas.js', 'luces.js', 'depuracion_vista.js'];
+const PARTIDOS13 = 'textos_ack textos_err luces_tablas luces depuracion_vista enlace_equipos busqueda_equipos'.split(' ');
 const nombres13 = new Set(); const fugas13 = [];
 for (const m of app13.matchAll(/^  (?:const|let|var|function|class)\s+(\w+)/gm)) nombres13.add(m[1]);
 for (const mod of PARTIDOS13) {
-  const crudo = leer13('js/' + mod);
+  const crudo = leer13('js/' + mod + '.js');
   if (crudo === null) { fugas13.push(mod + ': no existe'); continue; }
   const limpio = crudo
     .replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*|'(?:\\.|[^'\\\n])*'|"(?:\\.|[^"\\\n])*"|`(?:\\.|[^`\\])*`/g, ' ')

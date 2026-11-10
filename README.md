@@ -94,7 +94,7 @@ entonces cada lector deriva su propia versión.
 > tabla. Mismo cobre, distinto `pinMode`, distinta tensión. Ver `05_Funcional/historico/DECISIONES_hist.md`, cerradas.)*
 
 **Verificación actual** — cifras **copiadas del acta**
-[`evidencia/2026-11-09_compuerta.txt`](evidencia/2026-11-09_compuerta.txt), que genera
+[`evidencia/2026-11-10_compuerta.txt`](evidencia/2026-11-10_compuerta.txt), que genera
 `python 01_Firmware/compuerta.py` en una sola corrida. No se escriben a mano — y desde **N-62**
 eso ya no es una promesa: el pack `documentos_01_cifras_del_acta` compara esta tabla contra la
 última acta en cada corrida del banco. Cuando se escribió por primera vez, **falló**: esta tabla
@@ -112,7 +112,7 @@ publicaba 32 rutas y 86,4 % de flash cuando el acta que ella misma citaba medía
 | simulador de app y bluetooth | ✅ | **12/12** — estuvo en `ABORTADO` unas horas el 05/09: **N-149** le añadió el campo `ESC` al `$STATUS` y el instrumento no supo con qué compararlo. Se enseñó a leerlo el mismo día. Queda escrito porque **mientras duró, todo lo que vigilaba entró sin mirar** (`CLAUDE.md` §1) |
 | **app ejecutada en DOM** | ✅ | **949/949** — carga `index.html` en jsdom, más `app.js` y **los `js/*.js` que el propio HTML declara, en su orden**, y los **ejercita**: pestañas, modales, ingesta de telemetría, *fuzzing* de 200 tramas corruptas y los botones que mandan comandos. Es el único instrumento que **ejecuta** la app en vez de leerla |
 | test funcional de la app | ✅ | **71/71** — decía «22/22» a mano y ejecuta 34; su prueba de Courier RTC era una tautología |
-| test unitarios TDD de la app | ✅ | **89/89** — la **segunda** suite unitaria, que hasta el 01/09 **no estaba en la compuerta**: 23 pruebas verdes que no medían nada. *(Esta fila publicó `55/55` hasta el 07/09: era la cifra del 02/09, y `documentos_01` **no la vigila** — no está en su tupla `CIFRAS`.)* |
+| test unitarios TDD de la app | ✅ | **92/92** — la **segunda** suite unitaria, que hasta el 01/09 **no estaba en la compuerta**: 23 pruebas verdes que no medían nada. *(Esta fila publicó `55/55` hasta el 07/09: era la cifra del 02/09, y `documentos_01` **no la vigila** — no está en su tupla `CIFRAS`.)* |
 | test unitarios de la app | ✅ | **70/70** — seis suites que no cargan el navegador: NMEA y *checksums*, generador de comandos y barrera de PIN, validación de `SET_TIEMPOS`, Courier RTC, gestor de cruces y escala de 20 cruces |
 | arnés del ciclo | ✅ | **78/78** — corre sobre el `ciclo_degradado.h` real compilado, sin espejo en Python |
 | arnés del respaldo | ✅ | compila el `calcularSuma()` real; identidad de `respaldo.cpp` entre puntas + prueba de vida |

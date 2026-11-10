@@ -32,15 +32,15 @@ prueba se entrega vista en rojo (`CLAUDE.md` §15). «Sin telefono» = sin medir
 | Alarmas del limite repetidas mientras duran (`D-67`..`D-69`) | §9.6 | `cd437b2` | banco |
 | SPP del puente que no bloquea, `CONG` contado (`D-70`, `D-71`) | §9.7 | `cd437b2` | banco |
 | Practica sin poste (`D-86`..`D-89`), con estado y grupos (`D-117`..) | §9.10, §9.14 | `cd437b2`, `ac844b9` | franja |
-| `app.js` en modulos, tandas 1, 2 y 3 (`D-98`) | §9.12 | `cd437b2`, `8526f84`, `8ac39f4` | — |
+| `app.js` en modulos, tandas 1, 2, 3 y 4.a (`D-98`) | §9.12 | `cd437b2`, `8526f84`, `8ac39f4`, tanda 4.a del 10/11 | — |
 
 ## Pendiente
 
 1. **Medir en el telefono** (P, por CDP): scroll de Trafico a 360x640 y ancho a 320 (§9.9 (g) 3); la hoja de
    compartir y que WhatsApp reciba el `.txt` (§7.12); `copy` al exportar y cuanto se pierde al matar la app (§9.3);
    la franja SIMULADO sobre el modal del PIN (§9.10); contraste del gris a pleno sol (§9.9 (b)).
-2. **`D-98`, tandas 4.a (el enlace y los equipos) y ultima (modales y PIN)** (§9.12); la ultima solo con
-   `tests/dom_claves.js` delante y `app_01`/`app_05` recontados.
+2. **`D-98`, tanda ultima (modales y PIN)** (§9.12): solo con `tests/dom_claves.js` delante y `app_01`/`app_05`
+   recontados.
 3. **Aviso en vivo de un fallo de escritura del fichero de sesion**: hoy solo se declara en el `.txt` (§9.3).
 4. **Emparejamiento del puente con clave** (`D-158`): firmware del ESP32, version siguiente; la app no cambia.
 5. **Del responsable:** retirar el Modo Alcance o darle medida propia (§7.5); `ESC:AMARILLO` (§6, sin decidir).

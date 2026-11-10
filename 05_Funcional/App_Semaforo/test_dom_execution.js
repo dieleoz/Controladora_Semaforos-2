@@ -1561,10 +1561,10 @@ assert(/PLUMA ARRIBA/.test(plumaDom.textContent) && !/AVER/i.test(plumaDom.textC
 conectarComo('MAESTRO', 'SERIE:SEM-M-01,MODO:AUTO,ESTADO:ROJO,T:20,RF:97,RTT:70,BAT:12.9,HORA:17:00:04,ESC:VERDE,PLUMA:ARRIBA');
 assert(/PLUMA ARRIBA/.test(plumaDom.textContent) && /NO es aver/i.test(plumaDom.textContent),
   `Con la luz en ROJO y la pluma ARRIBA la pantalla declara que no es una averia: "${plumaDom.textContent}"`);
-// 13.3.bis D-45 (SPEC_4 6 (2)): en el AMARILLO de cierre la pluma esta arriba por diseno, no por veto.
+// 13.3.bis D-45 (SPEC_4 6 (2)): en el AMARILLO de cierre la pluma esta arriba por diseno; baja tras el rojo (N-187).
 conectarComo('MAESTRO',
   'SERIE:SEM-M-01,MODO:AUTO,ESTADO:AMARILLO,T:2,RF:97,RTT:70,BAT:12.9,HORA:17:00:05,ESC:ROJO,PLUMA:ARRIBA');
-assert(/amarillo de cierre/i.test(plumaDom.textContent) && !/AVER/i.test(plumaDom.textContent),
+assert(/amarillo de cierre: .*despu[eé]s del rojo/i.test(plumaDom.textContent) && !/AVER/i.test(plumaDom.textContent),
   `AMARILLO + PLUMA:ARRIBA es el cierre (D-45), no una averia: "${plumaDom.textContent}"`);
 
 // 13.4 EL CAMPO DEJA DE VENIR -firmware anterior a N-153-. No se puede quedar el ARRIBA

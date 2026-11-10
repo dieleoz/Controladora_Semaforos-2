@@ -488,8 +488,8 @@ Cada uno trae con qué reproducirlo.
      `adaptador_esclavo.cpp` (sólo un comentario); su revisión no se ha hecho aquí.
    - 🔴 **LO QUE QUEDA ABIERTO:** **(1)** el borde de la desigualdad (B) del presupuesto de radio (SPEC 2 §2.2.bis,
      §9); **(2)** `ESC:AMARILLO` no se construyó: `ESC:` dice `VERDE` hasta el `CMD_ACK_RED` (SPEC 4 §6). Cerrados
-     después: la app dice con la luz en `AMARILLO` «amarillo de cierre: baja al pasar a rojo», y la cabecera de
-     `modo_manual.cpp` y los *«25 s»* ya no están en el fuente.
+     después: la app dice con la luz en `AMARILLO` «amarillo de cierre: baja unos segundos después del rojo», y la
+     cabecera de `modo_manual.cpp` y los *«25 s»* ya no están en el fuente.
 11. 🟢 **CERRADO POR `D-46` (`f9cad1f`, 02/10; sin banco) — SALEN DOS ÓRDENES.** `SOLICITAR_PASO` del Poste 2 y
    `SET_MODO:DEGRADADO` de las dos puntas ya no tienen rama en `procesarComando()`: caen en el `else` final y
    responden `$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO` (`..._EN_ESCLAVO` en el Poste 2). El paso se da con
