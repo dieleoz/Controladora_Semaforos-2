@@ -1,7 +1,7 @@
 ACTA DE VERIFICACION - Controladora de Semaforos
 ==============================================================================
 Fecha        : 2026-11-10
-HEAD         : 37f42ce   rama: main
+HEAD         : 7cf40bb   rama: main
 Arbol        : LIMPIO
 Modo         : completo
 PlatformIO   : PlatformIO Core, version 6.1.19
@@ -10,7 +10,7 @@ GCC de host  : gcc.exe (MinGW-W64 x86_64-ucrt-posix-seh, built by Brecht Sanders
 RESULTADOS
 ------------------------------------------------------------------------------
   PASS      guarda de rutas                   72 rutas parseadas, todas existen
-  PASS      compila maestro                   Flash: [========= ]  85.2% (used 53212 bytes from 62464 bytes)
+  PASS      compila maestro                   Flash: [========= ]  85.2% (used 53236 bytes from 62464 bytes)
   PASS      compila esclavo                   Flash: [=======   ]  72.1% (used 45040 bytes from 62464 bytes)
   PASS      compila esp32                     Flash: [====      ]  35.8% (used 1126409 bytes from 3145728 bytes)
   PASS      simulador funcional               VEREDICTO FINAL: 9/9 PASS (SISTEMA V8.0 DEFINITIVA CERTIFICADO)
@@ -18,17 +18,17 @@ RESULTADOS
   PASS      test funcional de la app          [TEST] RESUMEN: 71/71 comprobaciones funcionales de la app en PASS
   PASS      test unitarios de la app          RESUMEN DE PRUEBAS: 70 PASS | 0 FALLAS  (Total: 70)
   PASS      test unitarios TDD de la app      RESUMEN TDD: 92 PASS | 0 FALLAS  (Total: 92)
-  PASS      app ejecutada en DOM              RESULTADO JSDOM: 959 PASS | 0 FALLAS
+  PASS      app ejecutada en DOM              RESULTADO JSDOM: 967 PASS | 0 FALLAS
   FALLA     banco por packs                   RESUMEN: 1524/1525 comprobaciones  |  packs: 69 PASS, 1 FALLA, 0 ABORTADO
   PASS      arnes del ciclo                   RESULTADO: 78/78 comprobaciones OK
   PASS      arnes del respaldo                respaldo.cpp y respaldo.h identicos entre puntas | arnes vivo (PING/PONG)
   PASS      arnes del automatico              RESULTADO: 115/115 comprobaciones OK
   PASS      arnes de las dos puntas           RESULTADO: 196/196 comprobaciones OK
-  PASS      arnes del Degradado a dos puntas  RESULTADO: 165/165 comprobaciones OK
+  PASS      arnes del Degradado a dos puntas  RESULTADO: 179/179 comprobaciones OK
   PASS      simulador del puente ESP32        RESULTADO: 167/167 comprobaciones del contrato del puente en PASS
 ------------------------------------------------------------------------------
   RESUMEN: 16 PASS | 1 FALLA | 0 ABORTADO
 
 ABORTADO no es PASS: una comprobacion que no pudo correr no dice nada del
-firmware. Esta acta se verifica volviendo a 37f42ce y re-corriendo
+firmware. Esta acta se verifica volviendo a 7cf40bb y re-corriendo
 python 01_Firmware/compuerta.py.
