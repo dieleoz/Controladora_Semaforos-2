@@ -59,6 +59,7 @@ $COMUN = @("-I$DP", "-I$DP\comun")
 $fuentesMaestro = @(
     (Join-Path $MAESTRO 'src\coordinador.cpp'),
     (Join-Path $MAESTRO 'src\semaforo.cpp'),
+    (Join-Path $MAESTRO 'src\instalacion.cpp'),    # N-187: el retardo de la pluma
     (Join-Path $MAESTRO 'src\modo_automatico.cpp'),
     (Join-Path $MAESTRO 'src\modo_noche.cpp'),      # N-179: el modo noche REAL
     (Join-Path $AQUI 'deg_auto_doble_maestro.cpp'),   # A-15: ver su cabecera
@@ -71,6 +72,7 @@ $fuentesMaestro = @(
 # decide si esta punta obedece un CMD_GO_GREEN. Ningun arnes lo habia compilado nunca.
 $fuentesEsclavo = @(
     (Join-Path $ESCLAVO 'src\semaforo.cpp'),
+    (Join-Path $ESCLAVO 'src\instalacion.cpp'),    # N-187: el retardo de la pluma
     (Join-Path $ESCLAVO 'src\main.cpp'),
     (Join-Path $ESCLAVO 'src\modo_degradado.cpp'),
     (Join-Path $ESCLAVO 'src\config_ciclo.cpp'),

@@ -29,7 +29,8 @@ void botones_actualizar();
 //
 // Es publica porque el Modo Inteligente del Maestro tambien lee asi la camara de PB0: una
 // sola definicion de "que es una deteccion" para las tres entradas y para las dos puntas.
-bool camara_leerPin(uint8_t pin);
+// N-187: nc = contacto NC declarado (presencia = pin bajo). Por defecto activo en alto.
+bool camara_leerPin(uint8_t pin, bool nc = false);
 
 // ---------------------------------------------------------------------------
 // LA PRESENCIA SOSTENIDA EN LAS DOS CAMARAS DE J16. 05/09/2026.
@@ -63,7 +64,11 @@ bool camara_leerPin(uint8_t pin);
 // Es exactamente el mismo reparto que el firmware ya hacia con J14: el Maestro lee PB0 POR
 // NIVEL y el Esclavo POR FLANCO, y el comentario de botones.cpp lo explica con estas mismas
 // dos palabras. Lo que faltaba era aplicarselo a las camaras nuevas.
-bool camara_presenciaJ16();
+// N-187: cam = 0 (C) o 1 (D) pregunta por una sola camara; -1, por las dos.
+bool camara_presenciaJ16(int cam = -1);
+// N-187: re-siembra las dos camaras con el contacto vigente y reinicia su estado entero
+// (flanco, silencio, estado, pegada y veto). La llaman botones_setup() e instalacion.cpp.
+void camaras_sembrar();
 
 // ---------------------------------------------------------------------------
 // EL VIGILANTE DE LAS DOS CAMARAS - D-13 FASE 1 (A-6). 05/09/2026.

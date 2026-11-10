@@ -18,6 +18,7 @@
 #include "modo_noche.h"    // D-110: SET_NOCHE / SET_NOCHE_TR / CONSULTA_NOCHE
 #include "respaldo.h"      // A-15: la opcion propia y el APTO oido del otro, para la consulta
 #include "interruptores.h" // SPEC_8 6: SET_VETO_CAMARA y SET_BARRERA_SERVICIO (D-94)
+#include "instalacion.h"   // N-187: SET_CAMARA, SET_PLUMA_RETARDO, CONSULTA_INSTALACION
 #include <string.h>
 #include <stdio.h>
 
@@ -659,13 +660,9 @@ static void procesarComando(const char* cmd) {
 
   // Validación estricta de PIN de 4 dígitos (1234)
   //
-  // OTRAS ORDENES ENTRAN SIN PIN, POR EL MISMO CRITERIO DE ARRIBA: ni MENU ni ALCANCE abren paso (el primero deja el
-  // equipo en la pantalla, sin ciclo; el segundo en rojo fijo) y VERSION no toca nada: solo CUENTA lo que este
-  // binario es. El PIN guarda lo que ABRE, no lo que para ni lo que mira. Se aceptan tambien con PIN, igual que
-  // FORZAR_ROJO: la app antepone la clave a todo lo que no este en su lista SIN_PIN, y una orden que solo se aceptara
-  // sin PIN seria inalcanzable desde el celular. Lo que se mueve es DONDE EMPIEZA LA ACCION, no la cadena de
-  // comparaciones: una segunda cadena serian dos contratos que sincronizar, y el dia que uno se quede atras el
-  // comando contesta DESCONOCIDO.
+  // OTRAS ORDENES ENTRAN SIN PIN: ni MENU ni ALCANCE abren paso y VERSION y las consultas solo miran. El PIN guarda
+  // lo que ABRE. Se aceptan tambien con PIN (la app antepone la clave a lo que no este en su SIN_PIN): se mueve DONDE
+  // EMPIEZA LA ACCION, no la cadena de comparaciones; una segunda serian dos contratos que sincronizar.
   const char* accion;
   if (strncmp(cmd, "CMD:PIN:1234:", 13) == 0) {
     accion = cmd + 13;
@@ -675,6 +672,7 @@ static void procesarComando(const char* cmd) {
               strcmp(cmd + 4, "CONSULTA_DEG_AUTO") == 0 ||   // A-15: solo mira
               strcmp(cmd + 4, "CONSULTA_DEG_FIN") == 0 ||    // D-52: solo mira
               strcmp(cmd + 4, "REINICIOS") == 0 ||           // D-60: solo mira
+              strcmp(cmd + 4, "CONSULTA_INSTALACION") == 0 ||   // N-187: solo mira
               strcmp(cmd + 4, "VERSION") == 0)) {
     accion = cmd + 4;
   } else {
@@ -1036,6 +1034,8 @@ static void procesarComando(const char* cmd) {
     // consulta inunda la bitacora donde hay que encontrar el fallo -es el umbral de J17 y
     // N-73 otra vez-. Lo que queda es la respuesta, que la app ya guarda.
   } else if (const char* r = interruptores_orden(accion)) {   // D-94: molde SET_TIEMPOS, alli
+    enviarTramaConCrc(r);
+  } else if (const char* r = instalacion_orden(accion)) {     // N-187: local, sin radio
     enviarTramaConCrc(r);
   } else {
     enviarTramaConCrc("$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO");

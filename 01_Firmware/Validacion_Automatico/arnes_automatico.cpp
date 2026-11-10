@@ -181,6 +181,7 @@ static unsigned long g_margenSenalMs = MARGEN_MUESTREO_MS;
 static long discrepanciasPluma = 0;
 #include "interruptores.h"
 #include "interruptores_modelo.inc"   // SPEC_8 6: el DR4 doblado y la excepcion por NOMBRE
+#include "instalacion_modelo.inc"     // N-187: la pagina de instalacion doblada
 
 // D-53 (05/10): ROJO - ROJO+AMARILLO (2 s) - VERDE. Manual de Senalizacion Vial 4.4.2 y
 // Fig. 4-9. Viene de la DECISION, no del fuente: leida de protocolo.h, sin la constante el
@@ -586,13 +587,10 @@ int main() {
   std::printf(" Inteligente contra el Automatico; Bloque F/G: camaras y pluma)\n");
   std::printf("==============================================================\n");
 
-  // -------------------------------------------------------------------------
-  // Constantes releidas del C++ real. Ni una se escribe a mano: si el patron no
-  // aparece, el arnes ABORTA antes de comprobar nada (ver leerConstante()).
-  // -------------------------------------------------------------------------
+  // Constantes releidas del C++ real; si el patron no aparece, el arnes ABORTA (leerConstante()).
   // D-33: ESTA VA LA PRIMERA: vigilarEnclavamiento() y vigilarApertura() la usan desde el
-  // primer tick; leida despues, compararian contra un cero y acusarian al firmware.
-  g_retardoPlumaMs = (unsigned long)leerConstante("semaforo.cpp",
+  // primer tick. N-187: es el valor de FABRICA del parametro, y vive en instalacion.h.
+  g_retardoPlumaMs = (unsigned long)leerConstante("../include/instalacion.h",
       R"(PLUMA_RETARDO_BAJADA_MS\s*=\s*(\d+)UL)",
       "el retardo con el que la pluma baja DESPUES del rojo (D-33)");
 
@@ -1880,6 +1878,7 @@ int main() {
   }
 
 #include "interruptores_bloque.inc"   // Bloque I: SPEC_8 6 (D-94..D-97, D-148..D-151)
+#include "instalacion_bloque.inc"     // Bloque K: N-187, parametros de instalacion
   // ===========================================================================
   // LO QUE SE REPARTIO DEL BLOQUE D AL RETIRAR EL MANDO (D-30, CLAUDE.md 9). Estas cuatro
   // vivian en el fuzz D9 sin medir el mando (son D-33 y N-153) y se mudaron aqui. Siguen

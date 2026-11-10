@@ -145,6 +145,13 @@ COMANDOS_PERMITIDOS = {
     # que sale del repositorio (CLAUDE.md 13). Ocultarlo costaria justo lo que 1.51 compra
     # -que una foto de campo se pueda atribuir- a cambio de una oscuridad que no protege
     # nada, porque el firmware esta en un repositorio y no en el poste.
+    # N-187 (SPEC_8 8): instalacion.cpp, local a este poste y sin radio.
+    "CONSULTA_INSTALACION": "solo mira: contacto y retardo releidos de la flash y VE; entra con y sin PIN",
+    "SET_CAMARA:":      "cambia el sentido NA/NC de una camara de J16 (pide PIN): re-siembra las camaras y "
+                        "reentra por semaforo_reaplicarSalidas() con lo ultimo pedido; no enciende un verde, "
+                        "y con la pluma vetada se rechaza (PLUMA_VETADA)",
+    "SET_PLUMA_RETARDO:": "cambia el retardo de bajada de la pluma tras el ROJO, 3..5 s (pide PIN); no toca "
+                        "luces y reentra por semaforo_reaplicarSalidas()",
     "VERSION":          "CONTESTA y no hace nada mas: una sentencia por rama, un literal "
                         "compuesto por el preprocesador, cero llamadas al firmware y cero "
                         "estado. No abre, no para y no cambia; entra sin PIN por el mismo "
@@ -174,7 +181,7 @@ def _comandos_atendidos(codigo):
 def correr(b, fw):
     b.titulo("El Esclavo pide y para, pero no abre paso")
 
-    bt = fw.codigo("Esclavo", "src", "bluetooth.cpp")       # sin comentarios
+    bt = fw.codigo("Esclavo", "src", "bluetooth.cpp") + fw.codigo("Esclavo", "src", "instalacion.cpp")   # N-187
 
     # ---- 1. Ninguna funcion que encienda un verde se llama desde el Bluetooth ----
     llamadas = [f for f in ABREN_PASO if re.search(r"\b%s\s*\(" % re.escape(f), bt)]

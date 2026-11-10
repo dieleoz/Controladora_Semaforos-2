@@ -6,8 +6,8 @@
 //
 // Por que aqui y no en la pila: BKP->DR1..DR10 estan todos ocupados (respaldo.cpp) y una
 // franja son ~40 bits. Molde testigo_flash: firma, version, suma de Horner sin plegar y
-// relectura. La pagina es la ANTERIOR a la del testigo; board_upload.maximum_size = 63488
-// en platformio.ini deja las dos fuera del alcance del enlazador: si el codigo llegara hasta
+// relectura. La pagina es la ANTERIOR a la del testigo; board_upload.maximum_size = 62464
+// en platformio.ini deja las tres (N-187: y la de instalacion) fuera del enlazador: si llegara hasta
 // aqui, el enlace falla en vez de pisarla. Se escribe solo al cambiar una franja o el tr.
 // `-e all` del upload (CLAUDE.md 3) la borra al cargar: tras una carga no hay franjas.
 //

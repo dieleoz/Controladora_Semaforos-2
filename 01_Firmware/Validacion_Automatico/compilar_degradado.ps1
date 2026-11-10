@@ -70,6 +70,7 @@ $RR = Join-Path $DP 'reloj_real'
 $fuentesMaestro = @(
     (Join-Path $MAESTRO 'src\coordinador.cpp'),
     (Join-Path $MAESTRO 'src\semaforo.cpp'),
+    (Join-Path $MAESTRO 'src\instalacion.cpp'),    # N-187: el retardo de la pluma
     (Join-Path $MAESTRO 'src\modo_degradado.cpp'),
     (Join-Path $MAESTRO 'src\modo_ambar.cpp'),
     (Join-Path $MAESTRO 'src\modos.cpp'),
@@ -91,6 +92,7 @@ $fuentesMaestro = @(
 # cabecera de adaptador_esclavo.cpp: es el mismo fichero, no una copia.
 $fuentesEsclavo = @(
     (Join-Path $ESCLAVO 'src\semaforo.cpp'),
+    (Join-Path $ESCLAVO 'src\instalacion.cpp'),    # N-187: el retardo de la pluma
     (Join-Path $ESCLAVO 'src\main.cpp'),
     (Join-Path $ESCLAVO 'src\modo_degradado.cpp'),
     (Join-Path $ESCLAVO 'src\config_ciclo.cpp'),

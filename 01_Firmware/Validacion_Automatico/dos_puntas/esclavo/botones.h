@@ -10,12 +10,13 @@
 
 void botones_setup();
 void botones_actualizar();
-bool camara_leerPin(uint8_t pin);
+bool camara_leerPin(uint8_t pin, bool nc = false);   // N-187: firma de include/botones.h
 // D-33 (14/09/2026): semaforo.cpp REAL llama a esta antes de dejar bajar la pluma, asi
 // que la firma tiene que estar o no compila. NO es un detalle de arnes: es la prueba de
 // que el veto no se puede quitar en silencio -quitarlo rompe el ENLACE, no se queda
 // callado-. La definicion esta en el adaptador y devuelve false: en este banco no hay
 // camaras cableadas, o sea que la pluma sigue a la luz con su retardo y nada mas.
-bool camara_presenciaJ16();
+bool camara_presenciaJ16(int cam = -1);   // N-187: firma de include/botones.h
+void camaras_sembrar();                   // N-187: la llama instalacion.cpp
 // SPEC_8 6 (D-151): interruptores.cpp REAL la lee; la define adaptador_esclavo_interruptores.inc.
 const char* camara_estado();

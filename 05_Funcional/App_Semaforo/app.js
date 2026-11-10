@@ -341,7 +341,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // paran ni cambian nada: hay que poder MIRAR antes de tocar; VERSION es la primera pregunta si algo va raro.
   const SIN_PIN = ['FORZAR_ROJO', 'AMBAR_EMERGENCIA', 'SET_MODO:MENU', 'SET_MODO:ALCANCE',
                    'LEER_RTC', 'VERSION', 'CONSULTA_DEG_AUTO', 'CONSULTA_DEG_FIN', 'CONSULTA_NOCHE', 'REINICIOS',
-                   'LOG,DESDE'];
+                   'LOG,DESDE', 'CONSULTA_INSTALACION'];
 
   // DEVUELVE SI LA ORDEN LLEGO A SALIR, y el que llama TIENE QUE MIRARLO.
   //
@@ -2094,7 +2094,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     showToast, horaLocal24, fechaLocalISO, pedirPin });
   DegAuto.iniciar({ state, enviarComandoFirmware, addEvent, showToast, pedirPin, horaLocal24 });
   const ctxOrdenes = { state, enviarComandoFirmware, addEvent, showToast, pedirPin };
-  Noche.iniciar(ctxOrdenes); Interruptores.iniciar(ctxOrdenes);   // D-110 js/noche.js; D-94 js/interruptores.js
+  Noche.iniciar(ctxOrdenes); Interruptores.iniciar(ctxOrdenes); Instalacion.iniciar(ctxOrdenes);  // D-110, D-94, 8.6
 
   // =========================================================================
   // 4.quater DEMANDA: UN CONTROL QUE REFLEJA EL MODO EN VEZ DE GASTAR UN RECHAZO
@@ -2319,7 +2319,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // una funcion de los campos de la trama, para los motivos que traen un dato dentro.
   function _traducirRechazo(data) {
     const entrada = Interruptores.rechazo(data) || DegAuto.rechazo(data) || Noche.rechazo(data) || DiagnosticoEnlace.acuseReinicios(data) ||
-                    Testigo.rechazo(data, state.node) ||
+                    Testigo.rechazo(data, state.node) || Instalacion.rechazo(data) ||
                     TextosSpec4.ERR[(data.CMD || '?') + '|' + (data.DESC || '')] || ERR_TEXTO[(data.CMD || '?') + '|' + (data.DESC || '')] || ERR_MOTIVO[data.DESC || ''];
     if (!entrada) return null;
     return typeof entrada === 'function' ? entrada(data) : entrada;
@@ -2668,8 +2668,8 @@ document.addEventListener('DOMContentLoaded', () => {
       // tapaba justo lo que hay que ver: un STM32 que no recibio la hora.
       Testigo.anotarAcuse(data, state.node); Noche.anotarAcuse(data);   // D-110: su consulta va tras la del automatico
       const degAutoSinEspera = cual === DegAuto.ORDEN && !DegAuto._espera;   // D-130: dato del equipo, no respuesta
-      const degAuto = DegAuto.acuse(data) || Noche.acuse(data) || DiagnosticoEnlace.acuseReinicios(data);  // A-15, D-64
-      if (degAutoSinEspera) DegAuto._consultar();   // SPEC_4 3.ter.bis: se confirma con la consulta
+      const degAuto = DegAuto.acuse(data) || Noche.acuse(data) || DiagnosticoEnlace.acuseReinicios(data) ||
+        Instalacion.acuse(data);  if (degAutoSinEspera) DegAuto._consultar();  // A-15, D-64, 8.6; 3.ter.bis
       const dicho = ACK_TEXTO[clave] || degAuto || Interruptores.acuse(data) || TextosSpec4.ACK[clave] || TextosSpec4.tiempos(clave, state.modo);
       if (dicho) {
         addEvent(dicho.tono, dicho.texto);

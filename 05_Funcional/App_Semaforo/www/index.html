@@ -649,8 +649,8 @@
         </div>
       </div>
 
-      <!-- SPEC_8 6 (D-94): los dos interruptores, solo para averias. js/interruptores.js pregunta
-           antes de cada OFF y traduce el acuse; el estado lo dicen PLUMA y CAMARAS en Trafico. -->
+      <!-- SPEC_8 6 (D-94): los dos interruptores, solo para averias; el estado lo dicen PLUMA y CAMARAS en Trafico.
+           SPEC_8 8.6: la instalacion (contacto NA/NC y retardo), cuerpo y consulta al abrir en js/instalacion.js. -->
       <details class="card" id="averias"><summary>Averías: cámaras y barrera</summary>
         <div id="averias-cuerpo">
         <p class="card-sub">Solo este poste. Requieren PIN y siguen puestos tras un corte de luz.</p>
@@ -676,8 +676,8 @@
             <small>Vuelve a obedecer a la luz</small>
           </button>
         </div>
-        </div>
-      </details>
+        </div></details>
+      <details class="card" id="instalacion"><summary>Instalación: cámaras y barrera</summary><div id="instalacion-cuerpo"></div></details>
 
       <!-- DEMANDA: la peticion de paso local del Modo Inteligente. NO es SOLICITAR_PASO
            -alli es el Esclavo el que pide a la otra punta-. Fuera del Modo Inteligente
@@ -1231,7 +1231,7 @@
   <script src="js/deg_fin.js"></script>
   <script src="js/deg_auto_eleccion.js"></script>
   <script src="js/noche.js"></script>
-  <script src="js/interruptores.js"></script>
+  <script src="js/interruptores.js"></script><script src="js/instalacion.js"></script>
   <script src="js/aviso_degradado.js"></script>
   <script src="js/textos_spec4.js"></script>
   <script src="js/textos_ack.js"></script>
@@ -1239,7 +1239,7 @@
   <script src="js/luces_tablas.js"></script>
   <script src="js/luces.js"></script>
   <script src="js/serial_pc.js"></script>
-  <script src="js/simulador.js"></script>
+  <script src="js/sim_instalacion.js"></script><script src="js/simulador.js"></script>
   <script src="js/practica.js"></script>
   <script src="js/pantalla_operario.js"></script>
   <script src="app.js"></script>

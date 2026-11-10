@@ -100,9 +100,9 @@ void botones_actualizar() {}
 // de 10K deja los pines bajos para siempre-, no un "por ahora". Lo que este arnes mide
 // es el reparto del verde entre las dos puntas; quien ejerce el veto con camaras de
 // verdad es el Bloque F/G de arnes_automatico.cpp, que compila botones.cpp REAL.
-bool camara_presenciaJ16() { return false; }
-
-bool camara_leerPin(uint8_t pin) { return digitalRead(pin) == HIGH; }
+bool camara_presenciaJ16(int) { return false; }
+#include "../instalacion_dobles.inc"
+bool camara_leerPin(uint8_t pin, bool nc) { return (digitalRead(pin) == HIGH) != nc; }  // N-187: firma real
 
 // D-44: aqui vivian lcd_setup(), la bienvenida, menu_setup() y menu_loop(); main.cpp no los llama.
 #include "adaptador_esclavo_interruptores.inc"  // SPEC_8 6: camara_estado(), $EVENT/$STATUS, ordenes

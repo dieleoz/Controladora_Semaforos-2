@@ -16,4 +16,5 @@ const char* camara_estado();
 // D-33 (14/09/2026): semaforo.cpp REAL llama a esta antes de dejar bajar la pluma, asi
 // que la firma tiene que estar o no compila. La definicion esta en arnes_puente.cpp y
 // devuelve false: aqui no hay camaras cableadas.
-bool camara_presenciaJ16();
+bool camara_presenciaJ16(int cam = -1);   // N-187: firma de include/botones.h
+void camaras_sembrar();                   // N-187: la llama instalacion.cpp

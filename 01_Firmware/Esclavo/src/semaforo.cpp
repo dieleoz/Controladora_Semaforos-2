@@ -5,6 +5,7 @@
 #include "botones.h"
 // D-95/D-96: los dos interruptores de SPEC_8 6 viven en el respaldo; escribirPines() los lee.
 #include "respaldo.h"
+#include "instalacion.h"   // N-187: el retardo de bajada, parametro de instalacion
 #include "protocolo.h"   // D-45/D-53: AMARILLO_SEG y ROJO_AMARILLO_SEG, gemelos
 
 static EstadoSemaforo estado = S_ROJO;
@@ -59,11 +60,10 @@ static bool plumaFuera = false;
 // barrera_03_talanquera, que en cada corrida lee DESPEJE_SEG_MIN del limites_ciclo.h
 // del Maestro y exige que sea este mismo numero (N-71).
 static const unsigned long DESPEJE_MIN_HEREDADO_SEG = 10UL;
-static const unsigned long PLUMA_RETARDO_BAJADA_MS = 3000UL;
 
-// N-71: LA DESIGUALDAD NO SE QUEDA EN EL COMENTARIO DE ARRIBA. Si alguien sube el
+// N-71 / D-163: LA DESIGUALDAD NO SE QUEDA EN EL COMENTARIO DE ARRIBA. Si alguien sube el
 // retardo o baja el suelo vial del despeje, esto no compila.
-static_assert(PLUMA_RETARDO_BAJADA_MS * 2UL <= DESPEJE_MIN_HEREDADO_SEG * 1000UL,
+static_assert(PLUMA_RETARDO_MAX_MS * 2UL <= DESPEJE_MIN_HEREDADO_SEG * 1000UL,
               "D-33: el retardo de bajada de la pluma se come mas de la MITAD del "
               "todo-rojo mas corto que el ciclo permite (DESPEJE_SEG_MIN). Con eso la "
               "pluma puede seguir arriba cuando la otra punta abre su verde, que es "
@@ -233,7 +233,7 @@ static void escribirPines(bool rojo, bool amarillo, bool verde) {
       plumaCierrePendiente = true;
       tPlumaCierrePedido = millis();
     }
-    const bool enRetardo = (millis() - tPlumaCierrePedido) < PLUMA_RETARDO_BAJADA_MS;
+    const bool enRetardo = (millis() - tPlumaCierrePedido) < instalacion_retardoPlumaMs();   // N-187
     plumaVetada = !enRetardo && !respaldo_vetoCamaraOff() && camara_presenciaJ16();   // D-96
     plumaArriba = enRetardo || plumaVetada;
     if (!plumaArriba) plumaCierrePendiente = false;

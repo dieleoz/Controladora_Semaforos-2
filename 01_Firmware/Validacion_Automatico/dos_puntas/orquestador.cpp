@@ -1235,9 +1235,9 @@ int main() {
   // es parte de esa orden: si se separan, una punta bajaria la barrera antes que la otra
   // con el mismo rojo. SIN VALOR POR DEFECTO: si el patron desaparece, aborta.
   {
-    const unsigned long rM = leerNumero(RAIZ + "/Maestro/src/semaforo.cpp",
+    const unsigned long rM = leerNumero(RAIZ + "/Maestro/include/instalacion.h",   // N-187: fabrica
         R"(PLUMA_RETARDO_BAJADA_MS\s*=\s*(\d+)UL)", "retardo de bajada de la pluma (Maestro)");
-    const unsigned long rE = leerNumero(RAIZ + "/Esclavo/src/semaforo.cpp",
+    const unsigned long rE = leerNumero(RAIZ + "/Esclavo/include/instalacion.h",   // N-187: fabrica
         R"(PLUMA_RETARDO_BAJADA_MS\s*=\s*(\d+)UL)", "retardo de bajada de la pluma (Esclavo)");
     if (rM != rE) {
       abortar("D-33: el retardo de bajada de la pluma NO es el mismo en las dos puntas");

@@ -117,7 +117,12 @@ void botones_actualizar() {}
 // de 10K deja los pines bajos para siempre-, no un "por ahora". Lo que este arnes mide
 // es el reparto del verde entre las dos puntas; quien ejerce el veto con camaras de
 // verdad es el Bloque F/G de arnes_automatico.cpp, que compila botones.cpp REAL.
-bool camara_presenciaJ16() { return false; }
+bool camara_presenciaJ16(int) { return false; }
+// N-187: instalacion.cpp entra REAL (semaforo.cpp lee de el el retardo de la pluma). La
+// pagina no existe en el PC: borrada = fabrica (NA, NA, 3 s), y no se escribe.
+uint16_t instalacionFlash_leerHw(uint8_t) { return 0xFFFFU; }
+bool instalacionFlash_escribir(const uint16_t*) { return false; }
+void camaras_sembrar() {}
 
 // N-73: la Caja Negra. El stub no puede limitarse a callar. [literal de adaptador_maestro.cpp]
 static char g_ultimaAlarmaEvento[48] = "";

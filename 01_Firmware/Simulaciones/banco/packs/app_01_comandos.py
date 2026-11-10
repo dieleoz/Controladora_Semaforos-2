@@ -41,6 +41,7 @@ AVISO_DEG_JS = ("05_Funcional", "App_Semaforo", "js", "aviso_degradado.js")
 # D-110 (15/10): las ordenes de noche salen desde js/noche.js y el Maestro las atiende en
 # modo_noche.cpp, al que bluetooth.cpp las pasa (modoNoche_orden) con la accion en `a`.
 NOCHE_JS = ("05_Funcional", "App_Semaforo", "js", "noche.js")
+INSTALACION_JS = ("05_Funcional", "App_Semaforo", "js", "instalacion.js")   # N-187
 NOCHE_CPP = ("Maestro", "src", "modo_noche.cpp")
 APP_HTML = ("05_Funcional", "App_Semaforo", "index.html")
 
@@ -86,7 +87,8 @@ NO_LA_MANDA_LA_APP = "HORA_ESP32"
 
 def _atiende(fw, punta):
     """Los comandos que el despachador de esa punta reconoce. Leidos del C++."""
-    atiende = _atiende_codigo(fw.codigo(punta, "src", "bluetooth.cpp") + "\n" + fw.codigo(punta, "src", "interruptores.cpp"))
+    atiende = _atiende_codigo(fw.codigo(punta, "src", "bluetooth.cpp") + "\n" + fw.codigo(punta, "src", "interruptores.cpp")
+                              + "\n" + fw.codigo(punta, "src", "instalacion.cpp"))   # N-187
     if punta == NOCHE_CPP[0]:
         atiende |= _atiende_noche(fw.codigo(*NOCHE_CPP))
     return atiende
@@ -148,7 +150,8 @@ def _envia(fw):
     "sin interfaz" un FORZAR_ROJO y un TEST_LEDS que la app manda desde hace meses
     -por openPinModal(), que guarda el comando y lo ejecuta al validar el PIN-.
     Es la regla del instrumento: descartar al buscador antes de acusar."""
-    return _envia_de([fw.texto_repo(*r) for r in (APP_JS, TESTIGO_JS, DEG_AUTO_JS, AVISO_DEG_JS, NOCHE_JS)],
+    return _envia_de([fw.texto_repo(*r) for r in (APP_JS, TESTIGO_JS, DEG_AUTO_JS, AVISO_DEG_JS, NOCHE_JS,
+                                                  INSTALACION_JS)],
                      fw.texto_repo(*APP_HTML))
 
 
@@ -184,6 +187,10 @@ def _envia_de(js, html):
     # comando que la app no manda: el cable siempre lleva SET_MODO:AUTO.
     literales |= set(re.findall(r"enviarComandoFirmware\(\s*'([^']+)'\s*,\s*[^'\s)]", js))
     del_html = set(re.findall(r'data-(?:cmd|interruptor)="([^"]+)"', html))
+    # N-187 (js/instalacion.js): el boton compone data-instalacion="SET_CAMARA:' + x... y el
+    # selector llama this._enviar('SET_PLUMA_RETARDO', ...): se guarda la raiz, como arriba.
+    del_html |= set(re.findall(r'data-instalacion="([A-Z][A-Z_]+):', js))
+    del_html |= set(re.findall(r"\._enviar\(\s*'([A-Z][A-Z_]+)'", js))
     # Los que se CONSTRUYEN con plantilla, que son los que llevan parametros pegados:
     # SET_RTC con la fecha, SET_TIEMPOS con los tres numeros. Se guarda su raiz.
     #

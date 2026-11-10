@@ -5,6 +5,7 @@
 #include "botones.h"
 // D-95/D-96: los dos interruptores de SPEC_8 6 viven en el respaldo; escribirPines() los lee.
 #include "respaldo.h"
+#include "instalacion.h"   // N-187: el retardo de bajada, parametro de instalacion
 // D-33: y de aqui sale el suelo vial del todo-rojo contra el que se acota el retardo.
 #include "limites_ciclo.h"
 // N-82.bis: el test de lamparas solo corre FUERA DE SERVICIO, y eso es una pregunta
@@ -59,8 +60,8 @@ static bool plumaFuera = false;
 // ESTE NUMERO ES ELEGIDO, NO DERIVADO, Y ASI SE ESCRIBE. Lo fijo el responsable el
 // 14/09/2026 en TRES SEGUNDOS. No sale de ninguna cuenta y no se presenta como si
 // saliera: presentar un numero elegido como derivado ya costo un dia entero aqui
-// (AVISO_AMBAR_REINTENTOS). Quien lo cambie cambia UN sitio por punta, y el
-// static_assert de abajo se vuelve a comprobar solo.
+// (AVISO_AMBAR_REINTENTOS). N-187 (09/11): es el valor de FABRICA de un parametro
+// de instalacion, 3..5 s (P3); los tres numeros y la cota viven en instalacion.h.
 //
 // EL DATO QUE TUVO DELANTE AL ELEGIRLO, que es lo que hace revisable la decision: el
 // despeje esta DEFINIDO como el tiempo que tarda el ultimo en salir de un tramo
@@ -83,13 +84,12 @@ static bool plumaFuera = false;
 // NO garantiza que sea suficiente: el despeje esta definido como el tiempo que tarda el
 // ULTIMO en salir de un tramo dimensionado para ese despeje, asi que quien entra en el
 // segundo N del rojo se queda con despeje - N para recorrerlo entero. Con el despeje en
-// su minimo y este retardo, le quedan 7 s. Es NECESARIO, no SUFICIENTE, y el numero que
+// su minimo y el retardo maximo (5 s), le quedan 5. Es NECESARIO, no SUFICIENTE, y el numero que
 // lo hace suficiente es vial: no sale de este fichero.
-static const unsigned long PLUMA_RETARDO_BAJADA_MS = 3000UL;
 
-// N-71: LA DESIGUALDAD NO SE QUEDA EN EL COMENTARIO DE ARRIBA. Si alguien sube el
+// N-71 / D-163: LA DESIGUALDAD NO SE QUEDA EN EL COMENTARIO DE ARRIBA. Si alguien sube el
 // retardo o baja el suelo vial del despeje, esto no compila.
-static_assert(PLUMA_RETARDO_BAJADA_MS * 2UL <= (unsigned long)DESPEJE_SEG_MIN * 1000UL,
+static_assert(PLUMA_RETARDO_MAX_MS * 2UL <= (unsigned long)DESPEJE_SEG_MIN * 1000UL,
               "D-33: el retardo de bajada de la pluma se come mas de la MITAD del "
               "todo-rojo mas corto que el ciclo permite (DESPEJE_SEG_MIN). Con eso la "
               "pluma puede seguir arriba cuando la otra punta abre su verde, que es "
@@ -259,7 +259,7 @@ static void escribirPines(bool rojo, bool amarillo, bool verde) {
       plumaCierrePendiente = true;
       tPlumaCierrePedido = millis();
     }
-    const bool enRetardo = (millis() - tPlumaCierrePedido) < PLUMA_RETARDO_BAJADA_MS;
+    const bool enRetardo = (millis() - tPlumaCierrePedido) < instalacion_retardoPlumaMs();   // N-187
     plumaVetada = !enRetardo && !respaldo_vetoCamaraOff() && camara_presenciaJ16();   // D-96
     plumaArriba = enRetardo || plumaVetada;
     if (!plumaArriba) plumaCierrePendiente = false;

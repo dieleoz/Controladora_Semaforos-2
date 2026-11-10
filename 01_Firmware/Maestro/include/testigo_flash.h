@@ -10,8 +10,8 @@
 // Por que aqui y no en la pila (SPEC_2 7.bis): los diez registros de respaldo del F103
 // estan repartidos en respaldo.cpp y el registro del testigo no cabe sin retirar otras
 // garantias. La pagina de 1 KB en TESTIGO_FLASH_DIR queda fuera del alcance del
-// enlazador por board_upload.maximum_size = 63488 (D-108: y la de la noche): si el codigo
-// llegara hasta aqui, el enlace falla en vez de pisarla.
+// enlazador por board_upload.maximum_size = 62464 (D-108 y N-187: y la de la noche y la de
+// instalacion): si el codigo llegara hasta aqui, el enlace falla en vez de pisarla.
 //
 // QUE GUARDA. Solo los parametros del testigo aceptado. Si el testigo SIGUE PUESTO no lo
 // dice esta pagina: lo dice el bit FLAG_TESTIGO de la pila (respaldo_testigoActivo()),

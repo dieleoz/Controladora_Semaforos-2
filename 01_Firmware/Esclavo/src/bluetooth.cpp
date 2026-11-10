@@ -12,6 +12,7 @@
 #include "deg_auto.h"      // A-15: SET_DEG_AUTO / CONSULTA_DEG_AUTO
 #include "respaldo.h"      // A-15: la opcion propia y el APTO oido del Maestro
 #include "interruptores.h" // SPEC_8 6: SET_VETO_CAMARA y SET_BARRERA_SERVICIO (D-94)
+#include "instalacion.h"   // N-187: SET_CAMARA, SET_PLUMA_RETARDO, CONSULTA_INSTALACION
 #include <string.h>
 #include <stdio.h>
 
@@ -807,18 +808,9 @@ static void procesarComando(const char* cmd) {
     return;
   }
 
-  // 1.51 - LA VERSION DEL FIRMWARE, SIN PIN. Ver version_fw.h para el sello, y la rama
-  // gemela de mas abajo -con el PIN puesto- para el porque de cada decision de la trama,
-  // que esta escrito UNA sola vez.
-  //
-  // POR QUE ENTRA SIN PIN: no toca nada, solo CUENTA lo que este binario es, y el PIN
-  // guarda lo que ABRE paso o mueve luces. Y las DOS formas se aceptan porque la version
-  // es lo primero que se pregunta cuando algo va mal: un AUTH_FAILED ahi manda a buscar
-  // una clave en vez de a mirar el firmware.
-  //
-  // VA ANTES DE LA GUARDA DE PIN Y DESPUES DEL AMBAR DE EMERGENCIA: el orden de este
-  // fichero es "lo que para la via primero"; una consulta no para nada y no adelanta a
-  // nada.
+  // 1.51 - LA VERSION DEL FIRMWARE, SIN PIN (sello: version_fw.h; la trama, en la rama gemela
+  // con PIN). No toca nada y el PIN guarda lo que ABRE: un AUTH_FAILED ahi manda a buscar una
+  // clave en vez de mirar el firmware. Va tras el ambar de emergencia: lo que para la via, antes.
   if (strcmp(cmd, "CMD:VERSION") == 0) {
 #if FW_SELLADO
     enviarTramaConCrc("$ACK,CMD:VERSION,RESULT:OK,NODE:ESCLAVO,FW:" FW_TEXTO);
@@ -867,6 +859,12 @@ static void procesarComando(const char* cmd) {
              respaldo_degAuto() ? "ON" : "OFF", respaldo_otroApto() ? "ON" : "OFF",
              degAuto_aptoPropio() ? "SI" : "NO");
     enviarTramaConCrc(p);
+    return;
+  }
+
+  // N-187: CONSULTA_INSTALACION solo mira; entra con y sin PIN, gemela de la del Maestro.
+  if (strcmp(cmd, "CMD:CONSULTA_INSTALACION") == 0 || strcmp(cmd, "CMD:PIN:1234:CONSULTA_INSTALACION") == 0) {
+    enviarTramaConCrc(instalacion_orden("CONSULTA_INSTALACION"));
     return;
   }
 
@@ -1160,6 +1158,8 @@ static void procesarComando(const char* cmd) {
     // NO se anota en el Diario: preguntar la version no cambia el equipo, y una linea por
     // consulta inunda la bitacora donde hay que encontrar el fallo (N-73).
   } else if (const char* r = interruptores_orden(accion)) {   // D-94: local, sin radio
+    enviarTramaConCrc(r);
+  } else if (const char* r = instalacion_orden(accion)) {     // N-187: local, sin radio
     enviarTramaConCrc(r);
   } else {
     enviarTramaConCrc("$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO_EN_ESCLAVO");

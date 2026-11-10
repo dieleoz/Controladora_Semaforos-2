@@ -55,7 +55,7 @@ const DATOS = /^(SERIE|T|RF|RTT|BAT|HORA|FW|REIN|UP|ANTES|TR|NODE)$/;
 function vocabulario(punta) {
   const lits = literales(fuente(punta));
   if (lits.includes('%s,CMD:%s%s%s,%s')) lits.filter(x => /^(RESULT|DESC):/.test(x)).forEach(c =>
-    ['$ACK', '$ERR'].forEach(k => lits.push(k + ',CMD:%s,' + c, k + ',CMD:%s:%s,' + c)));
+    ['$ACK', '$ERR'].forEach(k => lits.push(k + ',CMD:%s,' + c, k + ',CMD:%s:%s,' + c, k + ',CMD:%s:%s:%s,' + c)));   // N-187: C:NC
   const cabezas = lits.filter(l => /^\$(ACK|ERR|STATUS|EVENT|ALARM),/.test(l))
     .map(l => ({ lit: l, re: new RegExp('^' + aRegex(l)), nombres: (l.match(/(?:^|,)([A-Z_]+):%/g) || []) }));
   const cola = lits.filter(l => /^,[A-Z]+%?[a-z]*:?.*%/.test(l)).map(l => new RegExp('^' + aRegex(l)));
@@ -99,18 +99,25 @@ module.exports = async function pruebaSimulador(montarAppLimpia, assert) {
   const flota = () => { try { return JSON.parse(JSON.stringify(require(path.join(APP, 'js', 'practica.js')).FLOTA)); } catch (e) { return []; } };
 
   // 1. Cada constante con su origen archivo:simbolo, y el valor en la misma linea del simbolo.
+  const origenMalo = (valor, origen) => {
+    const [rel, sim] = [origen.slice(0, origen.indexOf(':')), origen.slice(origen.indexOf(':') + 1)];
+    const f = path.join(FW, rel);
+    if (!fs.existsSync(f)) return true;
+    const v = String(valor);
+    const lineas = sinComentarios(fs.readFileSync(f, 'utf8')).split('\n').filter(l => l.includes(sim));
+    return !lineas.some(l => (/^\d+$/.test(v) ? new RegExp('\\b' + v + '(UL|U|L)?\\b') : new RegExp('"' + v + '|' + v)).test(l));
+  };
   {
-    const malas = Object.keys(S.ORIGEN || {}).filter(k => {
-      const [rel, sim] = [S.ORIGEN[k].slice(0, S.ORIGEN[k].indexOf(':')), S.ORIGEN[k].slice(S.ORIGEN[k].indexOf(':') + 1)];
-      const f = path.join(FW, rel);
-      if (!fs.existsSync(f)) return true;
-      const v = String(S.C[k]);
-      const lineas = sinComentarios(fs.readFileSync(f, 'utf8')).split('\n').filter(l => l.includes(sim));
-      return !lineas.some(l => (/^\d+$/.test(v) ? new RegExp('\\b' + v + '(UL|U|L)?\\b') : new RegExp('"' + v + '|' + v)).test(l));
-    });
+    const malas = Object.keys(S.ORIGEN || {}).filter(k => origenMalo(S.C[k], S.ORIGEN[k]));
     const n = Object.keys(S.ORIGEN || {}).length;
     assert(n >= 15 && n === Object.keys(S.C || {}).length && malas.length === 0,
       `Simulador: las ${n} constantes tienen origen archivo:simbolo que existe y lleva su valor; malas: ${malas.join(',') || '-'}`);
+    // N-187: el rango del retardo de la app (s) contra instalacion.h (ms), por el mismo mecanismo.
+    const R = require(path.join(APP, 'js', 'instalacion.js')).RETARDO, IH = 'Maestro/include/instalacion.h:PLUMA_RETARDO_';
+    const malasR = [['MIN', 'MIN_MS'], ['MAX', 'MAX_MS'], ['FABRICA', 'BAJADA_MS']]
+      .filter(([k, sim]) => origenMalo(R[k] * 1000, IH + sim)).map(([k]) => k + '=' + R[k]);
+    assert(malasR.length === 0, `Simulador: Instalacion.RETARDO (${JSON.stringify(R)}) es PLUMA_RETARDO_MIN_MS/MAX_MS/` +
+      `BAJADA_MS de instalacion.h; distintas: ${malasR.join(',') || '-'}`);
   }
 
   // 2. Vocabulario, del simulador al C++: cada trama que emite casa con una cabeza de su punta. Suelo: ABORTADO.
@@ -124,14 +131,15 @@ module.exports = async function pruebaSimulador(montarAppLimpia, assert) {
     'Simulador: control negativo: un DESC: que el C++ no tiene y un campo de mas se rechazan; uno del C++ pasa');
   // Las ordenes del despachador de cada punta, leidas del C++ (C++ -> simulador).
   const ARGS = { 'SET_MODO:DEG_T:': '10:00:00,10:00:30,300,40', 'SET_MODO:DEG_FIN:': 'CANCELAR', 'SET_DEG_AUTO:': '1', 'SET_TIEMPOS:': '5,5,30',
-                 'SET_NOCHE:': '1,OFF', 'SET_NOCHE_TR:': '200', 'SET_VETO_CAMARA:': 'OFF', 'SET_BARRERA_SERVICIO:': 'OFF', 'CMD:HORA_ESP32:': '2026-10-15T10:00:00' };
+                 'SET_NOCHE:': '1,OFF', 'SET_NOCHE_TR:': '200', 'SET_VETO_CAMARA:': 'OFF', 'SET_BARRERA_SERVICIO:': 'OFF', 'CMD:HORA_ESP32:': '2026-10-15T10:00:00',
+                 'SET_CAMARA:': 'C:NC', 'SET_PLUMA_RETARDO:': '4' };
   const NO_CONTESTA = ['$LATIDO', 'CMD:HORA_ESP32:'];   // bluetooth.cpp: el latido del puente y su hora no se contestan
   function ordenes(punta) {
-    const cods = ['bluetooth.cpp', 'interruptores.cpp'].concat(punta === 'Maestro' ? ['modo_noche.cpp'] : [])
+    const cods = ['bluetooth.cpp', 'interruptores.cpp', 'instalacion.cpp'].concat(punta === 'Maestro' ? ['modo_noche.cpp'] : [])
       .map(f => fs.readFileSync(path.join(FW, punta, 'src', f), 'utf8'));
     const out = new Set();
     cods.map(sinComentarios).forEach(c => {
-      const ini = c.search(/static (void|bool) (procesarComando|ordenEnNoche|modoNoche_orden)|(bool|const char\*) (modoNoche_orden|interruptores_orden)/);
+      const ini = c.search(/static (void|bool) (procesarComando|ordenEnNoche|modoNoche_orden)|(bool|const char\*) (modoNoche_orden|interruptores_orden|instalacion_orden)/);
       const re = /\bstrn?cmp\s*\(\s*(cmd\s*\+\s*4|cmd|accion|a)\s*,\s*"([^"]+)"/g;
       let m;
       re.lastIndex = Math.max(0, ini);
@@ -180,7 +188,8 @@ module.exports = async function pruebaSimulador(montarAppLimpia, assert) {
                         'SET_MODO:DEG_FIN:': ['CANCELAR', '10:00:00,10:30:00', '09:00:00,10:30:00', 'x'],
                         'SET_DEG_AUTO:': ['1', '0', '7'], 'SET_TIEMPOS:': ['5,5,30', '99,5,30', 'x'],
                         'SET_NOCHE:': ['1,OFF', '1,LMXJVSD,2200,0500,R', '9,OFF', '1,LMXJVSD,2500,0500,A', 'x'],
-                        'SET_NOCHE_TR:': ['200', '5', 'x'], 'SET_VETO_CAMARA:': ['OFF', 'ON', 'x'], 'SET_BARRERA_SERVICIO:': ['OFF', 'ON', 'x'] };
+                        'SET_NOCHE_TR:': ['200', '5', 'x'], 'SET_VETO_CAMARA:': ['OFF', 'ON', 'x'], 'SET_BARRERA_SERVICIO:': ['OFF', 'ON', 'x'],
+                        'SET_CAMARA:': ['C:NC', 'D:NA', 'C,NC', 'x'], 'SET_PLUMA_RETARDO:': ['4', '6', 'x'] };
     F.forEach(def => {
       const r = relojManual(T0), em = [];
       const sim = S.crear({ reloj: r, postes: [JSON.parse(JSON.stringify(def))], emitir: (p, t) => em.push([def.nodo, t]) });
@@ -421,6 +430,48 @@ module.exports = async function pruebaSimulador(montarAppLimpia, assert) {
       `Simulador: Averias en practica contesta como el firmware (acuses: ${acuses.join(' | ') || '-'}), el Maestro ` +
       `publica PLUMA:FUERA y CAM:NOVETO (${stM.slice(-25) || '-'}), Trafico pinta «${plM || '-'}», y el Esclavo ` +
       `no los hereda (${stE0.slice(-20) || '-'}) hasta su propia orden (${stE.slice(-20) || '-'})`);
+    P(a).salir();
+  }
+  {
+    // N-187 (SPEC_8 8.6; P3 del 09/11: R en 3..5, fabrica 3): las cuatro ordenes en las dos puntas, por poste, con
+    // los literales de 8.6 y VE:C0D0 siempre; y en la app, el plegado de Ajustes contra el simulador.
+    const sim = S.crear({ reloj: relojManual(T0), postes: [{ nodo: 'MAESTRO', serie: 'M' }, { nodo: 'ESCLAVO', serie: 'E' }] });
+    const di = (p, l) => sim.recibir(p, l + '\r\n').map(t => t.replace(/\*..$/, '')).join('|');
+    const K = 'CMD:PIN:' + S.C.PIN + ':', CO = '$ACK,CMD:CONSULTA_INSTALACION,RESULT:';
+    const [pm, pe] = sim.postes, malas = [];
+    [pm, pe].forEach(p => [['CMD:CONSULTA_INSTALACION', CO + 'C_NA_D_NA_R3,VE:C0D0'],
+      [K + 'SET_CAMARA:C:NC', '$ACK,CMD:SET_CAMARA:C:NC,RESULT:OK,VE:C0D0'],
+      [K + 'SET_CAMARA:C:NC', '$ACK,CMD:SET_CAMARA:C:NC,RESULT:SIN_CAMBIO,VE:C0D0'],
+      [K + 'SET_CAMARA:E:NA', '$ERR,CMD:SET_CAMARA,DESC:FORMATO_INVALIDO'],
+      [K + 'SET_CAMARA:C,NC', '$ERR,CMD:SET_CAMARA,DESC:FORMATO_INVALIDO'],
+      [K + 'SET_PLUMA_RETARDO:2', '$ERR,CMD:SET_PLUMA_RETARDO:2,DESC:FUERA_DE_RANGO'],
+      [K + 'SET_PLUMA_RETARDO:6', '$ERR,CMD:SET_PLUMA_RETARDO:6,DESC:FUERA_DE_RANGO'],
+      [K + 'SET_PLUMA_RETARDO:4s', '$ERR,CMD:SET_PLUMA_RETARDO,DESC:FORMATO_INVALIDO'],
+      [K + 'SET_PLUMA_RETARDO:3', '$ACK,CMD:SET_PLUMA_RETARDO:3,RESULT:SIN_CAMBIO,VE:C0D0'],
+      [K + 'SET_PLUMA_RETARDO:5', '$ACK,CMD:SET_PLUMA_RETARDO:5,RESULT:OK,VE:C0D0'],
+      ['CMD:SET_CAMARA:D:NC', '$ERR,CMD:AUTH_FAILED,DESC:PIN_INVALIDO'],
+      [K + 'CONSULTA_INSTALACION', CO + 'C_NC_D_NA_R5,VE:C0D0']].forEach(([l, e]) => {
+      const r = di(p, l); if (r !== e) malas.push(p.nodo + ' ' + l + ' -> ' + r);
+    }));
+    const otro = S.crear({ reloj: relojManual(T0), postes: [{ nodo: 'ESCLAVO', serie: 'E2' }] });
+    const fab = otro.recibir(otro.postes[0], 'CMD:CONSULTA_INSTALACION\r\n')[0] || '';
+    assert(malas.length === 0 && fab.indexOf(CO + 'C_NA_D_NA_R3,VE:C0D0*') === 0,
+      `Simulador: SET_CAMARA, SET_PLUMA_RETARDO (2 y 6 fuera, 3..5 dentro) y CONSULTA_INSTALACION con los literales ` +
+      `de 8.6 en las dos puntas, por poste y de fabrica NA,NA,3 (${fab || '-'}); distintas: ${malas.join(' | ') || '-'}`);
+    const a = montar(), det = a.el('instalacion');
+    P(a).entrar(); a.enlazar(mac(1));
+    if (det) { det.open = true; det.dispatchEvent(new a.w.Event('toggle')); }
+    a.r.avanzar(S.C.STATUS_MS);
+    const b = a.d.querySelector('[data-instalacion="SET_CAMARA:D:NC"]');
+    if (b) { b.click(); if (a.activo('pin-modal')) a.pin(); }
+    a.r.avanzar(S.C.STATUS_MS);
+    const oi = a.oidas.filter(t => /INSTALACION|SET_CAMARA/.test(t)).map(t => t.replace(/\*..$/, ''));
+    const txt = (id) => (a.el(id) ? a.el(id).textContent : '');
+    assert(oi.join('|') === [CO + 'C_NA_D_NA_R3,VE:C0D0', '$ACK,CMD:SET_CAMARA:D:NC,RESULT:OK,VE:C0D0',
+                             CO + 'C_NA_D_NC_R3,VE:C0D0'].join('|') && txt('inst-d') === 'NC' && txt('inst-c') === 'NA' &&
+           txt('inst-r') === '3 s' && a.tramas.length === 0,
+      `Simulador: en practica, abrir Instalacion consulta, D:NC se acepta y el panel lo pinta tras reconsultar ` +
+      `(${oi.join(' | ') || '-'}; C ${txt('inst-c')} D ${txt('inst-d')} R ${txt('inst-r')})`);
     P(a).salir();
   }
 };

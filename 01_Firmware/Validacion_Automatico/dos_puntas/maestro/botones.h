@@ -13,4 +13,5 @@ void botones_actualizar();
 // que el veto no se puede quitar en silencio -quitarlo rompe el ENLACE, no se queda
 // callado-. La definicion esta en el adaptador y devuelve false: en este banco no hay
 // camaras cableadas, o sea que la pluma sigue a la luz con su retardo y nada mas.
-bool camara_presenciaJ16();
+bool camara_presenciaJ16(int cam = -1);   // N-187: firma de include/botones.h
+void camaras_sembrar();                   // N-187: la llama instalacion.cpp

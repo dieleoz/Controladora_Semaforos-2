@@ -322,13 +322,17 @@ la **4** (la concesion de paso por camara nunca se probo)—. Aqui, lo que falta
 | 6 | **La cinta de campo no ayuda:** 253 tramas del Sisga (10/09) y **las 253 dicen `CAM:?`** — en veinte minutos ninguna camara le dio un flanco al equipo (`SPEC_5` §6) |
 | 7 | **El recorrido real de la pluma:** ~60 s de subida segun Marco (06/10), sin cronometrar; la bajada, sin dato |
 
-# 8. 🟡 Parametros de instalacion de camaras y barrera — **DISENO, SIN CONSTRUIR (`D-161`..`D-165`)**
+# 8. 🟡 Parametros de instalacion de camaras y barrera — **CONSTRUIDO, SIN BANCO (`D-161`..`D-165`)**
 
 **Lo que pidio el responsable el 09/11:** «que no sea firmware sino un parametro desde la app, en modo
-administracion, para camaras y barrera; asi evitamos ir a campo por algo que hoy no controlamos». Este apartado es el
-diseno validado contra el fuente de `63e4c63`; **nada de aqui esta construido** y el equipo hace hoy lo de §1..§6.
-**Regla de carga:** cada parametro sale de fabrica con el valor que hoy esta fijo en el firmware; cargar el firmware
-nuevo no cambia nada de lo que ve un conductor hasta que alguien envie una orden. (Se numera §8 porque §7 ya existe y
+administracion, para camaras y barrera; asi evitamos ir a campo por algo que hoy no controlamos». Este apartado lo
+cumple el firmware desde `N-187` (09/11): modulos `instalacion.{h,cpp}` e `instalacion_flash.{h,cpp}`, identicos en las
+dos puntas. **Sin banco:** la escritura real de la pagina y el antirrebote con `NC` no se han medido en una tarjeta.
+**Regla de carga:** cada parametro sale de fabrica con el valor que hoy esta fijo en el firmware, asi que la primera
+carga no cambia nada de lo que ve un conductor. Pero la carga por SWD borra entera la flash (`-e all`, `CLAUDE.md` §3):
+**cada carga devuelve el poste a fabrica (NA, NA, 3 s)**. Un poste con una camara `NC` queda declarado `NA` y ve
+presencia permanente (lado seguro: la pluma no baja en rojo y avisa). Tras cada carga se envia `CONSULTA_INSTALACION`
+y se reenvia la configuracion que tenia el poste antes de cargar. (Se numera §8 porque §7 ya existe y
 los numeros de apartado no se tocan, `CLAUDE.md` cabecera.)
 
 ## 8.1 Los parametros, y los dos candidatos que NO entran
@@ -337,7 +341,7 @@ los numeros de apartado no se tocan, `CLAUDE.md` cabecera.)
 |---|---|---|---|
 | contacto de la camara C (`J16` p10) | `NA` | `NA` / `NC` | la lectura de `CAM_C_PIN`, en un solo sitio (8.3) |
 | contacto de la camara D (`J16` p12) | `NA` | `NA` / `NC` | la de `CAM_D_PIN`, igual |
-| retardo de bajada tras el rojo | 3 s | 2..5 s, entero (P1, P3) | `PLUMA_RETARDO_BAJADA_MS` pasa a valor de fabrica |
+| retardo de bajada tras el rojo | 3 s | 3..5 s, entero (P1, P3 decididas 09/11) | `PLUMA_RETARDO_BAJADA_MS` pasa a valor de fabrica |
 | sentido de `J15` | activa = subir | **fijo, no es parametro** | nada (8.2) |
 | tipo de salida | nivel | **fijo, no es parametro** | nada (8.2) |
 | pluma en ambar intermitente / `S_FALLO` | ARRIBA | **fijo salvo fila (P2)** | nada (8.2) |
@@ -363,29 +367,33 @@ los numeros de apartado no se tocan, `CLAUDE.md` cabecera.)
 
 - **Contacto NC.** El cobre no cambia: `INPUT` pelado, pull-down R67/R68, contacto contra los 3,3 V de p9/p11
   (`pines.h`, «por que activo en alto»: eso es el NIVEL ELECTRICO y sigue cierto). Con `NC` el contacto esta cerrado
-  en reposo (pin alto) y abre al detectar (pin bajo): **presencia = pin bajo**. La inversion va en UN sitio, una
-  lectura por indice de camara que usen `camaras_sembrar()` y `camaras_actualizar()` en las dos puntas; NO en
-  `camara_leerPin()`, que tambien lee `CAM_DEMANDA_PIN` en `modo_inteligente.cpp`. El antirrebote de 5 ms pasa al nivel
-  ACTIVO (hoy solo confirma el alto: con `NC` un rebote bajo seria presencia sin filtrar). Asi veto, demanda, Modo
-  Inteligente y vigilante ven la misma presencia logica, sin una segunda formula.
+  en reposo (pin alto) y abre al detectar (pin bajo): **presencia = pin bajo**. La inversion va en UN sitio:
+  `camara_leerPin(pin, nc)` (`botones.cpp`), que sigue siendo el unico `digitalRead` de camara (lo exige
+  `camara_02_j16`); `camaras_sembrar()` y `camaras_actualizar()` la llaman con `instalacion_camaraNC(i)` en las dos
+  puntas, y `CAM_DEMANDA_PIN` (`modo_inteligente.cpp`) la llama con `nc = false`, activo en alto como hoy. El
+  antirrebote de 5 ms confirma el nivel ACTIVO (con `NC` un rebote bajo no pasa sin filtrar). `camara_02_j16` sigue
+  viendo `== HIGH` y no ve el `!= nc`: la inversion la prueba el bloque K del arnes
+  automatico, no el pack. Asi veto, demanda, Modo Inteligente y vigilante ven la misma presencia logica.
 - **NC aporta algo:** un cable cortado da presencia permanente, o sea el lado de §1 (la pluma no baja y se avisa).
 - **Retardo.** `escribirPines()` compara `millis() - tPlumaCierrePedido` contra el getter del parametro, leido en cada
-  tick (sin copia en RAM, molde `D-149`). El `static_assert` pasa a la cota: `PLUMA_RETARDO_MAX_MS * 2 <=
+  tick (`instalacion_retardoPlumaMs()`, sin copia en RAM, molde `D-149`). Una sola cota en `instalacion.h`
+  (`PLUMA_RETARDO_MIN_MS` 3000, `PLUMA_RETARDO_MAX_MS` 5000; `PLUMA_RETARDO_BAJADA_MS` 3000 de fabrica) para el getter,
+  la orden y el `static_assert`: `PLUMA_RETARDO_MAX_MS * 2 <=
   DESPEJE_SEG_MIN * 1000` (Esclavo: `DESPEJE_MIN_HEREDADO_SEG`), o sea 5 s con 10 s; la orden rechaza lo de fuera.
-  Cambiado durante una bajada en curso, vale desde ese tick: nunca baja de 2 s ni pasa de 5.
-- **Leer la pagina mal = fabrica.** Pagina borrada, firma, version o suma que no casan, o un valor fuera de rango:
-  los getters devuelven NA, NA y 3 s, que es el equipo de hoy.
+  Cambiado durante una bajada en curso, vale desde ese tick: nunca baja de 3 s ni pasa de 5.
+- **Leer la pagina mal = fabrica ENTERA.** Pagina borrada, firma, version o suma que no casan, un retardo fuera de
+  3..5 o un contacto distinto de 0/1: los getters devuelven NA, NA y 3 s, que es el equipo de hoy.
 
 ## 8.4 La tabla de estados — luz x parametro -> `J15` y pluma (validada contra `escribirPines()` de `63e4c63`)
 
-`J15`: 1 = `TALANQUERA_ABRIR` (`HIGH`), 0 = `CERRAR`. R = retardo (2..5 s). «Ve» = presencia logica de C o D tras
+`J15`: 1 = `TALANQUERA_ABRIR` (`HIGH`), 0 = `CERRAR`. R = retardo (3..5 s). «Ve» = presencia logica de C o D tras
 aplicar `NA`/`NC`. Ningun parametro entra en `luzPideArriba`: solo en la rama de bajada.
 
 | luz / causa | NA o NC | R | `J15` | pluma | caso ya aceptado |
 |---|---|---|---|---|---|
 | VERDE real | no cuenta | no cuenta | 1 | arriba | SFTY-28 |
 | AMARILLO de cierre (`S_AMARILLO`) | no cuenta | no cuenta | 1 | arriba | `D-45` |
-| ROJO, primeros R s | no cuenta | 2..5 | 1 | arriba | `D-33` (hoy 3 s) |
+| ROJO, primeros R s | no cuenta | 3..5 | 1 | arriba | `D-33` (hoy 3 s) |
 | ROJO tras R, ve | presencia logica | - | 1 | arriba, avisa a 90 s | `D-33`, §3 |
 | ROJO tras R, no ve | presencia logica | - | 0 | baja | `D-33` |
 | ROJO con pluma ya abajo | no cuenta | no cuenta | 0 | abajo | §1 («en seco») |
@@ -394,7 +402,7 @@ aplicar `NA`/`NC`. Ningun parametro entra en `luzPideArriba`: solo en la rama de
 | `S_FALLO`, `S_AMBAR_INT` | no cuenta | no cuenta | 1 | arriba | §5, cliente y PMT 27/08 (P2) |
 | `S_ROJO_INT` (noche) | no cuenta | no cuenta | 1 | arriba | `D-110` |
 | barrera fuera (`FLAG_BARRERA_FUERA`) | no cuenta | no cuenta | 1 | arriba | `D-96` |
-| camara fuera del veto | ignorada | 2..5 | 0 tras R | baja | `D-96` |
+| camara fuera del veto | ignorada | 3..5 | 0 tras R | baja | `D-96` |
 | arranque, reset, corte, SWD | no cuenta | no cuenta | 0 | abajo | SFTY-28, `SPEC_5` §4 |
 
 **Las cuatro comprobaciones, con lo que las garantiza:**
@@ -402,7 +410,7 @@ aplicar `NA`/`NC`. Ningun parametro entra en `luzPideArriba`: solo en la rama de
    abajo»; solo cambian R (acotado a 5 s por la orden y por el `static_assert` de la cota) y que pin es presencia.
    🔴 **Lo nuevo:** un contacto mal declarado entra por el caso de veto (`D-33`, «ante error no baja y avisa»): ver 8.5.
 2. **Nunca baja sobre el amarillo ni dentro de R.** `S_AMARILLO` esta en `luzPideArriba`; R cuenta desde el rojo y su
-   minimo es 2 s (P3).
+   minimo es 3 s (P3).
 3. **Ningun pulso activo mas de su tiempo:** no hay pulso (8.2). En nivel, el tiempo de motor lo corta el final de
    carrera de la central o del puente H.
 4. **El fallo seguro sin energia no depende de ningun parametro:** el sentido de `J15` no es parametro.
@@ -416,8 +424,11 @@ detectores, del mas rapido al mas lento:
    delante debe salir 0»; si sale 1, el contacto esta mal declarado o hay algo delante.
 2. **El aviso de pluma retenida** de §3 a los 90 s (`VETO_SOSTENIDO_MS`), en el primer rojo.
 3. **`CAM_PEGADA`** a los 20 min (`CAM_PEGADA_MS`): su cronometro se siembra en `camaras_sembrar()` con el nivel ya
-   invertido, asi que un nivel permanente desde el cambio tambien alarma. Por eso la orden **re-siembra** las dos
-   camaras (sin flanco fantasma ni demanda regalada).
+   invertido, asi que un nivel permanente desde el cambio tambien alarma. Por eso, **cuando el contacto releido de la
+   flash cambia**, la orden re-siembra las dos camaras: `camaras_sembrar()`, publica, reinicia TODO su estado (flanco,
+   ultimo flanco, silencio, estado y cronometros), sin flanco fantasma ni demanda regalada, y el `VE:` del `$ACK` se
+   lee despues. Una orden que no cambia el contacto (`SET_PLUMA_RETARDO`) no re-siembra: no borra una `CAM_PEGADA`
+   anunciada ni reinicia el aviso de 90 s.
 **Y el cambio no suelta un veto en curso:** con `semaforo_plumaVetada()` cierto, `SET_CAMARA` contesta
 `$ERR ... DESC:PLUMA_VETADA`. Para corregir una camara que retiene la pluma: `SET_VETO_CAMARA:OFF` (§6, baja tras R),
 cambiar el contacto, comprobar `VE:0` y devolver el veto.
@@ -429,38 +440,49 @@ cambiar el contacto, comprobar `VE:0` y devolver el veto.
   version, `ncC`, `ncD`, retardo en s, suma de 32 bits; valor fuera de rango = fabrica. Se borra y escribe solo al
   aceptar una orden (pocas en la vida del equipo).
 - **Ordenes, locales al poste** (no viajan por radio, como §6.1), tras la clave de administracion (`D-56`) y el PIN:
-  `SET_CAMARA:C,NA|NC`, `SET_CAMARA:D,NA|NC`, `SET_PLUMA_RETARDO:<s>`; y `CONSULTA_INSTALACION` sin PIN.
+  `SET_CAMARA:C:NA|NC`, `SET_CAMARA:D:NA|NC` (sin coma: la coma parte el campo `CMD` del `$ACK`),
+  `SET_PLUMA_RETARDO:<s>` (una o dos cifras); y `CONSULTA_INSTALACION` sin PIN (en la lista sin PIN del firmware, de
+  `app.js` y del simulador). Las atiende `instalacion_orden()`, llamada desde `bluetooth.cpp`.
 - **Molde `SET_TIEMPOS` (`CLAUDE.md` §2):** igual que lo guardado, `RESULT:SIN_CAMBIO`; texto que no casa,
-  `DESC:FORMATO_INVALIDO`; retardo fuera de 2..5, `DESC:FUERA_DE_RANGO`; veto en curso, `DESC:PLUMA_VETADA`; se escribe
+  `DESC:FORMATO_INVALIDO`; retardo fuera de 3..5, `DESC:FUERA_DE_RANGO`; veto en curso, `DESC:PLUMA_VETADA`; se escribe
   la pagina, se re-siembra y se reentra por `semaforo_reaplicarSalidas()` (`D-149`), y `RESULT:OK` solo si lo releido
-  de la FLASH despues es lo pedido; si no, `DESC:NO_QUEDO_PUESTO`. Cada `$ACK` lleva `VE:C<0|1>D<0|1>`.
+  de la FLASH despues es lo pedido; si no, `DESC:NO_QUEDO_PUESTO`. Cada `$ACK` lleva `VE:C<0|1>D<0|1>`; el `$ERR` no.
+  El `CMD` repite la orden con su valor (molde `interruptores.cpp`), salvo `FORMATO_INVALIDO`, que va sin valor:
+  `$ACK,CMD:SET_CAMARA:C:NC,RESULT:OK,VE:C0D0`, `$ERR,CMD:SET_PLUMA_RETARDO:6,DESC:FUERA_DE_RANGO`. `PLUMA_VETADA`
+  solo rechaza `SET_CAMARA`; el retardo se acepta con veto y rige desde ese tick. Cota del buffer: la trama mas larga
+  es la de `CONSULTA_INSTALACION`, 57 B en 64; si no cabe, `$ERR,CMD:INSTALACION,DESC:NO_CABE` (`N-154`).
 - **Lo que publica:** el `$STATUS` no crece (3 B, `D-60`). `CONSULTA_INSTALACION` contesta
   `RESULT:C_NA_D_NA_R3,VE:C0D0`; la app la pide al abrir Ajustes > «Instalacion: camaras y barrera» (plegado, como
   «Averias»). El `$ACK` queda en el registro del puente (`D-73`).
 - **Simulador de practica de la app:** contesta las tres ordenes y la consulta con los mismos literales, sobre un
   estado por poste (fabrica NA, NA, 3); no simula camara (`VE:C0D0` siempre) ni el retardo, igual que hoy `plumaCam()`.
-  `js/simulador.js` esta en 500 lineas: va en un fichero propio.
+  `js/simulador.js` esta en 500 lineas: va en `js/sim_instalacion.js`; la pantalla, en `js/instalacion.js`, con el
+  rango 3..5 en un solo sitio (`Instalacion.RETARDO`), cruzado contra `instalacion.h` por `tests/dom_simulador.js`.
+  Con un firmware anterior (`AUTH_FAILED` o `DESCONOCIDO`) la app dice que ese poste no tiene la funcion.
 
 ## 8.7 Lo que decide el responsable (P1..P4), con el modo de fallo y la recomendacion
 
 - **P1. ¿Cuando baja?** Solo tras el ROJO con R ajustable; o en amarillo, «4 s antes» del rojo, o en ambar.
   Modo de fallo de bajar en amarillo o antes: cae sobre quien entro con verde y sigue bajo el barrido, que es lo que
-  `D-33` vino a quitar, y contradice `D-45`. **Recomendado: solo tras el rojo, 2..5 s; nunca en amarillo ni en ambar.**
+  `D-33` vino a quitar, y contradice `D-45`. **Decidido el 09/11: solo tras el rojo, 3..5 s; nunca en amarillo
+  ni en ambar.**
 - **P2. Pluma en ambar intermitente / `S_FALLO`:** ARRIBA fija, o parametro ARRIBA/ABAJO. Modo de fallo de ABAJO:
   cierra el corredor sin enlace (§5); por poste, una boca abierta y otra cerrada con el mismo ambar.
-  **Recomendado: ARRIBA fija (cliente y PMT, 27/08) y abrir la fila que §5 pide.**
+  **Decidido: ARRIBA fija (cliente y PMT, 27/08); la fila que §5 pide es `D-164`.**
 - **P3. Rango de R:** por debajo de 2 s se acerca a «baja en el instante del rojo»; por encima de 5 s pasa de la mitad
-  del despeje minimo (`static_assert` de `D-33`). **Recomendado: 2..5 s (`D-163`).**
+  del despeje minimo (`static_assert` de `D-33`). **Decidido el 09/11: 3..5 s (`D-163`)**: con 2 s el brazo cae ~7
+  veces mas sobre quien cruza al final del amarillo (simulacion de dos modelos y arbitro, `roadmap.md` `N-187`).
 - **P4. `J15` fija «activa = subir» y de nivel; pulso a la version siguiente; central y puente H «sin senal = bajar»
   (`D-164`).** Modo de fallo de lo contrario: invertida, sube con cada corte o reinicio; un pulso sin fin de carrera
-  puede quedar invertido para siempre. **Recomendado: aceptar las tres.**
+  puede quedar invertido para siempre. **Decidido: las tres (`D-164`).**
 
-🔴 **Sin construir y sin banco. Pendiente la revision de arquitectura (`orquestador:arquitecto-iot`)**: no se pudo
-lanzar desde el encargo que escribio este apartado.
+**P1..P4 decididas el 09/11** (simulacion de dos modelos y arbitro): P1 y P4 como se recomienda, P2 ARRIBA fija,
+P3 3..5 s. Revision de arquitectura antes de construir: APTO CON CONDICIONES (C1..C5, cerradas en este apartado).
+🔴 **Sin banco.**
 
 *Decisiones recogidas: `D-12`, `D-13` (lo no derogado), `D-24`, `D-25`, `D-27`, `D-33`, `D-39`, `D-42`, `D-54`,
-`D-94`..`D-97`, `D-148`..`D-152` (§6, construido sin banco) y `D-161`..`D-165` (§8, sin construir). Abiertas
-que nombra sin resolver: `A-1.bis`, `A-6`. 🔴 **Y una eleccion vial vigente que NO tiene fila y deberia tenerla:
-la pluma ARRIBA en `S_FALLO`, del cliente y el PMT el 27/08/2026 (§5).** Manda esta spec;
+`D-94`..`D-97`, `D-148`..`D-152` (§6, construido sin banco) y `D-161`..`D-165` (§8, construido sin banco). Abiertas
+que nombra sin resolver: `A-1.bis`, `A-6`. La pluma ARRIBA en `S_FALLO`,
+del cliente y el PMT el 27/08/2026 (§5), tiene fila desde el 09/11: `D-164`. Manda esta spec;
 `DECISIONES.md` es su indice; el cobre, `17_...` y `SPEC_5`. Nacido el 14/09/2026 al
 partir `SPEC_5` por lector (`roadmap.md` 1.45).*

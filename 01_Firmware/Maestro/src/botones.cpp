@@ -4,6 +4,7 @@
 #include "demanda.h"
 #include "semaforo.h"
 #include "bluetooth.h"
+#include "instalacion.h"   // N-187: el contacto NA/NC de cada camara
 // D-33: de aqui sale el techo del despeje, contra el que se mide un veto sostenido.
 #include "limites_ciclo.h"
 
@@ -39,13 +40,10 @@
 // y entran por demanda_solicitar(), que es la unica puerta que ya existe en las dos y el
 // unico sitio donde la diferencia entre pedir y decidir esta escrita.
 
-// La lectura de una entrada de camara. ACTIVO EN ALTO -el porque, en pines.h-.
-//
-// El cuerpo viene LITERAL del leerPinCamara() que estaba en modo_inteligente.cpp: no se
-// reescribe logica ya probada solo para renombrarla. Los 5 ms de antirrebote por software
-// se mantienen, y en J16 pesan mas que en J14: PB0 lleva el RC de R64+C25 que filtra 1 ms
-// por hardware, y PB14/PB15 no llevan mas que el 10K de R67/R68. Aqui el unico antirrebote
-// es este.
+// La lectura de una entrada de camara. El NIVEL ELECTRICO es activo en alto (pines.h); con
+// nc (N-187, D-162, SPEC_8 8.3) la presencia es el pin BAJO. Los 5 ms de antirrebote confirman el
+// nivel ACTIVO, sea cual sea: en J16 son el unico (PB14/PB15 solo llevan el 10K de R67/R68;
+// PB0 lleva ademas el RC de R64+C25). CAM_DEMANDA_PIN se lee con nc = false, como siempre.
 //
 // D-12: DE CADA CAMARA ESTE CONTROLADOR CONSUME UN CONTACTO SECO, Y NADA MAS. Toda la
 // camara entra al firmware por esta funcion: no hay red, ni imagen, ni video, ni
@@ -53,10 +51,10 @@
 // cosa que cuelgue de este bit es que TODA la inteligencia vive en la configuracion del
 // aparato de fuera, y este micro no puede comprobarla, ni corregirla, ni enterarse de
 // que cambio.
-bool camara_leerPin(uint8_t pin) {
-  if (digitalRead(pin) == HIGH) {
+bool camara_leerPin(uint8_t pin, bool nc) {
+  if ((digitalRead(pin) == HIGH) != nc) {
     delay(5);
-    return (digitalRead(pin) == HIGH);
+    return (digitalRead(pin) == HIGH) != nc;
   }
   return false;
 }
@@ -532,9 +530,9 @@ static void vigilante_tick(unsigned long ahora) {
 // dejan el pin alto al encender sin que haya nada delante, y el firmware no los distingue.
 //
 // Se siembra el nivel REAL: si el contacto ya venia cerrado, no vuelve a pedir hasta que
-// se ABRA y se cierre otra vez. Al encender no sabemos cuanto lleva asi, solo que nadie
-// acaba de detectar nada.
-static void camaras_sembrar() {
+// se ABRA y se cierre otra vez. N-187/D-162: tambien tras cambiar el contacto (instalacion.cpp), y
+// por eso reinicia TODO el estado por camara: sin ello un flanco vigente daria VE:1 fantasma.
+void camaras_sembrar() {
   const unsigned long ahora = millis();
   camTickAnt = ahora;
   // N-26 tambien aqui: un veto ya activo al encender no es un veto NUEVO. Hoy no puede
@@ -544,12 +542,14 @@ static void camaras_sembrar() {
   camVetoDesde = ahora;
   camVetoAvisos = 0;
   for (int i = 0; i < 2; i++) {
-    camAnt[i] = camara_leerPin(CAM_J16[i]);
-    // Y EL CRONOMETRO DE PEGADA SE SIEMBRA IGUAL, por el mismo motivo una capa mas
-    // abajo: un contacto ya cerrado no va a dar el flanco que lo pondria en marcha, asi
-    // que sin esta linea el rele trabado desde antes del encendido -el caso que mas
-    // tarda en descubrirse solo- seria justo el unico que no se detecta nunca.
+    camAnt[i] = camara_leerPin(CAM_J16[i], instalacion_camaraNC(i));
+    // Y EL CRONOMETRO DE PEGADA SE SIEMBRA IGUAL: un contacto ya cerrado no da el flanco
+    // que lo pondria en marcha, y el rele trabado desde antes seria el unico sin detectar.
     camAltoDesde[i] = ahora;
+    camHuboFlanco[i] = false;
+    camUltimoFlanco[i] = 0;
+    camSinFlancoMs[i] = 0;
+    camEstado[i] = CAM_DESCONOCIDA;
   }
 }
 
@@ -568,10 +568,10 @@ static void camaras_sembrar() {
 // dejo el resultado en camAnt[]. Releerlos daria un SEGUNDO valor de "hay coche" en la
 // misma iteracion -quien decide el semaforo mirando un instante distinto del que mira el
 // vigilante que juzga esa camara- y ademas arrastraria dos delay(5) mas por vuelta.
-bool camara_presenciaJ16() {
+bool camara_presenciaJ16(int cam) {
   const unsigned long ahora = millis();
   for (int i = 0; i < 2; i++) {
-    if (camara_presencia(i, ahora)) {
+    if ((cam < 0 || cam == i) && camara_presencia(i, ahora)) {
       return true;
     }
   }
@@ -587,13 +587,13 @@ bool camara_presenciaJ16() {
 //
 // NADA DE AQUI ESCRIBE UN PIN DE LUZ, y no es un detalle de estilo: solo semaforo.cpp los
 // toca. Una camara PIDE; no ordena. El vigilante que cuelga de estas mismas lecturas
-// tampoco: cuenta y avisa.
+// tampoco: cuenta y avisa. El contacto NA/NC de cada una entra por indice (D-162).
 static void camaras_actualizar() {
   const unsigned long ahora = millis();
   vigilante_tick(ahora);
 
   for (int i = 0; i < 2; i++) {
-    const bool nivel = camara_leerPin(CAM_J16[i]);
+    const bool nivel = camara_leerPin(CAM_J16[i], instalacion_camaraNC(i));
     if (nivel && !camAnt[i]) {
       demanda_solicitar();
       vigilante_flanco(i, ahora);

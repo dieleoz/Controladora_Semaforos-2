@@ -34,8 +34,8 @@ const Simulador = (() => {
   const PREF_PIN = 'CMD:PIN:' + C.PIN + ':';
   // Las que el despachador del Maestro admite sin PIN (bluetooth.cpp, la lista de antes de AUTH_FAILED).
   const SIN_PIN_M = ['SET_MODO:MENU', 'SET_MODO:ALCANCE', 'CONSULTA_DEG_AUTO', 'CONSULTA_DEG_FIN', 'REINICIOS',
-                     'VERSION'];
-  const DIAS = 'LMXJVSD';
+                     'VERSION', 'CONSULTA_INSTALACION'];
+  const DIAS = 'LMXJVSD'; if (typeof SimInstalacion === 'undefined') require('./sim_instalacion');
 
   // Checksum NMEA de enviarTramaConCrc(): XOR de todo lo que va tras el '$'.
   function conCrc(p) {
@@ -77,7 +77,6 @@ const Simulador = (() => {
 
     const programar = (fn, ms) => { const h = reloj.programar(() => { timers.delete(h); fn(); }, ms); timers.add(h); };
     function parar() { timers.forEach(h => reloj.cancelar(h)); timers.clear(); }
-
     // ---- reloj del poste ----
     const fecha = () => new Date(reloj.ahora());
     const segDia = () => { const f = fecha(); return f.getHours() * 3600 + f.getMinutes() * 60 + f.getSeconds(); };
@@ -434,7 +433,7 @@ const Simulador = (() => {
         else { tx('$ACK,CMD:DEMANDA,RESULT:REGISTRADA'); ev('DEMANDA_LOCAL'); }
       } else if (a === 'REINICIOS') tx(reinicios(p));
       else if (a === 'VERSION') tx(version(p));
-      else tx(interruptores(p, a) || '$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO');
+      else tx(interruptores(p, a) || SimInstalacion.orden(p, a) || '$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO');
     }
 
     // ---- Esclavo: procesarComando() de Esclavo/src/bluetooth.cpp ----
@@ -465,7 +464,7 @@ const Simulador = (() => {
       if (cmd === 'CMD:REINICIOS' || cmd === PREF_PIN + 'REINICIOS') return tx(reinicios(p));
       if (cmd === 'CMD:CONSULTA_DEG_FIN' || cmd === PREF_PIN + 'CONSULTA_DEG_FIN') return tx(consultaDegFin(p));
       if (cmd === 'CMD:CONSULTA_DEG_AUTO' || cmd === PREF_PIN + 'CONSULTA_DEG_AUTO') return tx(consultaDegAuto(p));
-      if (cmd.indexOf(PREF_PIN) !== 0) return tx('$ERR,CMD:AUTH_FAILED,DESC:PIN_INVALIDO');
+      if (cmd.indexOf(PREF_PIN)) return tx(SimInstalacion.sinPin(p, cmd) || '$ERR,CMD:AUTH_FAILED,DESC:PIN_INVALIDO');
       const a = cmd.slice(PREF_PIN.length);
       if (a === 'AMBAR_EMERGENCIA') ambarEmergencia(p, tx, true);
       else if (a === 'CANCELAR_AMBAR') {
@@ -479,7 +478,8 @@ const Simulador = (() => {
       else if (a.indexOf('SET_DEG_AUTO:') === 0) setDegAuto(p, a.slice(13), tx);
       else if (a === 'TEST_LEDS') tx('$ERR,CMD:TEST_LEDS,DESC:NO_EN_SERVICIO_USE_EL_MAESTRO');
       else if (a === 'VERSION') tx(version(p));
-      else tx(interruptores(p, a) || '$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO_EN_ESCLAVO');
+      else tx(interruptores(p, a) || SimInstalacion.orden(p, a) ||
+        '$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO_EN_ESCLAVO');
     }
 
     // La linea tal como la escribe la app (con su fin de linea): devuelve las respuestas inmediatas, con checksum.

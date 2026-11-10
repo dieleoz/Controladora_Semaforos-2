@@ -45,7 +45,7 @@
 // tiene el suyo (U13/Q8/J13) y la talanquera el suyo. Ver roadmap.md N-64.
 #define MOTOR_TALANQUERA   PB2  // -> opto U15 -> MOSFET Q10 -> bornera J15
 
-// SFTY-28: niveles de la pluma. En LOW el MOSFET no conduce, el motor queda SIN
+// SFTY-28/D-164: pluma activa = subir, de nivel, sin pulso. En LOW el MOSFET no conduce, el motor queda SIN
 // energia y la pluma se queda ABAJO. Ese es el fallo seguro y por eso el nivel de
 // reposo es el de cerrar: si el equipo se muere, la barrera no queda abierta.
 // La especificacion de compra pide ademas actuador con retorno por muelle o gravedad,

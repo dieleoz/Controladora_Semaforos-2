@@ -95,6 +95,7 @@ Compilar-Fuente (Join-Path $MAESTRO 'src\modo_automatico.cpp') 'modo_automatico.
 Compilar-Fuente (Join-Path $MAESTRO 'src\modo_inteligente.cpp') 'modo_inteligente.o'
 Compilar-Fuente (Join-Path $MAESTRO 'src\demanda.cpp')         'demanda.o'
 Compilar-Fuente (Join-Path $MAESTRO 'src\interruptores.cpp')   'interruptores.o'   # SPEC_8 6 (Bloque I)
+Compilar-Fuente (Join-Path $MAESTRO 'src\instalacion.cpp')     'instalacion.o'     # N-187 (Bloque K)
 Compilar-Fuente (Join-Path $AQUI 'deg_auto_doble_maestro.cpp') 'deg_auto_doble.o'   # A-15
 Compilar-Fuente (Join-Path $AQUI 'arnes_automatico.cpp')       'arnes_automatico.o'
 

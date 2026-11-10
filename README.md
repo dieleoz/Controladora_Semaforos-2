@@ -103,14 +103,14 @@ publicaba 32 rutas y 86,4 % de flash cuando el acta que ella misma citaba medía
 
 | Comprobación | Estado | |
 |---|---|---|
-| guarda de rutas de los instrumentos | ✅ | 64 rutas parseadas, todas existen |
-| banco por packs *(70 packs)* | 🔴 **FALLA** | **1518/1519 comprobaciones en 70 packs** — 69 PASS, **1 FALLA**. `decisiones_01_anclas` acusa a **`D-22`** (necesita una tarjeta delante); no se decora (`CLAUDE.md` §1) |
-| compila Maestro / Esclavo / ESP32 | ✅ | **80.2 %** · 66.8 % · 35.8 % — *el Maestro ocupa **50948 de 63488 B** (las dos ultimas paginas quedan para las franjas de noche, `D-108`, y el testigo de `D-35`); el Esclavo, **41468 B**. Bajo al quitar la libreria RTC (`N-172`) y subio con la salida programada (`D-52`) y el verde del testigo (`D-59`)* |
+| guarda de rutas de los instrumentos | ✅ | 68 rutas parseadas, todas existen |
+| banco por packs *(70 packs)* | 🔴 **FALLA** | **1520/1521 comprobaciones en 70 packs** — 69 PASS, **1 FALLA**. `decisiones_01_anclas` acusa a **`D-22`** (necesita una tarjeta delante); no se decora (`CLAUDE.md` §1) |
+| compila Maestro / Esclavo / ESP32 | ✅ | **83.9 %** · 70.4 % · 35.8 % — *el Maestro ocupa **52432 de 62464 B** (las tres ultimas paginas quedan para la instalacion de camaras y barrera, `D-165`, las franjas de noche, `D-108`, y el testigo de `D-35`); el Esclavo, **43968 B**. Subio con los parametros de instalacion (`N-187`). Bajo al quitar la libreria RTC (`N-172`) y subio con la salida programada (`D-52`) y el verde del testigo (`D-59`)* |
 | simulador funcional | ✅ | 9/9 — eran 20, y 11 de aquellas no medían nada: se retiraron una a una con su evidencia |
 | compila ESP32 | ✅ | 35.8 % — 1126409 de 3.145.728 B |
 | simulador del puente ESP32 | ✅ | **159/159** — las tres puntas: `bluetooth.cpp` compilado, la app en jsdom, y solo el ESP32 modelado |
 | simulador de app y bluetooth | ✅ | **12/12** — estuvo en `ABORTADO` unas horas el 05/09: **N-149** le añadió el campo `ESC` al `$STATUS` y el instrumento no supo con qué compararlo. Se enseñó a leerlo el mismo día. Queda escrito porque **mientras duró, todo lo que vigilaba entró sin mirar** (`CLAUDE.md` §1) |
-| **app ejecutada en DOM** | ✅ | **922/922** — carga `index.html` en jsdom, más `app.js` y **los `js/*.js` que el propio HTML declara, en su orden**, y los **ejercita**: pestañas, modales, ingesta de telemetría, *fuzzing* de 200 tramas corruptas y los botones que mandan comandos. Es el único instrumento que **ejecuta** la app en vez de leerla |
+| **app ejecutada en DOM** | ✅ | **940/940** — carga `index.html` en jsdom, más `app.js` y **los `js/*.js` que el propio HTML declara, en su orden**, y los **ejercita**: pestañas, modales, ingesta de telemetría, *fuzzing* de 200 tramas corruptas y los botones que mandan comandos. Es el único instrumento que **ejecuta** la app en vez de leerla |
 | test funcional de la app | ✅ | **71/71** — decía «22/22» a mano y ejecuta 34; su prueba de Courier RTC era una tautología |
 | test unitarios TDD de la app | ✅ | **89/89** — la **segunda** suite unitaria, que hasta el 01/09 **no estaba en la compuerta**: 23 pruebas verdes que no medían nada. *(Esta fila publicó `55/55` hasta el 07/09: era la cifra del 02/09, y `documentos_01` **no la vigila** — no está en su tupla `CIFRAS`.)* |
 | test unitarios de la app | ✅ | **70/70** — seis suites que no cargan el navegador: NMEA y *checksums*, generador de comandos y barrera de PIN, validación de `SET_TIEMPOS`, Courier RTC, gestor de cruces y escala de 20 cruces |
@@ -118,7 +118,7 @@ publicaba 32 rutas y 86,4 % de flash cuando el acta que ella misma citaba medía
 | arnés del respaldo | ✅ | compila el `calcularSuma()` real; identidad de `respaldo.cpp` entre puntas + prueba de vida |
 | arnés del Degradado a dos puntas | ✅ | **161/161** — las dos puntas en Degradado **cada una con su reloj**. Entrega **el número**: el cruce aguanta **29 s** de desfase contra los **20,2 s** que el equipo puede acumular en 48 h, o sea factor **1,44** — y no el 2 que afirmaban los comentarios de las dos puntas |
 | arnés de las dos puntas | ✅ | **184/184** — el C++ **real de las DOS puntas** en el mismo proceso y el mismo instante: verde simultáneo en **0** instantes. Cubre `G3`/`N-163` (suelta del verde), `D-34` (verde del Esclavo frente al ámbar del Maestro, `G12`–`G14`) y `D-53` (rojo+amarillo antes de cada verde). Sin banco |
-| arnés del automático | ✅ | **99/99** — compila `coordinador.cpp` + `semaforo.cpp` + `modo_automatico.cpp` + `modo_inteligente.cpp`, `demanda.cpp` y el `botones.cpp` real, y comprueba SFTY-2 sobre las escrituras de pin. Las 16 nuevas son el **Bloque G de `D-33`**: el retardo de bajada de la pluma y el veto de la cámara, ejecutados |
+| arnés del automático | ✅ | **109/109** — compila `coordinador.cpp` + `semaforo.cpp` + `modo_automatico.cpp` + `modo_inteligente.cpp`, `demanda.cpp` y el `botones.cpp` real, y comprueba SFTY-2 sobre las escrituras de pin. Las 16 nuevas son el **Bloque G de `D-33`**: el retardo de bajada de la pluma y el veto de la cámara, ejecutados |
 
 > 🛑 **Aquí había una fila más, `arnés de pantalla`, y NO se actualiza: se RETIRA.** Compilaba los cuatro
 > `lcd.cpp`/`menu.cpp` reales contra 131 `.c` de U8g2, y **se fue con el LCD** el 13/09 (`D-32` (1), `17d3a1f`).
