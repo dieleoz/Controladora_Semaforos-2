@@ -107,20 +107,24 @@ Regla desde el 09/11: cada cambio lleva su spec en el MISMO commit y un grep de 
 
 ### Version siguiente (fila 6; ninguna bloquea el banco)
 
-- App: `D-98` tandas 4 y ultima; BT con clave (`D-158`: cerrar el emparejamiento abierto del puente, `spp.begin` sin
-  clave); SPEC_4 §7.5 Modo Alcance sin medida propia: retirar o medir. Lo de Pasos Peatonales, en
-  [`ROADMAP_APP.md`](05_Funcional/App_Semaforo/ROADMAP_APP.md).
-- De arquitecto y QA de `N-187`: `js/luces.js` «baja al pasar a rojo» (baja tras R); prueba de la pegada y del aviso de
-  90 s tras re-siembra; `camara_02_j16` no ve el `!= nc`; los comentarios de razon recortados en `bluetooth.cpp` y
-  `botones.cpp` por el tope vuelven al partir. El aviso de gcc ya esta resuelto.
-- Partir, cada uno en su propio commit y con sus rutas (`CLAUDE.md` §5): `botones.cpp` (641 lineas en las dos puntas),
-  `Maestro/src/semaforo.cpp` (534; el del Esclavo, 442, no pasa) y `bluetooth.cpp` (1.581 y 1.665).
+En marcha (10/11, workflow `wf_c829c8d1-7fe`): medir `D-167` (retiro del Alcance), `D-166` (sitio del segundo bit de
+veto) y `D-158` (que clave admite la libreria BT del ESP32), a scratchpad; y partir `botones.cpp` (641 en las dos
+puntas), `Maestro/src/semaforo.cpp` (534) y `bluetooth.cpp` (1.581 y 1.665), un commit cada una, con sus rutas
+(`CLAUDE.md` §5) y los comentarios de razon recortados en `N-187`. Despues, sobre los ficheros partidos y en este
+orden: construir `D-166` (veto por camara), `D-167` (retirar Alcance) y `D-158` (clave BT comun; telefonos de Marco
+a medir en banco), cada uno con su spec en el mismo commit.
+
+- Hecho el 10/11: `D-98` tanda 4.a (`6b9f058`) y la frase de `js/luces.js`. Queda la tanda ultima (modales y PIN),
+  con su condicion en [`ROADMAP_APP.md`](05_Funcional/App_Semaforo/ROADMAP_APP.md), y Pasos Peatonales alli.
+- De arquitecto y QA de `N-187`: prueba de la pegada y del aviso de 90 s tras re-siembra; `camara_02_j16` no ve el
+  `!= nc`. Hecho el 10/11: el Esclavo y los cortes de luz en PC (bloque I, 193/193, `2049501`).
+- Barrera con brazo lento (responsable, 10/11): cuando bajar y subir (con el verde, con el ambar, tras el rojo, N s
+  antes) se decide con el tiempo del brazo que mide Marco (hoja, prueba 4) y una simulacion de dos modelos y arbitro
+  con 10, 30 y 60 s. «Sin barrera» ya existe: fuera de servicio, arriba en todo modo (`D-96`). Recomendado no crear
+  «abajo fija»: el rojo fijo ya la baja.
 - Hueco medido (`N-182`): tras un corte con la barrera fuera, la pluma sube en la siguiente escritura de la luz, no al
   arrancar. Sin medir: el telefono (scroll a 360x640, 320 px, toques de 48 px; CDP 9333).
 - Sin teclado: `G-RF`, dos parejas en banco (mismo canal y distintos, `D-118`) antes del filtro de pareja (SFTY-27).
-- Decidido el 09/11 noche, sin construir: veto POR CAMARA (una, dos o ninguna, cada una NA/NC; `D-166`, medir antes
-  los bits de `D-95`) y clave BT comun configurable desde la app (`D-158`). Para el responsable: barrera ABAJO desde
-  la app (`D-96` solo da fuera de servicio = arriba; sin fila) y Modo Alcance (retirar o medir).
 - `N-166`, colision de nombre `A-15` (sin medir si sigue).
 - Gobernanza, con tope semanal: dictamen de SPEC y manuales (`6f38ba4`, fase F); grafo fuera del repo (traerlo a
   `entregas/` o rehacerlo); repo ordenado (F1/F2); tras banco, lo duplicado Maestro/Esclavo a `lib/`.
