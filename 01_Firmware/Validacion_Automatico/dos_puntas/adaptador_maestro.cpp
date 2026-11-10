@@ -160,7 +160,7 @@ void respaldo_marcarSync(uint32_t) {}
 // hace el Bloque I de arnes_automatico.cpp); los del Esclavo, el bloque de orquestador_interruptores.inc.
 bool respaldo_vetoCamaraOff(int) { return false; }   // D-166: por camara
 bool respaldo_malaBaja(int) { return false; }         // D-169: fabrica ARRIBA
-bool respaldo_barreraFuera() { return false; }
+bool respaldo_barreraFuera() { return false; }   bool respaldo_degAuto() { return false; }   // fabrica: apagado
 
 // N-133/N-135: los tiempos del ciclo, doblados con memoria de verdad.
 // Un doble que devolviera siempre "no hay nada" dejaria sin ejercer el camino de

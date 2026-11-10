@@ -547,7 +547,8 @@ saca al Esclavo con su latido, §7).
    arnés, **528 s de verde del Esclavo contra el ámbar del Maestro** (verde contra verde, 0). En campo sigue hasta que
    alguien llega o vuelve la radio. Lo cubre sólo la regla de paleteros: el aviso de la app (`js/aviso_degradado.js`)
    salta con el poste conectado en `MODO:DEGRADADO`, y aquí el Maestro aún no lo está.
-   `FORZAR_ROJO` sin radio desde Automático o Inteligente no abre este riesgo: el modo no cambia (`D-174`, bloque U).
+   `FORZAR_ROJO` sin radio desde Automático o Inteligente no abre este riesgo: el modo no cambia (`D-174`, bloque U);
+   con la opcion apagada pasa a Manual, sin riesgo.
 2. **Se va la luz del Maestro durante la cuenta:** arranca en ámbar (`D-40`, SPEC 1 §4.1) y no entra; el Esclavo sí.
 3. **La flash del testigo falla** (`MDT_NO_GUARDADO`): esa punta no entra (el Maestro va a `MENU`); la otra, sí.
 4. **El Esclavo se reinicia en la cuenta con la pila inválida** (sin la opción) o sin hora fiable en 420 s.
