@@ -225,8 +225,9 @@ const ACK_TEXTO = {
   // abierta) y el rojo es solo de este poste: a los 28 s vuelve su ambar (bloque U del arnes degradado).
   'FORZAR_ROJO|OK_SIN_RADIO_SOLO_ESTE_POSTE': {
     tono: 'red',
-    texto: 'Equipo: ROJO en este poste; sin radio el Poste 2 no lo recibe y el modo no cambia. Mande paleteros.',
-    toast: 'Rojo solo en este poste: sin radio, mande paleteros'
+    texto: 'Equipo: ROJO solo en este poste; sin radio el Poste 2 no lo recibe y el modo no cambia. Que falta: ' +
+      'vaya al Poste 2, conectese y pulse AMBAR DE EMERGENCIA; mande paleteros.',
+    toast: 'Rojo solo aqui: vaya al Poste 2 y pulse AMBAR DE EMERGENCIA'
   },
   // D-51: en Degradado es rojo FIJO en este poste (no salida), y el otro sigue alternando por su reloj.
   'FORZAR_ROJO|ROJO_FIJO_EN_ESTE_POSTE': {
