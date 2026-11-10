@@ -9,7 +9,7 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 
 1. **Version 11/11 integrada en `main`:** `D-170` (ROJO TOTAL sostenido desde ambar), `D-171` (`ESC:?` sin dato),
    `D-166`/`D-169` (veto por camara, camaras malas), `D-168` (`J15` = BAJAR, arranque arriba) y la auditoria
-   `N-182`. Hoja: `05_Funcional/Novedades_y_Pruebas_2026-11-11.html`. Sin banco.
+   `N-182`. Hoja: `05_Funcional/Novedades_y_Pruebas_2026-11-11.html`. Sin banco. Paquete: fila del funcional abajo.
 2. **Al cargar `J15:BAJAR`:** central a «sin senal = subir» en la MISMA visita, `J15` suelta entre medias; se anota
    aqui la polaridad por poste. Todos los equipos de la tabla llevan firmware anterior: `J15` conduce = SUBIR.
 3. **Con los registros de Marco:** leerlos enteros (`CLAUDE.md` §7): `RTT:`, cobertura, tiempo del brazo, camaras.
@@ -24,7 +24,7 @@ fila, en [`roadmap.md`](roadmap.md). La spec manda (`CLAUDE.md` §15). HEAD: `gi
 | Maestro `179DB0` (El Sisga) | `7ff7d12` `SIN_BANCO`, probado despues `b354fe9`. Ninguno lleva el veto de camara a la pluma (`363e375`, `D-33`): `Camaras_Sisga_4x.html` se corrige en la MISMA visita en que se cargue un firmware posterior | cinta y diario en `evidencia/` |
 | Esclavo del Sisga | sin medir | su cinta no se ha traido |
 | Maestro `4D2007` y Esclavo `38EB53` (Marco, banco) | `6bd1e4f` en controlador y puente, medido: `$ACK,CMD:VERSION` el 01/10 | `evidencia/011020260934/` |
-| paquete para Marco | `Paquete_Semaforos_2026-11-10_6ca489f_SIN_BANCO` (zip `ae1c523f...`, APK `87211871...`), sin enviar; en su banco, `8f8dd7e` (mismo codigo de firmware), medido el 09/11 15:42 | `entregas/`, `evidencia/091120261545` |
+| paquete para Marco | `Paquete_Semaforos_2026-11-11_8a81f1e_SIN_BANCO` (zip `129a1157...`, APK `c9b82b1a...`); en su banco, `8f8dd7e`, medido el 09/11 15:42 | `entregas/`, `evidencia/091120261545` |
 
 ## Verificacion en escritorio
 

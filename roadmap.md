@@ -32,20 +32,18 @@ entregable: los tres defectos del banco del 03-04/09 pasaron la compuerta entera
 
 | # | que | quien | estado |
 |---|---|---|---|
-| 1 | Cero discrepancias del telefono: 3 del simulador corregidas (`337594e`); 2 del firmware (A: ROJO TOTAL desde AMBAR no sostiene el rojo del Esclavo; B: `ESC:ROJO` sin enlace) en construccion, decididas el 10/11 | workflow `wf_85b47a98-146` | en curso |
+| 1 | Cero discrepancias del telefono: 3 del simulador (`337594e`); A (`D-170`) y B (`D-171`) del firmware | workflow `wf_85b47a98-146` | HECHO `3facd6d` |
 | 2 | `D-167` retirar Modo Alcance | orquestador | HECHO `3b70675` |
-| 3 | **Construir `D-166` + `D-169`:** veto por camara (inhibida = ni veto ni demanda; sitio del bit en la casilla de `D-95`), `MALA1`/`MALA2` (BAJA o ARRIBA, fabrica ARRIBA/ARRIBA), Q2..Q7. Spec en SPEC_8, prueba vista en rojo, firmware + app + simulador (scratchpad `propuesta_camaras_degradadas.md`; `arq_camaras_j15.md`, condicion 4) | subagentes en worktree, ficheros disjuntos | en construccion (workflow `wf_85b47a98-146`, en cadena) |
-| 4 | **Construir `D-168`:** barrera ARRIBA en reposo y sin energia; `J15` pasa a ser la orden de BAJAR, polaridad fijada al compilar, arranque que no baja la pluma (condiciones 1-3 y 5 del arquitecto); retira el «sin senal = bajar» de `D-164`/SFTY-28, asi que se revisa antes de construir (`CLAUDE.md` §11.7); hoja de campo: central y firmware cambian en la MISMA visita | subagentes; revision de arquitectura antes | spec HUECO (`edb2462`), sin construir |
-| 5 | **Candidata:** compuerta completa en el arbol principal, arquitecto y QA una vez, APK, paquete a `entregas/` y `6ca489f` a `RETIRADOS/` | orquestador | tras 2-4 |
-| 6 | **Banco de Marco:** hoja del 10/11, pruebas 1-40 (Parte 9 `N-187`, Parte 10 barrera arriba) y lo POR VALIDAR de §5. Sus registros se leen enteros y contando (`CLAUDE.md` §7): `RTT:` con LoRa, cobertura en metros, subida y bajada real del brazo, camaras (NA/NC y veto), C5, y lo que deben las cintas (`D1`..`D8` de la mudanza del 09/11: `N-172`, `D-40`, `D-38`, camaras con peatones, centralita, `N-116`). Rangos de `N-187` desde la app, sin firmware (`D-163`). `SIN_BANCO` sale solo con acta `evidencia/<fecha>_campo_<tema>.txt` y el hash cargado | Marco; la lectura, orquestador | tras 5 |
+| 3 | `D-166` + `D-169`: veto por camara y camaras malas (`MALA1`/`MALA2`) | workflow | HECHO `3facd6d`, sin banco |
+| 4 | `D-168`: `J15` = BAJAR, barrera arriba en reposo y al arrancar; VERSION dice `J15:` | workflow | HECHO `3facd6d`, sin banco |
+| 5 | Candidata: compuerta 16/17 (solo `D-22`, acta de `37f42ce`), arquitecto y QA APTO CON CONDICIONES, auditoria `N-182` integrada, APK y `Paquete_Semaforos_2026-11-11_8a81f1e_SIN_BANCO.zip` (`129a1157...`, APK `c9b82b1a...`); `6ca489f` a `RETIRADOS/` | orquestador | HECHO `8a81f1e` |
+| 5b | **Para el responsable, antes de cargar `J15:BAJAR` en campo (arquitecto):** con `D-168` un corto de `Q10` o del opto deja la pluma ABAJO con verde y el firmware no lo ve (`SPEC_5` §4, tabla de fallos); antes la dejaba arriba. Aceptarlo en una fila o esperar al fin de carrera leido. Y: `FORZAR_ROJO` en Automatico/Inteligente no es rojo fijo (el ciclo sigue) | responsable | abierto |
+| 5c | Menores de la revision: `ESC:ROJO` hasta 12 s tras ROJO TOTAL por la gracia de `tUltimaRespuestaEsclavo` (cumple SPEC_4, no la letra de `D-171`); la Practica da `ESC:?` al instante y `CONSULTA_VETO` siempre `?`; polaridad por `PLATFORMIO_BUILD_FLAGS` sin abortar; QA pide medir los ms del arranque del Maestro hasta el primer `escribirPines` | version siguiente | no bloquea |
+| 6 | **Banco de Marco:** hojas del 11/11 (1-12) y del 10/11 (1-40) (Parte 9 `N-187`, Parte 10 barrera arriba) y lo POR VALIDAR de §5. Sus registros se leen enteros y contando (`CLAUDE.md` §7): `RTT:` con LoRa, cobertura en metros, subida y bajada real del brazo, camaras (NA/NC y veto), C5, y lo que deben las cintas (`D1`..`D8` de la mudanza del 09/11: `N-172`, `D-40`, `D-38`, camaras con peatones, centralita, `N-116`). Rangos de `N-187` desde la app, sin firmware (`D-163`). `SIN_BANCO` sale solo con acta `evidencia/<fecha>_campo_<tema>.txt` y el hash cargado | Marco; lee el orquestador | ya |
 | 7 | **Brazo lento:** cuando bajar y subir (con el verde, el ambar, tras el rojo, N s antes) con el tiempo medido en 6 (prueba 4) y una simulacion de dos modelos y arbitro a 10, 30 y 60 s. «Sin barrera» ya existe (`D-96`); no crear «abajo fija»: el rojo fijo ya la baja | orquestador mide; decide el responsable | tras 6 |
 | 8 | **`D-158`, clave BT comun** al puente, configurable desde la app con PIN, tras medir en banco que clave admiten la libreria BT del ESP32 y los telefonos de Marco | Marco mide; subagente construye | tras 6 |
 | 9 | **El Sisga:** respaldo md5 y carga; en la MISMA visita, central y firmware juntos (`D-168`), `Camaras_Sisga_4x.html` corregida (pluma con coche debajo: cierta con `7ff7d12`, falsa desde `d3606be`), el fin de semana medido (`VERSION`, `CONSULTA_NOCHE`, cinta de un sabado) y la instalacion reenviada (`-e all` la devuelve a fabrica) | Marco y orquestador | tras retirar `SIN_BANCO` |
 | 10 | **Version siguiente menor**, abajo | -- | no bloquea |
-
-> **Duda abierta del orden (sin medir):** el paquete `6ca489f` esta listo y sin enviar. Si Marco corre ya con el las
-> pruebas 4 (brazo) y 35-40 (central sin energia), esas medidas llegan ANTES de construir 4 y 7; el orden de arriba
-> asume un solo banco con la candidata nueva.
 
 **Version siguiente menor (fila 10):**
 
