@@ -241,8 +241,8 @@ hay fin de carrera leido (`D-27`, `D-46`).
 | firmware nuevo con central vieja | - | **invertida**: abajo en verde, arriba en rojo | solo quien mira el brazo |
 | firmware viejo con central nueva | - | **invertida**, igual | solo quien mira el brazo |
 
-🔴 **La fila del corto contradice el principio del 10/11** (deja el paso cerrado con verde) y el firmware no la ve:
-**no esta aceptada ni medida**; la cierra un fin de carrera leido (version siguiente) o una fila del responsable.
+🟡 **La fila del corto contradice el principio del 10/11** (deja el paso cerrado con verde) y el firmware no la ve:
+**aceptada por el responsable (`D-172`, 10/11), sin medir**; la cierra un fin de carrera leido (version siguiente).
 Las dos mezclas las evita cambiar firmware y central en la MISMA visita con `J15` suelta (`SPEC_8` §8.2).
 
 ⚠️ **MEDIDO EN COBRE (banco 04/09):** `J15` dio *«en rojo 0 V, en ambar 12 V»*. La causa se explico
