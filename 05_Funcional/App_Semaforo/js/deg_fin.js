@@ -43,8 +43,9 @@ const DegFin = {
   },
 
   ctx: null,
+  ultimoRechazo: null,        // D-177: { punta, desc } del ultimo $ERR de DEG_FIN; se borra en cada envio
   _el: {},
-  _sale: null,                // { hms, finMs, respaldada } de la ultima consulta; null = ninguna
+  _sale: null,               // { hms, finMs, respaldada } de la ultima consulta; null = ninguna
   _consultada: false,
   _consultaEnCurso: false,
   _sinOpcion: false,
@@ -104,12 +105,17 @@ const DegFin = {
 
   // ---- Almacen: sobrevive a cerrar la app ----------------------------------
 
+  // D-177: en la practica, en la memoria del testigo (js/testigo.js), que Practica.salir() tira.
+  _alm() {
+    return typeof Practica !== 'undefined' && Practica.activa() && typeof Testigo !== 'undefined'
+      ? Testigo._almacen() : localStorage;
+  },
   leer() {
-    try { return JSON.parse(localStorage.getItem(this.CLAVE) || 'null'); } catch (e) { return null; }
+    try { return JSON.parse(this._alm().getItem(this.CLAVE) || 'null'); } catch (e) { return null; }
   },
   guardar(g) {
     try {
-      if (g) localStorage.setItem(this.CLAVE, JSON.stringify(g)); else localStorage.removeItem(this.CLAVE);
+      if (g) this._alm().setItem(this.CLAVE, JSON.stringify(g)); else this._alm().removeItem(this.CLAVE);
     } catch (e) { /* sin almacen: nada que guardar */ }
   },
 
@@ -168,7 +174,11 @@ const DegFin = {
     }
     const esFin = data.CMD === this.ORDEN_FIN;
     if (!esFin && !(data.CMD === 'SET_MODO:DEG_T' && desc.indexOf('Cancele antes') === 0)) return null;
+    // D-177: este $ERR es del testigo y aqui se traduce antes que en Testigo.rechazo(): se le pasa para que borre su
+    // ENVIADO y anote el motivo (sin esto el testigo se quedaba ENVIADO).
+    if (!esFin && typeof Testigo !== 'undefined') Testigo.rechazo(data, this.ctx.state.node);
     if (esFin) {
+      this.ultimoRechazo = { punta: this.ctx.state.node, desc };   // D-177: lo ensena el asistente
       const g = this.leer();
       if (g && g.estado === 'ENVIADO') this.guardar(g.previa || null);   // la anterior sigue en el poste
       this._cancelando = false;
@@ -271,6 +281,7 @@ const DegFin = {
     // fijo hasta que la salida pase, se cancele desde aqui o el Esclavo la acuse.
     el.cartel.textContent = vivo && !g.esclavo
       ? 'Salida programada en el Maestro; FALTA el Esclavo: aplique alli la salida guardada.' : '';
+    if (typeof AsistenteDeg !== 'undefined') AsistenteDeg.render();
   },
 
   _consultar() {
@@ -307,6 +318,7 @@ const DegFin = {
     const ahoraD = new Date();   // `ahora` se LEE otra vez, justo antes de enviar
     const o = comp(ahoraD);
     if (o.error) { this._aviso(o.error); return; }
+    this.ultimoRechazo = null;   // un rechazo viejo no es de este envio
     if (!this._enviar(o.args, () => this._pulsar(punta))) return;
     if (punta === 'MAESTRO') {
       const ant = this.leer();

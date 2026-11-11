@@ -17,21 +17,29 @@ module.exports = async function pruebaInterruptores(montarAppLimpia, assert) {
   const abierto = () => dialogo().classList.contains('active');
   const aceptar = () => d.getElementById('btn-dialogo-aceptar').click();
   const cancelar = () => d.getElementById('btn-dialogo-cancelar').click();
-  const boton = (orden) => d.querySelector(`[data-interruptor="${orden}"]`);
+  // D-177 (SPEC_4 9.16 (c)): los doce botones son cinco selectores y «Aplicar cambios». Se elige y se aplica; el
+  // acuse OK libera la cola (la siguiente sale con el acuse de la anterior).
+  const SELS = ['C', 'D', 'M1', 'M2', 'B'], sel = (k) => d.getElementById('sel-averia-' + k);
+  const aplicar = (v) => {
+    Object.keys(v).forEach(k => { const s = sel(k); if (s) s.value = v[k]; });
+    const cont = d.getElementById('interruptores'); if (cont) cont.dispatchEvent(new w.Event('change'));
+    const b = d.getElementById('btn-averias-aplicar'); if (b) b.click();
+  };
+  const ok = (o) => entra('ACK,CMD:' + o + ',RESULT:OK');
   const st = (est, extra) => entra('STATUS,NODE:MAESTRO,SERIE:SEM-M-01,MODO:AUTO,ESTADO:' + est +
     ',T:9,RF:97,RTT:70,BAT:12.9,HORA:14:31:00' + extra);
 
-  // I1 (D-56, D-94): los cuatro mandos existen, viven en Diagnostico y solo se ven tras la clave.
-  const ordenes = ['SET_VETO_CAMARA:OFF', 'SET_VETO_CAMARA:ON', 'SET_BARRERA_SERVICIO:OFF', 'SET_BARRERA_SERVICIO:ON'];
-  const faltan = ordenes.filter(o => !boton(o));
-  assert(faltan.length === 0, `I1: los mandos de SPEC_8 6.1 existen (faltan: ${faltan.join(', ') || 'ninguno'})`);
+  // I1 (D-56, D-94, D-177): los cinco selectores existen, con el valor de fabrica y el otro, y viven en Ajustes tras
+  // la clave.
+  const faltan = SELS.filter(k => !sel(k) || sel(k).options.length !== 3);
+  assert(faltan.length === 0, `I1: los selectores de SPEC_8 6.1 y 9 existen (faltan: ${faltan.join(', ') || '-'})`);
   if (!faltan.length) {
-  assert(ordenes.every(o => boton(o).closest('#tab-diag.admin-only')),
-    'I1: los mandos viven en Diagnostico (#tab-diag, admin-only): solo tras la clave de administracion (D-56)');
+  assert(SELS.every(k => sel(k).closest('#tab-diag.admin-only')) && !!d.getElementById('btn-averias-aplicar'),
+    'I1: los selectores viven en Ajustes (#tab-diag, admin-only): solo tras la clave de administracion (D-56)');
 
   // I2 (SPEC_8 6.1): antes de mandar OFF de la barrera, la consecuencia; cancelar no envia nada.
   a.tramas.length = 0;
-  boton('SET_BARRERA_SERVICIO:OFF').click();
+  aplicar({ B: 'OFF' });
   const txtB = d.getElementById('dialogo-texto').textContent;
   assert(abierto() && /arriba/i.test(txtB) && /rojo/i.test(txtB) && /AHORA/.test(txtB) && /servicio/i.test(txtB) &&
          !JERGA.test(txtB),
@@ -40,14 +48,15 @@ module.exports = async function pruebaInterruptores(montarAppLimpia, assert) {
   assert(a.tramas.length === 0, `I2: cancelar no envia nada (${a.tramas.length} tramas)`);
 
   // I3: aceptar con PIN pendiente pide el PIN y, tecleado, sale la orden exacta con PIN (D-94).
-  boton('SET_BARRERA_SERVICIO:OFF').click(); aceptar(); pin();
+  aplicar({}); aceptar(); pin();
   const tB = a.tramas.filter(t => /SET_BARRERA_SERVICIO/.test(t));
   assert(tB.length === 1 && tB[0] === 'CMD:PIN:1234:SET_BARRERA_SERVICIO:OFF\r\n',
     `I3: sale UNA orden CMD:PIN:1234:SET_BARRERA_SERVICIO:OFF: ${JSON.stringify(tB)}`);
+  ok('SET_BARRERA_SERVICIO:OFF');
 
-  // I4: OFF de la camara dice tambien su consecuencia (tabla de SPEC_8 6), y sale tras aceptar.
+  // I4: OFF de las dos camaras (C y D al mismo valor: UNA orden) dice su consecuencia (tabla de SPEC_8 6).
   a.tramas.length = 0;
-  boton('SET_VETO_CAMARA:OFF').click();
+  aplicar({ C: 'OFF', D: 'OFF' });
   const txtC = d.getElementById('dialogo-texto').textContent;
   assert(abierto() && /dos c[aá]maras/i.test(txtC) && /sube con el verde/i.test(txtC) && /retardo/i.test(txtC) &&
          !JERGA.test(txtC),
@@ -55,10 +64,11 @@ module.exports = async function pruebaInterruptores(montarAppLimpia, assert) {
   aceptar();
   assert(a.tramas.length === 1 && a.tramas[0] === 'CMD:PIN:1234:SET_VETO_CAMARA:OFF\r\n',
     `I4: tras aceptar sale SET_VETO_CAMARA:OFF con PIN: ${JSON.stringify(a.tramas)}`);
+  ok('SET_VETO_CAMARA:OFF');
 
-  // I5: ON es el lado seguro: sale sin preguntar.
+  // I5: ON es el lado seguro: sale sin preguntar. Su acuse sin argumento (I6) la libera.
   a.tramas.length = 0;
-  boton('SET_VETO_CAMARA:ON').click();
+  aplicar({ C: 'ON', D: 'ON' });
   assert(!abierto() && a.tramas.length === 1 && a.tramas[0] === 'CMD:PIN:1234:SET_VETO_CAMARA:ON\r\n',
     `I5: ON sale sin dialogo: ${JSON.stringify(a.tramas)}`);
   }
@@ -137,28 +147,26 @@ module.exports = async function pruebaInterruptores(montarAppLimpia, assert) {
 
   // D-166/D-169 (SPEC_8 9.5): veto por camara y camara mala. Tramas de la SPEC; datos asimetricos (C fuera y
   // PEGADA, D con veto y OK; MALA1 ARRIBA, MALA2 BAJA) para que un indice cruzado no pase.
-  const nuevas = ['SET_VETO_CAMARA:C:OFF', 'SET_VETO_CAMARA:C:ON', 'SET_VETO_CAMARA:D:OFF', 'SET_VETO_CAMARA:D:ON',
-                  'SET_CAMARA_MALA:1:BAJA', 'SET_CAMARA_MALA:1:ARRIBA', 'SET_CAMARA_MALA:2:BAJA',
-                  'SET_CAMARA_MALA:2:ARRIBA'];
-  const faltanN = nuevas.filter(o => !boton(o) || !boton(o).closest('#tab-diag.admin-only'));
-  assert(!faltanN.length, `I11 (D-166, D-169): los mandos por camara y de camara mala existen tras la clave ` +
-    `(faltan: ${faltanN.join(', ') || 'ninguno'})`);
-  if (!faltanN.length) {
+  // D-177: por camara (C distinta de D sale como C: o D:) y camara mala, por los selectores y en cola.
+  const conValor = ['C', 'D'].every(k => sel(k) && Array.from(sel(k).options).map(o => o.value).join() === ',ON,OFF') &&
+    ['M1', 'M2'].every(k => sel(k) && Array.from(sel(k).options).map(o => o.value).join() === ',ARRIBA,BAJA');
+  assert(conValor, 'I11 (D-166, D-169): por camara y de camara mala existen tras la clave, con su valor de fabrica');
+  if (conValor) {
     a.tramas.length = 0;
-    boton('SET_VETO_CAMARA:C:OFF').click();
+    aplicar({ C: 'OFF' });
     const txtCC = d.getElementById('dialogo-texto').textContent;
     assert(abierto() && /c[aá]mara C/.test(txtCC) && /D sigue/.test(txtCC) && /verde/.test(txtCC) && !JERGA.test(txtCC),
       `I11: sacar la C pregunta antes y dice que la D sigue: "${txtCC}"`);
-    aceptar();
-    boton('SET_VETO_CAMARA:D:ON').click();
-    boton('SET_CAMARA_MALA:2:BAJA').click();
+    aceptar(); ok('SET_VETO_CAMARA:C:OFF');
+    aplicar({ D: 'OFF' }); aceptar(); ok('SET_VETO_CAMARA:D:OFF');
+    aplicar({ D: 'ON', M2: 'BAJA', M1: 'ARRIBA' });
     const txtM = d.getElementById('dialogo-texto').textContent;
-    const dlgM = abierto() && /SIN MIRAR/.test(txtM);
-    aceptar();
-    boton('SET_CAMARA_MALA:1:ARRIBA').click();
-    assert(dlgM && a.tramas.join('|') === ['SET_VETO_CAMARA:C:OFF', 'SET_VETO_CAMARA:D:ON', 'SET_CAMARA_MALA:2:BAJA',
-      'SET_CAMARA_MALA:1:ARRIBA'].map(o => 'CMD:PIN:1234:' + o + '\r\n').join('|'),
-      `I11: BAJA pregunta, ON y ARRIBA no; salen con PIN y el valor exacto: ${JSON.stringify(a.tramas)}`);
+    const dlgM = abierto() && /SIN MIRAR/.test(txtM) && !/D sigue/.test(txtM);
+    aceptar(); ok('SET_VETO_CAMARA:D:ON'); ok('SET_CAMARA_MALA:1:ARRIBA'); ok('SET_CAMARA_MALA:2:BAJA');
+    const salen = a.tramas.filter(t => !/CONSULTA_VETO/.test(t));
+    assert(dlgM && salen.join('|') === ['SET_VETO_CAMARA:C:OFF', 'SET_VETO_CAMARA:D:OFF', 'SET_VETO_CAMARA:D:ON',
+      'SET_CAMARA_MALA:1:ARRIBA', 'SET_CAMARA_MALA:2:BAJA'].map(o => 'CMD:PIN:1234:' + o + '\r\n').join('|'),
+      `I11: BAJA pregunta, ON y ARRIBA no; salen con PIN, el valor exacto y en cola: ${JSON.stringify(salen)}`);
   }
   a.tramas.length = 0;
   entra('ACK,CMD:SET_VETO_CAMARA:C:OFF,RESULT:OK');

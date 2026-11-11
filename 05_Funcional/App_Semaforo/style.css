@@ -914,7 +914,6 @@ body {
 
 .degradado-acciones .btn-degradado { margin-top: 0; }
 
-
 /* ==========================================================================
    Aviso de via despejada: la barrera de lo que ABRE paso
    ==========================================================================
@@ -941,7 +940,6 @@ body {
   font-size: 12px;
   line-height: 1.3;
 }
-
 
 /* ==========================================================================
    N-150: el aviso de "aceptado, pero el cruce sigue parado"
@@ -1034,7 +1032,6 @@ body {
   padding: 12px 10px;
   white-space: normal;
 }
-
 
 /* ==========================================================================
    Admin Banners & Forms
@@ -2099,6 +2096,9 @@ body { padding-bottom: var(--hueco-barra, calc(90px + env(safe-area-inset-bottom
 /* SPEC_4 9.2 (D-56): lo que solo ve quien puso la clave de administracion; setRole() pone .admin en body. */
 body:not(.admin) .solo-admin { display: none !important; }
 #clave-modal .btn-top { margin-top: 8px; }
+#asistente-deg { position: fixed; inset: 0; z-index: 900; overflow-y: auto; padding: 16px; background: var(--bg-main); color: var(--text-primary); font-size: 18px; } /* SPEC_4 9.16, D-177 */
+#asistente-deg[hidden], #asistente-volver[hidden], #cartel-testigo[hidden] { display: none; } #asistente-deg .asis-hora { font-size: 32px; font-weight: 700; }
+#asistente-deg button { display: block; width: 100%; min-height: 48px; margin: 10px 0; } #asistente-deg label { display: block; margin: 8px 0; }
 /* SPEC_4 9.10 (D-86): la franja de la practica sin poste, encima de modales (999) y toast (1000); magenta, fuera de D-83. */
 #franja-simulado { position: fixed; top: 0; left: 0; right: 0; z-index: 2000; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 12px; background: #c2009a; color: #fff; font: 700 12px/1.3 var(--font-mono, monospace); }
 #franja-simulado[hidden] { display: none; } #franja-simulado button { background: #fff; color: #c2009a; border: 0; border-radius: 6px; padding: 6px 12px; font-weight: 700; }

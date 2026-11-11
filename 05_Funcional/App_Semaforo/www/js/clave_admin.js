@@ -1,18 +1,23 @@
 // ===== js/clave_admin.js =====
-// LA CLAVE DE ADMINISTRACION ENSENA; EL PIN DEL EQUIPO AUTORIZA (SPEC_4 9.2, D-56, D-57). Esta clave solo decide si
-// se ven Tiempos, Diagnostico (Degradado, hora) y Depuracion: no arma state.pinVerificado ni viaja por el cable, y
-// ninguna orden sale sin el PIN del equipo (SPEC_4 4). Por eso no es seguridad del equipo: es barrera de uso.
-// Se guarda como huella FNV-1a de 32 bits con sal, no en claro; la de soporte, que permite poner una nueva si se
-// olvida, solo existe aqui como huella. Con 4 cifras la huella no es secreta para quien lea esto, y no lo pretende.
+// LAS CLAVES ENSENAN; EL PIN DEL EQUIPO AUTORIZA (SPEC_4 9.2 y 9.16, D-56, D-57, D-177). Deciden el MODO: la de
+// tecnico ensena Tiempos, Ajustes y Tramas; la de Degradado (o la de soporte) solo el asistente de radio caida
+// (js/asistente_deg.js). No arman state.pinVerificado ni viajan por el cable, y ninguna orden sale sin el PIN del
+// equipo (SPEC_4 4). Por eso no son seguridad del equipo: son barrera de uso.
+// Se guardan como huella FNV-1a de 32 bits con sal propia, no en claro; la de soporte, que abre el Degradado y deja
+// poner una de tecnico nueva si se olvida, solo existe aqui como huella. Con 4 cifras la huella no es secreta.
 const ClaveAdmin = {
   ALMACEN: 'iotvial.clave_admin.v1',
   SAL: 'IOTVIAL-SEM2-ADMIN:',
   SAL_SOPORTE: 'IOTVIAL-SEM2-SOPORTE:',
   HUELLA_SOPORTE: 'f1fa993c',
   DE_FABRICA: '1234',
+  ALMACEN_DEG: 'iotvial.clave_deg.v1',   // D-177: la del modo Degradado, con su sal
+  SAL_DEG: 'IOTVIAL-SEM2-DEG:',
+  DE_FABRICA_DEG: '0000',
   FORMA: /^\d{4,8}$/,
   _modo: 'entrar',
   _alEntrar: null,
+  _asistente: false,          // tras entrar, abrir el asistente (lo pide el cartel de radio caida)
 
   fnv1a(texto) {
     let h = 0x811c9dc5;
@@ -33,10 +38,24 @@ const ClaveAdmin = {
     try { localStorage.setItem(this.ALMACEN, this.huella(clave)); } catch (e) { this._sinAlmacen = this.huella(clave); }
   },
   comprobar(clave) { return this.huella(clave) === (this._sinAlmacen || this._guardada()); },
+  huellaDeg(clave) { return this.fnv1a(this.SAL_DEG + clave); },
+  comprobarDeg(clave) {
+    let h = this._sinAlmacenDeg;
+    try { h = h || localStorage.getItem(this.ALMACEN_DEG); } catch (e) { /* sin almacen: la de fabrica */ }
+    return this.huellaDeg(clave) === (h || this.huellaDeg(this.DE_FABRICA_DEG));
+  },
+  esSoporte(clave) { return this.fnv1a(this.SAL_SOPORTE + clave) === this.HUELLA_SOPORTE; },
+  // El modo que abre una clave. La de tecnico y la de Degradado no pueden coincidir: se rechaza al guardar.
+  rolDe(clave) {
+    if (this.comprobar(clave)) return 'TECNICO';
+    return this.comprobarDeg(clave) || this.esSoporte(clave) ? 'DEGRADADO' : null;
+  },
 
   _el(id) { return document.getElementById(id); },
   TEXTOS: {
-    entrar: ['Clave de técnico', 'Enseña los ajustes; cada orden sigue pidiendo el PIN del equipo.', 'Entrar'],   // 9.9 (h)
+    entrar: ['Clave', 'Operario no necesita clave. Ponga la de Degradado o la de técnico. Cada orden sigue ' +
+             'pidiendo el PIN del equipo.', 'Entrar'],   // 9.9 (h)
+    nuevaDeg: ['Clave de Degradado', 'Clave nueva de Degradado, de 4 a 8 cifras:', 'Guardar'],
     actual: ['Cambiar la clave', 'Clave actual:', 'Seguir'],
     soporte: ['He olvidado la clave', 'Clave de soporte (la da el responsable):', 'Seguir'],
     nueva: ['Clave nueva', 'Clave nueva, de 4 a 8 cifras:', 'Guardar']
@@ -59,7 +78,16 @@ const ClaveAdmin = {
     const modal = this._el('clave-modal');
     if (!modal) return;
     this._alEntrar = alEntrar;
+    this._asistente = false;
     this._poner('entrar');
+    modal.classList.add('active');
+  },
+  // Solo con la de tecnico puesta (Ajustes): sin pedir la anterior (D-177).
+  pedirNuevaDeg() {
+    const modal = this._el('clave-modal');
+    if (!modal) return;
+    this._alEntrar = null;
+    this._poner('nuevaDeg');
     modal.classList.add('active');
   },
   cerrar() {
@@ -72,19 +100,29 @@ const ClaveAdmin = {
   _aceptar() {
     const v = this._el('clave-entrada').value.trim();
     if (this._modo === 'entrar') {
-      if (!this.comprobar(v)) { this._poner('entrar', 'Clave incorrecta.'); return; }
-      const cb = this._alEntrar;
+      const rol = this.rolDe(v);
+      if (!rol) { this._poner('entrar', 'Clave incorrecta.'); return; }
+      const cb = this._alEntrar, asis = this._asistente;
       this.cerrar();
-      if (cb) cb();
+      if (cb) cb(rol);
+      if ((rol === 'DEGRADADO' || asis) && typeof AsistenteDeg !== 'undefined') AsistenteDeg.abrir();
     } else if (this._modo === 'actual') {
       if (this.comprobar(v)) this._poner('nueva'); else this._poner('actual', 'Clave incorrecta.');
     } else if (this._modo === 'soporte') {
-      if (this.fnv1a(this.SAL_SOPORTE + v) === this.HUELLA_SOPORTE) this._poner('nueva');
+      if (this.esSoporte(v)) this._poner('nueva');
       else this._poner('soporte', 'Clave de soporte incorrecta.');
-    } else if (this._modo === 'nueva') {
-      if (!this.FORMA.test(v)) { this._poner('nueva', 'Tiene que ser de 4 a 8 cifras.'); return; }
-      this._guardar(v);
-      this._poner('entrar', 'Clave cambiada: entre con la nueva.');
+    } else if (this._modo === 'nueva' || this._modo === 'nuevaDeg') {
+      const deg = this._modo === 'nuevaDeg';
+      if (!this.FORMA.test(v)) { this._poner(this._modo, 'Tiene que ser de 4 a 8 cifras.'); return; }
+      if (deg ? this.comprobar(v) : this.comprobarDeg(v)) {
+        this._poner(this._modo, 'No puede ser igual a la de ' + (deg ? 'técnico.' : 'Degradado.'));
+        return;
+      }
+      if (!deg) { this._guardar(v); this._poner('entrar', 'Clave cambiada: entre con la nueva.'); return; }
+      const h = this.huellaDeg(v);
+      try { localStorage.setItem(this.ALMACEN_DEG, h); } catch (e) { this._sinAlmacenDeg = h; }
+      this.cerrar();
+      if (typeof window !== 'undefined' && window.appAvisar) window.appAvisar('cyan', 'Clave de Degradado cambiada.');
     }
   },
 

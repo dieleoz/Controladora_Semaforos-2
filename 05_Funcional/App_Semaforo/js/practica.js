@@ -4,7 +4,8 @@
 // sustituye window.bluetoothSerial por PuertoPractica y la app lo enlaza, lo oye y lo juzga por el mismo camino que a
 // un equipo (abrirEnlace, subscribe, parseNmeaTelemetry, juzgarTrama). La barrera que roza es la de N-75 (un tablero
 // que pinta un cruce que no existe): por eso la franja SIMULADO va encima de todo y el fichero sale marcado.
-// Solo con la clave de administracion (body.admin) y nunca con un enlace abierto: la practica no desconecta a nadie.
+// D-177: sin clave y en los tres modos (el boton esta en la hoja de conexion), nunca con un enlace abierto: la practica
+// no desconecta a nadie. Testigo y salida practicados viven en memoria y Salir los tira, con el PIN tecleado.
 // Sus grupos viven en un almacen en memoria (almacen()), nunca en el de la app. Las cintas js/practica_cinta_*.js
 // quedan de referencia (D-121), fuera de index.html: tests/dom_simulador.js compara con ellas.
 // Lo que no ensena: el tiempo real de respuesta, el emparejado de Android, la radio entre postes ni el puente ESP32.
@@ -60,7 +61,7 @@ const Practica = (() => {
     _avisar(tipo, txt) { if (typeof window.appAvisar === 'function') window.appAvisar(tipo, txt); },
 
     entrar() {
-      if (this.activa() || !document.body.classList.contains('admin')) return false;
+      if (this.activa()) return false;
       if (typeof window.appEnlazada !== 'function' || window.appEnlazada()) {
         this._avisar('red', 'Practica sin poste NO iniciada: hay un enlace abierto con un equipo. Desconecte ' +
                             'primero; la practica no suelta a nadie por su cuenta.');
@@ -93,6 +94,14 @@ const Practica = (() => {
       PuertoPractica._parar();
       if (this._sim) this._sim.parar();   // ningun temporizador de la practica sobrevive a Salir
       this._sim = null;
+      // D-177: nada de la practica llega a un poste real: ni el testigo o la salida guardados, ni la espera del
+      // SET_RTC, ni el vale de los paleteros, ni el PIN tecleado aqui.
+      if (typeof Testigo !== 'undefined') {
+        if (Testigo._espera) clearTimeout(Testigo._espera.timer);
+        Testigo._espera = null; Testigo._mem = null; Testigo.ultimoRechazo = null;
+        if (Testigo.ctx) Testigo.ctx.state.pinVerificado = false;
+      }
+      if (typeof AvisoDegradado !== 'undefined') AvisoDegradado._vale = null;
       window.bluetoothSerial = this._real === false ? undefined : this._real;
       this._real = null;
       document.body.classList.remove('simulado');

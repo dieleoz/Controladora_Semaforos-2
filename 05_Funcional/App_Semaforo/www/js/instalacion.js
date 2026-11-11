@@ -139,6 +139,7 @@ const Instalacion = {
   // Molde Noche.alStatus(): otro poste (o ninguno) -> lo pintado era del anterior. Se vacia y, con el plegado
   // abierto y un poste delante, se consulta sin esperar a cerrar y abrir (_abierto no la frena).
   alStatus(node) {
+    if (typeof Interruptores !== 'undefined') Interruptores.alStatus(node);   // D-177: los selectores de Averias, igual
     if (node === this._nodo) return;
     this._nodo = node; this._enCurso = false;
     this._vaciar(node ? 'Consultando este poste.' : 'Qué falta: conectar con un poste y consultar.');

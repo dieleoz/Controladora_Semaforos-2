@@ -1229,8 +1229,10 @@ document.addEventListener('DOMContentLoaded', () => {
   function setRole(newRole) {
     state.role = newRole;
     document.body.classList.toggle('admin', newRole === 'TECNICO');
+    const deg = newRole === 'DEGRADADO'; document.body.classList.toggle('deg', deg);   // D-177 (SPEC_4 9.16)
     // D-145 (SPEC_4 9.9 (g) 6): el rotulo dice el modo; a <= 400 px solo queda el emoji, y el title lo nombra.
-    const rotulo = newRole === 'TECNICO' ? 'Técnico: además ajusta y diagnostica' : 'Operario: manda el cruce';
+    const rotulo = newRole === 'TECNICO' ? 'Técnico: además ajusta y diagnostica'
+      : (deg ? 'Degradado: asistente de radio caída' : 'Operario: manda el cruce');
     if (btnToggleRole) { btnToggleRole.title = rotulo; btnToggleRole.setAttribute('aria-label', rotulo); }
     if (newRole === 'TECNICO') {
       if (btnToggleRole) btnToggleRole.classList.add('admin');
@@ -1241,10 +1243,9 @@ document.addEventListener('DOMContentLoaded', () => {
       addEvent('cyan', 'Sesion: clave de tecnico puesta. Las ordenes siguen pidiendo el PIN del equipo.');
     } else {
       if (btnToggleRole) btnToggleRole.classList.remove('admin');
-      if (roleIconEl) roleIconEl.textContent = '👷';
-      if (roleLabelEl) roleLabelEl.textContent = 'Operario';
+      if (roleIconEl) roleIconEl.textContent = deg ? '🚦' : '👷';
+      if (roleLabelEl) roleLabelEl.textContent = deg ? 'Degradado' : 'Operario';
       adminTabs.forEach(t => t.style.display = 'none');
-      
       const activeTab = document.querySelector('.tab-content.active');
       if (activeTab && activeTab.classList.contains('admin-only')) {
         document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
@@ -1252,17 +1253,14 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('tab-estado').classList.add('active');
         document.querySelector('.nav-item[data-tab="tab-estado"]').classList.add('active');
       }
-      showToast('👷 Operario');
+      showToast(deg ? '🚦 Degradado: asistente de radio caída' : '👷 Operario');
     }
   }
 
   if (btnToggleRole) {
     btnToggleRole.addEventListener('click', () => {
-      if (state.role === 'OPERARIO') {
-        ClaveAdmin.pedir(() => setRole('TECNICO'));
-      } else {
-        setRole('OPERARIO');
-      }
+      if (state.role === 'OPERARIO') ClaveAdmin.pedir(setRole);   // D-177: la clave dice el modo
+      else setRole('OPERARIO');
     });
   }
 
@@ -2031,7 +2029,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // D-37/D-46: el Degradado sin testigo ya no se ofrece y su orden salio del firmware.
   // D-35 (testigo) y A-15 (degradado automatico) viven en js/testigo.js y js/deg_auto.js.
   Testigo.iniciar({ state, enviarComandoFirmware, puntaCorrecta, avisarOtraPunta, addEvent,
-                    showToast, horaLocal24, fechaLocalISO, pedirPin });
+                    showToast, horaLocal24, fechaLocalISO, pedirPin, grupos: () => gruposVivos() });
   DegAuto.iniciar({ state, enviarComandoFirmware, addEvent, showToast, pedirPin, horaLocal24 });
   const ctxOrdenes = { state, enviarComandoFirmware, addEvent, showToast, pedirPin };
   Noche.iniciar(ctxOrdenes); Interruptores.iniciar(ctxOrdenes); Instalacion.iniciar(ctxOrdenes);  // D-110, D-94, 8.6

@@ -7,7 +7,7 @@
 // Lo que NO modela (y una respuesta que dependa de ello sale de la rama comun): la radio real entre postes, el reloj
 // de respaldo (REINICIAR_RELOJ contesta siempre que el cristal arranca), la flash (nunca FLASH_NO_RELEE ni
 // NO_GUARDADO), la transicion del ciclo (CAMBIAR_TURNO nunca EN_TRANSICION_REINTENTE), las camaras (letra fija) y
-// el puente ESP32 (LEER_RTC, SET_RTC y LOG no se contestan: SPEC_4 3.3 es otra punta).
+// el puente ESP32 (LEER_RTC y LOG no se contestan; el SET_RTC, si: js/sim_puente.js, D-177).
 // Verde en practica dice que la app pinta bien, no que el equipo lo haga: no es evidencia (D-121).
 const Simulador = (() => {
   // Cada constante, copiada del firmware, con su origen `archivo:simbolo` (tests/dom_simulador.js lo busca alli).
@@ -37,6 +37,7 @@ const Simulador = (() => {
                      'VERSION', 'CONSULTA_INSTALACION', 'CONSULTA_VETO'];
   const DIAS = 'LMXJVSD'; if (typeof SimInstalacion === 'undefined') require('./sim_instalacion');
   if (typeof SimInterruptores === 'undefined') require('./sim_interruptores');   // D-166/D-169: SPEC_8 6 y 9
+  if (typeof SimPuente === 'undefined') require('./sim_puente');   // D-177: el SET_RTC del puente
 
   // Checksum NMEA de enviarTramaConCrc(): XOR de todo lo que va tras el '$'.
   function conCrc(p) {
@@ -483,9 +484,8 @@ const Simulador = (() => {
 
     // La linea tal como la escribe la app (con su fin de linea): devuelve las respuestas inmediatas, con checksum.
     function recibir(p, linea) {
-      const out = [];
-      const cmd = String(linea || '').replace(/[\r\n]+$/, '');
-      (p.nodo === 'MAESTRO' ? maestro : esclavo)(p, cmd, (t) => out.push(conCrc(t)));
+      const out = [], tx = (t) => out.push(conCrc(t)), cmd = String(linea || '').replace(/[\r\n]+$/, '');
+      if (!SimPuente.orden(p, cmd, tx)) (p.nodo === 'MAESTRO' ? maestro : esclavo)(p, cmd, tx);
       return out;
     }
 

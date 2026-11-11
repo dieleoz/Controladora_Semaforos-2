@@ -293,11 +293,16 @@ async function tareas(montarAppLimpia, assert) {
     const faltan = H.filter(([nom, fr]) => !conFrase(nom, fr)).map(x => x[0]);
     assert(!faltan.length, `K (D-145, 9.9 (h)): cada ajuste con su nombre y su frase; faltan: ${faltan.join(' | ')}`);
     a.pulsa('Técnico'); a.pulsa('Operario');   // volver a pedir la clave: su ventana dice que hace
-    assert(a.t('clave-titulo') === 'Clave de técnico' && a.t('clave-texto') === 'Enseña los ajustes; cada orden sigue pidiendo el PIN del equipo.',
+    // INVERTIDA (D-177, SPEC_4 9.9 (h)): la misma ventana da los tres modos; decia «Clave de técnico».
+    assert(a.t('clave-titulo') === 'Clave' &&
+           a.t('clave-texto') === 'Operario no necesita clave. Ponga la de Degradado o la de técnico. Cada orden ' +
+           'sigue pidiendo el PIN del equipo.',
       `K (9.9 (h)): la ventana de la clave: ${a.t('clave-titulo')} / ${a.t('clave-texto')}`);
     a.pulsa('Cancelar'); a.clave(); a.pulsa('Ajustes');
+    // REPARTIDA (D-177): «Practicar sin poste» salio de Ajustes a la hoja de conexion (tests/dom_tres_modos.js, M1).
     assert(!a.ve('btn-demanda') && !a.ve('btn-courier-capture') && !a.ve('btn-leer-rtc') && a.ve('btn-sync-rtc') &&
-           !a.ve('btn-leer-version') && a.ve('btn-practica'), 'K (9.9 (f)): Pedir paso fuera de Inteligente; Courier y consultas en «Soporte»');
+           !a.ve('btn-leer-version') && !a.d.querySelector('#tab-diag #btn-practica'),
+      'K (9.9 (f)): Pedir paso fuera de Inteligente; Courier y consultas en «Soporte»');
     a.entra(M.replace('MODO:AUTO', 'MODO:INTELIGENTE'));
     assert(a.ve('btn-demanda'), 'K (9.9 (f)): con MODO:INTELIGENTE, Pedir paso a la vista');
   }
@@ -407,11 +412,14 @@ async function tareas(montarAppLimpia, assert) {
     `T4: SET_RTC y despues SET_MODO:DEG_T; hora limite para el POSTE 2: ${sal.join(' > ')} / "${a4.t('testigo-estado')}"`);
 
   // T5. Sacar la barrera de servicio (D-94): plegada en «Averías», y su resumen en ambar si esta fuera.
-  const a5 = app(); a5.entra(M);
-  assert(!Array.from(a5.d.querySelectorAll('button')).some(b => !oculto(b) && /Sacar la barrera/.test(b.textContent)), 'T5: sin clave no esta a la vista');
+  const a5 = app(); a5.entra(M);   // D-177: sacarla es el selector «Barrera» en «Fuera» y «Aplicar cambios»
+  assert(!a5.ve('sel-averia-B') && !a5.ve('btn-averias-aplicar'), 'T5: sin clave no esta a la vista');
   a5.clave(); a5.pulsa('Ajustes');
   assert(!a5.ve('averias-cuerpo'), 'T5: «Averías» nace plegado con todo en servicio');
-  a5.pulsa('Averías: cámaras y barrera'); a5.tramas.length = 0; a5.pulsa('Sacar la barrera de servicio');
+  a5.pulsa('Averías: cámaras y barrera'); a5.tramas.length = 0;
+  const selB = a5.d.getElementById('sel-averia-B');
+  if (selB) { selB.value = 'OFF'; selB.dispatchEvent(new a5.w.Event('change', { bubbles: true })); }
+  a5.pulsa('Aplicar cambios');
   if (a5.ve('dialogo-modal')) a5.d.getElementById('btn-dialogo-aceptar').click();
   if (a5.ve('pin-modal')) a5.pin();
   assert(a5.tramas.length === 1 && /SET_BARRERA_SERVICIO:OFF\r\n$/.test(a5.tramas[0]), `T5: sale SET_BARRERA_SERVICIO:OFF: ${a5.tramas}`);

@@ -63,6 +63,7 @@ const Testigo = {
   },
 
   ctx: null,
+  ultimoRechazo: null,        // D-177: { punta, desc } del ultimo $ERR de DEG_T; se borra en cada envio
   _espera: null,              // { punta, timer } mientras se espera el $ACK del SET_RTC
   _el: {},
 
@@ -137,7 +138,15 @@ const Testigo = {
 
   // ---- Almacen: sobrevive a cerrar la app ----------------------------------
 
+  // D-177: en la practica (sin poste) el testigo vive en memoria y Practica.salir() lo tira: un testigo practicado
+  // no se ofrece a un POSTE 2 real (componerEsclavo no puede ver la serie del POSTE 1 desde el 2).
+  _mem: null,
   _almacen() {
+    if (typeof Practica !== 'undefined' && Practica.activa()) {
+      if (!this._mem) { const t = {}; this._mem = { getItem: (k) => (k in t ? t[k] : null),
+        setItem: (k, v) => { t[k] = String(v); }, removeItem: (k) => { delete t[k]; } }; }
+      return this._mem;
+    }
     try {
       if (typeof localStorage === 'undefined' || localStorage === null) return null;
       return localStorage;
@@ -194,6 +203,7 @@ const Testigo = {
         'MISMO testigo al POSTE 2 antes de las ' + g.inicio + ' con "Aplicar testigo guardado": ' +
         'hasta que el POSTE 2 lo acepte, una punta va por testigo y la otra no.');
     } else if (node === 'ESCLAVO') {
+      if (g && g.estado === 'ACEPTADO') { g.esclavo = true; this.guardar(g); }   // D-177: el asistente lo lee
       this.ctx.addEvent('red', 'POSTE 2 con el testigo. Quedese a ver un ciclo completo y ' +
         'compruebe CON LOS OJOS que nunca hay verde en los dos postes a la vez.');
     }
@@ -213,6 +223,7 @@ const Testigo = {
       return null;
     }
     if (data.CMD !== this.ORDEN) return null;
+    this.ultimoRechazo = { punta: node, desc: String(data.DESC || '') };   // D-177: lo ensena el asistente
     const g = this.leer();
     if (node === 'MAESTRO' && g && g.estado === 'ENVIADO') this.borrar();
     this.render();
@@ -302,6 +313,7 @@ const Testigo = {
     if (this._espera) txt = 'Esperando el acuse de la hora del puente... ' + txt;
     if (!node) txt = 'Conectese a un poste identificado (POSTE 1 o POSTE 2). ' + txt;
     el.estado.textContent = txt;
+    if (typeof AsistenteDeg !== 'undefined') AsistenteDeg.render();
     if (el.btnE) {
       el.btnE.textContent = (g && g.estado === 'ACEPTADO' && vivo)
         ? 'Aplicar testigo guardado — Maestro ' + (g.serie || '?') + ', inicio ' + g.inicio
@@ -407,6 +419,7 @@ const Testigo = {
     const av = typeof AvisoDegradado !== 'undefined' ? AvisoDegradado : null;
     if (av) av._reintento = () => this._enviarTestigo(punta);
     let salio;
+    this.ultimoRechazo = null;   // un rechazo viejo no es de este envio
     try { salio = c.enviarComandoFirmware('SET_MODO:DEG_T', o.args); } finally { if (av) av._reintento = null; }
     if (!salio) return;
     const previo = this.leer();

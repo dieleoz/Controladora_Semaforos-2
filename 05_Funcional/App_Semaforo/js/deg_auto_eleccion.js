@@ -68,16 +68,17 @@ const DegAutoEleccion = {
     if (el.irTestigo) el.irTestigo.addEventListener('click', () => this.irATestigo());
   },
 
-  // La tarjeta del testigo esta en Ajustes, que solo se ve con la clave de tecnico (D-56, D-145).
+  // D-177 (SPEC_4 9.16 (a)): el cartel abre el asistente de radio caida. Con el modo Degradado o el de tecnico puesto,
+  // directo; sin clave, la pide (la de Degradado o la de tecnico) y despues lo abre (js/clave_admin.js).
   irATestigo() {
-    const nav = document.querySelector('.nav-item[data-tab="tab-diag"]');
-    if (!nav || nav.style.display === 'none') {
-      this.ctx.showToast('Pulse «Operario» arriba, ponga la clave y abra Ajustes: Degradado con testigo');
+    const b = document.body.classList;
+    if (b.contains('deg') || b.contains('admin')) {
+      if (typeof AsistenteDeg !== 'undefined') AsistenteDeg.abrir();
       return;
     }
-    nav.click();
-    const card = document.getElementById('card-testigo');
-    if (card && card.scrollIntoView) card.scrollIntoView();
+    const rol = document.getElementById('btn-toggle-role');
+    if (rol) rol.click();
+    if (typeof ClaveAdmin !== 'undefined') ClaveAdmin._asistente = true;
   },
 
   _mmss(ms) {

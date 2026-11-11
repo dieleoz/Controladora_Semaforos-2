@@ -90,7 +90,6 @@ function juzgar(voc, trama) {
   }
   return ultimo;
 }
-
 module.exports = async function pruebaSimulador(montarAppLimpia, assert) {
   let S = null, err = '';
   try { S = require(path.join(APP, 'js', 'simulador.js')); } catch (e) { err = e.message; }
@@ -100,7 +99,6 @@ module.exports = async function pruebaSimulador(montarAppLimpia, assert) {
              crear: () => ({ postes: [{}], recibir: () => [], status: () => '', parar() {} }) };
   const T0 = new Date(2026, 9, 15, 10, 0, 0).getTime();
   const flota = () => { try { return JSON.parse(JSON.stringify(require(path.join(APP, 'js', 'practica.js')).FLOTA)); } catch (e) { return []; } };
-
   // 1. Cada constante con su origen archivo:simbolo, y el valor en la misma linea del simbolo.
   const origenMalo = (valor, origen) => {
     const [rel, sim] = [origen.slice(0, origen.indexOf(':')), origen.slice(origen.indexOf(':') + 1)];
@@ -122,7 +120,6 @@ module.exports = async function pruebaSimulador(montarAppLimpia, assert) {
     assert(malasR.length === 0, `Simulador: Instalacion.RETARDO (${JSON.stringify(R)}) es PLUMA_RETARDO_MIN_MS/MAX_MS/` +
       `BAJADA_MS de instalacion.h; distintas: ${malasR.join(',') || '-'}`);
   }
-
   // 2. Vocabulario, del simulador al C++: cada trama que emite casa con una cabeza de su punta. Suelo: ABORTADO.
   const VOC = { MAESTRO: vocabulario('Maestro'), ESCLAVO: vocabulario('Esclavo') };
   const sueloOk = VOC.MAESTRO.cabezas.length >= 70 && VOC.ESCLAVO.cabezas.length >= 45;
@@ -224,7 +221,6 @@ module.exports = async function pruebaSimulador(montarAppLimpia, assert) {
     const crcMal = emitidas.filter(([, t]) => S.conCrc(t.replace(/\*[0-9A-F]{2}$/, '')) !== t);
     assert(emitidas.length > 0 && crcMal.length === 0, `Simulador: cada trama lleva el *XX de enviarTramaConCrc(): ${crcMal.length} malas`);
   }
-
   // 3. Las cintas de referencia (D-121): con el simulador en el estado de la cinta, cada orden con respuesta grabada
   //    da los mismos campos (salvo HORA, T, RTT y contadores) y cada $STATUS los mismos nombres en el mismo orden.
   {
@@ -278,12 +274,14 @@ module.exports = async function pruebaSimulador(montarAppLimpia, assert) {
       `Simulador: los ${statusVistos} $STATUS de las cintas tienen los mismos campos en el mismo orden (${enteros} ` +
       `iguales con su *XX); distintos: ${nombres.slice(0, 2).join(' | ') || '-'}`);
   }
-
   // 4. En la app: almacen de grupos aislado, Salir sin entregas tardias y el menu entero por los botones.
   const montar = () => {
     const a = montarAppLimpia();
     a.el = (id) => a.d.getElementById(id);
-    a.pulsa = (id) => { const e = a.el(id) || a.d.querySelector(`[data-interruptor="${id}"]`); if (e) e.click(); };
+    a.pulsa = (id) => { const e = a.el(id); if (e || !/^SET_/.test(id)) { if (e) e.click(); return; }   // D-177: SET_
+      const [c, x, y] = id.split(':'), ks = c[4] === 'B' ? ['B'] : c[4] === 'C' ? ['M' + x] : y ? [x] : ['C', 'D'];
+      ks.forEach(k => { a.el('sel-averia-' + k).value = y || x; });   // ...son los selectores de Averias y «Aplicar»
+      a.el('interruptores').dispatchEvent(new a.w.Event('change')); a.el('btn-averias-aplicar').click(); };
     a.activo = (id) => !!a.el(id) && a.el(id).classList.contains('active');
     a.pin = () => ['1', '2', '3', '4'].forEach(k => a.d.querySelector(`.pin-btn[data-key="${k}"]`).click());
     a.pulsa('btn-bt-disconnect');
@@ -414,7 +412,8 @@ module.exports = async function pruebaSimulador(montarAppLimpia, assert) {
     P(a).salir();
   }
   {
-    // D-94: los botones de Ajustes > Averias contestan como interruptores_orden(), y el estado es de cada poste.
+    // D-94: Ajustes > Averias contesta como interruptores_orden(), y el estado es de cada poste. D-177: la misma orden
+    // dos veces no sale del selector (lo leido manda): el SIN_CAMBIO se pide tras reconectar, que deja «sin leer».
     const a = montar();
     const pulsa = (v) => {
       a.pulsa(v);
@@ -426,7 +425,8 @@ module.exports = async function pruebaSimulador(montarAppLimpia, assert) {
     const st = () => (a.oidas.filter(t => /^\$STATUS/.test(t)).pop() || '').replace(/\*..$/, '');
     const pluma = () => (a.el('pluma-estado') ? a.el('pluma-estado').textContent : '');
     P(a).entrar(); a.enlazar(mac(1));
-    ['SET_BARRERA_SERVICIO:OFF', 'SET_BARRERA_SERVICIO:OFF', 'SET_VETO_CAMARA:OFF'].forEach(pulsa);
+    pulsa('SET_BARRERA_SERVICIO:OFF'); a.pulsa('btn-bt-disconnect'); a.pulsa('btnDevice'); a.enlazar(mac(1));   // D-177
+    ['SET_BARRERA_SERVICIO:OFF', 'SET_VETO_CAMARA:OFF'].forEach(pulsa);
     const stM = st(), plM = pluma();
     a.pulsa('btn-bt-disconnect'); a.pulsa('btnDevice'); a.enlazar(mac(2));
     const stE0 = st();

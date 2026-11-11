@@ -73,10 +73,11 @@ module.exports = async function pruebaClaves(montarAppLimpia, assert) {
     assert(a.tramas.some(t => /^CMD:PIN:1234:TEST_LEDS/.test(t)), `Claves: con el PIN sale: ${a.tramas.join(' | ')}`);
     assert(PESTANAS.every(id => !a.visible(id)), 'Claves: el PIN del equipo NO ensena las pestanas de administracion');
     a.w.DegAutoEleccion.irATestigo();
-    // INVERTIDA (QA de U, D1): decia «clave de administracion» y «Diagnostico», que ya no se ven (D-145).
-    const irT = a.el('toast-msg').textContent;
-    assert(/«Operario»/.test(irT) && /clave/.test(irT) && /Ajustes/.test(irT) && !/administraci|Diagn/i.test(irT),
-      `Claves: ir al testigo sin clave dice la ruta que se ve (Operario > clave > Ajustes, D-145): "${irT}"`);
+    // INVERTIDA (D-177, SPEC_4 9.16 (a)): decia la ruta Operario > clave > Ajustes; ahora el cartel pide la clave y,
+    // puesta, abre el asistente.
+    assert(a.activo('clave-modal') && !!a.w.ClaveAdmin && a.w.ClaveAdmin._asistente === true,
+      'Claves: ir al testigo sin clave pide la clave y despues abrira el asistente (D-177)');
+    a.pulsa('btn-clave-cancelar');
   }
 
   // 2. El boton de arriba pide la clave de administracion, no el PIN; erronea no entra; 1234 de fabrica si.
@@ -173,10 +174,10 @@ module.exports = async function pruebaClaves(montarAppLimpia, assert) {
     if (a.w.Practica) a.w.Practica.reloj = R;
     const real = a.w.bluetoothSerial;
     const boton = a.el('btn-practica');
-    P(a).entrar();
-    assert(!!boton && !!boton.closest('#tab-diag') && a.w.bluetoothSerial === real && oculta(a),
-      'Practica: «Practicar sin poste» esta en Diagnostico y sin la clave de administracion no entra');
-    a.el('btn-toggle-role').click(); a.clave('1234');
+    // INVERTIDA (D-177): el boton estaba en Ajustes y sin la clave no entraba; ahora esta en la hoja de conexion, fuera
+    // de lo que pide la clave. Lo que se conserva: con el enlace abierto no entra (abajo), con o sin clave.
+    assert(!!boton && !!boton.closest('#bt-modal') && !boton.closest('.admin-only, .solo-admin'),
+      'Practica: «Practicar sin poste» esta en la hoja de conexion, sin clave (D-177)');
     P(a).entrar();
     const prim = a.d.querySelector('#event-feed .event-item');
     assert(!!a.w.Practica && a.w.bluetoothSerial === real && oculta(a) && !!prim &&
@@ -187,8 +188,9 @@ module.exports = async function pruebaClaves(montarAppLimpia, assert) {
     const filas = Array.from(a.d.querySelectorAll('#bt-modal .bt-device-item'));
     const rotulos = P(a).FLOTA.map(c => c.rotulo);
     assert(!oculta(a) && !!a.el('franja-simulado') && a.d.body.classList.contains('simulado') && a.activo('bt-modal') &&
+           !a.d.body.classList.contains('admin') && !a.d.body.classList.contains('deg') &&
            filas.length >= 4 && rotulos.length >= 4 && filas.every(f => rotulos.includes(f.getAttribute('data-name'))),
-      `Practica: desconectado y con clave, franja SIMULADO y la flota en el modal de equipos (${filas.length} filas)`);
+      `Practica: desconectado y SIN clave, franja SIMULADO y la flota en el modal de equipos (${filas.length} filas)`);
     const fila1 = filas.find(f => !!P(a).FLOTA[0] && f.getAttribute('data-mac') === P(a).FLOTA[0].direccion);  // la lista ordena
     inyectarReloj(a.w, R);   // antes de enlazar: ahi programa la app la VERSION (pedirVersionAlConectar)
     if (fila1) fila1.click();

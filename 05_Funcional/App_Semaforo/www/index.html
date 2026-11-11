@@ -99,7 +99,8 @@
     <div class="card card-camara-pluma" id="degauto-sinradio" hidden>
       <strong class="camara-pluma-titulo" id="degauto-sinradio-txt"></strong>
       <details id="degauto-sinradio-det" hidden><summary>Detalle</summary><p class="camara-pluma-medida" id="degauto-sinradio-motivo"></p></details>
-      <button type="button" class="btn-degradado" id="btn-degauto-ir-testigo" hidden>Ir a Degradado con testigo</button>
+      <button type="button" class="btn-degradado" id="btn-degauto-ir-testigo" hidden>Abrir el asistente de radio
+        caída</button>
     </div>
 
     <!-- ===================================================================
@@ -601,7 +602,6 @@
     <section class="tab-content admin-only" id="tab-diag">
       <!-- N-75: mandos que el firmware atiende y la interfaz de 2 roles habia dejado
            sin boton. Viven en Modo Tecnico porque no son maniobra de campo. -->
-      <div class="card"><button class="ctrl-btn" id="btn-practica"><strong>Practicar sin poste</strong><small>Postes simulados en 2 vías, con la franja SIMULADO</small></button></div>
       <div class="card">
         <div class="card-header-flex">
           <h3>Mandos directos al equipo</h3>
@@ -634,22 +634,8 @@
           <small>Fuera, la cámara deja de impedir que baje la barrera.</small></p>
         <p class="ajuste"><strong>Barrera en servicio</strong>
           <small>Fuera, la barrera queda arriba también en rojo (brazo roto).</small></p>
-        <div class="ctrl-grid" id="interruptores">
-          <button class="ctrl-btn" data-interruptor="SET_VETO_CAMARA:OFF">
-            <strong>Sacar las cámaras del veto</strong> <small>Las dos</small></button>
-          <button class="ctrl-btn" data-interruptor="SET_VETO_CAMARA:ON"><strong>Devolver el veto</strong></button>
-          <button class="ctrl-btn" data-interruptor="SET_VETO_CAMARA:C:OFF"><strong>Sacar la cámara C</strong></button>
-          <button class="ctrl-btn" data-interruptor="SET_VETO_CAMARA:C:ON"><strong>Devolver la C</strong></button>
-          <button class="ctrl-btn" data-interruptor="SET_VETO_CAMARA:D:OFF"><strong>Sacar la cámara D</strong></button>
-          <button class="ctrl-btn" data-interruptor="SET_VETO_CAMARA:D:ON"><strong>Devolver la D</strong></button>
-          <button class="ctrl-btn" data-interruptor="SET_CAMARA_MALA:1:ARRIBA"><strong>1 mala: arriba</strong></button>
-          <button class="ctrl-btn" data-interruptor="SET_CAMARA_MALA:1:BAJA"><strong>1 mala: bajar</strong></button>
-          <button class="ctrl-btn" data-interruptor="SET_CAMARA_MALA:2:ARRIBA"><strong>Ninguna: arriba</strong></button>
-          <button class="ctrl-btn" data-interruptor="SET_CAMARA_MALA:2:BAJA"><strong>Ninguna: bajar</strong></button>
-          <button class="ctrl-btn" data-interruptor="SET_BARRERA_SERVICIO:OFF">
-            <strong>Sacar la barrera de servicio</strong> <small>Brazo roto: arriba, también en rojo</small></button>
-          <button class="ctrl-btn" data-interruptor="SET_BARRERA_SERVICIO:ON"><strong>En servicio</strong></button>
-        </div>
+        <!-- D-177: cinco selectores y «Aplicar cambios», armados por js/interruptores.js (antes doce botones). -->
+        <div id="interruptores"></div>
         </div></details>
       <details class="card" id="instalacion"><summary>Instalación: cámaras y barrera</summary><div id="instalacion-cuerpo"></div></details>
 
@@ -1056,6 +1042,8 @@
            aplicacion"-, porque cerrar el enlace no estaba a mano en ninguna pantalla.
            El boton SOLO sale con un enlace abierto: uno que no desconecta nada es un
            mando que no hace nada, y esta app ya pago eso. -->
+      <button class="ctrl-btn" id="btn-practica"><strong>Practicar sin poste</strong>
+        <small>Para aprender la app sin equipo; sale con la franja SIMULADO</small></button>
       <div class="bt-modal-actions">
         <button class="btn-primary-bt" id="btn-scan-bluetooth-live">
           🔍 Buscar Módulos Bluetooth
@@ -1202,7 +1190,7 @@
   <script src="js/telefono.js"></script>
   <script src="js/testigo.js"></script>
   <script src="js/deg_auto.js"></script>
-  <script src="js/deg_fin.js"></script>
+  <script src="js/deg_fin.js"></script><script src="js/asistente_deg.js"></script>
   <script src="js/deg_auto_eleccion.js"></script>
   <script src="js/noche.js"></script>
   <script src="js/interruptores.js"></script><script src="js/instalacion.js"></script>
@@ -1214,6 +1202,7 @@
   <script src="js/luces.js"></script>
   <script src="js/serial_pc.js"></script>
   <script src="js/sim_instalacion.js"></script><script src="js/sim_interruptores.js"></script>
+  <script src="js/sim_puente.js"></script>
   <script src="js/simulador.js"></script>
   <script src="js/practica.js"></script><script src="js/pantalla_operario.js"></script>
   <script src="js/enlace_equipos.js"></script><script src="js/busqueda_equipos.js"></script>

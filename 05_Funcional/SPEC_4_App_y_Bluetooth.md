@@ -230,6 +230,17 @@ antemano —el contador vive en la tarjeta, no en el telefono—; se entera por 
 hoy se entera del ámbar por límite duro (`SPEC 6` Parte C), y el texto es el que ya existe para ese aviso,
 sin uno nuevo.
 
+**El asistente (`D-177`, construido, sin telefono ni banco).** En el modo Degradado (§9.16) y desde Ajustes, una hoja
+guiada (`js/asistente_deg.js`) hace estos pasos sin formulario: comprobacion en persona, conectar al POSTE 1,
+traslado (20 min) y, plegados, verde (3 min) y despeje (el del campo, minimo 30 s); escribe esos valores en los
+campos de la tarjeta y llama al mismo `Testigo._pulsar()`: PIN, `SET_RTC` previo, aviso de paleteros (`D-81`), lo
+guardado y los rechazos son los de este apartado. Guia al POSTE 2 con la hora limite; alli pide OTRA comprobacion en
+persona (la casilla no se guarda: tras cerrar la app el POSTE 2 no saldria) y, si los grupos dicen que la serie del
+POSTE 2 no es la pareja de la del POSTE 1, no envia. Sabe por donde va por lo guardado, no por un contador. El acuse
+del POSTE 2 queda en el testigo guardado (`esclavo`); el ultimo `$ERR` de `DEG_T` se guarda con su punta
+(`Testigo.ultimoRechazo`) y se borra en cada envio. Mientras un poste lleva el testigo y el otro no, un cartel fuera de
+las pestanas lo dice en los tres modos, con la hora y «mantenga los paleteros».
+
 ## 3.ter.bis EL DEGRADADO AUTOMATICO EN LA APP — construido en `js/deg_auto.js` (`A-15`, SPEC 2 §7.ter)
 
 **Es una ELECCION DE MONTAJE, no un modo que se pone cuando ya cayo la radio** (decidido el 05/10, tras el banco del
@@ -337,6 +348,13 @@ paleteros se casa por NOMBRE de orden, no por la trama: `DEG_FIN` lleva un `ahor
 **Limites que HACE y quedan escritos:** un `CANCELADA` que esta app no pidio (otro telefono) no borra el cartel local
 «FALTA el Esclavo», aunque la tarjeta si refleja la consulta; y la app mide la ventana de 12 h con el reloj del
 telefono y el poste con el suyo, asi que en el borde pueden discrepar: manda el `$ERR` del poste.
+**Salida desde el asistente (`D-177`, construido, sin banco).** «Terminar el Degradado» (§9.16) escribe traslado
+(20 min) u hora en los campos de esta tarjeta y llama a `DegFin._pulsar()` en el POSTE 1 y despues en el POSTE 2,
+sin formulario en el segundo y con la misma comprobacion de pareja que el testigo. Con la radio de vuelta no programa
+nada: dice «VOLVER AL MENU en el POSTE 1». Fuera de Degradado, que no hay nada que terminar. Cancelar y reprogramar
+siguen solo en esta tarjeta; el rechazo `Cancele antes la salida programada` dice «avise al tecnico». Ese `$ERR` de
+`DEG_T` lo traduce `DegFin.rechazo()`, que va antes que `Testigo.rechazo()` en `_traducirRechazo()`: desde `D-177`
+le pasa la trama a `Testigo.rechazo()` para que el testigo `ENVIADO` se borre (antes se quedaba `ENVIADO`).
 
 **Aviso `$EVENT DEGRADADO ... SYNC:<h>h AVISO:SI|NO VENCIDA:SI|NO` (HACE, sin banco; `deg_auto.js`).** El evento no
 dice si el poste tiene testigo y la app no lo deduce de `h`; se publica en todo modo y en las dos puntas. `VENCIDA:SI`
@@ -636,10 +654,17 @@ equipo, §4; `state.pinVerificado`, `CMD:PIN:`). Ninguno arma al otro.
   «Exportar registro» en Eventos (el `.txt` de «Exportar todo»).
 - **Con la clave** se ven ademas Tiempos, Ajustes (Degradado: testigo, eleccion del automatico, salida `D-52`;
   hora y Courier; mandos directos; «Averias: camaras y barrera» con los dos interruptores de `D-94`; «Instalacion:
-  camaras y barrera», §9.15; Practicar sin poste) y Tramas, y la tarjeta que pide elegir el automatico al conectar.
+  camaras y barrera», §9.15) y Tramas, y la tarjeta que pide elegir el automatico al conectar. «Practicar sin poste»
+  salio a la hoja de conexion, sin clave (§9.10 (a), `D-177`).
   Rotulos «Operario»/«Tecnico» y «Ajustes»: §9.9 (g) 6 (`D-145`, `4105ba3`; lo ejercen `tests/dom_claves.js` y
   `tests/dom_usabilidad.js` K); la lista de lo que ensena la clave crecio solo con «Instalacion» (`D-161`, que la pone
-  tras la clave pese a `D-141`). Quien hace Degradado lleva las dos claves (SPEC_6 A.1).
+  tras la clave pese a `D-141`). El Degradado con testigo y su salida tienen ademas un modo propio, con su clave
+  (§9.16, `D-177`).
+- **Tres modos (`D-177`).** La misma pastilla y el mismo dialogo deciden el modo por la clave: la de tecnico ->
+  Tecnico (lo de arriba); la de Degradado (4 a 8 cifras, de fabrica `0000`, huella con sal propia en `localStorage`)
+  o la de soporte -> Degradado (§9.16); otra -> «Clave incorrecta.». La de Degradado solo se cambia con la de tecnico
+  puesta (Ajustes > «Cambiar la clave de Degradado»), sin pedir la anterior; no puede ser igual a la de tecnico, ni
+  la de tecnico igual a ella. Dura como la de tecnico: hasta cerrar la app o pulsar la pastilla.
 - **El PIN no cambia:** cada orden que lo pide abre el teclado del PIN, tambien con la clave puesta. Tiempos y las
   dos de hora no salen sin el: el emisor las frena (al diario como no salidas) y abre el teclado; tecleado, se
   vuelve a pulsar. FORZAR_ROJO y AMBAR_EMERGENCIA salen sin ninguna clave.
@@ -1090,7 +1115,8 @@ de reserva sin red.
 **(f) Menos pantalla (`N-181` U, `D-141`..`D-145`; 09/11, construido).** Orden del responsable (27/10): «no es
 usable, tantas funciones que no se entienden». Criterio, de Pasos Peatonales (`ROADMAP_APP.md`): antes de un texto,
 aviso o modo, ¿lo necesita el operario para operar? Si no, plegado (`<details>`) o fuera. Ocultar tras la clave no
-basto alli, y aqui la lista de la clave es cerrada (`D-56`, `D-123`): **nada nuevo pasa tras la clave**; lo que sobra
+basto alli, y aqui la lista de la clave es cerrada (`D-56`, `D-123`): **nada nuevo pasa tras la clave de tecnico**
+(el modo Degradado de `D-177`, §9.16, es una clave aparte que solo ensena el asistente); lo que sobra
 se pliega o sale. Lo de abajo es lo que hace (`4105ba3`, U-B); lo ejerce el bloque «K» de `tests/dom_usabilidad.js`.
 
 Inventario y destino (QUEDA · PLEGADO · FUERA; «clave» = ya estaba tras ella):
@@ -1119,8 +1145,8 @@ Inventario y destino (QUEDA · PLEGADO · FUERA; «clave» = ya estaba tras ella
 | Tiempos (clave) | verde, rojo, despeje, Aplicar; aviso de cruce parado | QUEDA, con nombre y frase (h) |
 | Tiempos (clave) | modo noche: distancia y todo-rojo | QUEDA |
 | Tiempos (clave) | las cuatro franjas | cada una PLEGADO; su `<summary>` dice dias, horas y color, o «apagada» |
-| Ajustes (clave) | Practicar sin poste; Manual, Inteligente (Alcance salio con `D-167`) | QUEDA |
-| Ajustes (clave) | interruptores de `D-94` | PLEGADO en «Averias: camaras y barrera»; abierto y en ambar si alguno esta fuera |
+| Ajustes (clave) | Manual, Inteligente (Alcance salio con `D-167`); Practicar sin poste, a la hoja de conexion sin clave (`D-177`) | QUEDA |
+| Ajustes (clave) | interruptores de `D-94` | PLEGADO en «Averias: camaras y barrera», cinco selectores y «Aplicar cambios» (§9.16 (c)); abierto y en ambar si alguno esta fuera |
 | Ajustes (clave) | contacto de cada camara y retardo de bajada (`D-161`) | PLEGADO en «Instalacion: camaras y barrera», tras Averias (§9.15) |
 | Ajustes (clave) | Pedir paso | solo con `MODO:INTELIGENTE`; en otro modo, FUERA de la vista |
 | Ajustes (clave) | Degradado con testigo; «Si se cae la radio» | QUEDA con una frase; el resto del texto, PLEGADO en «Por que» |
@@ -1177,7 +1203,8 @@ lado. Oraculo del test:
 | veto de camaras | Camaras: veto de la barrera | Fuera, la camara deja de impedir que baje la barrera. |
 | barrera en servicio | Barrera en servicio | Fuera, la barrera queda arriba tambien en rojo (brazo roto). |
 | eleccion del automatico | Si se cae la radio | Que hacen los dos postes tras 5 min sin oirse. |
-| clave de administracion | Clave de tecnico | Ensena los ajustes; cada orden sigue pidiendo el PIN del equipo. |
+| clave de administracion | Clave | Operario no necesita clave. Ponga la de Degradado o la de técnico. Cada orden sigue pidiendo el PIN del equipo. |
+| modo Degradado (`D-177`) | Degradado | asistente de radio caída |
 
 **(i) El guion por TAREA del tecnico (`D-144`).** Molde Pasos Peatonales (`test_qa45_dom_clave`): el `index.html`
 y el `app.js` reales en jsdom (`montarAppLimpia`), puerto falso con checksum real, cada orden registrada, y se pulsa
@@ -1195,10 +1222,14 @@ cada paso asevera lo que debe VER y que no ve lo que no toca.
    «Tecnico» -> Ajustes -> Degradado con testigo -> POSTE 1 -> aviso de paleteros (casilla y boton) -> PIN -> sale
    `SET_RTC` y, con su `$ACK`, `SET_MODO:DEG_T`; ve `#testigo-estado` con la hora limite para el POSTE 2.
 5. **Sacar la barrera de servicio (`D-94`).** Sin clave no existe a la vista. Con clave: Ajustes -> «Averias: camaras y
-   barrera» -> «Sacar la barrera de servicio» -> confirmar «Sacar de servicio» -> PIN -> sale
+   barrera» -> selector «Barrera» en «Fuera» -> «Aplicar cambios» -> confirmar «Sacar de servicio» -> PIN -> sale
    `SET_BARRERA_SERVICIO:OFF`; con `$ACK` `RESULT:OK` y `PLUMA:FUERA`, Trafico pinta la pluma en ambar con su frase
    (`D-97`) y el `<summary>` de Averias queda en ambar. Ficheros, los de U-B (`roadmap.md` bloque U). Lo que jsdom no
    mide (scroll, 48 px, 320 px, sol) lo mide P.
+6. **Degradado guiado (`D-177`).** Sin clave, «Operario» -> clave de Degradado -> la pastilla dice «Degradado» y se
+   abre el asistente; comprobacion -> conectar POSTE 1 -> traslado -> PIN -> salen `SET_RTC` y, con su acuse,
+   `SET_MODO:DEG_T`; ve la hora limite; conectar POSTE 2 -> otra comprobacion -> PIN -> `SET_MODO:DEG_T` con lo
+   guardado; ve «mire una vuelta». No ve Tiempos, Ajustes ni Tramas. `tests/dom_tres_modos.js`.
 
 ### 9.10 Practica sin poste (`N-178` M9; `D-58`, `D-86`..`D-89`) — construido, sin telefono
 
@@ -1208,9 +1239,10 @@ del repo sigue CONGELADO (`CLAUDE.md` §4) y no se toca. La barrera que esto roz
 un cruce que no existe. Por eso la practica no pinta nada por su cuenta: entra por el cable falso y la app la trata
 como a un equipo, con la franja SIMULADO encima de todo.
 
-**(a) Donde esta y como se entra (`D-86`).** Un boton «Practicar sin poste» (`#btn-practica`) en Ajustes
-(`#tab-diag`, `admin-only`): sin la clave de administracion (§9.2) no se ve ni entra (`Practica.entrar()` sin
-`body.admin` no hace nada). Entrar con un enlace abierto (`state.connected`, leido por `window.appEnlazada()`) se
+**(a) Donde esta y como se entra (`D-86`, `D-177`).** Un boton «Practicar sin poste» (`#btn-practica`) en la hoja de
+conexion (`#bt-modal`), en los tres modos y sin clave (`D-177` deroga de `D-86` «solo con la clave de
+administracion»): el funcional prueba la app y el asistente de Degradado sin banco. Entrar con un enlace abierto
+(`state.connected`, leido por `window.appEnlazada()`) se
 rechaza con toast y una linea en Eventos: la practica no desconecta a nadie. Sin pestana nueva: `test_dom_execution.js`
 cuenta cinco pestanas y sigue contandolas.
 - Al entrar, `Practica` guarda `window.bluetoothSerial` y lo sustituye por `PuertoPractica` (`isEnabled`, `list`,
@@ -1238,6 +1270,10 @@ su `$STATUS` publica `PLUMA:FUERA` y `CAM:NOVETO` (`D-150`, `D-151`). No imita: 
 (no reinicia), `NO_QUEDO_PUESTO` (relee la variable que acaba de escribir), un poste de la flota con el respaldo
 perdido, ni el `CAM:` real: sin veto publica `NOVETO` y si no `?`, porque sus camaras no dan flancos. Las ordenes de
 la instalacion las contesta `js/sim_instalacion.js` (§9.15); las de SPEC 8 §6 y §9, `js/sim_interruptores.js`.
+Desde `D-177` el `SET_RTC` (con o sin PIN) lo contesta `js/sim_puente.js` como el puente de cada poste
+(`ESP32_Expansion/src/despachador.cpp`): `$ACK,NODE:PUENTE,CMD:SET_RTC,RESULT:OK,FECHA:..,HORA:..` con lo recibido,
+o `FORMATO_INVALIDO`, y deja el poste en hora. Antes contestaba `$ERR,CMD:DESCONOCIDO` y el testigo esperaba 10 s.
+`LEER_RTC` y `LOG` siguen sin contestarse.
 
 **(d) Marcas y registros (`D-89`).** Con `Practica.activa()`: `Exportar.nombreFichero()` da
 `IOTVIAL_SIMULADO_<serie>_...txt`; la cabecera de la cinta (`Exportar.textoCinta()`) y la del diario
@@ -1245,11 +1281,13 @@ la instalacion las contesta `js/sim_instalacion.js` (§9.15); las de SPEC 8 §6 
 no vale como evidencia`; `RegistroSesion.anotar()` (`Directory.External`, `D-55`) no escribe nada durante la
 practica, y al entrar se anota en Eventos. Un `.txt` con esa marca no se acepta en la hoja de banco ni en
 `evidencia/`. Lo que la practica no ensena, y se dice en la franja de Eventos al entrar: el tiempo real de respuesta
-del equipo, el emparejado de Android y la radio entre postes.
+del equipo, el emparejado de Android y la radio entre postes. El testigo y la salida guardados durante la practica
+viven en memoria y se descartan al salir, con la espera del `SET_RTC` y el PIN tecleado: un testigo practicado no se
+ofrece a un POSTE 2 real (`D-177`).
 
 **Pruebas (vistas en rojo antes de construir).** `tests/dom_claves.js`, bloque «Practica»: (1) `#btn-practica`
-existe en `#tab-diag` (Ajustes) y sin clave la practica no entra (`bluetoothSerial` identico, franja oculta); (2) con el
-enlace del arnes abierto, entrar se rechaza; (3) desconectado y con clave: franja visible, `body.simulado`, el
+existe en `#bt-modal`, fuera de lo que pide la clave (`D-177`); (2) con el
+enlace del arnes abierto, entrar se rechaza; (3) desconectado y SIN clave: franja visible, `body.simulado`, el
 modal lista >= 4 filas de `Practica.FLOTA`, y al pulsar la primera `#node-name` pasa a `MAESTRO` con `a.tramas` del
 mock original VACIO (nada llego al puerto real); (4) la `VERSION` que la app pide al enlazar, con el reloj
 inyectado, la contesta el simulador y Eventos ensena su `FW:`; (5) Salir devuelve el `bluetoothSerial` original y
@@ -1495,3 +1533,40 @@ Lo que la app HACE (`js/instalacion.js`); las ordenes, las tramas y sus literale
   Esclavo. No simula camara ni retardo: `VE:C0D0` siempre, nunca `PLUMA_VETADA`, y `NO_QUEDO_PUESTO` no sale (relee
   la variable que acaba de escribir).
 Ejercen `tests/dom_interruptores.js` (J1..J8) y `tests/dom_simulador.js`. Sin banco: ninguna tarjeta lo contesto aun.
+
+### 9.16 Tres modos: Operario, Degradado y Tecnico (`D-177`) — construido, sin telefono ni banco
+
+Decidido por el responsable el 11/11. Firmware sin cambios: solo ordenes que ya existen (`SET_MODO:DEG_T`,
+`SET_MODO:DEG_FIN`, `SET_RTC`, `CONSULTA_VETO` y las tres de averias); el PIN del equipo se pide como siempre (§4).
+Las claves ensenan; el PIN autoriza (§9.2). `state.role` vale `OPERARIO`, `DEGRADADO` o `TECNICO`; `body.deg` y
+`body.admin` lo marcan.
+
+**(a) Que ve cada modo.** Operario (sin clave): cabecera, carteles, Trafico, Eventos, hoja de conexion (con
+«Practicar sin poste») y de grupos, y los dialogos; lo de §9.9 (f). Degradado (su clave o la de soporte): lo del
+Operario mas el asistente (`#asistente-deg`) y la barra «Volver al asistente»; nada de Tiempos, Ajustes ni Tramas.
+Tecnico (su clave): todo lo de hoy, sin quitar nada, mas «Asistente paso a paso» y «Cambiar la clave de Degradado»
+en la tarjeta del testigo. Rotulos de la pastilla: «Operario», «Degradado», «Técnico». El boton del cartel de radio
+caida dice «Abrir el asistente de radio caída»: sin clave, la pide y despues lo abre.
+
+**(b) El asistente** (`js/asistente_deg.js`): §3.ter y §3.ter.ter. Usa `Testigo._pulsar()` y `DegFin._pulsar()` sobre
+los campos de sus tarjetas; ninguna orden sale por su cuenta. Por defecto: traslado 20 min (1-720), verde 3 min
+(3-15, `limites_ciclo.h`), despeje el del campo, minimo 30 (30-255, `modo_degradado.cpp`); salida = ahora + 20 min,
+con la hora en grande. Un envio sin respuesta se puede volver a enviar (reusa lo guardado). Sin jerga (§9.9 (a)).
+El cartel «falta el otro poste» (§3.ter) se ve en los tres modos.
+
+**(c) Averias** (§9.9 (f)): cinco selectores (camara C, camara D, con una mala, sin ninguna, barrera),
+preseleccionados con `CONSULTA_VETO` y con la pluma del `$STATUS` (`PLUMA:FUERA` = fuera; sin `$STATUS` con pluma,
+en blanco), y un «Aplicar cambios» que manda solo lo que difiere, en cola: la siguiente al acuse de la anterior; un
+rechazo, o 8 s sin respuesta, la corta y dice cuales no se aplicaron. Un solo dialogo para lo que no es de fabrica y
+un solo PIN. C y D al mismo valor salen como una orden («las dos»). Sin consulta contestada (firmware sin
+`CONSULTA_VETO`, como el del banco de `8f8dd7e`) los selectores quedan en blanco y «Aplicar» manda lo elegido. Otro
+poste vacia los selectores. Mismas ordenes y textos que `D-94`, `D-166`, `D-169`.
+
+**(d) Practica para todos** (§9.10): boton en la hoja de conexion; el asistente y Averias funcionan contra el
+simulador (`SET_RTC` contestado como el puente); testigo, salida, espera del `SET_RTC` y PIN de la practica no
+sobreviven a Salir.
+
+**Riesgo aceptado (se relaja una barrera, `CLAUDE.md` §11.7):** el Degradado lo puede pedir quien tenga la clave de
+fabrica `0000`; ni la app ni el firmware comprueban que la radio este caida antes del testigo. Lo cubren la
+comprobacion en persona de cada poste, el PIN y el aviso de paleteros cuando ya hay un poste en Degradado.
+Pruebas: `tests/dom_tres_modos.js`, `tests/dom_interruptores.js`, `tests/dom_claves.js`.
