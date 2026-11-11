@@ -132,10 +132,23 @@ button#btnPdf{
     <li><strong>La barrera queda ARRIBA en reposo y sin energía, y J15 es ahora la orden de BAJAR.</strong> Antes, J15 conduciendo mandaba subir y, sin orden o con el poste apagado, la pluma bajaba. Ahora es al revés: J15 conduce = <strong>bajar</strong>; sin señal (poste apagado, reinicio, carga, cable cortado) la central deja el brazo <strong>arriba</strong>. <em>Para qué:</em> que un controlador muerto o un cable cortado no cierren la vía. Al arrancar, el poste ya <strong>no baja</strong> la pluma: la primera bajada llega tras el rojo y su retardo, mirando las cámaras. A cambio, cada reinicio o carga sube la pluma, también en rojo. La app dice qué sentido lleva cada poste en la línea <strong>&laquo;Version cargada&raquo;</strong>: <strong>&laquo;Barrera: J15 manda BAJAR (sin senal, ARRIBA)&raquo;</strong>. <strong>Central y firmware se cambian en la misma visita, con J15 suelta entre medias</strong> (pruebas 1 a 3, en ese orden).</li>
     <li><strong>ROJO TOTAL desde ÁMBAR, AUTOMÁTICO o INTELIGENTE deja los dos postes en rojo fijo, y se quedan.</strong> Antes, con el Poste 1 en ÁMBAR, el ROJO TOTAL ponía rojo en el Poste 1 pero el Poste 2 volvía solo a ámbar a los 28 s; en AUTOMÁTICO o INTELIGENTE el ciclo seguía al acabar la fase. Ahora el Poste 1 pasa a <strong>MANUAL</strong> y los dos quedan en rojo fijo hasta otra orden (VOLVER AL MENÚ, AUTOMÁTICO, ÁMBAR). La vía que estaba en verde pasa antes por sus 3 s de amarillo. <em>Para qué:</em> que ROJO TOTAL sea rojo total (un accidente) en cualquier modo. Sin radio, o con el ámbar de emergencia del Poste 2 puesto, a los 28 s los dos caen a ámbar intermitente, como siempre; y sin radio, desde AUTOMÁTICO o INTELIGENTE el Poste 1 no pasa a MANUAL: rojo solo en él (el Poste 2 no lo recibe), para que el Degradado automático entre en los dos a la vez.</li>
     <li><strong>El Poste 1 ya no inventa la luz del Poste 2 sin radio.</strong> Si el Poste 2 no contesta o su última respuesta tiene más de 28 s, el Poste 1 publica <strong>&laquo;?&raquo;</strong> y la app dice <strong>&laquo;SIN DATO DEL POSTE 2 · el POSTE 1 no lo sabe&raquo;</strong>, en cualquier modo salvo ÁMBAR, también en MENÚ (antes, en MENÚ sin radio, decía rojo sin saberlo). <em>Para qué:</em> no fiarse de una luz que nadie ha confirmado.</li>
-    <li><strong>Cámaras: se puede sacar del veto la C, la D, las dos o ninguna.</strong> Antes un solo interruptor sacaba las dos. Una cámara sacada deja de retener la barrera y de pedir verde; la otra sigue mirando. Se guarda tras un corte de luz (con pila) y, al arrancar, el poste lo avisa. Está en Ajustes &rarr; <strong>&laquo;Averías: cámaras y barrera&raquo;</strong>, con PIN.</li>
+    <li><strong>Cámaras: se puede sacar del veto la C, la D, las dos o ninguna.</strong> Antes un solo interruptor sacaba las dos. Una cámara sacada deja de retener la barrera y de pedir verde; la otra sigue mirando. Se guarda tras un corte de luz (con pila) y, al arrancar, el poste lo avisa. Está en Ajustes &rarr; <strong>&laquo;Averías: cámaras y barrera&raquo;</strong>, con PIN.
+      Los doce botones de antes son ahora <strong>cinco selectores</strong> (Cámara C, Cámara D, Con una cámara mala,
+      Sin ninguna cámara, Barrera) y un botón <strong>&laquo;Aplicar cambios&raquo;</strong>, que manda solo lo que
+      cambió, una orden detrás de otra. Las órdenes que llegan al poste son las mismas.</li>
     <li><strong>Qué hace la barrera con una o dos cámaras malas.</strong> Cuando el poste detecta una cámara <strong>PEGADA</strong> o <strong>CIEGA</strong>, deja de hacerle caso (ni retiene la barrera ni pide verde) y lo dice la alarma. Dos ajustes en el mismo plegado: <strong>&laquo;1 mala&raquo;</strong> (una cámara mala y la otra sigue mirando) y <strong>&laquo;Ninguna&raquo;</strong> (no queda ninguna que mire: las dos malas, o una sacada y la otra mala). Cada uno en <strong>&laquo;arriba&raquo;</strong> (la pluma se queda arriba en el rojo hasta reparar; <strong>de fábrica</strong>) o <strong>&laquo;bajar&raquo;</strong> (baja tras el rojo y su retardo; con &laquo;1 mala&raquo;, si la buena no ve nada). Ojo: &laquo;1&raquo; no es la cámara 1, es &laquo;una mala&raquo;. Con las dos cámaras sacadas a mano, baja tras el rojo y su retardo, como antes. <em>Para qué:</em> que ninguna avería de cámara o barrera deje el paso sin funcionar; el semáforo sigue igual en todos los casos. La cámara mala se olvida tras un corte de luz y vuelve a detectarse; lo sacado a mano y los dos ajustes se guardan.</li>
     <li><strong>En el rojo de espera la pluma se queda arriba.</strong> Tras VOLVER AL MENÚ o al arrancar el Poste 2, los dos quedan en rojo esperando la primera orden; la pluma ya no baja en esa espera (su prueba 6 del 10/11). Baja a los 3 s del rojo cuando el ciclo arranca o con ROJO TOTAL. Y ROJO TOTAL sin radio desde AUTOMÁTICO o INTELIGENTE pone rojo solo en el Poste 1 y no cambia el modo: la app lo dice.</li>
     <li><strong>Sale el Modo Alcance.</strong> Ya no hay botón &laquo;Prueba de Alcance&raquo;. El porcentaje de latidos y la respuesta de la radio se leen en la tarjeta <strong>ENLACE RADIO</strong> (Tráfico &rarr; &laquo;Detalle&raquo;) en cualquier modo.</li>
+    <li><strong>La app tiene tres modos</strong> (pastilla de arriba). <strong>Operario</strong>, sin clave: el día a
+      día (Tráfico y Eventos). <strong>Degradado</strong>, con su propia clave (<strong>0000</strong> de fábrica): abre
+      un <strong>asistente paso a paso</strong> para entrar en Degradado con testigo (POSTE 1 y luego POSTE 2) y para
+      terminarlo (salida programada en los dos); no enseña Ajustes. <strong>Técnico</strong>, clave
+      <strong>1234</strong>: todo lo de antes. La clave de Degradado se cambia en Ajustes &rarr; &laquo;Degradado con
+      testigo&raquo; &rarr; <strong>&laquo;Cambiar la clave de Degradado&raquo;</strong>; la clave de soporte también
+      abre el Degradado. <strong>&laquo;Practicar sin poste&raquo;</strong> está ahora en la pantalla de conectar, sin
+      clave, en los tres modos (prueba 13). Solo cambia la app: el firmware del .zip es el mismo del paquete anterior,
+      pero <strong>esta app no sirve con un firmware más viejo</strong> (por ejemplo el 6ca489f): Averías no lo
+      entiende. Cargue el del .zip (prueba 2).</li>
   </ol>
 </div>
 
@@ -158,6 +171,7 @@ button#btnPdf{
     <li>ROJO TOTAL desde ÁMBAR y desde AUTOMÁTICO, 60 s cronometrados</li>
     <li>Sin radio, el Poste 1 no inventa la luz del Poste 2</li>
     <li>Sin Modo Alcance: la radio se lee en ENLACE RADIO</li>
+    <li>Tres modos de la app y Práctica</li>
   </ol>
 </div>
 
@@ -178,7 +192,8 @@ button#btnPdf{
 </section>
 
 <div class="nota">
-  <strong>Dónde se mira cada cosa en la app.</strong> En <strong>Tráfico</strong>: la pluma como <strong>"▲ PLUMA ARRIBA"</strong> o <strong>"▼ PLUMA ABAJO"</strong> y las cámaras en la línea de resumen. Ajustes y Tramas solo salen con la clave de técnico: pulse la pastilla <strong>&laquo;Operario&raquo;</strong>. En <strong>Eventos</strong>, los avisos traducidos; en <strong>Tramas</strong>, lo que manda el poste tal cual (las palabras en <code>esta letra</code>). <strong>"PLUMA ARRIBA" es lo que el poste MANDA, no donde está el brazo:</strong> no hay final de carrera. Lo que se ve con los ojos es lo que vale.
+  <strong>Dónde se mira cada cosa en la app.</strong> En <strong>Tráfico</strong>: la pluma como <strong>"▲ PLUMA ARRIBA"</strong> o <strong>"▼ PLUMA ABAJO"</strong> y las cámaras en la línea de resumen. Tiempos, Ajustes y Tramas solo salen con la clave de técnico (1234): pulse la pastilla <strong>&laquo;Operario&raquo;</strong>.
+  La clave de Degradado (0000) no los enseña: solo abre el asistente de radio caída. En <strong>Eventos</strong>, los avisos traducidos; en <strong>Tramas</strong>, lo que manda el poste tal cual (las palabras en <code>esta letra</code>). <strong>"PLUMA ARRIBA" es lo que el poste MANDA, no donde está el brazo:</strong> no hay final de carrera. Lo que se ve con los ojos es lo que vale.
 </div>
 
 <div class="parte">
@@ -373,7 +388,15 @@ button#btnPdf{
 
 <div class="parte">
   <h2>Parte 3 (pruebas 7 a 9): cámaras sacadas y cámaras malas</h2>
-  Todo en Ajustes &rarr; <strong>&laquo;Averías: cámaras y barrera&raquo;</strong>, con la clave de técnico y el PIN; vale solo para el poste conectado. Al abrir el plegado, la línea de estado dice cómo está cada cámara y los dos ajustes. Para simular que una cámara ve algo: un puente de cable entre <strong>J16 pata 9 y 10</strong> (cámara C) o <strong>11 y 12</strong> (cámara D), que es lo mismo que el relé cerrado. <strong>Nunca toque la pata 1.</strong> La cámara solo retiene la pluma pasados los 3 s del rojo.
+  Todo en Ajustes &rarr; <strong>&laquo;Averías: cámaras y barrera&raquo;</strong>, con la clave de técnico y el PIN; vale solo para el poste conectado. Al abrir el plegado, la línea de estado dice cómo está cada cámara y los dos ajustes.
+  Debajo, cinco selectores: <strong>Cámara C</strong> y <strong>Cámara D</strong> (&laquo;Retiene la barrera (de
+  fábrica)&raquo; o &laquo;Fuera: no la mira&raquo;), <strong>Con una cámara mala</strong> (&laquo;Barrera arriba (de
+  fábrica)&raquo; o &laquo;La barrera baja&raquo;), <strong>Sin ninguna cámara</strong> (&laquo;Barrera arriba (de
+  fábrica)&raquo; o &laquo;Baja sin mirar&raquo;) y <strong>Barrera</strong>. Al abrir el plegado se ponen solos en lo
+  que dice el poste. Se cambia el selector y se pulsa <strong>&laquo;Aplicar cambios&raquo;</strong>: lo que no es de
+  fábrica pide confirmar antes, y luego el PIN si aún no lo ha puesto.
+  &laquo;Aplicar cambios&raquo; está apagado mientras los selectores digan lo mismo que el poste.
+  Para simular que una cámara ve algo: un puente de cable entre <strong>J16 pata 9 y 10</strong> (cámara C) o <strong>11 y 12</strong> (cámara D), que es lo mismo que el relé cerrado. <strong>Nunca toque la pata 1.</strong> La cámara solo retiene la pluma pasados los 3 s del rojo.
 </div>
 
 <section class="prueba" id="p7">
@@ -383,14 +406,28 @@ button#btnPdf{
     <li>Prueba 4 en OK. Poste 1 en <strong>AUTOMÁTICO</strong>, dando ciclos, app conectada al Poste 1 como técnico. Las dos cámaras con veto. Un puente de cable. Cronómetro.</li>
   </ul></div>
   <ol>
-    <li>Pulse <strong>Sacar la cámara C</strong>. Copie el aviso antes de confirmar; confirme y meta el PIN. Copie Eventos y la línea de estado del plegado.</li>
+    <li>En <strong>Cámara C</strong> elija <strong>&laquo;Fuera: no la mira&raquo;</strong> y pulse <strong>Aplicar
+      cambios</strong>. Copie el aviso antes de confirmar; confirme (<strong>Sacar la C</strong>) y meta el PIN. Copie
+      Eventos y la línea de estado del plegado.</li>
     <li>Ponga el puente <strong>durante un VERDE</strong> (con el brazo arriba; en rojo con el brazo ya abajo, se queda abajo) en <strong>C</strong> (pata 9-10). En el siguiente rojo, cronometre hasta que baje el brazo. Quite el puente.</li>
     <li>Ponga el puente en <strong>D</strong> (pata 11-12). Mire el siguiente rojo. Quite el puente.</li>
     <li>Quite la energía del poste y vuélvala. Copie el aviso de arranque de Eventos. Vuelva a <strong>VOLVER AL MENÚ</strong> y <strong>AUTOMÁTICO</strong>.</li>
-    <li>Pulse <strong>Devolver la C</strong>. Repita los pasos 1 a 3 con <strong>Sacar la cámara D</strong> (ahora el puente en D debe dejar bajar y en C retener). Pulse <strong>Devolver la D</strong>.</li>
+    <li>En <strong>Cámara C</strong> elija <strong>&laquo;Retiene la barrera (de fábrica)&raquo;</strong> y pulse
+      <strong>Aplicar cambios</strong> (lo de fábrica no pregunta). Repita los pasos 1 a 3 con <strong>Cámara D</strong>
+      en &laquo;Fuera: no la mira&raquo; (ahora el puente en D debe dejar bajar y en C retener). Devuelva la D igual que
+      la C.</li>
+    <li><strong>&laquo;Ya estaba así&raquo;:</strong> con el plegado de Averías <strong>abierto</strong> (no lo cierre),
+      desconecte el poste y vuelva a conectarlo. Los selectores quedan en
+      <strong>&laquo;— sin leer: elija —&raquo;</strong>.
+      En Cámara C elija <strong>&laquo;Retiene la barrera (de fábrica)&raquo;</strong>, que es lo que ya tiene, y pulse
+      Aplicar cambios (meta el PIN). Copie Eventos. (Con el selector igual a lo leído, &laquo;Aplicar cambios&raquo;
+      queda apagado: por eso hay que reconectar.)</li>
     <li>Repita en el <strong>Poste 2</strong> si tiene tiempo.</li>
   </ol>
-  <div class="espera">Se espera: en el paso 1, <strong>"Equipo: la cámara C queda FUERA: no retiene la barrera ni pide verde; la D sigue mirando. Qué falta: reparar o reapuntar la C y devolverle el veto."</strong>, la línea de estado con <strong>"Cámara C: FUERA del veto"</strong> y <strong>"Cámara D: con veto"</strong>, y en Tráfico las cámaras <strong>"sin veto"</strong>. En el paso 2 el brazo <strong>baja a los 3 s</strong> del rojo con el puente en C. En el paso 3 el brazo <strong>se queda arriba</strong> mientras esté el puente en D, y baja al quitarlo. En el paso 4: <strong>"Al arrancar, este poste sigue con la cámara C FUERA DEL VETO: no retiene la barrera ni pide verde. Si ya ve bien, devuélvale el veto desde Ajustes."</strong> Al devolverla: <strong>"Equipo: la cámara C vuelve al veto y a pedir verde."</strong> Lo mismo, cambiando las letras, con la D. En Tramas, <code>$ACK,CMD:SET_VETO_CAMARA:C:OFF,RESULT:OK</code> y los demás.</div>
+  <div class="espera">Se espera: en el paso 1, <strong>"Equipo: la cámara C queda FUERA: no retiene la barrera ni pide verde; la D sigue mirando. Qué falta: reparar o reapuntar la C y devolverle el veto."</strong>, la línea de estado con <strong>"Cámara C: FUERA del veto"</strong> y <strong>"Cámara D: con veto"</strong>, y en Tráfico las cámaras <strong>"sin veto"</strong>. En el paso 2 el brazo <strong>baja a los 3 s</strong> del rojo con el puente en C. En el paso 3 el brazo <strong>se queda arriba</strong> mientras esté el puente en D, y baja al quitarlo. En el paso 4: <strong>"Al arrancar, este poste sigue con la cámara C FUERA DEL VETO: no retiene la barrera ni pide verde. Si ya ve bien, devuélvale el veto desde Ajustes."</strong> Al devolverla: <strong>"Equipo: la cámara C vuelve al veto y a pedir verde."</strong> Lo mismo, cambiando las letras, con la D. En Tramas, <code>$ACK,CMD:SET_VETO_CAMARA:C:OFF,RESULT:OK</code> y los demás.
+    Tras cada OK la línea de estado y los selectores se vuelven a leer del poste. En el paso 6:
+    <strong>"Equipo: el veto de las cámaras ya estaba como lo pidió: no se cambió nada."</strong> y en Tramas
+    <code>RESULT:SIN_CAMBIO</code>. Si los selectores no quedaron en blanco al reconectar, anótelo.</div>
   <div class="horas">
     <label class="campo">Aviso antes de confirmar (copie) <input type="text" id="h7a" class="hora"></label>
     <label class="campo">Línea de estado con la C fuera (copie) <input type="text" id="h7b" class="hora"></label>
@@ -398,6 +435,7 @@ button#btnPdf{
     <label class="campo">C fuera: puente en D, ¿se quedó arriba? (sí/no) <input type="text" id="h7d" class="hora"></label>
     <label class="campo">Aviso de arranque con la C fuera (copie) <input type="text" id="h7e" class="hora"></label>
     <label class="campo">D fuera: puente en D baja (s) / puente en C retiene (sí/no) <input type="text" id="h7f" class="hora"></label>
+    <label class="campo">Paso 6: ¿en blanco? y aviso (copie) <input type="text" id="h7h" class="hora"></label>
     <label class="campo">Poste 2: lo mismo (sí/no y qué cambió) <input type="text" id="h7g" class="hora"></label>
   </div>
   <div class="resultado">
@@ -417,10 +455,12 @@ button#btnPdf{
     <li>Un puente de cable y <strong>40 minutos</strong> libres.</li>
   </ul></div>
   <ol>
-    <li>Pulse <strong>1 mala: bajar</strong> (confirme y PIN). Copie Eventos.</li>
+    <li>En <strong>Con una cámara mala</strong> elija <strong>&laquo;La barrera baja&raquo;</strong> y pulse
+      <strong>Aplicar cambios</strong> (confirme <strong>Bajar</strong> y PIN). Copie Eventos.</li>
     <li>Ponga el puente <strong>durante un VERDE</strong> en <strong>C</strong> (pata 9-10). Anote la hora. Mire los rojos: el brazo debe quedarse arriba (la C todavía retiene).</li>
     <li>Espere <strong>22 minutos</strong> desde la hora anotada. Copie la alarma de Eventos y la línea de Tramas que trae <code>CAM_PEGADA</code>. Mire el brazo en los dos rojos siguientes.</li>
-    <li>Con el puente aún puesto, pulse <strong>1 mala: arriba</strong>. Mire los dos rojos siguientes.</li>
+    <li>Con el puente aún puesto, en <strong>Con una cámara mala</strong> elija <strong>&laquo;Barrera arriba (de
+      fábrica)&raquo;</strong> y pulse <strong>Aplicar cambios</strong>. Mire los dos rojos siguientes.</li>
     <li>Quite el puente. Copie Eventos y mire el siguiente rojo.</li>
   </ol>
   <div class="espera">Se espera: en el paso 1, <strong>"Equipo: con UNA cámara mala la barrera baja tras el rojo si la otra no ve nada."</strong> Hasta los 20 min, el brazo <strong>arriba</strong> en rojo (la C retiene). A los <strong>20 min</strong>, en Tramas <code>CAM_PEGADA</code> con <code>CAM_C_CONTACTO_FIJO</code> y <code>ACCION:IGNORA_CAMARA</code> (en Eventos, &laquo;(Accion: IGNORA_CAMARA)&raquo;), cámaras <strong>PEGADA</strong> en Tráfico, y el brazo <strong>baja</strong> (en ese momento si ya está en rojo, o a los 3 s del siguiente) aunque el puente siga. En el paso 4, <strong>"Equipo: con UNA cámara mala la barrera se queda arriba en el rojo (de fábrica) hasta reparar o sacar la cámara."</strong>: el brazo sube con el siguiente verde y <strong>se queda arriba</strong> en los rojos. En el paso 5, en Tramas <code>CAM_C_RECUPERADA</code> y el brazo vuelve a bajar a los 3 s del rojo.</div>
@@ -447,11 +487,18 @@ button#btnPdf{
     <li>Prueba 8 hecha. &laquo;1 mala&raquo; en <strong>arriba</strong>. Poste 1 en AUTOMÁTICO, app como técnico. Un puente de cable y <strong>40 minutos</strong> libres.</li>
   </ul></div>
   <ol>
-    <li>Pulse <strong>Sacar la cámara D</strong> (confirme y PIN).</li>
+    <li>En <strong>Cámara D</strong> elija <strong>&laquo;Fuera: no la mira&raquo;</strong> y pulse <strong>Aplicar
+      cambios</strong> (confirme y PIN).</li>
     <li>Ponga el puente en <strong>C</strong>. Anote la hora. Espere <strong>22 minutos</strong>, hasta la alarma PEGADA de la C. Copie la alarma (debe traer <code>ACCION:PLUMA_ARRIBA</code>). Mire los dos rojos siguientes.</li>
-    <li>Pulse <strong>Ninguna: bajar</strong>. Copie el aviso antes de confirmar; confirme. Mire los dos rojos siguientes.</li>
-    <li>Pulse <strong>Ninguna: arriba</strong>. Mire el siguiente verde y rojo.</li>
-    <li>Quite el puente. Pulse <strong>Devolver la D</strong>. Deje la línea de estado como de fábrica: las dos con veto, &laquo;1 mala&raquo; y &laquo;Ninguna&raquo; en arriba. Copie la línea.</li>
+    <li>En <strong>Sin ninguna cámara</strong> elija <strong>&laquo;Baja sin mirar&raquo;</strong> y pulse
+      <strong>Aplicar cambios</strong>. Copie el aviso antes de confirmar; confirme (<strong>Bajar sin mirar</strong>).
+      Mire los dos rojos siguientes.</li>
+    <li>En <strong>Sin ninguna cámara</strong> elija <strong>&laquo;Barrera arriba (de fábrica)&raquo;</strong> y pulse
+      <strong>Aplicar cambios</strong>. Mire el siguiente verde y rojo.</li>
+    <li>Quite el puente. En <strong>Cámara D</strong> elija <strong>&laquo;Retiene la barrera (de
+      fábrica)&raquo;</strong> y pulse Aplicar cambios. Deje la línea de estado como de fábrica: las dos
+      con veto, &laquo;1 mala&raquo; y
+      &laquo;Ninguna&raquo; en arriba. Copie la línea.</li>
   </ol>
   <div class="espera">Se espera: tras la alarma PEGADA, con &laquo;Ninguna&raquo; en arriba, el brazo <strong>se queda arriba</strong> en el rojo. En el paso 3, el aviso <strong>"Sin ninguna cámara que mire, la barrera bajará tras el rojo SIN MIRAR lo que hay debajo."</strong>; luego <strong>"Equipo: sin ninguna cámara que mire la barrera baja tras el rojo sin mirar."</strong> y el brazo <strong>baja</strong> a los 3 s del rojo aunque el puente siga. En el paso 4, <strong>"Equipo: sin ninguna cámara que mire la barrera se queda arriba en el rojo (de fábrica)."</strong> y el brazo vuelve a quedarse arriba. <strong>Las luces no cambian en ningún paso:</strong> el semáforo sigue en AUTOMÁTICO.</div>
   <div class="horas">
@@ -564,9 +611,96 @@ button#btnPdf{
   <div class="print-only" id="pr12"></div>
 </section>
 
+<div class="parte">
+  <h2>Parte 5 (prueba 13): la app en tres modos</h2>
+  Solo cambia la app; el firmware es el del .zip (prueba 2). Las claves son de cada teléfono, no del poste.
+</div>
+
+<section class="prueba" id="p13">
+  <h2>13. Tres modos de la app y Práctica</h2>
+  <div class="porque"><b class="t">Por qué</b>Antes una sola clave lo abría todo. Ahora el operario no necesita
+    clave, quien pone un cruce en Degradado tiene la suya y un asistente que lo lleva paso a paso, y los ajustes
+    quedan para el técnico.</div>
+  <div class="debever"><b class="t">Debe ver antes de empezar</b><ul>
+    <li>Prueba 2 hecha: el firmware del .zip en los dos postes y la APK de este paquete en el celular. Hora puesta
+      en los dos.</li>
+    <li>Para los pasos 6 y 7: la <strong>radio entre los dos postes cortada</strong>, como la corte usted en banco
+      (nunca una radio encendida sin su antena). El asistente pide comprobarlo en persona. <strong>30 minutos</strong>
+      libres.</li>
+  </ul></div>
+  <ol>
+    <li><strong>Práctica:</strong> sin ningún poste conectado y en Operario, abra la pantalla de conectar y pulse
+      <strong>&laquo;Practicar sin poste&raquo;</strong>. Mire la parte de arriba y la lista. Salga con
+      <strong>Salir</strong> en la franja.</li>
+    <li><strong>Operario:</strong> conecte el Poste 1 sin poner clave (pastilla
+      <strong>&laquo;Operario&raquo;</strong>). Mire la barra de abajo.</li>
+    <li>Pulse la pastilla y ponga <strong>0000</strong>. Mire lo que se abre y la barra de abajo. Pulse
+      <strong>&laquo;Ver el semáforo&raquo;</strong> y luego la pastilla para volver a Operario.</li>
+    <li>Pulse la pastilla y ponga <strong>1234</strong>. Mire la barra de abajo y Ajustes &rarr; &laquo;Degradado con
+      testigo&raquo;.</li>
+    <li>Ahí pulse <strong>&laquo;Cambiar la clave de Degradado&raquo;</strong>: escriba 1234 y Guardar; luego 5678 y
+      Guardar. Vuelva a Operario, pulse la pastilla y ponga 0000; después 5678. Al acabar, vuelva a dejarla en
+      <strong>0000</strong> desde Técnico.</li>
+    <li><strong>Entrar en Degradado:</strong> en Operario, pastilla y 0000. <strong>Empezar</strong>, marque &laquo;Lo
+      he comprobado&raquo; y <strong>Seguir</strong>; si no está en el Poste 1, <strong>Buscar el poste</strong>. En
+      &laquo;Minutos hasta el POSTE 2&raquo; ponga <strong>3</strong> y pulse <strong>&laquo;Poner el POSTE 1 en rojo y
+      por reloj&raquo;</strong> (PIN). Anote la hora. Pulse
+      <strong>&laquo;Ya estoy en el POSTE 2: conectar&raquo;</strong>, elija el Poste 2, marque la casilla y pulse
+      <strong>&laquo;Poner el POSTE 2 en rojo y por reloj&raquo;</strong>
+      (PIN). Mire una vuelta completa de los dos.</li>
+    <li><strong>Terminar el Degradado:</strong> conecte el Poste 1 y, en el asistente, <strong>&laquo;Terminar el
+      Degradado&raquo;</strong> (o &laquo;Programar ya la hora de salida&raquo;). Ponga 3 minutos y pulse
+      <strong>&laquo;Programar la salida en el POSTE 1&raquo;</strong> (PIN). Conecte el Poste 2 y pulse
+      <strong>&laquo;Programar la misma salida en el POSTE 2&raquo;</strong>. A la hora de salida, mire los dos postes.
+      Pulse <strong>Terminado</strong>.</li>
+  </ol>
+  <div class="espera">Se espera: en el paso 1, la franja <strong>"SIMULADO - practica sin poste: ningun equipo
+    real"</strong> encima de todo, una lista de postes simulados y en Eventos <strong>"PRACTICA SIN POSTE: 11 postes
+    simulados en 2 vias..."</strong>; al salir, <strong>"Practica sin poste terminada: la app vuelve a la radio de
+    verdad."</strong> (con un poste conectado no entra: "Practica sin poste NO iniciada: hay un enlace abierto..."). En
+    el paso 2, en la barra de abajo <strong>no</strong> salen Tiempos, Ajustes ni Tramas. En el paso 3, la pastilla dice
+    <strong>Degradado</strong> y se abre <strong>"Radio caída: Degradado"</strong> con <strong>Empezar</strong> y
+    <strong>Terminar el Degradado</strong>; siguen sin salir Tiempos, Ajustes ni Tramas; tras &laquo;Ver el
+    semáforo&raquo; queda el botón <strong>&laquo;Volver al asistente&raquo;</strong>. En el paso 4, la pastilla dice
+    <strong>Técnico</strong>, salen Tiempos, Ajustes y Tramas, y en &laquo;Degradado con testigo&raquo; los botones
+    <strong>&laquo;Asistente paso a paso&raquo;</strong> y <strong>&laquo;Cambiar la clave de Degradado&raquo;</strong>.
+    En el paso 5: con 1234, <strong>"No puede ser igual a la de técnico."</strong>; con 5678, <strong>"Clave de
+    Degradado cambiada."</strong>; después 0000 da <strong>"Clave incorrecta."</strong> y 5678 abre el Degradado. En el
+    paso 6, tras el Poste 1: <strong>"Ahora vaya al POSTE 2"</strong> con la hora límite y lo que queda; en el Poste 2,
+    <strong>"Se usa la misma hora y los mismos tiempos del POSTE 1"</strong>; al final <strong>"Listo"</strong>: los dos
+    en rojo hasta la hora y luego alternan. <strong>Nunca los dos en verde.</strong> Si el poste no contesta, el
+    asistente dice <strong>"Enviando al POSTE 1… espere su respuesta."</strong> con <strong>&laquo;Volver a
+    enviar&raquo;</strong> (reenvía lo mismo, no cambia la hora); si lo rechaza, <strong>"El POSTE 1 no lo
+    aceptó:"</strong> y el motivo: cópielo. En el paso 7, <strong>"Listo"</strong> y
+    <strong>"Los dos saldrán a las ..."</strong>; si el
+    Poste 1 no contesta, <strong>&laquo;No contesta: programar otra vez&raquo;</strong>. A esa hora cada poste se pone
+    en rojo y después queda en <strong>ámbar intermitente</strong>. Si el asistente dice <strong>"La radio
+    volvió"</strong>, la radio no está cortada: córtela antes de seguir. &laquo;Terminado&raquo; vuelve a
+    Operario.</div>
+  <div class="horas">
+    <label class="campo">Práctica: ¿franja SIMULADO y lista? (sí/no) <input type="text" id="h13a" class="hora"></label>
+    <label class="campo">Operario: ¿Tiempos, Ajustes, Tramas? <input type="text" id="h13b" class="hora"></label>
+    <label class="campo">0000: qué se abrió <input type="text" id="h13c" class="hora"></label>
+    <label class="campo">Cambio de clave: los tres avisos (copie) <input type="text" id="h13d" class="hora"></label>
+    <label class="campo">Entrar: hora Poste 1 y hora al alternar <input type="text" id="h13e" class="hora"></label>
+    <label class="campo">Salir: hora y qué hicieron los postes <input type="text" id="h13f" class="hora"></label>
+    <label class="campo">¿«Volver a enviar» o «No contesta»? <input type="text" id="h13g" class="hora"></label>
+  </div>
+  <div class="resultado">
+    <label><input type="radio" name="r13" value="OK" data-txt="OK"> OK</label>
+    <label><input type="radio" name="r13" value="NO OK" data-txt="NO OK"> NO OK</label>
+    <label><input type="radio" name="r13" value="No se pudo probar" data-txt="No se pudo probar"> No se pudo probar</label>
+  </div>
+  <textarea id="v13" placeholder="Copie las pantallas del asistente tal cual (o capturas)"></textarea>
+  <div class="print-only" id="pr13"></div>
+</section>
+
 <section class="prueba" id="pF">
   <h2>Algo más</h2>
-  <p><strong>Pendiente de la hoja del 10/11 (prueba 30, «Averías sin efecto»):</strong> en la app y en el firmware la orden sale y el equipo siempre contesta, así que no lo hemos reproducido. Si lo repite: abra Ajustes con la clave de técnico, pulse el botón de Averías y <strong>teclee el PIN 1234 en el segundo teclado</strong> que aparece (sin él la orden no sale). Exporte la <strong>cinta de Tramas</strong> justo después y anote aquí qué botón pulsó y qué vio.</p>
+  <p><strong>Pendiente de la hoja del 10/11 (prueba 30, «Averías sin efecto»):</strong> en la app y en el firmware la orden sale y el equipo siempre contesta, así que no lo hemos reproducido. Si lo repite: abra Ajustes con la clave de técnico, abra Averías, cambie el selector, pulse
+    <strong>&laquo;Aplicar cambios&raquo;</strong> y <strong>teclee el PIN del equipo (1234)</strong> cuando lo pida
+    (sin él la orden no sale). Si &laquo;Aplicar cambios&raquo; está apagado, el selector ya dice lo que tiene el poste.
+    Exporte la <strong>cinta de Tramas</strong> justo después y anote aquí qué selector cambió y qué vio.</p>
   <textarea id="vF" placeholder="Otra cosa que quiera anotar"></textarea>
   <div class="print-only" id="prF"></div>
 </section>
@@ -637,7 +771,7 @@ button#btnPdf{
   // escrito, en texto llano. Asi, al imprimir, se ve la respuesta aunque el
   // telefono no dibuje los controles marcados. Las horas anotadas van tambien.
   var ids = [];
-  for (var i = 1; i <= 12; i++) ids.push(String(i));
+  for (var i = 1; i <= 13; i++) ids.push(String(i));
   function refrescarImpresion() {
     ids.forEach(function (n) {
       var pr = document.getElementById('pr' + n);
